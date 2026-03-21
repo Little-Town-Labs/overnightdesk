@@ -1,10 +1,10 @@
 # OvernightDesk — Product Requirements Document
 
-**Version:** 2.0
+**Version:** 2.1
 **Date:** 2026-03-21
 **Author:** OvernightDesk team
 **Status:** Draft
-**Supersedes:** PRD v1.0 (IronClaw + OpenRouter BYOK model)
+**Supersedes:** PRD v1.0 (IronClaw + OpenRouter BYOK model), PRD v2.0 (pre-engine)
 
 ---
 
@@ -43,35 +43,45 @@ OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs 
 
 ### What exists today
 
-| Component | Status |
-|-----------|--------|
-| Landing page with value proposition | Shipped |
-| Waitlist signup form (email, name, business) | Shipped |
-| Waitlist API endpoint (`POST /api/waitlist`) | Shipped |
-| Neon Postgres database (waitlist table) | Shipped |
-| Vercel Analytics | Shipped |
-| DNS + domain (Namecheap) | Shipped |
+| Component | Repo | Status |
+|-----------|------|--------|
+| Landing page with value proposition | overnightdesk | Shipped |
+| Waitlist signup form (email, name, business) | overnightdesk | Shipped |
+| Waitlist API endpoint (`POST /api/waitlist`) | overnightdesk | Shipped |
+| Neon Postgres database (waitlist table) | overnightdesk | Shipped |
+| Vercel Analytics | overnightdesk | Shipped |
+| DNS + domain (Namecheap) | overnightdesk | Shipped |
+| Go daemon — Claude Code CLI wrapper | overnightdesk-engine | Shipped |
+| Serial job queue (one Claude call at a time) | overnightdesk-engine | Shipped |
+| Heartbeat scheduler (configurable interval + quiet hours) | overnightdesk-engine | Shipped |
+| Cron engine (markdown + YAML job files) | overnightdesk-engine | Shipped |
+| REST API (20+ endpoints, Echo, bearer auth) | overnightdesk-engine | Shipped |
+| SQLite database (goose migrations, auto-setup) | overnightdesk-engine | Shipped |
+| Telegram bridge (webhook, text/voice/image) | overnightdesk-engine | Shipped |
+| Discord bridge (Gateway, DMs + mentions) | overnightdesk-engine | Shipped |
+| Web terminal proxy (WebSocket PTY, ticket auth) | overnightdesk-engine | Shipped |
+| Auth status detection (`/api/auth-status`) | overnightdesk-engine | Shipped |
+| Test suite (81.2% coverage) | overnightdesk-engine | Shipped |
+| Dockerfile (ARM64 cross-compile, no CGO) | overnightdesk-engine | Shipped |
+| Tenant deployment guide + docker-compose reference | overnightdesk-engine | Shipped |
 
 ### What does not exist yet
 
-- Authentication (sign up / sign in)
-- Subscription payments
-- Customer dashboard
-- Claude Code onboarding flow
-- Go daemon engine (new project)
-- Instance provisioning
-- Transactional email
-- Admin/ops tooling (beyond Telegram + CLI)
+- Authentication (sign up / sign in) — this repo
+- Subscription payments (Stripe) — this repo
+- Customer dashboard — this repo
+- Claude Code onboarding UI (xterm.js frontend) — this repo
+- Provisioning pipeline (Stripe → container) — this repo
+- Transactional email (Resend) — this repo
+- Fleet monitoring (Agent Zero) — this repo
 
 ### Related repositories
 
 | Repo | Purpose | Status |
 |------|---------|--------|
 | `overnightdesk` (this repo) | Vercel frontend — landing, auth, billing, dashboard | Active, Next.js live |
-| `ironclaw-saas` | Infrastructure scripts — provisioning, security, container hardening, Agent Zero | Active, scripts tested |
-| `overnightdesk-engine` (new) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant API | Not yet created |
-| `claudeclaw` | Reference implementation — studied for architecture patterns | Read-only reference |
-| `ironclaw` | Reference implementation — studied for memory/workspace schema | Read-only reference |
+| `overnightdesk-engine` | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant API | Complete, 81.2% test coverage |
+| `overnightdesk-securityteam` | Security pipeline — inbound/outbound guards, call governor, Telegram approvals | Active |
 
 ---
 
@@ -101,12 +111,12 @@ OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs 
 ├──────────────────────────────────────────────┤
 │  Oracle Cloud ARM (4 OCPU / 24GB / 200GB)    │
 │                                              │
-│  ironclaw-infra-net:                         │
+│  overnightdesk-infra-net:                    │
 │  ├── nginx (TLS, wildcard subdomain routing) │
 │  ├── provisioner (Stripe webhook receiver)   │
 │  └── Agent Zero (fleet monitoring, support)  │
 │                                              │
-│  ironclaw-tenant-net:                        │
+│  overnightdesk-tenant-net:                   │
 │  ├── tenant-alice (Go daemon + SQLite)       │
 │  ├── tenant-bob   (Go daemon + SQLite)       │
 │  └── ... up to ~40 tenants                   │
@@ -123,7 +133,7 @@ Each customer gets an isolated Docker container running:
 │                                     │
 │  Go daemon (overnightdesk-engine)   │
 │  ├── Claude Code CLI wrapper        │
-│  │   └── claude --bare -p <prompt>  │
+│  │   └── claude -p <prompt>         │
 │  │       --resume <session>         │
 │  │       --dangerously-skip-perms   │
 │  ├── Heartbeat scheduler            │
@@ -160,20 +170,21 @@ Each customer gets an isolated Docker container running:
 | Email | Resend | Not yet integrated |
 | Validation | Zod | |
 
-#### Engine (new repo — overnightdesk-engine)
+#### Engine (overnightdesk-engine — COMPLETE)
 
 | Concern | Choice | Notes |
 |---------|--------|-------|
-| Language | Go | Low memory, single binary, ARM cross-compile |
-| CLI wrapper | `claude --bare` | Headless mode, no hooks/LSP, ANTHROPIC_API_KEY or OAuth |
+| Language | Go 1.25+ | Low memory (~10MB idle), single binary, ARM cross-compile |
+| CLI wrapper | `claude -p` | Print mode with OAuth (NOT `--bare` — see Deployment Gotchas) |
 | Tenant database | SQLite | `modernc.org/sqlite` (pure Go, no CGO) |
-| Query generation | sqlc | Type-safe Go from SQL, same workflow as platform Postgres |
-| Migrations | goose | SQL-file-based, supports Postgres + SQLite |
-| HTTP framework | net/http or Echo | Tenant API + web terminal proxy |
-| Telegram | telebot or grammY (Go port) | Per-tenant bot bridge |
-| Discord | discordgo | Per-tenant bot bridge |
+| Migrations | goose | SQL-file-based, auto-run on startup |
+| HTTP framework | Echo | 20+ endpoints, bearer auth, rate limiting |
+| Telegram | webhook mode | Text, voice (Whisper), image support |
+| Discord | discordgo (Gateway) | DMs + @mentions, MESSAGE_CONTENT intent |
+| Web terminal | WebSocket PTY | Ticket auth (single-use, 30s TTL) |
+| Testing | 81.2% coverage | Mock Claude CLI (`testutil/mock_claude.sh`) |
 
-#### Infrastructure (from ironclaw-saas)
+#### Infrastructure
 
 | Concern | Choice | Notes |
 |---------|--------|-------|
@@ -181,9 +192,10 @@ Each customer gets an isolated Docker container running:
 | Containers | Docker + hardened defaults | Seccomp, AppArmor, read-only rootfs, cap-drop ALL |
 | Reverse proxy | nginx 1.27 | Wildcard TLS, per-tenant server blocks |
 | Networking | Two Docker bridge networks | infra-net + tenant-net with iptables isolation |
-| Provisioning | Shell scripts + provisioner service | Stripe webhook → container create |
-| Monitoring | Agent Zero + dead-man's switch cron | 30m heartbeat + 6h host-level liveness |
+| Provisioning | Shell scripts + provisioner service | Stripe webhook → container create (to be built) |
+| Monitoring | Agent Zero + dead-man's switch cron | 30m heartbeat + 6h host-level liveness (to be built) |
 | Platform AI | OpenRouter (platform key) | Agent Zero ops, fleet monitoring, support automation |
+| Security | overnightdesk-securityteam | Inbound/outbound guards, call governor, Telegram approvals |
 
 ---
 
@@ -268,40 +280,51 @@ Each tenant gets a bearer token generated at provisioning time for their web das
 
 **Dependencies:** Phase 1 (auth)
 
-### Phase 3: Engine MVP (overnightdesk-engine)
+### Phase 3: Engine MVP (overnightdesk-engine) — COMPLETE
 
-**Goal:** Go daemon that wraps Claude Code CLI for headless execution.
+**Status:** Shipped 2026-03-21 — 81.2% test coverage
 
-**Requirements:**
-- Spawn `claude --bare -p <prompt> --resume <session> --dangerously-skip-permissions` as child process
+**What was built:**
+- Go daemon wrapping `claude -p <prompt> --resume <session> --dangerously-skip-permissions`
 - Serial execution queue (one Claude call at a time per tenant)
 - Session management (create new, resume existing, persist session ID)
-- SQLite database for tenant data (conversations, memory, jobs, heartbeat)
-- REST API for dashboard integration (status, logs, settings, jobs)
-- Bearer token authentication on all API endpoints
-- Configurable heartbeat (periodic prompt execution with quiet hours)
-- Cron job engine (timezone-aware, markdown job files)
-- Structured logging to /data/logs/
+- SQLite database with auto-migrations (conversations, messages, jobs, heartbeat, memory, sessions, bridge configs)
+- REST API: 20+ endpoints via Echo with bearer auth, rate limiting (20 req/s), 1MB body limit
+- Heartbeat scheduler (configurable interval 60–86400s, quiet hours, failure tracking)
+- Cron engine (markdown + YAML frontmatter job files in `/data/workspace/jobs/`)
+- Telegram bridge (webhook, text/voice/image, Whisper transcription, allowed users)
+- Discord bridge (Gateway WebSocket, DMs + @mentions, text/image, allowed users)
+- Web terminal proxy (WebSocket PTY, ticket-exchange auth, 30s TTL, scoped to Claude auth)
+- Auth status endpoint (`/api/auth-status` — authenticated/not_authenticated/unknown)
+- Structured JSON logging to `/data/logs/`
 - Graceful shutdown with state persistence
-- Health check endpoint (/healthz, unauthenticated)
-- Single binary, cross-compiled for linux/arm64
+- Health check (`/healthz`, no auth)
+- Single binary, cross-compiled for linux/arm64, no CGO
+- Dockerfile + docker-compose reference + tenant deployment guide
 
-**Dependencies:** None (can be built in parallel with Phase 1-2)
+**Deployment gotchas discovered:**
+1. Use `-p` NOT `--bare -p` — bare mode breaks OAuth auth
+2. Mount both `~/.claude/` (credentials) AND `~/.claude.json` (config)
+3. Container user UID must match credential file owner (UID 1001 on Oracle VM)
+4. Set `HOME=/home/engine` explicitly in compose environment (not .env)
+5. Fix volume permissions after UID change: `chown -R NEW_UID:NEW_GID /data`
+6. Start nginx HTTP-only first, run certbot, then add HTTPS config
+7. Test from host via `curl -sk https://PUBLIC_IP/healthz -H "Host: tenant.overnightdesk.com"`
 
 ### Phase 4: Claude Code Onboarding
 
 **Goal:** Non-technical users can connect their Claude Code subscription through the dashboard.
 
-**Requirements:**
-- Embedded web terminal in dashboard (xterm.js via WebSocket to container)
+**Engine backend: COMPLETE** — Web terminal proxy (`POST /api/terminal/ticket` → WebSocket PTY), auth status endpoint (`GET /api/auth-status`), scoped terminal (not a general shell).
+
+**Remaining work (this repo — frontend only):**
+- xterm.js terminal component in Next.js dashboard
 - Guided onboarding UI: "Step 1: Click Connect → Step 2: Log in to Anthropic → Step 3: Done"
-- Terminal session scoped to Claude Code auth only (not a general shell)
-- Auth status detection (check if `~/.claude/` has valid credentials)
-- Dashboard displays auth status: connected, expired, not configured
+- Dashboard displays auth status: connected, expired, not configured (polls `/api/auth-status`)
 - Re-auth flow if token expires
 - Clear messaging: "You're logging into YOUR Claude Code account. We never see your credentials."
 
-**Dependencies:** Phase 3 (engine), Phase 5 (provisioning)
+**Dependencies:** Phase 5 (provisioning — need a running container to connect to)
 
 ### Phase 5: Provisioning Pipeline
 
@@ -320,7 +343,8 @@ Each tenant gets a bearer token generated at provisioning time for their web das
 - Deprovision on subscription cancellation (container stopped, data preserved 30 days)
 - Welcome email with dashboard URL, bearer token, and getting-started guide
 
-**Dependencies:** Phase 2 (Stripe), Phase 3 (engine), ironclaw-saas provisioning scripts
+**Dependencies:** Phase 2 (Stripe), Phase 3 (engine)
+**Note:** Provisioning scripts will be built fresh in this repo or a dedicated infra directory. The approach from ironclaw-saas (shell scripts + Docker API) will be reproduced/repurposed.
 
 ### Phase 6: Customer Dashboard
 
@@ -344,16 +368,15 @@ Each tenant gets a bearer token generated at provisioning time for their web das
 
 **Goal:** Customers can talk to their assistant via Telegram and Discord.
 
-**Requirements:**
-- Each tenant configures their own Telegram bot (token via dashboard)
-- Each tenant configures their own Discord bot (token via dashboard)
-- Setup wizard with step-by-step instructions (BotFather, Developer Portal)
-- Allowed user IDs required (non-empty) — enforced by engine
-- Text, image, and voice message support
-- Message routing: Telegram/Discord → engine → Claude CLI → response → Telegram/Discord
-- Webhook URL auto-configured: `https://{tenant}.overnightdesk.com/telegram/webhook`
+**Engine backend: COMPLETE** — Telegram bridge (webhook, text/voice/image, Whisper, allowed users, `PUT /api/telegram`), Discord bridge (Gateway, DMs + @mentions, text/image, allowed users, `PUT /api/discord`). Bot tokens stored in DB, never exposed in GET responses.
 
-**Dependencies:** Phase 3 (engine), Phase 5 (provisioning)
+**Remaining work (this repo — frontend only):**
+- Telegram setup wizard in dashboard (BotFather instructions, token input, user ID input)
+- Discord setup wizard in dashboard (Developer Portal instructions, token input, user ID input)
+- Bridge status display (connected/disconnected, last message timestamp)
+- Calls engine API: `PUT /api/telegram`, `PUT /api/discord`, `GET /api/telegram`, `GET /api/discord`
+
+**Dependencies:** Phase 5 (provisioning), Phase 6 (dashboard)
 
 ### Phase 8: Transactional Email (Resend)
 
@@ -515,7 +538,7 @@ claude_sessions
 
 ## 7. Container Security
 
-Carried from ironclaw-saas security work. Applied to every tenant container.
+Applied to every tenant container. Security policies reproduced from prior infrastructure work.
 
 ### Non-Negotiable Hardening
 
@@ -523,8 +546,8 @@ Carried from ironclaw-saas security work. Applied to every tenant container.
 --read-only                              # Immutable root filesystem
 --cap-drop ALL                           # No Linux capabilities
 --security-opt no-new-privileges:true    # No privilege escalation
---security-opt seccomp=claudeclaw.json   # Custom seccomp profile
---security-opt apparmor=claudeclaw       # AppArmor write restriction
+--security-opt seccomp=overnightdesk.json # Custom seccomp profile
+--security-opt apparmor=overnightdesk    # AppArmor write restriction
 --pids-limit 256                         # Fork bomb protection
 --tmpfs /tmp --tmpfs /run                # Ephemeral temp storage
 --memory 512m --memory-swap 512m         # Memory cap, no swap
@@ -533,7 +556,7 @@ Carried from ironclaw-saas security work. Applied to every tenant container.
 
 ### Network Isolation
 
-- Two Docker networks: `ironclaw-infra-net` (infrastructure) + `ironclaw-tenant-net` (tenants)
+- Two Docker networks: `overnightdesk-infra-net` (infrastructure) + `overnightdesk-tenant-net` (tenants)
 - Inter-tenant traffic blocked via iptables
 - Egress limited to port 443 (Anthropic API) + platform DB
 - DNS resolution restricted
@@ -637,7 +660,7 @@ Claude Code runs with full tool access inside the container. The container secur
 2. **Trial period** — Free trial before payment, or pay-first with money-back guarantee?
 3. **Instance limits** — One instance per user, or can Pro users run multiple?
 4. **Claude Code subscription guidance** — Do we recommend a specific Claude plan? (Max vs Pro vs Team)
-5. **Web terminal security** — How to scope the embedded terminal to auth-only and prevent general shell access?
+5. ~~**Web terminal security**~~ — RESOLVED: Engine uses ticket-exchange auth (single-use, 30s TTL), spawns only `claude` process in PTY (not a general shell), sanitizes environment (strips BEARER_TOKEN and API keys).
 6. **Monitoring push vs pull** — Should Oracle instance push status to NeonDB/Vercel, or should Vercel poll the tenant APIs?
 7. **Token expiry** — What happens when a customer's Claude Code OAuth token expires and they're not around to re-auth? Grace period? Notification?
 
