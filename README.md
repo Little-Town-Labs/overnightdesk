@@ -81,10 +81,21 @@ NEXT_PUBLIC_APP_URL=https://overnightdesk.com
 
 ## Related Projects
 
+OvernightDesk is a multi-repo platform. These three repos work together:
+
+| Repo | Purpose | Status |
+|------|---------|--------|
+| [`overnightdesk`](../overnightdesk) | **This repo** — Vercel frontend (landing, auth, billing, dashboard) | Active |
+| [`overnightdesk-engine`](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant REST API | Complete |
+| [`overnightdesk-securityteam`](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor, Telegram approvals | Active |
+
+Supporting repos (not part of the core platform):
+
 | Repo | Purpose |
 |------|---------|
-| `ironclaw-saas` | Infrastructure layer — provisions and operates IronClaw instances on Oracle Cloud |
-| `ironclaw` | Upstream AI assistant engine (not ours) |
+| `ironclaw-saas` | Infrastructure layer — provisioning scripts, container hardening, Agent Zero (Oracle Cloud) |
+| `ironclaw` | Upstream reference — studied for memory/workspace schema |
+| `claudeclaw` | Upstream reference — studied for architecture patterns |
 
 ## Development
 
