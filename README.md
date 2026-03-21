@@ -89,14 +89,6 @@ OvernightDesk is a multi-repo platform. These three repos work together:
 | [`overnightdesk-engine`](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant REST API | Complete |
 | [`overnightdesk-securityteam`](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor, Telegram approvals | Active |
 
-Supporting repos (not part of the core platform):
-
-| Repo | Purpose |
-|------|---------|
-| `ironclaw-saas` | Infrastructure layer — provisioning scripts, container hardening, Agent Zero (Oracle Cloud) |
-| `ironclaw` | Upstream reference — studied for memory/workspace schema |
-| `claudeclaw` | Upstream reference — studied for architecture patterns |
-
 ## Development
 
 ```bash
