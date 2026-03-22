@@ -9,7 +9,9 @@
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.0",
@@ -22,14 +24,18 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",
+    "@types/jest": "^30.0.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "better-auth": "^1.5.5",
     "drizzle-kit": "^0.30.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.2.0",
+    "jest": "^30.3.0",
     "postcss": "^8.5.0",
     "tailwindcss": "^4.0.0",
+    "ts-jest": "^29.4.6",
     "typescript": "^5.7.0"
   }
 }
