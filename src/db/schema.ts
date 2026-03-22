@@ -197,6 +197,7 @@ export const instance = pgTable("instance", {
   provisionedAt: timestamp("provisioned_at", { withTimezone: true }),
   deprovisionedAt: timestamp("deprovisioned_at", { withTimezone: true }),
   lastHealthCheck: timestamp("last_health_check", { withTimezone: true }),
+  consecutiveHealthFailures: integer("consecutive_health_failures").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

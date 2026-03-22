@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getInstanceForUser } from "@/lib/instance";
+import { isAdmin } from "@/lib/billing";
 import { SignOutButton } from "./sign-out-button";
 import { DashboardNav } from "./dashboard-nav";
 
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
 
   const inst = await getInstanceForUser(session.user.id);
   const instanceRunning = inst?.status === "running";
+  const adminUser = isAdmin(session.user.email);
 
   return (
     <div className="min-h-screen bg-zinc-950 p-8">
@@ -34,7 +36,7 @@ export default async function DashboardLayout({
           <SignOutButton />
         </div>
 
-        <DashboardNav instanceRunning={instanceRunning} />
+        <DashboardNav instanceRunning={instanceRunning} isAdmin={adminUser} />
 
         {children}
       </div>

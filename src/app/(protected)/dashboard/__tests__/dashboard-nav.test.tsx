@@ -4,8 +4,12 @@ import { tabs, type NavTab } from "../dashboard-nav";
 // which require a browser/jsdom environment. We test the exported tab
 // configuration and the filtering logic that drives tab visibility.
 
-function getVisibleTabs(allTabs: NavTab[], instanceRunning: boolean): NavTab[] {
-  return allTabs.filter((tab) => !tab.requiresRunning || instanceRunning);
+function getVisibleTabs(allTabs: NavTab[], instanceRunning: boolean, isAdmin = false): NavTab[] {
+  return allTabs.filter(
+    (tab) =>
+      (!tab.requiresRunning || instanceRunning) &&
+      (!tab.adminOnly || isAdmin)
+  );
 }
 
 function getActiveClass(
@@ -22,8 +26,8 @@ function getActiveClass(
 
 describe("DashboardNav", () => {
   describe("tab configuration", () => {
-    it("exports all seven tabs", () => {
-      expect(tabs).toHaveLength(7);
+    it("exports all nine tabs", () => {
+      expect(tabs).toHaveLength(9);
     });
 
     it("has correct tab labels in order", () => {
@@ -34,8 +38,10 @@ describe("DashboardNav", () => {
         "Jobs",
         "Activity",
         "Logs",
+        "Usage",
         "Bridges",
         "Settings",
+        "Admin",
       ]);
     });
 
@@ -47,50 +53,72 @@ describe("DashboardNav", () => {
         "/dashboard/jobs",
         "/dashboard/activity",
         "/dashboard/logs",
+        "/dashboard/usage",
         "/dashboard/bridges",
         "/dashboard/settings",
+        "/dashboard/admin/fleet",
       ]);
     });
 
-    it("marks Overview and Settings as not requiring running instance", () => {
+    it("marks Overview, Settings, and Admin as not requiring running instance", () => {
       const alwaysVisible = tabs.filter((t) => !t.requiresRunning);
       expect(alwaysVisible.map((t) => t.label)).toEqual([
         "Overview",
         "Settings",
+        "Admin",
       ]);
     });
 
-    it("marks Heartbeat, Jobs, Activity, Logs, Bridges as requiring running instance", () => {
+    it("marks Heartbeat, Jobs, Activity, Logs, Usage, Bridges as requiring running instance", () => {
       const managementTabs = tabs.filter((t) => t.requiresRunning);
       expect(managementTabs.map((t) => t.label)).toEqual([
         "Heartbeat",
         "Jobs",
         "Activity",
         "Logs",
+        "Usage",
         "Bridges",
       ]);
+    });
+
+    it("marks Admin tab as admin-only", () => {
+      const adminTabs = tabs.filter((t) => t.adminOnly);
+      expect(adminTabs.map((t) => t.label)).toEqual(["Admin"]);
     });
   });
 
   describe("tab visibility filtering", () => {
-    it("shows all tabs when instance is running", () => {
-      const visible = getVisibleTabs(tabs, true);
-      expect(visible).toHaveLength(7);
+    it("shows all non-admin tabs when instance is running (non-admin user)", () => {
+      const visible = getVisibleTabs(tabs, true, false);
+      expect(visible).toHaveLength(8);
       expect(visible.map((t) => t.label)).toEqual([
         "Overview",
         "Heartbeat",
         "Jobs",
         "Activity",
         "Logs",
+        "Usage",
         "Bridges",
         "Settings",
       ]);
     });
 
+    it("shows all tabs including Admin when instance is running and user is admin", () => {
+      const visible = getVisibleTabs(tabs, true, true);
+      expect(visible).toHaveLength(9);
+      expect(visible.map((t) => t.label)).toContain("Admin");
+    });
+
     it("hides management tabs when instance is not running", () => {
-      const visible = getVisibleTabs(tabs, false);
+      const visible = getVisibleTabs(tabs, false, false);
       expect(visible).toHaveLength(2);
       expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings"]);
+    });
+
+    it("shows Admin tab for admin even when instance is not running", () => {
+      const visible = getVisibleTabs(tabs, false, true);
+      expect(visible).toHaveLength(3);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Admin"]);
     });
   });
 

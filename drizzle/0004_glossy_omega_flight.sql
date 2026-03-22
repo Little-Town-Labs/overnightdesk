@@ -1,0 +1,1 @@
+ALTER TABLE "instance" ADD COLUMN "consecutive_health_failures" integer DEFAULT 0 NOT NULL;

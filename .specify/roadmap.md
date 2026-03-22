@@ -314,11 +314,11 @@ Feature 10 (Metrics) → Independent after 5
 - [x] Implement Features 7 and 8
 - [x] **Gate:** Dashboard with heartbeat, jobs, activity, logs, bridges, settings, restart
 
-### Phase 5: Operations
-- [ ] `/speckit-specify 9-fleet-monitoring`
-- [ ] `/speckit-specify 10-usage-metrics`
-- [ ] Implement Features 9 and 10
-- [ ] **Gate:** Platform has operational visibility
+### Phase 5: Operations — COMPLETE (2026-03-22)
+- [x] `/speckit-specify 9-fleet-monitoring` — health checks, owner Telegram alerts, admin fleet dashboard
+- [x] `/speckit-specify 10-usage-metrics` — daily collection, customer usage, admin business metrics
+- [x] Implement Features 9 and 10
+- [x] **Gate:** Vercel Cron health checks (30min) + usage collection (daily), admin dashboards, Telegram notifications
 
 ---
 
