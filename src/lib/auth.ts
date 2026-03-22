@@ -3,6 +3,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import {
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "@/lib/email";
 
 export const auth = betterAuth({
   appName: "OvernightDesk",
@@ -21,16 +25,20 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
     autoSignIn: true,
     sendResetPassword: async ({ user, url }) => {
-      // Stub: Feature 3 (Transactional Email) will replace with Resend
-      console.log(`[AUTH] Password reset for ${user.email}: ${url}`);
+      await sendPasswordResetEmail(
+        { email: user.email, name: user.name },
+        url
+      );
     },
     resetPasswordTokenExpiresIn: 3600,
   },
 
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
-      // Stub: Feature 3 (Transactional Email) will replace with Resend
-      console.log(`[AUTH] Verification email for ${user.email}: ${url}`);
+      await sendVerificationEmail(
+        { email: user.email, name: user.name },
+        url
+      );
     },
     sendOnSignUp: true,
     autoSignInAfterVerification: true,

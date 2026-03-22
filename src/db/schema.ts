@@ -60,6 +60,16 @@ export const subscriptionPlanEnum = pgEnum("subscription_plan", [
   "pro",
 ]);
 
+export const emailTypeEnum = pgEnum("email_type", [
+  "verification",
+  "password_reset",
+  "welcome",
+  "payment_failure",
+  "provisioning",
+]);
+
+export const emailStatusEnum = pgEnum("email_status", ["sent", "failed"]);
+
 // ---------------------------------------------------------------------------
 // Better Auth tables
 // ---------------------------------------------------------------------------
@@ -78,6 +88,7 @@ export const user = pgTable("user", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  emailOptOut: boolean("email_opt_out").notNull().default(false),
 });
 
 export const session = pgTable("session", {
@@ -230,6 +241,19 @@ export const platformAuditLog = pgTable("platform_audit_log", {
     .defaultNow(),
 });
 
+export const emailLog = pgTable("email_log", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+  recipientEmail: text("recipient_email").notNull(),
+  emailType: emailTypeEnum("email_type").notNull(),
+  resendId: text("resend_id"),
+  status: emailStatusEnum("status").notNull().default("sent"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 // ---------------------------------------------------------------------------
 // Relations (for type-safe Drizzle query API)
 // ---------------------------------------------------------------------------
@@ -274,4 +298,8 @@ export const usageMetricRelations = relations(usageMetric, ({ one }) => ({
     fields: [usageMetric.instanceId],
     references: [instance.id],
   }),
+}));
+
+export const emailLogRelations = relations(emailLog, ({ one }) => ({
+  user: one(user, { fields: [emailLog.userId], references: [user.id] }),
 }));
