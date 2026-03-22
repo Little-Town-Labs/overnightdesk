@@ -1,26 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { isAdmin } from "@/lib/billing";
+import { requireAdmin } from "@/lib/require-admin";
 import { db } from "@/db";
 import { instance } from "@/db/schema";
 
 export async function GET(_request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers() });
-
-  if (!session) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
-
-  if (!isAdmin(session.user.email)) {
-    return NextResponse.json(
-      { success: false, error: "Forbidden" },
-      { status: 403 }
-    );
-  }
+  const admin = await requireAdmin();
+  if (!admin.ok) return admin.response;
 
   const instances = await db
     .select({

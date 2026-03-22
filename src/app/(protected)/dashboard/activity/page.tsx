@@ -27,7 +27,7 @@ export default async function ActivityPage() {
     );
   }
 
-  const conversations = await getConversations(inst.subdomain, inst.engineApiKey);
+  const conversations = await getConversations(inst.subdomain, inst.engineApiKey, { limit: "50" });
 
   return <ActivityList initialConversations={conversations} />;
 }

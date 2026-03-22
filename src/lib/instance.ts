@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { randomBytes } from "crypto";
 import { hash } from "bcryptjs";
 import { db } from "@/db";
@@ -7,10 +8,10 @@ import { eq } from "drizzle-orm";
 const PORT_MIN = 4000;
 const PORT_MAX = 4999;
 
-export async function getInstanceForUser(userId: string) {
+export const getInstanceForUser = cache(async (userId: string) => {
   const rows = await db.select().from(instance).where(eq(instance.userId, userId));
   return rows[0] ?? null;
-}
+});
 
 export function generateTenantId(userId: string): string {
   return userId.replace(/-/g, "").slice(0, 12).toLowerCase();

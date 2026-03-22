@@ -42,6 +42,10 @@ export default async function BridgesPage() {
     getDiscordConfig(inst.subdomain, inst.engineApiKey),
   ]);
 
+  // Strip sensitive fields before passing to client component
+  const safeTelegram = telegramConfig ? { ...telegramConfig, bot_token: undefined } : null;
+  const safeDiscord = discordConfig ? { ...discordConfig, bot_token: undefined } : null;
+
   return (
     <div className="min-h-screen bg-zinc-950 p-8">
       <div className="max-w-4xl mx-auto">
@@ -63,12 +67,12 @@ export default async function BridgesPage() {
         <div className="grid gap-6 md:grid-cols-2">
           <BridgeStatusCard
             type="telegram"
-            config={telegramConfig}
+            config={safeTelegram}
             instanceSubdomain={inst.subdomain}
           />
           <BridgeStatusCard
             type="discord"
-            config={discordConfig}
+            config={safeDiscord}
             instanceSubdomain={inst.subdomain}
           />
         </div>

@@ -15,8 +15,18 @@ function checkRestartRateLimit(userId: string): boolean {
   const windowMs = 300_000;
   const maxRequests = 1;
 
+  // Circuit breaker: clear entire map if it grows too large (serverless edge case)
+  if (restartTimestamps.size > 10_000) {
+    restartTimestamps.clear();
+  }
+
   const timestamps = restartTimestamps.get(userId) ?? [];
   const recent = timestamps.filter((t) => now - t < windowMs);
+
+  // Clean up stale entry if all timestamps expired
+  if (recent.length === 0 && timestamps.length > 0) {
+    restartTimestamps.delete(userId);
+  }
 
   if (recent.length >= maxRequests) {
     restartTimestamps.set(userId, recent);

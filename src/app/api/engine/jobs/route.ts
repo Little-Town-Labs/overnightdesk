@@ -21,8 +21,18 @@ function checkJobRateLimit(userId: string): boolean {
   const windowMs = 60_000;
   const maxRequests = 10;
 
+  // Circuit breaker: clear entire map if it grows too large (serverless edge case)
+  if (jobCreateTimestamps.size > 10_000) {
+    jobCreateTimestamps.clear();
+  }
+
   const timestamps = jobCreateTimestamps.get(userId) ?? [];
   const recent = timestamps.filter((t) => now - t < windowMs);
+
+  // Clean up stale entry if all timestamps expired
+  if (recent.length === 0 && timestamps.length > 0) {
+    jobCreateTimestamps.delete(userId);
+  }
 
   if (recent.length >= maxRequests) {
     jobCreateTimestamps.set(userId, recent);

@@ -7,6 +7,8 @@ import { db } from "@/db";
 import { user, account, subscription, platformAuditLog } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { getInstanceForUser } from "@/lib/instance";
+import { provisionerClient } from "@/lib/provisioner";
 
 const deleteAccountSchema = z.object({
   password: z.string().min(1),
@@ -92,6 +94,16 @@ export async function POST(request: NextRequest) {
         { success: false, error: "Failed to cancel subscription. Please try again or contact support." },
         { status: 500 }
       );
+    }
+  }
+
+  // Deprovision running instance
+  const inst = await getInstanceForUser(session.user.id);
+  if (inst && inst.status === "running" && inst.tenantId) {
+    try {
+      await provisionerClient.deprovision(inst.tenantId);
+    } catch {
+      // Log but don't block deletion — container will be cleaned up by dead-man's switch
     }
   }
 

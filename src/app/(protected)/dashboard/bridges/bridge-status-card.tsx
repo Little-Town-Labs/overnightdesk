@@ -34,7 +34,7 @@ export function BridgeStatusCard({ type, config, instanceSubdomain }: BridgeStat
   const [showConfirm, setShowConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const isConfigured = config !== null && typeof config.bot_token === "string";
+  const isConfigured = config !== null;
   const isEnabled = isConfigured && config.enabled === true;
   const allowedUsers = isConfigured
     ? (config.allowed_users as unknown[] | undefined) ?? []

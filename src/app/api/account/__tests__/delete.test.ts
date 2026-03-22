@@ -68,6 +68,18 @@ jest.mock("bcryptjs", () => ({
   compare: jest.fn(),
 }));
 
+const mockGetInstanceForUser = jest.fn();
+jest.mock("@/lib/instance", () => ({
+  getInstanceForUser: (...args: unknown[]) => mockGetInstanceForUser(...args),
+}));
+
+const mockDeprovision = jest.fn();
+jest.mock("@/lib/provisioner", () => ({
+  provisionerClient: {
+    deprovision: (...args: unknown[]) => mockDeprovision(...args),
+  },
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------

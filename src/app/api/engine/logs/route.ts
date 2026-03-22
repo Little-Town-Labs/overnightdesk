@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   const { subdomain, engineApiKey } = result.instance;
   const linesStr = request.nextUrl.searchParams.get("lines");
-  const lines = linesStr ? Number(linesStr) : undefined;
+  const lines = linesStr ? Math.min(Math.max(1, Number(linesStr) || 100), 1000) : undefined;
 
   const logs = await getEngineLogs(subdomain, engineApiKey, lines);
 
