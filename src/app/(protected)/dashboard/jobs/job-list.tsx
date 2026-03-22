@@ -11,7 +11,7 @@ interface Job {
   prompt?: string;
   result?: string;
   error?: string;
-  createdAt?: string;
+  created_at?: string;
 }
 
 interface JobListProps {
@@ -183,9 +183,9 @@ export function JobList({ initialJobs }: JobListProps) {
                     <span className="text-white text-sm font-medium truncate block">
                       {job.name || "Untitled"}
                     </span>
-                    {job.createdAt && (
+                    {job.created_at && (
                       <span className="text-zinc-500 text-xs">
-                        {formatTime(job.createdAt)}
+                        {formatTime(job.created_at)}
                       </span>
                     )}
                   </div>

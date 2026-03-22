@@ -29,7 +29,16 @@ export async function GET(_request: NextRequest) {
     );
   }
 
-  return NextResponse.json({ success: true, data: config });
+  const mapped = {
+    enabled: config.enabled,
+    intervalSeconds: config.interval_seconds,
+    lastRun: config.last_run,
+    nextRun: config.next_run,
+    consecutiveFailures: config.consecutive_failures,
+    prompt: config.prompt,
+  };
+
+  return NextResponse.json({ success: true, data: mapped });
 }
 
 export async function PUT(request: NextRequest) {
@@ -59,10 +68,15 @@ export async function PUT(request: NextRequest) {
   }
 
   const { subdomain, engineApiKey } = result.instance;
+  const enginePayload: Record<string, unknown> = {};
+  if (parsed.data.enabled !== undefined) enginePayload.enabled = parsed.data.enabled;
+  if (parsed.data.intervalSeconds !== undefined) enginePayload.interval_seconds = parsed.data.intervalSeconds;
+  if (parsed.data.prompt !== undefined) enginePayload.prompt = parsed.data.prompt;
+
   const updated = await updateHeartbeatConfig(
     subdomain,
     engineApiKey,
-    parsed.data
+    enginePayload
   );
 
   if (updated === null) {

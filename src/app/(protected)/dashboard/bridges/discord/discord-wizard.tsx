@@ -11,7 +11,7 @@ type WizardStep = 1 | 2 | 3 | 4 | 5;
 
 export function DiscordWizard({ initialConfig }: DiscordWizardProps) {
   const router = useRouter();
-  const isReconfigure = initialConfig !== null && typeof initialConfig.bot_token === "string";
+  const isReconfigure = initialConfig !== null && initialConfig.enabled !== undefined;
 
   const [step, setStep] = useState<WizardStep>(1);
   const [botToken, setBotToken] = useState("");

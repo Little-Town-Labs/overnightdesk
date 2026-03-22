@@ -57,7 +57,7 @@ export async function POST() {
     success: true,
     data: {
       ticket,
-      wsUrl: `wss://${inst.subdomain}/api/terminal/ws`,
+      wsUrl: `wss://${inst.subdomain}/api/terminal`,
     },
   });
 }

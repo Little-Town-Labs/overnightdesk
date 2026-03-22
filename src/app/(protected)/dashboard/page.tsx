@@ -233,20 +233,20 @@ export default async function DashboardPage() {
                 </dd>
               </div>
             )}
-            {engineStatus.queue_depth != null && (
+            {(engineStatus.queue as Record<string, unknown>)?.queue_depth != null && (
               <div>
                 <dt className="text-sm text-zinc-500">Queue Depth</dt>
                 <dd className="text-white">
-                  {String(engineStatus.queue_depth)} jobs
+                  {String((engineStatus.queue as Record<string, unknown>).queue_depth)} jobs
                 </dd>
               </div>
             )}
-            {engineStatus.heartbeat_last_run != null && (
+            {(engineStatus.heartbeat as Record<string, unknown>)?.last_run != null && (
               <div>
                 <dt className="text-sm text-zinc-500">Last Heartbeat</dt>
                 <dd className="text-white">
                   {new Date(
-                    String(engineStatus.heartbeat_last_run)
+                    String((engineStatus.heartbeat as Record<string, unknown>).last_run)
                   ).toLocaleString()}
                 </dd>
               </div>

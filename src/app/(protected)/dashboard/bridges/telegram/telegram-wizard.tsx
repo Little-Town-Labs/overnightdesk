@@ -15,7 +15,7 @@ function isValidBotToken(token: string): boolean {
 
 export function TelegramWizard({ initialConfig }: TelegramWizardProps) {
   const router = useRouter();
-  const isReconfigure = initialConfig !== null && typeof initialConfig.bot_token === "string";
+  const isReconfigure = initialConfig !== null && initialConfig.enabled !== undefined;
 
   const [step, setStep] = useState<WizardStep>(1);
   const [botToken, setBotToken] = useState("");

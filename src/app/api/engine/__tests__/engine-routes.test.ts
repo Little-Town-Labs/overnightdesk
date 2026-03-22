@@ -292,15 +292,16 @@ describe("Engine Proxy API Routes", () => {
 
     it("returns 200 with heartbeat config on success", async () => {
       setupAuthenticated();
-      const heartbeatData = {
+      // Engine returns snake_case
+      const engineResponse = {
         enabled: true,
-        intervalSeconds: 300,
+        interval_seconds: 300,
         prompt: "Check inbox and summarize new emails",
-        lastRun: "2026-03-22T10:00:00Z",
-        nextRun: "2026-03-22T10:05:00Z",
-        consecutiveFailures: 0,
+        last_run: "2026-03-22T10:00:00Z",
+        next_run: "2026-03-22T10:05:00Z",
+        consecutive_failures: 0,
       };
-      mockGetHeartbeatConfig.mockResolvedValue(heartbeatData);
+      mockGetHeartbeatConfig.mockResolvedValue(engineResponse);
 
       const { GET } = await import(
         "@/app/api/engine/heartbeat/route"
@@ -311,7 +312,15 @@ describe("Engine Proxy API Routes", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.data).toEqual(heartbeatData);
+      // Proxy transforms to camelCase
+      expect(data.data).toEqual({
+        enabled: true,
+        intervalSeconds: 300,
+        prompt: "Check inbox and summarize new emails",
+        lastRun: "2026-03-22T10:00:00Z",
+        nextRun: "2026-03-22T10:05:00Z",
+        consecutiveFailures: 0,
+      });
       expect(mockGetHeartbeatConfig).toHaveBeenCalledWith(
         "tenant.overnightdesk.com",
         "engine-api-key-123"
@@ -379,7 +388,7 @@ describe("Engine Proxy API Routes", () => {
       expect(mockUpdateHeartbeatConfig).toHaveBeenCalledWith(
         "tenant.overnightdesk.com",
         "engine-api-key-123",
-        validHeartbeatBody
+        { enabled: true, interval_seconds: 300, prompt: "Check inbox" }
       );
     });
 

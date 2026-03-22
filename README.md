@@ -10,7 +10,7 @@ OvernightDesk is a multi-repo platform:
 
 | Repo | Purpose | Status |
 |------|---------|--------|
-| **overnightdesk** (this repo) | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | All 10 features complete |
+| **overnightdesk** (this repo) | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | 12 features, invite-only launch ready |
 | [overnightdesk-engine](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant REST API | Complete (81.2% coverage) |
 | [overnightdesk-securityteam](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor | Schema complete |
 
@@ -42,7 +42,7 @@ Customer Dashboard → Engine REST API → Jobs, Heartbeat, Conversations, Bridg
 | Hosting | Vercel | Edge-optimized, Cron jobs |
 | Domain | overnightdesk.com | Namecheap |
 
-## Features (All Complete)
+## Features
 
 ### Phase 1: Foundation
 - **Database Schema** — Users, subscriptions, instances, fleet events, usage metrics, audit log
@@ -78,6 +78,10 @@ Customer Dashboard → Engine REST API → Jobs, Heartbeat, Conversations, Bridg
 - **Dead-Man's Switch** — Host-level cron independent of the app (6h threshold)
 - **Usage Metrics** — Daily collection from engine API, customer usage display, admin business metrics
 - **Admin Dashboard** — Fleet health table, event history, subscriber count, churn risk detection
+
+### Phase 6: Hardening
+- **Invite-Only Launch** — INVITED_EMAILS registration gate, middleware whitelist for system routes, timing-safe provisioner auth, security headers, landing page copy fix
+- **Contract Tests** — 28 contract tests validating all 16 engine-client functions against real engine response shapes. Fixed 7 integration bugs (WebSocket URL, heartbeat field mapping, Message JSON tags, job timestamps, status nested fields, bridge reconfig detection)
 
 ## Project Structure
 
@@ -165,7 +169,7 @@ See `.env.example` for full list. Key groups:
 - **Database:** `DATABASE_URL`, `DATABASE_TEST_URL`
 - **Auth:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
 - **Stripe:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs
-- **Billing:** `NEXT_PUBLIC_BILLING_ENABLED`, `ADMIN_EMAILS`
+- **Billing:** `NEXT_PUBLIC_BILLING_ENABLED`, `ADMIN_EMAILS`, `INVITED_EMAILS`
 - **Email:** `RESEND_API_KEY`, `EMAIL_FROM`
 - **Provisioner:** `PROVISIONER_URL`, `PROVISIONER_SECRET`
 - **Monitoring:** `CRON_SECRET`, `OWNER_TELEGRAM_BOT_TOKEN`, `OWNER_TELEGRAM_CHAT_ID`
@@ -189,7 +193,7 @@ npm run db:studio     # Open Drizzle Studio
 ### Testing
 
 ```bash
-npm test              # Run all 485 tests (29 suites)
+npm test              # Run all 529 tests (30 suites)
 npm test -- --watch   # Watch mode
 ```
 
