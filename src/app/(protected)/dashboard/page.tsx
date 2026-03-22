@@ -2,6 +2,8 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignOutButton } from "./sign-out-button";
+import { getSubscriptionForUser, isAdmin } from "@/lib/billing";
+import { ManageBillingButton } from "./manage-billing-button";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -11,6 +13,17 @@ export default async function DashboardPage() {
   if (!session) {
     redirect("/sign-in");
   }
+
+  const userIsAdmin = isAdmin(session.user.email);
+  const rawSub = await getSubscriptionForUser(session.user.id);
+  const sub = rawSub
+    ? {
+        status: rawSub.status,
+        plan: rawSub.plan,
+        currentPeriodEnd: rawSub.currentPeriodEnd,
+        hasStripeCustomer: !!rawSub.stripeCustomerId,
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-zinc-950 p-8">
@@ -25,28 +38,81 @@ export default async function DashboardPage() {
           <SignOutButton />
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Account Info</h2>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm text-zinc-500">Name</dt>
-              <dd className="text-white">{session.user.name}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-zinc-500">Email</dt>
-              <dd className="text-white">{session.user.email}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-zinc-500">Email Verified</dt>
-              <dd className="text-white">
-                {session.user.emailVerified ? "Yes" : "No"}
-              </dd>
-            </div>
-          </dl>
+        {sub?.status === "past_due" && (
+          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+            <p className="text-amber-300 text-sm font-medium">
+              Your payment failed. Please update your payment method within the
+              grace period to avoid service interruption.
+            </p>
+            <ManageBillingButton className="mt-2 text-amber-400 hover:text-amber-300 text-sm underline" />
+          </div>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Account Info
+            </h2>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm text-zinc-500">Name</dt>
+                <dd className="text-white">{session.user.name}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-zinc-500">Email</dt>
+                <dd className="text-white">{session.user.email}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-zinc-500">Email Verified</dt>
+                <dd className="text-white">
+                  {session.user.emailVerified ? "Yes" : "No"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Subscription
+              {userIsAdmin && (
+                <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-normal">
+                  Admin
+                </span>
+              )}
+            </h2>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm text-zinc-500">Plan</dt>
+                <dd className="text-white capitalize">
+                  {userIsAdmin ? "Pro (Admin)" : sub?.plan ?? "None"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm text-zinc-500">Status</dt>
+                <dd className="text-white capitalize">
+                  {userIsAdmin ? "Active" : sub?.status ?? "No subscription"}
+                </dd>
+              </div>
+              {sub?.currentPeriodEnd && (
+                <div>
+                  <dt className="text-sm text-zinc-500">Next Billing Date</dt>
+                  <dd className="text-white">
+                    {new Date(sub.currentPeriodEnd).toLocaleDateString()}
+                  </dd>
+                </div>
+              )}
+            </dl>
+            {sub?.hasStripeCustomer && (
+              <div className="mt-4">
+                <ManageBillingButton className="text-sm text-blue-400 hover:text-blue-300 underline" />
+              </div>
+            )}
+          </div>
         </div>
 
         <p className="mt-6 text-zinc-500 text-sm text-center">
-          More dashboard features coming soon — subscription management, instance status, and settings.
+          More dashboard features coming soon — instance status, Claude Code
+          onboarding, and settings.
         </p>
       </div>
     </div>
