@@ -322,9 +322,32 @@ Feature 10 (Metrics) → Independent after 5
 
 ---
 
-## Next Steps
+## Completion Summary
 
-Start with Phase 1, Feature 1:
-```
-/speckit-specify 1-platform-schema
-```
+All 10 features from the PRD v2.1 are implemented on the Vercel side. 485 tests across 29 suites. Build passes.
+
+### Commit History
+
+| Phase | Commits | Features |
+|-------|---------|----------|
+| Phase 1 | `35dc58d`...`9183817` | Schema, Auth, Email |
+| Phase 2 | `70dfb54` | Stripe Payments |
+| Phase 3 | `e91bf04`, `5e12925` | Provisioning, Onboarding |
+| Phase 4 | `af34533` | Dashboard, Bridges |
+| Phase 5 | `b6978dc` | Fleet Monitoring, Usage Metrics |
+| Reviews | `4028d89`, `749a2cb` | Code quality, security, performance fixes |
+
+### Remaining Operational Work
+
+- [ ] Oracle Cloud provisioner shell scripts (adapt from ironclaw-saas)
+- [ ] Production env vars in Vercel
+- [ ] Apply migrations 0003 + 0004 to production Neon DB
+- [ ] Stripe Dashboard setup (products, prices, webhook, Customer Portal)
+- [ ] Dead-man's switch cron on Oracle VM
+- [ ] Engine API: add `created_after` date filtering for jobs/conversations
+
+### Known Limitations
+
+- **Usage collection client-side filtering:** Engine API lacks date-filtered queries. `collectInstanceUsage()` fetches up to 100 items and filters in JS. Undercounts at >100 daily jobs per tenant.
+- **Rate limiters are in-memory:** Vercel serverless functions use ephemeral `Map<string, number[]>`. Rate limits reset on cold starts. Acceptable at current scale (<100 users).
+- **Dead-man's switch requires Oracle VM:** Shell script runs independently of the app on the provisioner host.

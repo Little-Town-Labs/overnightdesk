@@ -2,24 +2,82 @@
 
 **Your business never sleeps.**
 
-Customer-facing web app for [OvernightDesk](https://overnightdesk.com) — a private AI assistant that handles support, operations, and reporting for solo entrepreneurs and small businesses in regulated industries.
+Customer-facing web platform for [OvernightDesk](https://overnightdesk.com) — a managed Claude Code hosting service that gives solo entrepreneurs and small businesses a private AI assistant running 24/7.
 
-## Current State: Waitlist
+## Architecture
 
-The site is live at **overnightdesk.com** with a landing page and waitlist signup. No auth or payments yet — that comes after Agent Zero is validated on the infrastructure layer.
+OvernightDesk is a multi-repo platform:
+
+| Repo | Purpose | Status |
+|------|---------|--------|
+| **overnightdesk** (this repo) | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | All 10 features complete |
+| [overnightdesk-engine](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant REST API | Complete (81.2% coverage) |
+| [overnightdesk-securityteam](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor | Schema complete |
+
+### How It Works
+
+```
+Customer → Vercel (Next.js) → Stripe → Provisioner (Oracle Cloud) → Docker Container
+                                                                        └── Go Engine → Claude Code CLI
+Customer Dashboard → Engine REST API → Jobs, Heartbeat, Conversations, Bridges
+```
+
+1. Customer signs up, subscribes via Stripe Checkout
+2. Stripe webhook triggers provisioning on Oracle Cloud
+3. Container is created with full security hardening
+4. Customer connects Claude Code via xterm.js terminal in the dashboard
+5. AI assistant runs 24/7 with heartbeat scheduling, job management, and messaging bridges
 
 ## Stack
 
-| Concern | Service | Tier |
-|---------|---------|------|
-| Framework | Next.js 15 (App Router) | — |
-| Styling | Tailwind CSS 4 | — |
-| Database | Neon Postgres | Free |
-| ORM | Drizzle ORM | — |
-| Auth (future) | Neon Auth (Better Auth) | Free |
-| Hosting | Vercel | Free |
-| Analytics | Vercel Analytics | Free |
-| Domain | overnightdesk.com (Namecheap) | ~$12/yr |
+| Concern | Service | Notes |
+|---------|---------|-------|
+| Framework | Next.js 15 (App Router) | Server components by default |
+| Styling | Tailwind CSS 4 | Dark theme (zinc palette) |
+| Database | Neon Postgres | Serverless driver |
+| ORM | Drizzle ORM | Type-safe queries, migration-based |
+| Auth | Better Auth | Email/password, session cookies |
+| Payments | Stripe | Checkout, webhooks, Customer Portal |
+| Email | Resend | Verification, password reset, notifications |
+| Hosting | Vercel | Edge-optimized, Cron jobs |
+| Domain | overnightdesk.com | Namecheap |
+
+## Features (All Complete)
+
+### Phase 1: Foundation
+- **Database Schema** — Users, subscriptions, instances, fleet events, usage metrics, audit log
+- **Authentication** — Email/password registration, email verification, password reset, protected routes
+- **Transactional Email** — Resend integration for all lifecycle emails, CAN-SPAM unsubscribe
+
+### Phase 2: Billing
+- **Stripe Payments** — Pricing page (Starter $29/mo, Pro $59/mo), Checkout, webhooks, Customer Portal
+- **Admin accounts** — Free access for ADMIN_EMAILS, billing feature flag
+- **Subscription gating** — Dashboard protected behind active subscription
+
+### Phase 3: Infrastructure
+- **Provisioning Pipeline** — Stripe webhook → Oracle Cloud provisioner → container creation
+- **Instance Management** — Status tracking (queued → provisioning → running), bearer tokens, health checks
+- **Claude Code Onboarding** — xterm.js terminal, 3-step wizard, auth status polling
+
+### Phase 4: Product
+- **Customer Dashboard** — Tab navigation with 9 sections:
+  - Overview (instance status, engine health, subscription)
+  - Heartbeat (enable/disable, interval, prompt, quiet hours)
+  - Jobs (create, list, paginate, delete pending)
+  - Activity (conversation log with expandable messages)
+  - Logs (engine log viewer with refresh)
+  - Usage (30-day Claude calls + tool executions chart)
+  - Bridges (Telegram + Discord setup wizards)
+  - Admin (fleet health + business metrics — admin only)
+  - Settings (password change, account deletion)
+- **Instance Restart** — Confirmation dialog, 5-minute rate limit
+- **Messaging Bridges** — Telegram (BotFather wizard) and Discord (Developer Portal wizard)
+
+### Phase 5: Operations
+- **Fleet Monitoring** — Vercel Cron health checks (30 min), consecutive failure tracking, owner Telegram notifications
+- **Dead-Man's Switch** — Host-level cron independent of the app (6h threshold)
+- **Usage Metrics** — Daily collection from engine API, customer usage display, admin business metrics
+- **Admin Dashboard** — Fleet health table, event history, subscriber count, churn risk detection
 
 ## Project Structure
 
@@ -27,77 +85,100 @@ The site is live at **overnightdesk.com** with a landing page and waitlist signu
 overnightdesk/
 ├── src/
 │   ├── app/
-│   │   ├── page.tsx              ← Landing page + waitlist form
-│   │   ├── layout.tsx            ← Root layout + analytics
-│   │   ├── globals.css           ← Tailwind imports
+│   │   ├── page.tsx                        ← Landing page + waitlist form
+│   │   ├── pricing/                        ← Pricing page + checkout flow
+│   │   ├── (protected)/dashboard/          ← Customer dashboard (9 tabs)
+│   │   │   ├── layout.tsx                  ← Dashboard layout + nav
+│   │   │   ├── page.tsx                    ← Overview tab
+│   │   │   ├── heartbeat/                  ← Heartbeat configuration
+│   │   │   ├── jobs/                       ← Job management
+│   │   │   ├── activity/                   ← Activity log
+│   │   │   ├── logs/                       ← Engine log viewer
+│   │   │   ├── usage/                      ← Usage metrics
+│   │   │   ├── bridges/                    ← Telegram + Discord setup
+│   │   │   │   ├── telegram/
+│   │   │   │   └── discord/
+│   │   │   ├── admin/                      ← Admin-only pages
+│   │   │   │   ├── fleet/                  ← Fleet health + events
+│   │   │   │   └── metrics/                ← Business metrics
+│   │   │   └── settings/                   ← Account settings
 │   │   └── api/
-│   │       └── waitlist/route.ts ← POST /api/waitlist
+│   │       ├── auth/                       ← Better Auth endpoints
+│   │       ├── stripe/                     ← Webhook, checkout, portal
+│   │       ├── engine/                     ← Engine API proxy routes
+│   │       ├── admin/                      ← Admin fleet + metrics APIs
+│   │       ├── cron/                       ← Health check + usage collection
+│   │       ├── account/                    ← Account deletion
+│   │       ├── instance/                   ← Auth status + terminal ticket
+│   │       └── provisioner/                ← Provisioner callback
+│   ├── lib/
+│   │   ├── auth.ts                         ← Better Auth config
+│   │   ├── billing.ts                      ← Subscription gating + admin check
+│   │   ├── stripe.ts                       ← Lazy Stripe client
+│   │   ├── stripe-webhook-handlers.ts      ← 5 Stripe event handlers
+│   │   ├── instance.ts                     ← Instance CRUD + port allocation
+│   │   ├── engine-client.ts                ← Engine REST API client (18 functions)
+│   │   ├── provisioner.ts                  ← Oracle Cloud provisioner HTTP client
+│   │   ├── resolve-instance.ts             ← Shared auth + instance resolver
+│   │   ├── require-admin.ts                ← Shared admin auth helper
+│   │   ├── verify-cron-auth.ts             ← Timing-safe cron auth
+│   │   ├── health-check.ts                 ← Fleet health check logic
+│   │   ├── owner-notifications.ts          ← Owner Telegram alerts
+│   │   ├── usage-collection.ts             ← Daily usage collection
+│   │   ├── admin-metrics.ts                ← Business metrics computation
+│   │   ├── email.ts                        ← Resend email service
+│   │   └── config.ts                       ← Shared config utilities
 │   └── db/
-│       ├── schema.ts             ← Drizzle schema (waitlist table)
-│       └── index.ts              ← Neon + Drizzle connection
-├── drizzle/                      ← Generated migrations
-├── drizzle.config.ts             ← Drizzle Kit config
-├── .env.example                  ← Required env vars
-└── .env.local                    ← Local secrets (gitignored)
+│       ├── schema.ts                       ← Drizzle schema (14 tables)
+│       └── index.ts                        ← Neon + Drizzle connection
+├── drizzle/                                ← Generated migrations (0001-0004)
+├── vercel.json                             ← Cron jobs config
+├── .specify/                               ← Spec-kit specifications
+│   ├── memory/constitution.md
+│   ├── roadmap.md
+│   └── specs/1-10/                         ← All feature specs, plans, tasks
+└── .env.example                            ← Required env vars
 ```
 
-## Landing Page Sections
+## Database Schema
 
-1. **Hero** — "Your business never sleeps"
-2. **Problem** — Solo entrepreneurs drowning in admin/support
-3. **How it works** — Sign up, connect AI key, you're live
-4. **Built for people like you** — Consultants, healthcare IT, financial advisors, government contractors
-5. **Your data stays yours** — Isolation, encryption, audit trail, BYOK
-6. **Waitlist signup** — Email, name, business type
+14 tables in Neon Postgres:
 
-## Database
-
-**Neon Postgres** (us-east-1, AWS)
-
-Current schema — one table:
-
-| Table | Columns | Purpose |
-|-------|---------|---------|
-| `waitlist` | id, email (unique), name, business, created_at | Early access signups |
-
-Neon Auth is enabled on the database for future use.
+| Table | Purpose |
+|-------|---------|
+| `user` | User accounts (Better Auth) |
+| `session` | Active sessions |
+| `account` | Auth credentials (email/password) |
+| `verification` | Email verification tokens |
+| `waitlist` | Early access signups |
+| `subscription` | Stripe subscription records |
+| `instance` | Tenant instance records (status, subdomain, health) |
+| `fleet_event` | Operational event audit trail |
+| `usage_metric` | Daily usage stats per instance |
+| `platform_audit_log` | Admin action audit trail |
+| `email_log` | Sent email records |
 
 ## Environment Variables
 
-```bash
-# Required
-DATABASE_URL=postgresql://...@ep-xxx.aws.neon.tech/neondb?sslmode=require
+See `.env.example` for full list. Key groups:
 
-# Optional
-NEXT_PUBLIC_APP_URL=https://overnightdesk.com
-```
-
-## DNS (Namecheap)
-
-| Type | Host | Value |
-|------|------|-------|
-| A | @ | 76.76.21.21 |
-| CNAME | www | cname.vercel-dns.com |
-
-## Related Projects
-
-OvernightDesk is a multi-repo platform. These three repos work together:
-
-| Repo | Purpose | Status |
-|------|---------|--------|
-| [`overnightdesk`](../overnightdesk) | **This repo** — Vercel frontend (landing, auth, billing, dashboard) | Active |
-| [`overnightdesk-engine`](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant REST API | Complete |
-| [`overnightdesk-securityteam`](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor, Telegram approvals | Active |
+- **Database:** `DATABASE_URL`, `DATABASE_TEST_URL`
+- **Auth:** `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
+- **Stripe:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, price IDs
+- **Billing:** `NEXT_PUBLIC_BILLING_ENABLED`, `ADMIN_EMAILS`
+- **Email:** `RESEND_API_KEY`, `EMAIL_FROM`
+- **Provisioner:** `PROVISIONER_URL`, `PROVISIONER_SECRET`
+- **Monitoring:** `CRON_SECRET`, `OWNER_TELEGRAM_BOT_TOKEN`, `OWNER_TELEGRAM_CHAT_ID`
 
 ## Development
 
 ```bash
 npm install
-cp .env.example .env.local   # Add your DATABASE_URL
+cp .env.example .env.local   # Add your secrets
 npm run dev                   # http://localhost:3000
 ```
 
-### Database Commands
+### Database
 
 ```bash
 npm run db:generate   # Generate migration from schema changes
@@ -105,14 +186,26 @@ npm run db:migrate    # Apply migrations to Neon
 npm run db:studio     # Open Drizzle Studio
 ```
 
-## Roadmap
+### Testing
 
-- [x] Landing page + waitlist
-- [x] Vercel deployment + DNS
-- [x] Vercel Analytics
-- [ ] Neon Auth integration (email + password, email verification)
-- [ ] Stripe payments (subscription plans)
-- [ ] OpenRouter BYOK onboarding flow
-- [ ] Customer dashboard (instance status, key management)
-- [ ] Provisioning webhook to ironclaw-saas Oracle server
-- [ ] Resend transactional email (welcome, support replies)
+```bash
+npm test              # Run all 485 tests (29 suites)
+npm test -- --watch   # Watch mode
+```
+
+## Production Setup
+
+1. **Vercel:** Deploy from GitHub, set all env vars from `.env.example`
+2. **Stripe:** Create products/prices, configure Customer Portal, add webhook endpoint (`/api/stripe/webhook`)
+3. **Neon:** Apply all migrations (`drizzle/0001-0004`)
+4. **Oracle Cloud:** Deploy provisioner scripts, configure dead-man's switch cron
+5. **Telegram:** Create owner notification bot, set `OWNER_TELEGRAM_BOT_TOKEN` + `OWNER_TELEGRAM_CHAT_ID`
+
+## Remaining Operational Work
+
+- [ ] Oracle Cloud provisioner shell scripts (adapt from ironclaw-saas)
+- [ ] Production env vars in Vercel
+- [ ] Apply migrations 0003 + 0004 to production Neon DB
+- [ ] Stripe Dashboard setup (products, webhook endpoint)
+- [ ] Dead-man's switch cron on Oracle VM
+- [ ] Engine API: add `created_after` date filtering for jobs/conversations (improves usage collection)
