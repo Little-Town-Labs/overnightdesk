@@ -1,8 +1,10 @@
 import { db } from "@/db";
-import { subscription, platformAuditLog, user } from "@/db/schema";
+import { subscription, platformAuditLog, user, instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendPaymentFailureEmail } from "@/lib/email";
 import { stripe } from "@/lib/stripe";
+import { createInstance } from "@/lib/instance";
+import { provisionerClient } from "@/lib/provisioner";
 
 export function mapPriceIdToPlan(
   priceId: string
@@ -52,6 +54,28 @@ export async function handleCheckoutCompleted(
     target: `user:${userId}`,
     details: { stripeSubscriptionId: subscriptionId, plan, status: "active" },
   });
+
+  // Trigger provisioning
+  try {
+    const { instance: inst, plaintextToken } = await createInstance(userId, plan);
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
+
+    // Fire-and-forget: don't await the provisioner response
+    provisionerClient
+      .provision({
+        tenantId: inst.tenantId,
+        plan,
+        gatewayPort: inst.gatewayPort!,
+        dashboardTokenHash: inst.dashboardTokenHash!,
+        callbackUrl: `${appUrl}/api/provisioner/callback`,
+      })
+      .catch(() => {
+        // Provisioner failure handled via callback or manual retry
+      });
+  } catch {
+    // Instance creation failure — logged but doesn't block subscription creation
+  }
 }
 
 async function findSubscription(stripeSubscriptionId: string) {
@@ -188,6 +212,35 @@ export async function handleSubscriptionDeleted(
     target: `user:${sub.userId}`,
     details: { stripeSubscriptionId },
   });
+
+  // Trigger deprovisioning
+  try {
+    const instances = await db
+      .select()
+      .from(instance)
+      .where(eq(instance.userId, sub.userId));
+
+    const activeInstance = instances.find(
+      (i) =>
+        i.status === "running" ||
+        i.status === "awaiting_auth" ||
+        i.status === "queued" ||
+        i.status === "provisioning"
+    );
+
+    if (activeInstance) {
+      provisionerClient.deprovision(activeInstance.tenantId).catch(() => {
+        // Deprovisioning failure handled manually
+      });
+
+      await db
+        .update(instance)
+        .set({ status: "stopped", updatedAt: new Date() })
+        .where(eq(instance.id, activeInstance.id));
+    }
+  } catch {
+    // Deprovisioning failure — logged but doesn't block subscription cancellation
+  }
 }
 
 function mapStripeStatus(
