@@ -289,23 +289,24 @@ Feature 10 (Metrics) → Independent after 5
 - [x] Phases defined (5)
 - [x] Risks assessed
 
-### Phase 1: Foundation
-- [ ] `/speckit-specify 1-platform-schema`
-- [ ] `/speckit-specify 2-user-authentication`
-- [ ] `/speckit-specify 3-transactional-email`
-- [ ] Implement all Phase 1 features
-- [ ] **Gate:** Users can register, verify, sign in, reset password
+### Phase 1: Foundation — COMPLETE (2026-03-21)
+- [x] `/speckit-specify 1-platform-schema` — committed 35dc58d
+- [x] `/speckit-specify 2-user-authentication` — committed 3d141e0
+- [x] `/speckit-specify 3-transactional-email` — committed 9183817
+- [x] Implement all Phase 1 features
+- [x] **Gate:** Users can register, verify, sign in, reset password
 
-### Phase 2: Billing
-- [ ] `/speckit-specify 4-stripe-payments`
-- [ ] Implement Feature 4
-- [ ] **Gate:** Users can subscribe, pay, manage billing
+### Phase 2: Billing — COMPLETE (2026-03-22)
+- [x] `/speckit-specify 4-stripe-payments` — committed 70dfb54
+- [x] Implement Feature 4
+- [x] **Gate:** Users can subscribe, pay, manage billing
 
-### Phase 3: Infrastructure
-- [ ] `/speckit-specify 5-provisioning-pipeline`
-- [ ] `/speckit-specify 6-claude-code-onboarding`
-- [ ] Implement Features 5 and 6
+### Phase 3: Infrastructure — COMPLETE (2026-03-22, Vercel side)
+- [x] `/speckit-specify 5-provisioning-pipeline` — committed e91bf04 (Vercel side)
+- [x] `/speckit-specify 6-claude-code-onboarding` — committed 5e12925
+- [x] Implement Features 5 and 6 (Vercel side)
 - [ ] **Gate:** Payment → container → Claude auth works end-to-end
+- [ ] **Remaining:** Oracle Cloud provisioner shell scripts (adapted from ironclaw-saas)
 
 ### Phase 4: Product
 - [ ] `/speckit-specify 7-customer-dashboard`

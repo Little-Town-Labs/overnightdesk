@@ -10,6 +10,47 @@ import { eq } from "drizzle-orm";
 import { AuthStatusBadge } from "./auth-status-badge";
 import { OnboardingWizard } from "./onboarding-wizard";
 
+const statusConfig: Record<
+  string,
+  { label: string; color: string; detail: string }
+> = {
+  queued: {
+    label: "Setting up",
+    color: "text-amber-400",
+    detail: "Your instance is queued for provisioning...",
+  },
+  provisioning: {
+    label: "Creating",
+    color: "text-amber-400",
+    detail: "Your container is being created...",
+  },
+  awaiting_auth: {
+    label: "Awaiting Auth",
+    color: "text-blue-400",
+    detail: "Connect your Claude Code account to get started.",
+  },
+  running: {
+    label: "Running",
+    color: "text-emerald-400",
+    detail: "Your assistant is live and running 24/7.",
+  },
+  stopped: {
+    label: "Stopped",
+    color: "text-zinc-400",
+    detail: "Your instance has been stopped.",
+  },
+  error: {
+    label: "Error",
+    color: "text-red-400",
+    detail: "Setup failed. Please contact support.",
+  },
+  deprovisioned: {
+    label: "Deprovisioned",
+    color: "text-zinc-500",
+    detail: "Your instance has been deprovisioned.",
+  },
+};
+
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -19,8 +60,16 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
+  // Parallel fetch: subscription + instance (independent queries)
   const userIsAdmin = isAdmin(session.user.email);
-  const rawSub = await getSubscriptionForUser(session.user.id);
+  const [rawSub, instances] = await Promise.all([
+    getSubscriptionForUser(session.user.id),
+    db
+      .select()
+      .from(instance)
+      .where(eq(instance.userId, session.user.id)),
+  ]);
+
   const sub = rawSub
     ? {
         status: rawSub.status,
@@ -29,6 +78,18 @@ export default async function DashboardPage() {
         hasStripeCustomer: !!rawSub.stripeCustomerId,
       }
     : null;
+
+  const inst = instances[0] ?? null;
+  const instConfig = inst
+    ? statusConfig[inst.status] ?? {
+        label: inst.status,
+        color: "text-zinc-400",
+        detail: "",
+      }
+    : null;
+
+  const showOnboarding =
+    inst?.status === "running" && inst.claudeAuthStatus !== "connected";
 
   return (
     <div className="min-h-screen bg-zinc-950 p-8">
@@ -89,13 +150,13 @@ export default async function DashboardPage() {
               <div>
                 <dt className="text-sm text-zinc-500">Plan</dt>
                 <dd className="text-white capitalize">
-                  {userIsAdmin ? "Pro (Admin)" : sub?.plan ?? "None"}
+                  {userIsAdmin ? "Pro (Admin)" : (sub?.plan ?? "None")}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm text-zinc-500">Status</dt>
                 <dd className="text-white capitalize">
-                  {userIsAdmin ? "Active" : sub?.status ?? "No subscription"}
+                  {userIsAdmin ? "Active" : (sub?.status ?? "No subscription")}
                 </dd>
               </div>
               {sub?.currentPeriodEnd && (
@@ -115,60 +176,34 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {await (async () => {
-          const instances = await db
-            .select()
-            .from(instance)
-            .where(eq(instance.userId, session.user.id));
-          const inst = instances[0];
-
-          if (!inst) {
-            return (
-              <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
-                <p className="text-zinc-400">No instance provisioned yet.</p>
-                <p className="text-zinc-500 text-sm mt-1">
-                  Your instance will be created automatically after payment.
-                </p>
+        {inst ? (
+          <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm text-zinc-500">Status</dt>
+                <dd className={`font-medium ${instConfig!.color}`}>
+                  {instConfig!.label}
+                </dd>
+                <dd className="text-zinc-500 text-sm mt-1">
+                  {instConfig!.detail}
+                </dd>
               </div>
-            );
-          }
-
-          const statusConfig: Record<string, { label: string; color: string; detail: string }> = {
-            queued: { label: "Setting up", color: "text-amber-400", detail: "Your instance is queued for provisioning..." },
-            provisioning: { label: "Creating", color: "text-amber-400", detail: "Your container is being created..." },
-            awaiting_auth: { label: "Awaiting Auth", color: "text-blue-400", detail: "Connect your Claude Code account to get started." },
-            running: { label: "Running", color: "text-emerald-400", detail: "Your assistant is live and running 24/7." },
-            stopped: { label: "Stopped", color: "text-zinc-400", detail: "Your instance has been stopped." },
-            error: { label: "Error", color: "text-red-400", detail: "Setup failed. Please contact support." },
-            deprovisioned: { label: "Deprovisioned", color: "text-zinc-500", detail: "Your instance has been deprovisioned." },
-          };
-
-          const config = statusConfig[inst.status] ?? { label: inst.status, color: "text-zinc-400", detail: "" };
-
-          return (
-            <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
-              <dl className="space-y-3">
+              {inst.subdomain && inst.status === "running" && (
                 <div>
-                  <dt className="text-sm text-zinc-500">Status</dt>
-                  <dd className={`font-medium ${config.color}`}>{config.label}</dd>
-                  <dd className="text-zinc-500 text-sm mt-1">{config.detail}</dd>
+                  <dt className="text-sm text-zinc-500">Subdomain</dt>
+                  <dd className="text-white">
+                    <a
+                      href={`https://${inst.subdomain}`}
+                      className="text-blue-400 hover:text-blue-300 underline"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {inst.subdomain}
+                    </a>
+                  </dd>
                 </div>
-                {inst.subdomain && inst.status === "running" && (
-                  <div>
-                    <dt className="text-sm text-zinc-500">Subdomain</dt>
-                    <dd className="text-white">
-                      <a
-                        href={`https://${inst.subdomain}`}
-                        className="text-blue-400 hover:text-blue-300 underline"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {inst.subdomain}
-                      </a>
-                    </dd>
-                  </div>
-                )}
+              )}
               {inst.status === "running" && (
                 <div>
                   <dt className="text-sm text-zinc-500">Claude Code</dt>
@@ -177,30 +212,25 @@ export default async function DashboardPage() {
                   </dd>
                 </div>
               )}
-              </dl>
-            </div>
-          );
-        })()}
+            </dl>
+          </div>
+        ) : (
+          <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
+            <p className="text-zinc-400">No instance provisioned yet.</p>
+            <p className="text-zinc-500 text-sm mt-1">
+              Your instance will be created automatically after payment.
+            </p>
+          </div>
+        )}
 
-        {await (async () => {
-          const instances = await db
-            .select()
-            .from(instance)
-            .where(eq(instance.userId, session.user.id));
-          const inst = instances[0];
-
-          if (!inst || inst.status !== "running") return null;
-          if (inst.claudeAuthStatus === "connected") return null;
-
-          return (
-            <div className="mt-6">
-              <OnboardingWizard
-                instanceSubdomain={inst.subdomain ?? ""}
-                authStatus={inst.claudeAuthStatus}
-              />
-            </div>
-          );
-        })()}
+        {showOnboarding && (
+          <div className="mt-6">
+            <OnboardingWizard
+              instanceSubdomain={inst!.subdomain ?? ""}
+              authStatus={inst!.claudeAuthStatus}
+            />
+          </div>
+        )}
 
         <p className="mt-6 text-zinc-500 text-sm text-center">
           More features coming soon — heartbeat config, job management, and
