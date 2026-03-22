@@ -131,7 +131,8 @@ export async function getJobs(
 
     if (!response.ok) return [];
 
-    return await response.json();
+    const data = await response.json();
+    return data.jobs ?? [];
   } catch {
     return [];
   }
@@ -216,7 +217,8 @@ export async function getConversations(
 
     if (!response.ok) return [];
 
-    return await response.json();
+    const data = await response.json();
+    return data.conversations ?? [];
   } catch {
     return [];
   }
@@ -241,7 +243,8 @@ export async function getConversationMessages(
 
     if (!response.ok) return [];
 
-    return await response.json();
+    const data = await response.json();
+    return data.messages ?? [];
   } catch {
     return [];
   }
@@ -266,7 +269,8 @@ export async function getEngineLogs(
 
     if (!response.ok) return [];
 
-    return await response.json();
+    const data = await response.json();
+    return data.lines ?? [];
   } catch {
     return [];
   }

@@ -10,7 +10,14 @@ const PUBLIC_ROUTES = [
   "/reset-password",
 ];
 
-const PUBLIC_API_PREFIXES = ["/api/auth", "/api/waitlist"];
+const PUBLIC_API_PREFIXES = [
+  "/api/auth",
+  "/api/waitlist",
+  "/api/stripe/webhook",
+  "/api/cron",
+  "/api/provisioner/callback",
+  "/api/email/unsubscribe",
+];
 
 export function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.includes(pathname)) {

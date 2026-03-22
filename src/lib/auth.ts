@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/db";
@@ -7,6 +8,7 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } from "@/lib/email";
+import { isAdmin, isInvitedEmail } from "@/lib/billing";
 
 export const auth = betterAuth({
   appName: "OvernightDesk",
@@ -64,6 +66,23 @@ export const auth = betterAuth({
       "/sign-up/email": { window: 60, max: 5 },
       "/request-password-reset": { window: 300, max: 3 },
       "/send-verification-email": { window: 300, max: 3 },
+    },
+  },
+
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const email = user.email;
+          if (isAdmin(email) || isInvitedEmail(email)) {
+            return;
+          }
+          throw new APIError("FORBIDDEN", {
+            message:
+              "Registration is currently invite-only. Please contact us for access.",
+          });
+        },
+      },
     },
   },
 

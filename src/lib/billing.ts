@@ -18,6 +18,18 @@ export function isAdmin(email: string): boolean {
   return list.includes(email.toLowerCase());
 }
 
+export function isInvitedEmail(email: string): boolean {
+  const invitedEmails = process.env.INVITED_EMAILS;
+  if (!invitedEmails) return false;
+
+  const list = invitedEmails
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  return list.includes(email.toLowerCase());
+}
+
 export async function getSubscriptionForUser(userId: string) {
   const rows = await db
     .select()

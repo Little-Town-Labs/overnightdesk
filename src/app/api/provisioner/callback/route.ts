@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { instance, user } from "@/db/schema";
@@ -7,9 +8,28 @@ import { sendProvisioningEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/config";
 
 export async function POST(request: NextRequest) {
-  const secret = request.headers.get("authorization")?.replace("Bearer ", "");
+  const provisionerSecret = process.env.PROVISIONER_SECRET;
 
-  if (!secret || secret !== process.env.PROVISIONER_SECRET) {
+  if (!provisionerSecret) {
+    return NextResponse.json(
+      { success: false, error: "Server misconfigured" },
+      { status: 500 }
+    );
+  }
+
+  const authHeader = request.headers.get("authorization") ?? "";
+  const expected = `Bearer ${provisionerSecret}`;
+
+  let isValid = false;
+  try {
+    isValid =
+      authHeader.length === expected.length &&
+      crypto.timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected));
+  } catch {
+    isValid = false;
+  }
+
+  if (!isValid) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }

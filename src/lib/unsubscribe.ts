@@ -1,12 +1,17 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { getAppUrl } from "@/lib/config";
 
-const SECRET =
-  process.env.BETTER_AUTH_SECRET || "dev-secret-replace-in-production";
+function getSecret(): string {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET environment variable is required");
+  }
+  return secret;
+}
 
 export function generateUnsubscribeToken(userId: string): string {
   const payload = `unsubscribe:${userId}`;
-  const signature = createHmac("sha256", SECRET)
+  const signature = createHmac("sha256", getSecret())
     .update(payload)
     .digest("hex");
   return Buffer.from(`${payload}:${signature}`).toString("base64url");
@@ -24,7 +29,7 @@ export function verifyUnsubscribeToken(
     const userId = parts[1];
     const signature = parts[2];
 
-    const expectedSignature = createHmac("sha256", SECRET)
+    const expectedSignature = createHmac("sha256", getSecret())
       .update(`unsubscribe:${userId}`)
       .digest("hex");
 

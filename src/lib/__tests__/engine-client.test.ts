@@ -331,7 +331,7 @@ describe("Engine Client", () => {
     it("returns jobs array on success", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockJobs),
+        json: () => Promise.resolve({ jobs: mockJobs, limit: 50, offset: 0 }),
       });
 
       const result = await getJobs("tenant.overnightdesk.com", "apikey");
@@ -341,7 +341,7 @@ describe("Engine Client", () => {
     it("sends correct URL without params when none provided", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockJobs),
+        json: () => Promise.resolve({ jobs: mockJobs, limit: 50, offset: 0 }),
       });
 
       await getJobs("tenant.overnightdesk.com", "mykey");
@@ -359,7 +359,7 @@ describe("Engine Client", () => {
     it("sends correct URL with query params", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockJobs),
+        json: () => Promise.resolve({ jobs: mockJobs, limit: 50, offset: 0 }),
       });
 
       await getJobs("tenant.overnightdesk.com", "mykey", {
@@ -579,7 +579,7 @@ describe("Engine Client", () => {
     it("returns conversations array on success", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockConversations),
+        json: () => Promise.resolve({ conversations: mockConversations, limit: 50, offset: 0 }),
       });
 
       const result = await getConversations("tenant.overnightdesk.com", "apikey");
@@ -589,7 +589,7 @@ describe("Engine Client", () => {
     it("sends correct URL without params when none provided", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockConversations),
+        json: () => Promise.resolve({ conversations: mockConversations, limit: 50, offset: 0 }),
       });
 
       await getConversations("tenant.overnightdesk.com", "mykey");
@@ -607,7 +607,7 @@ describe("Engine Client", () => {
     it("sends correct URL with query params", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockConversations),
+        json: () => Promise.resolve({ conversations: mockConversations, limit: 50, offset: 0 }),
       });
 
       await getConversations("tenant.overnightdesk.com", "mykey", {
@@ -648,7 +648,7 @@ describe("Engine Client", () => {
     it("returns messages array on success", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockMessages),
+        json: () => Promise.resolve({ messages: mockMessages, limit: 50, offset: 0 }),
       });
 
       const result = await getConversationMessages(
@@ -662,7 +662,7 @@ describe("Engine Client", () => {
     it("sends correct URL with conversation ID", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockMessages),
+        json: () => Promise.resolve({ messages: mockMessages, limit: 50, offset: 0 }),
       });
 
       await getConversationMessages("tenant.overnightdesk.com", "mykey", "conv-1");
@@ -680,7 +680,7 @@ describe("Engine Client", () => {
     it("sends correct URL with query params", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockMessages),
+        json: () => Promise.resolve({ messages: mockMessages, limit: 50, offset: 0 }),
       });
 
       await getConversationMessages("tenant.overnightdesk.com", "mykey", "conv-1", {
@@ -730,7 +730,7 @@ describe("Engine Client", () => {
     it("returns log lines array on success", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockLogs),
+        json: () => Promise.resolve({ lines: mockLogs }),
       });
 
       const result = await getEngineLogs("tenant.overnightdesk.com", "apikey");
@@ -740,7 +740,7 @@ describe("Engine Client", () => {
     it("sends correct URL with default lines param", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockLogs),
+        json: () => Promise.resolve({ lines: mockLogs }),
       });
 
       await getEngineLogs("tenant.overnightdesk.com", "mykey");
@@ -752,7 +752,7 @@ describe("Engine Client", () => {
     it("sends correct URL with custom lines param", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockLogs),
+        json: () => Promise.resolve({ lines: mockLogs }),
       });
 
       await getEngineLogs("tenant.overnightdesk.com", "mykey", 200);
@@ -765,7 +765,7 @@ describe("Engine Client", () => {
     it("sends correct Authorization header", async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockLogs),
+        json: () => Promise.resolve({ lines: mockLogs }),
       });
 
       await getEngineLogs("tenant.overnightdesk.com", "mykey");

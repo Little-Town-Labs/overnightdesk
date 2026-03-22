@@ -64,7 +64,8 @@ export default function SignUpPage() {
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-8">
       <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
       <p className="text-zinc-400 mb-6">
-        Get started with OvernightDesk.
+        Registration is invite-only during early access. If you&apos;ve been
+        invited, use the email address your invite was sent to.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">

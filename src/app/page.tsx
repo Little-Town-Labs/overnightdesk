@@ -21,12 +21,20 @@ function Nav() {
   return (
     <nav className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
       <span className="text-xl font-bold tracking-tight">OvernightDesk</span>
-      <a
-        href="#waitlist"
-        className="text-sm font-medium px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
-      >
-        Join the waitlist
-      </a>
+      <div className="flex items-center gap-4">
+        <a
+          href="/sign-in"
+          className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        >
+          Sign in
+        </a>
+        <a
+          href="#waitlist"
+          className="text-sm font-medium px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-700 transition-colors"
+        >
+          Join the waitlist
+        </a>
+      </div>
     </nav>
   );
 }
@@ -85,9 +93,9 @@ function HowItWorks() {
     },
     {
       number: "2",
-      title: "Connect your AI key",
+      title: "Connect your Claude Code subscription",
       description:
-        "Create a free OpenRouter account, grab your API key, paste it in. We walk you through it step by step. You control your own AI costs — no surprises.",
+        "Subscribe to Claude Pro or Max from Anthropic, then log in through our simple setup wizard. Your subscription, your account — we never see your credentials.",
     },
     {
       number: "3",
@@ -176,7 +184,7 @@ function Privacy() {
           </li>
           <li className="flex gap-3">
             <span className="text-gray-900 font-bold">&#x2713;</span>
-            API keys encrypted at rest with AES-256
+            Your Claude Code credentials stay on your instance — we never see them
           </li>
           <li className="flex gap-3">
             <span className="text-gray-900 font-bold">&#x2713;</span>
@@ -188,7 +196,7 @@ function Privacy() {
           </li>
           <li className="flex gap-3">
             <span className="text-gray-900 font-bold">&#x2713;</span>
-            You bring your own AI key — we never see your conversations
+            You bring your own Claude subscription — your conversations are yours alone
           </li>
         </ul>
       </div>

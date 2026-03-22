@@ -1,6 +1,7 @@
 import {
   isBillingEnabled,
   isAdmin,
+  isInvitedEmail,
   requireSubscription,
   getSubscriptionForUser,
 } from "@/lib/billing";
@@ -90,6 +91,44 @@ describe("Billing Utilities", () => {
       process.env.ADMIN_EMAILS = " gary@example.com , friend@example.com ";
       expect(isAdmin("gary@example.com")).toBe(true);
       expect(isAdmin("friend@example.com")).toBe(true);
+    });
+  });
+
+  describe("isInvitedEmail()", () => {
+    it("returns true when email is in INVITED_EMAILS", () => {
+      process.env.INVITED_EMAILS = "alice@example.com,bob@example.com";
+      expect(isInvitedEmail("alice@example.com")).toBe(true);
+    });
+
+    it("returns true for second email in list", () => {
+      process.env.INVITED_EMAILS = "alice@example.com,bob@example.com";
+      expect(isInvitedEmail("bob@example.com")).toBe(true);
+    });
+
+    it("returns false when email is not in INVITED_EMAILS", () => {
+      process.env.INVITED_EMAILS = "alice@example.com";
+      expect(isInvitedEmail("stranger@example.com")).toBe(false);
+    });
+
+    it("handles case-insensitive comparison", () => {
+      process.env.INVITED_EMAILS = "Alice@Example.com";
+      expect(isInvitedEmail("alice@example.com")).toBe(true);
+    });
+
+    it("returns false when INVITED_EMAILS is undefined", () => {
+      delete process.env.INVITED_EMAILS;
+      expect(isInvitedEmail("alice@example.com")).toBe(false);
+    });
+
+    it("returns false when INVITED_EMAILS is empty", () => {
+      process.env.INVITED_EMAILS = "";
+      expect(isInvitedEmail("alice@example.com")).toBe(false);
+    });
+
+    it("handles whitespace around emails", () => {
+      process.env.INVITED_EMAILS = " alice@example.com , bob@example.com ";
+      expect(isInvitedEmail("alice@example.com")).toBe(true);
+      expect(isInvitedEmail("bob@example.com")).toBe(true);
     });
   });
 

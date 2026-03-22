@@ -32,6 +32,23 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/waitlist")).toBe(true);
     });
 
+    it("allows Stripe webhook route", () => {
+      expect(isPublicRoute("/api/stripe/webhook")).toBe(true);
+    });
+
+    it("allows cron routes", () => {
+      expect(isPublicRoute("/api/cron/health-check")).toBe(true);
+      expect(isPublicRoute("/api/cron/usage-collection")).toBe(true);
+    });
+
+    it("allows provisioner callback route", () => {
+      expect(isPublicRoute("/api/provisioner/callback")).toBe(true);
+    });
+
+    it("allows email unsubscribe route", () => {
+      expect(isPublicRoute("/api/email/unsubscribe")).toBe(true);
+    });
+
     it("allows static assets", () => {
       expect(isPublicRoute("/_next/static/chunk.js")).toBe(true);
       expect(isPublicRoute("/favicon.ico")).toBe(true);
@@ -58,6 +75,28 @@ describe("isPublicRoute", () => {
 
     it("blocks unknown routes", () => {
       expect(isPublicRoute("/admin")).toBe(false);
+    });
+
+    it("blocks Stripe checkout (session-protected)", () => {
+      expect(isPublicRoute("/api/stripe/checkout")).toBe(false);
+    });
+
+    it("blocks Stripe portal (session-protected)", () => {
+      expect(isPublicRoute("/api/stripe/portal")).toBe(false);
+    });
+
+    it("blocks engine API routes", () => {
+      expect(isPublicRoute("/api/engine/jobs")).toBe(false);
+      expect(isPublicRoute("/api/engine/status")).toBe(false);
+    });
+
+    it("blocks admin API routes", () => {
+      expect(isPublicRoute("/api/admin/metrics")).toBe(false);
+      expect(isPublicRoute("/api/admin/fleet/health")).toBe(false);
+    });
+
+    it("blocks account API routes", () => {
+      expect(isPublicRoute("/api/account/delete")).toBe(false);
     });
   });
 });
