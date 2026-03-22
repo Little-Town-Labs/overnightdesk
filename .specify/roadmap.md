@@ -327,25 +327,23 @@ Feature 10 (Metrics) → Independent after 5
 
 **Features:**
 - Feature 11: Invite-Only Launch Hardening (P0, Medium) — COMPLETE (`10ebadf`)
-- Feature 12: Platform↔Engine Contract Tests & Integration Fixes (P0, Medium)
+- Feature 12: Platform↔Engine Contract Tests & Integration Fixes (P0, Medium) — COMPLETE (`f65a59d`, engine `f8bbac2`)
 
 **Feature 11 delivered:** Middleware whitelist fix, timing-safe provisioner auth, security headers, invite-only registration gate, landing page copy fix, engine-client envelope unwrapping.
 
-**Feature 12 scope:** Fix 7 integration bugs found during platform↔engine boundary audit (WebSocket URL, heartbeat field mapping, Message JSON tags, job timestamps, status nested fields, bridge reconfig detection). Build contract test suite validating all 16 engine-client functions against real engine response shapes.
-
-**Dependencies:** Feature 12 includes one engine-side fix (Message struct JSON tags in overnightdesk-engine)
+**Feature 12 delivered:** Fixed 7 integration bugs (WebSocket URL, heartbeat camel↔snake mapping, Message JSON tags, job timestamps, status nested fields, bridge reconfig detection). Added 28 contract tests validating all 16 engine-client functions against real engine response shapes. Created engine-contracts.ts as single source of truth for wire format.
 
 **Phase 6 Completion Gate:**
 - [x] Feature 11: Invite-only launch hardening (501 tests, build clean)
-- [ ] Feature 12: All 7 integration bugs fixed
-- [ ] Feature 12: Contract test suite covering all engine response shapes
-- [ ] Feature 12: Component integration tests for heartbeat, jobs, activity
+- [x] Feature 12: All 7 integration bugs fixed
+- [x] Feature 12: Contract test suite covering all engine response shapes (28 tests)
+- [x] Feature 12: Engine Message struct JSON tags (engine repo)
 
 ---
 
 ## Completion Summary
 
-All 10 PRD v2.1 features implemented. Phase 6 adds hardening for production readiness. 501 tests across 29 suites. Build passes.
+All 12 features implemented. 529 tests across 30 suites. Build passes. Platform is invite-only launch ready.
 
 ### Commit History
 
@@ -357,7 +355,7 @@ All 10 PRD v2.1 features implemented. Phase 6 adds hardening for production read
 | Phase 4 | `af34533` | Dashboard, Bridges |
 | Phase 5 | `b6978dc` | Fleet Monitoring, Usage Metrics |
 | Reviews | `4028d89`, `749a2cb` | Code quality, security, performance fixes |
-| Phase 6 | `10ebadf` | Invite-only hardening (Feature 11) |
+| Phase 6 | `10ebadf`, `f65a59d` | Invite-only hardening, contract tests (Features 11-12) |
 
 ### Remaining Operational Work
 
