@@ -7,6 +7,8 @@ import { ManageBillingButton } from "./manage-billing-button";
 import { db } from "@/db";
 import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { AuthStatusBadge } from "./auth-status-badge";
+import { OnboardingWizard } from "./onboarding-wizard";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({
@@ -167,13 +169,41 @@ export default async function DashboardPage() {
                     </dd>
                   </div>
                 )}
+              {inst.status === "running" && (
+                <div>
+                  <dt className="text-sm text-zinc-500">Claude Code</dt>
+                  <dd className="mt-1">
+                    <AuthStatusBadge status={inst.claudeAuthStatus} />
+                  </dd>
+                </div>
+              )}
               </dl>
             </div>
           );
         })()}
 
+        {await (async () => {
+          const instances = await db
+            .select()
+            .from(instance)
+            .where(eq(instance.userId, session.user.id));
+          const inst = instances[0];
+
+          if (!inst || inst.status !== "running") return null;
+          if (inst.claudeAuthStatus === "connected") return null;
+
+          return (
+            <div className="mt-6">
+              <OnboardingWizard
+                instanceSubdomain={inst.subdomain ?? ""}
+                authStatus={inst.claudeAuthStatus}
+              />
+            </div>
+          );
+        })()}
+
         <p className="mt-6 text-zinc-500 text-sm text-center">
-          More dashboard features coming soon — Claude Code onboarding and
+          More features coming soon — heartbeat config, job management, and
           settings.
         </p>
       </div>

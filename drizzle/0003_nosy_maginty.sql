@@ -1,0 +1,1 @@
+ALTER TABLE "instance" ADD COLUMN "engine_api_key" text;

@@ -59,6 +59,7 @@ export async function createInstance(
   const port = await allocatePort();
   const plaintextToken = generateBearerToken();
   const tokenHash = await hashToken(plaintextToken);
+  const engineApiKey = generateBearerToken();
   const subdomain = `${tenantId}.overnightdesk.com`;
 
   const [created] = await db
@@ -69,6 +70,7 @@ export async function createInstance(
       status: "queued",
       gatewayPort: port,
       dashboardTokenHash: tokenHash,
+      engineApiKey,
       subdomain,
     })
     .returning();
