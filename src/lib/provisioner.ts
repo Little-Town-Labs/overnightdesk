@@ -49,6 +49,36 @@ export const provisionerClient = {
     }
   },
 
+  async restart(tenantId: string): Promise<ProvisionerResult> {
+    const { url, secret } = getConfig();
+
+    try {
+      const response = await fetch(`${url}/restart`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify({ tenantId }),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `Provisioner returned ${response.status}`,
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+
   async deprovision(tenantId: string): Promise<ProvisionerResult> {
     const { url, secret } = getConfig();
 

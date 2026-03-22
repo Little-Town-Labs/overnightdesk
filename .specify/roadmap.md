@@ -308,11 +308,11 @@ Feature 10 (Metrics) → Independent after 5
 - [ ] **Gate:** Payment → container → Claude auth works end-to-end
 - [ ] **Remaining:** Oracle Cloud provisioner shell scripts (adapted from ironclaw-saas)
 
-### Phase 4: Product
-- [ ] `/speckit-specify 7-customer-dashboard`
-- [ ] `/speckit-specify 8-messaging-bridge-setup`
-- [ ] Implement Features 7 and 8
-- [ ] **Gate:** Customers can manage their instance fully
+### Phase 4: Product — COMPLETE (2026-03-22)
+- [x] `/speckit-specify 7-customer-dashboard` — 409 tests, 20 suites
+- [x] `/speckit-specify 8-messaging-bridge-setup` — included in test count
+- [x] Implement Features 7 and 8
+- [x] **Gate:** Dashboard with heartbeat, jobs, activity, logs, bridges, settings, restart
 
 ### Phase 5: Operations
 - [ ] `/speckit-specify 9-fleet-monitoring`

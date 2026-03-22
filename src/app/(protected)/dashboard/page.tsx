@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { SignOutButton } from "./sign-out-button";
 import { getSubscriptionForUser, isAdmin } from "@/lib/billing";
 import { ManageBillingButton } from "./manage-billing-button";
 import { db } from "@/db";
@@ -9,6 +8,8 @@ import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AuthStatusBadge } from "./auth-status-badge";
 import { OnboardingWizard } from "./onboarding-wizard";
+import { RestartButton } from "./restart-button";
+import { getEngineStatus } from "@/lib/engine-client";
 
 const statusConfig: Record<
   string,
@@ -60,7 +61,6 @@ export default async function DashboardPage() {
     redirect("/sign-in");
   }
 
-  // Parallel fetch: subscription + instance (independent queries)
   const userIsAdmin = isAdmin(session.user.email);
   const [rawSub, instances] = await Promise.all([
     getSubscriptionForUser(session.user.id),
@@ -91,152 +91,197 @@ export default async function DashboardPage() {
   const showOnboarding =
     inst?.status === "running" && inst.claudeAuthStatus !== "connected";
 
+  // Fetch engine status when the instance is running
+  let engineStatus: Record<string, unknown> | null = null;
+  if (inst?.status === "running" && inst.subdomain && inst.engineApiKey) {
+    engineStatus = await getEngineStatus(inst.subdomain, inst.engineApiKey);
+  }
+
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-zinc-400">
-              Welcome back, {session.user.name}
-            </p>
-          </div>
-          <SignOutButton />
+    <>
+      {sub?.status === "past_due" && (
+        <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+          <p className="text-amber-300 text-sm font-medium">
+            Your payment failed. Please update your payment method within the
+            grace period to avoid service interruption.
+          </p>
+          <ManageBillingButton className="mt-2 text-amber-400 hover:text-amber-300 text-sm underline" />
+        </div>
+      )}
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">
+            Account Info
+          </h2>
+          <dl className="space-y-3">
+            <div>
+              <dt className="text-sm text-zinc-500">Name</dt>
+              <dd className="text-white">{session.user.name}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-zinc-500">Email</dt>
+              <dd className="text-white">{session.user.email}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-zinc-500">Email Verified</dt>
+              <dd className="text-white">
+                {session.user.emailVerified ? "Yes" : "No"}
+              </dd>
+            </div>
+          </dl>
         </div>
 
-        {sub?.status === "past_due" && (
-          <div className="mb-6 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
-            <p className="text-amber-300 text-sm font-medium">
-              Your payment failed. Please update your payment method within the
-              grace period to avoid service interruption.
-            </p>
-            <ManageBillingButton className="mt-2 text-amber-400 hover:text-amber-300 text-sm underline" />
-          </div>
-        )}
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
-              Account Info
-            </h2>
-            <dl className="space-y-3">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">
+            Subscription
+            {userIsAdmin && (
+              <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-normal">
+                Admin
+              </span>
+            )}
+          </h2>
+          <dl className="space-y-3">
+            <div>
+              <dt className="text-sm text-zinc-500">Plan</dt>
+              <dd className="text-white capitalize">
+                {userIsAdmin ? "Pro (Admin)" : (sub?.plan ?? "None")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-sm text-zinc-500">Status</dt>
+              <dd className="text-white capitalize">
+                {userIsAdmin ? "Active" : (sub?.status ?? "No subscription")}
+              </dd>
+            </div>
+            {sub?.currentPeriodEnd && (
               <div>
-                <dt className="text-sm text-zinc-500">Name</dt>
-                <dd className="text-white">{session.user.name}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-zinc-500">Email</dt>
-                <dd className="text-white">{session.user.email}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-zinc-500">Email Verified</dt>
+                <dt className="text-sm text-zinc-500">Next Billing Date</dt>
                 <dd className="text-white">
-                  {session.user.emailVerified ? "Yes" : "No"}
+                  {new Date(sub.currentPeriodEnd).toLocaleDateString()}
                 </dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">
-              Subscription
-              {userIsAdmin && (
-                <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-normal">
-                  Admin
-                </span>
-              )}
-            </h2>
-            <dl className="space-y-3">
-              <div>
-                <dt className="text-sm text-zinc-500">Plan</dt>
-                <dd className="text-white capitalize">
-                  {userIsAdmin ? "Pro (Admin)" : (sub?.plan ?? "None")}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-zinc-500">Status</dt>
-                <dd className="text-white capitalize">
-                  {userIsAdmin ? "Active" : (sub?.status ?? "No subscription")}
-                </dd>
-              </div>
-              {sub?.currentPeriodEnd && (
-                <div>
-                  <dt className="text-sm text-zinc-500">Next Billing Date</dt>
-                  <dd className="text-white">
-                    {new Date(sub.currentPeriodEnd).toLocaleDateString()}
-                  </dd>
-                </div>
-              )}
-            </dl>
-            {sub?.hasStripeCustomer && (
-              <div className="mt-4">
-                <ManageBillingButton className="text-sm text-blue-400 hover:text-blue-300 underline" />
               </div>
             )}
-          </div>
+          </dl>
+          {sub?.hasStripeCustomer && (
+            <div className="mt-4">
+              <ManageBillingButton className="text-sm text-blue-400 hover:text-blue-300 underline" />
+            </div>
+          )}
         </div>
+      </div>
 
-        {inst ? (
-          <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
-            <dl className="space-y-3">
+      {inst ? (
+        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
+          <dl className="space-y-3">
+            <div>
+              <dt className="text-sm text-zinc-500">Status</dt>
+              <dd className={`font-medium ${instConfig.color}`}>
+                {instConfig.label}
+              </dd>
+              <dd className="text-zinc-500 text-sm mt-1">
+                {instConfig.detail}
+              </dd>
+            </div>
+            {inst.subdomain && inst.status === "running" && (
               <div>
-                <dt className="text-sm text-zinc-500">Status</dt>
-                <dd className={`font-medium ${instConfig.color}`}>
-                  {instConfig.label}
-                </dd>
-                <dd className="text-zinc-500 text-sm mt-1">
-                  {instConfig.detail}
+                <dt className="text-sm text-zinc-500">Subdomain</dt>
+                <dd className="text-white">
+                  <a
+                    href={`https://${inst.subdomain}`}
+                    className="text-blue-400 hover:text-blue-300 underline"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {inst.subdomain}
+                  </a>
                 </dd>
               </div>
-              {inst.subdomain && inst.status === "running" && (
-                <div>
-                  <dt className="text-sm text-zinc-500">Subdomain</dt>
-                  <dd className="text-white">
-                    <a
-                      href={`https://${inst.subdomain}`}
-                      className="text-blue-400 hover:text-blue-300 underline"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {inst.subdomain}
-                    </a>
-                  </dd>
-                </div>
-              )}
-              {inst.status === "running" && (
-                <div>
-                  <dt className="text-sm text-zinc-500">Claude Code</dt>
-                  <dd className="mt-1">
-                    <AuthStatusBadge status={inst.claudeAuthStatus} />
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </div>
-        ) : (
-          <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
-            <p className="text-zinc-400">No instance provisioned yet.</p>
-            <p className="text-zinc-500 text-sm mt-1">
-              Your instance will be created automatically after payment.
-            </p>
-          </div>
-        )}
+            )}
+            {inst.status === "running" && (
+              <div>
+                <dt className="text-sm text-zinc-500">Claude Code</dt>
+                <dd className="mt-1">
+                  <AuthStatusBadge status={inst.claudeAuthStatus} />
+                </dd>
+              </div>
+            )}
+          </dl>
+          <RestartButton instanceRunning={inst.status === "running"} />
+        </div>
+      ) : (
+        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
+          <p className="text-zinc-400">No instance provisioned yet.</p>
+          <p className="text-zinc-500 text-sm mt-1">
+            Your instance will be created automatically after payment.
+          </p>
+        </div>
+      )}
 
-        {showOnboarding && (
-          <div className="mt-6">
-            <OnboardingWizard
-              instanceSubdomain={inst!.subdomain ?? ""}
-              authStatus={inst!.claudeAuthStatus}
-            />
-          </div>
-        )}
+      {engineStatus && (
+        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">
+            Engine Status
+          </h2>
+          <dl className="space-y-3">
+            {engineStatus.uptime != null && (
+              <div>
+                <dt className="text-sm text-zinc-500">Uptime</dt>
+                <dd className="text-white">
+                  {formatUptime(Number(engineStatus.uptime))}
+                </dd>
+              </div>
+            )}
+            {engineStatus.queue_depth != null && (
+              <div>
+                <dt className="text-sm text-zinc-500">Queue Depth</dt>
+                <dd className="text-white">
+                  {String(engineStatus.queue_depth)} jobs
+                </dd>
+              </div>
+            )}
+            {engineStatus.heartbeat_last_run != null && (
+              <div>
+                <dt className="text-sm text-zinc-500">Last Heartbeat</dt>
+                <dd className="text-white">
+                  {new Date(
+                    String(engineStatus.heartbeat_last_run)
+                  ).toLocaleString()}
+                </dd>
+              </div>
+            )}
+            {engineStatus.version != null && (
+              <div>
+                <dt className="text-sm text-zinc-500">Engine Version</dt>
+                <dd className="text-white">{String(engineStatus.version)}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
 
-        <p className="mt-6 text-zinc-500 text-sm text-center">
-          More features coming soon — heartbeat config, job management, and
-          settings.
-        </p>
-      </div>
-    </div>
+      {showOnboarding && (
+        <div className="mt-6">
+          <OnboardingWizard
+            instanceSubdomain={inst!.subdomain ?? ""}
+            authStatus={inst!.claudeAuthStatus}
+          />
+        </div>
+      )}
+    </>
   );
+}
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  parts.push(`${minutes}m`);
+
+  return parts.join(" ");
 }

@@ -1,0 +1,404 @@
+openapi: 3.0.3
+info:
+  title: OvernightDesk Dashboard API
+  version: 1.0.0
+  description: Platform API routes that proxy to the engine or handle account management
+
+paths:
+  /api/engine/status:
+    get:
+      summary: Get engine status (uptime, queue, auth status)
+      security:
+        - session: []
+      responses:
+        "200":
+          description: Engine status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineStatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "502":
+          $ref: "#/components/responses/EngineUnreachable"
+
+  /api/engine/heartbeat:
+    get:
+      summary: Get heartbeat configuration
+      security:
+        - session: []
+      responses:
+        "200":
+          description: Current heartbeat config
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeartbeatResponse"
+    put:
+      summary: Update heartbeat configuration
+      security:
+        - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HeartbeatUpdateRequest"
+      responses:
+        "200":
+          description: Updated heartbeat config
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/engine/jobs:
+    get:
+      summary: List jobs with pagination
+      security:
+        - session: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Job list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobListResponse"
+    post:
+      summary: Create a new job
+      security:
+        - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobRequest"
+      responses:
+        "201":
+          description: Job created
+        "429":
+          description: Rate limited (max 10/min)
+
+  /api/engine/jobs/{id}:
+    get:
+      summary: Get job details
+      security:
+        - session: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job details
+        "404":
+          description: Job not found
+    delete:
+      summary: Delete a pending job
+      security:
+        - session: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job deleted
+        "400":
+          description: Job not in pending status
+
+  /api/engine/conversations:
+    get:
+      summary: List conversations
+      security:
+        - session: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Conversation list
+
+  /api/engine/conversations/{id}/messages:
+    get:
+      summary: Get messages for a conversation
+      security:
+        - session: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Message list
+
+  /api/engine/logs:
+    get:
+      summary: Get recent engine logs
+      security:
+        - session: []
+      parameters:
+        - name: lines
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        "200":
+          description: Log lines
+
+  /api/engine/restart:
+    post:
+      summary: Restart instance
+      security:
+        - session: []
+      responses:
+        "200":
+          description: Restart initiated
+        "429":
+          description: Rate limited (once per 5 minutes)
+
+  /api/account/settings:
+    patch:
+      summary: Update account settings (name)
+      security:
+        - session: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAccountRequest"
+      responses:
+        "200":
+          description: Account updated
+
+  /api/account/delete:
+    post:
+      summary: Delete account (requires password confirmation)
+      security:
+        - session: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAccountRequest"
+      responses:
+        "200":
+          description: Account deleted, subscription canceled
+        "401":
+          description: Password incorrect
+
+components:
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: session_token
+
+  schemas:
+    EngineStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            version:
+              type: string
+            uptime:
+              type: string
+            queueStatus:
+              type: object
+            claudeAuthStatus:
+              type: string
+            heartbeat:
+              type: object
+
+    HeartbeatResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            intervalSeconds:
+              type: integer
+            lastRun:
+              type: string
+              format: date-time
+            nextRun:
+              type: string
+              format: date-time
+            consecutiveFailures:
+              type: integer
+
+    HeartbeatUpdateRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        intervalSeconds:
+          type: integer
+          minimum: 60
+          maximum: 86400
+        prompt:
+          type: string
+          maxLength: 100000
+
+    JobListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+        source:
+          type: string
+          enum: [dashboard, heartbeat, cron, telegram, discord]
+        prompt:
+          type: string
+        result:
+          type: string
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateJobRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          maxLength: 100000
+        name:
+          type: string
+          maxLength: 255
+
+    UpdateAccountRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+
+    DeleteAccountRequest:
+      type: object
+      required:
+        - password
+        - confirmation
+      properties:
+        password:
+          type: string
+        confirmation:
+          type: string
+          description: Must be exactly "DELETE"
+
+  responses:
+    Unauthorized:
+      description: Not authenticated
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Unauthorized
+    ValidationError:
+      description: Invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+    EngineUnreachable:
+      description: Engine instance is unreachable
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              success:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: Unable to reach your instance

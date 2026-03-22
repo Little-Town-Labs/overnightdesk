@@ -9,6 +9,7 @@ const config: Config = {
   },
   testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
   setupFiles: ["<rootDir>/jest.setup.ts"],
+  setupFilesAfterEnv: ["<rootDir>/jest.setup-after-env.ts"],
   transformIgnorePatterns: [
     "node_modules/(?!(better-auth|@better-auth|@react-email|resend|stripe|bcryptjs)/)",
   ],
