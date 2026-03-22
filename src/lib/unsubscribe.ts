@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { getAppUrl } from "@/lib/config";
 
 const SECRET =
   process.env.BETTER_AUTH_SECRET || "dev-secret-replace-in-production";
@@ -44,8 +45,7 @@ export function verifyUnsubscribeToken(
 }
 
 export function getUnsubscribeUrl(userId: string): string {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
+  const baseUrl = getAppUrl();
   const token = generateUnsubscribeToken(userId);
   return `${baseUrl}/api/email/unsubscribe?token=${token}`;
 }

@@ -7,6 +7,11 @@ import { eq } from "drizzle-orm";
 const PORT_MIN = 4000;
 const PORT_MAX = 4999;
 
+export async function getInstanceForUser(userId: string) {
+  const rows = await db.select().from(instance).where(eq(instance.userId, userId));
+  return rows[0] ?? null;
+}
+
 export function generateTenantId(userId: string): string {
   return userId.replace(/-/g, "").slice(0, 12).toLowerCase();
 }
@@ -14,8 +19,7 @@ export function generateTenantId(userId: string): string {
 export async function allocatePort(): Promise<number> {
   const rows = await db
     .select({ gatewayPort: instance.gatewayPort })
-    .from(instance)
-    .where(eq(instance.status, instance.status)); // select all
+    .from(instance);
 
   const usedPorts = new Set(
     rows.map((r) => r.gatewayPort).filter((p): p is number => p !== null)
@@ -43,7 +47,7 @@ export async function createInstance(
   plan: "starter" | "pro"
 ): Promise<{
   instance: typeof instance.$inferSelect;
-  plaintextToken: string;
+  plaintextToken: string | null;
 }> {
   // Idempotency: check if instance already exists
   const existing = await db
@@ -52,7 +56,7 @@ export async function createInstance(
     .where(eq(instance.userId, userId));
 
   if (existing.length > 0) {
-    return { instance: existing[0], plaintextToken: "" };
+    return { instance: existing[0], plaintextToken: null };
   }
 
   const tenantId = generateTenantId(userId);
@@ -87,12 +91,14 @@ export async function createInstance(
 export async function updateInstanceStatus(
   tenantId: string,
   status: string,
-  details?: Record<string, unknown>
+  details?: Record<string, unknown>,
+  extraFields?: Record<string, unknown>
 ): Promise<void> {
   const now = new Date();
   const updateFields: Record<string, unknown> = {
     status,
     updatedAt: now,
+    ...extraFields,
   };
 
   if (status === "running") {
@@ -103,20 +109,15 @@ export async function updateInstanceStatus(
     updateFields.deprovisionedAt = now;
   }
 
-  await db
+  const [updated] = await db
     .update(instance)
     .set(updateFields)
-    .where(eq(instance.tenantId, tenantId));
+    .where(eq(instance.tenantId, tenantId))
+    .returning({ id: instance.id });
 
-  // Find instance ID for fleet event
-  const rows = await db
-    .select({ id: instance.id })
-    .from(instance)
-    .where(eq(instance.tenantId, tenantId));
-
-  if (rows[0]) {
+  if (updated) {
     await db.insert(fleetEvent).values({
-      instanceId: rows[0].id,
+      instanceId: updated.id,
       eventType: `instance.${status}`,
       details: details ?? null,
     });

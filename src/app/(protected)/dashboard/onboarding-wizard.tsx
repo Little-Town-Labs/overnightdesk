@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { TerminalEmbed } from "./terminal-embed";
 
 interface OnboardingWizardProps {
@@ -18,6 +18,7 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
   const [currentAuthStatus, setCurrentAuthStatus] = useState(initialAuthStatus);
 
   const isReconnect = initialAuthStatus === "expired";
+  const handleDisconnect = useCallback(() => setTerminalOpen(false), []);
 
   // Poll auth status during Step 2
   useEffect(() => {
@@ -155,7 +156,7 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
           <TerminalEmbed
             wsUrl={wsUrl}
             ticket={ticket}
-            onDisconnect={() => setTerminalOpen(false)}
+            onDisconnect={handleDisconnect}
           />
           <p className="text-zinc-500 text-xs mt-2 text-center">
             Status will update automatically when authentication completes.

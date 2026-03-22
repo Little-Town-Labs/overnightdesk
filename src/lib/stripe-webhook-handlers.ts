@@ -5,6 +5,7 @@ import { sendPaymentFailureEmail } from "@/lib/email";
 import { stripe } from "@/lib/stripe";
 import { createInstance } from "@/lib/instance";
 import { provisionerClient } from "@/lib/provisioner";
+import { getAppUrl } from "@/lib/config";
 
 export function mapPriceIdToPlan(
   priceId: string
@@ -145,7 +146,7 @@ export async function handleInvoicePaymentFailed(
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: sub.stripeCustomerId,
     return_url:
-      (process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com") +
+      getAppUrl() +
       "/dashboard",
   });
 

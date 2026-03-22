@@ -17,6 +17,16 @@ const mockSelectFromWhere = jest.fn().mockResolvedValue([]);
 const mockInsertReturning = jest.fn().mockResolvedValue([{ id: "inst_1", userId: "user_123", tenantId: "a1b2c3d4e5f6", status: "queued" }]);
 const mockUpdateSetWhere = jest.fn().mockResolvedValue(undefined);
 
+const mockFrom = jest.fn().mockImplementation(() => {
+  const result = mockSelectFromWhere();
+  // Support both .from() direct (no where) and .from().where() chains
+  const obj = Object.assign(Promise.resolve(result), {
+    where: mockSelectFromWhere,
+    then: (resolve: (v: unknown) => void) => Promise.resolve(result).then(resolve),
+  });
+  return obj;
+});
+
 jest.mock("@/db", () => ({
   db: {
     insert: jest.fn(() => ({
@@ -26,13 +36,13 @@ jest.mock("@/db", () => ({
     })),
     update: jest.fn(() => ({
       set: jest.fn(() => ({
-        where: mockUpdateSetWhere,
+        where: jest.fn(() => ({
+          returning: jest.fn().mockResolvedValue([{ id: "inst_1" }]),
+        })),
       })),
     })),
     select: jest.fn(() => ({
-      from: jest.fn(() => ({
-        where: mockSelectFromWhere,
-      })),
+      from: mockFrom,
     })),
   },
 }));

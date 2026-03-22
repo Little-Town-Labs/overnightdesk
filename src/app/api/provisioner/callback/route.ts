@@ -4,6 +4,7 @@ import { instance, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { updateInstanceStatus } from "@/lib/instance";
 import { sendProvisioningEmail } from "@/lib/email";
+import { getAppUrl } from "@/lib/config";
 
 export async function POST(request: NextRequest) {
   const secret = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -45,15 +46,10 @@ export async function POST(request: NextRequest) {
   if (containerId) details.containerId = containerId;
   if (errorMsg) details.error = errorMsg;
 
-  await updateInstanceStatus(tenantId, status, details);
+  const extraFields: Record<string, unknown> = {};
+  if (containerId) extraFields.containerId = containerId;
 
-  // Update containerId if provided
-  if (containerId) {
-    await db
-      .update(instance)
-      .set({ containerId })
-      .where(eq(instance.tenantId, tenantId));
-  }
+  await updateInstanceStatus(tenantId, status, details, extraFields);
 
   // Send welcome email when instance is running
   if (status === "running") {
@@ -64,8 +60,7 @@ export async function POST(request: NextRequest) {
 
     const userRecord = userRows[0];
     if (userRecord) {
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
+      const appUrl = getAppUrl();
 
       await sendProvisioningEmail({
         user: {

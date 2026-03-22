@@ -81,12 +81,12 @@ export default async function DashboardPage() {
 
   const inst = instances[0] ?? null;
   const instConfig = inst
-    ? statusConfig[inst.status] ?? {
+    ? (statusConfig[inst.status] ?? {
         label: inst.status,
         color: "text-zinc-400",
         detail: "",
-      }
-    : null;
+      })
+    : { label: "", color: "", detail: "" };
 
   const showOnboarding =
     inst?.status === "running" && inst.claudeAuthStatus !== "connected";
@@ -182,11 +182,11 @@ export default async function DashboardPage() {
             <dl className="space-y-3">
               <div>
                 <dt className="text-sm text-zinc-500">Status</dt>
-                <dd className={`font-medium ${instConfig!.color}`}>
-                  {instConfig!.label}
+                <dd className={`font-medium ${instConfig.color}`}>
+                  {instConfig.label}
                 </dd>
                 <dd className="text-zinc-500 text-sm mt-1">
-                  {instConfig!.detail}
+                  {instConfig.detail}
                 </dd>
               </div>
               {inst.subdomain && inst.status === "running" && (

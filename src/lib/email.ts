@@ -15,8 +15,9 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const EMAIL_FROM =
   process.env.EMAIL_FROM || "OvernightDesk <noreply@overnightdesk.com>";
 
-const APP_URL =
-  process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
+import { getAppUrl } from "@/lib/config";
+
+const APP_URL = getAppUrl();
 
 type EmailType =
   | "verification"

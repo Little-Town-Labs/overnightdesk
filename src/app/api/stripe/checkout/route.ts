@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { stripe } from "@/lib/stripe";
 import { isAdmin } from "@/lib/billing";
+import { getAppUrl } from "@/lib/config";
 import { db } from "@/db";
 import { subscription } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -68,8 +69,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
+  const appUrl = getAppUrl();
 
   try {
     const checkoutSession = await stripe.checkout.sessions.create({
