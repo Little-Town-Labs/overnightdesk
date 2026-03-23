@@ -19,6 +19,7 @@ const tabs: NavTab[] = [
   { label: "Usage", href: "/dashboard/usage", requiresRunning: true },
   { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true },
   { label: "Settings", href: "/dashboard/settings", requiresRunning: false },
+  { label: "Security", href: "/dashboard/security", requiresRunning: true, adminOnly: true },
   { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, adminOnly: true },
 ];
 

@@ -402,3 +402,101 @@ export async function deleteDiscordConfig(
     return false;
   }
 }
+
+// --- Security proxy (via engine's /api/security/* endpoints) ---
+
+export async function getSecurityQueuePending(
+  subdomain: string,
+  apiKey: string
+): Promise<{ items: unknown[]; count: number } | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/security/queue/pending`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getSecurityQueueItem(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/security/queue/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveSecurityQueueItem(
+  subdomain: string,
+  apiKey: string,
+  id: string,
+  decision: string,
+  reviewedBy: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/security/queue/${encodeURIComponent(id)}/resolve`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ decision, reviewedBy }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function triggerSecurityScan(
+  subdomain: string,
+  apiKey: string,
+  type: string,
+  auditName?: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/security/trigger-scan`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ type, auditName }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getSecurityServiceStatus(
+  subdomain: string,
+  apiKey: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/security/status`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
