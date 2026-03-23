@@ -10,6 +10,7 @@ const triggerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Audit triggers are admin-only — Pro customers can view queue but not run audits
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;
 
