@@ -322,7 +322,7 @@ Feature 10 (Metrics) → Independent after 5
 
 ---
 
-### Phase 6: Hardening — IN PROGRESS
+### Phase 6: Hardening — COMPLETE (2026-03-22)
 **Goal:** Fix integration bugs, add contract tests, prepare for invite-only launch.
 
 **Features:**
@@ -341,9 +341,53 @@ Feature 10 (Metrics) → Independent after 5
 
 ---
 
+### Phase 7: Security Pipeline Integration
+**Goal:** Wire SecurityTeam into the platform for email security, outbound checking, and reporting.
+
+**Architecture Decisions (confirmed 2026-03-23):**
+- SecurityTeam runs as standalone process on Oracle VM (same host as engine containers)
+- Engine↔SecurityTeam communication via HTTP sidecar API on localhost
+- Platform reads security tables in shared Neon DB for reporting
+- Customer add-on model: Pro plan ($59) includes security, Starter ($29) does not
+
+**Features:**
+
+#### Feature 13: SecurityTeam Standalone Service (P0, Medium)
+**Repos:** `overnightdesk-securityteam`
+**Description:** Get SecurityTeam running as a standalone HTTP service on Oracle VM. Fix missing migration 006, add `.env.example`, export all modules, wrap pipeline in HTTP API endpoints (`POST /check-outbound`, `POST /scan-inbound`, `GET /status`). Wire email fetcher to support/sales IMAP mailboxes. Deploy Telegram approval bot.
+**Dependencies:** Oracle VM access
+
+#### Feature 14: Engine↔SecurityTeam Integration (P0, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk-securityteam`
+**Description:** Engine calls SecurityTeam HTTP API for outbound email/action checks before sending. Engine reads `ingested_messages` table for approved inbound content that Agent Zero should act on. Add `SECURITY_SERVICE_URL` config to engine.
+**Dependencies:** Feature 13
+
+#### Feature 15: Platform Security Dashboard (P1, Medium)
+**Repos:** `overnightdesk`
+**Description:** New Security tab in admin dashboard showing pipeline activity (items processed, flagged, approved, rejected), approval queue status, audit results. API routes reading from `security_approval_queue`, `security_governor_log`, `security_audit_results` tables. Manual "Scan now" trigger button. Telegram/Discord notification integration for security findings (separate channel from existing owner fleet alerts).
+**Dependencies:** Feature 13 (tables must be populated)
+
+#### Feature 16: Customer Security Add-On (P2, Large)
+**Repos:** `overnightdesk-securityteam`, `overnightdesk-engine`, `overnightdesk`
+**Description:** Multi-tenant security pipeline. Add `tenant_id` to all security tables. Per-tenant security pipeline configuration. Each customer's engine calls the security sidecar before outbound actions. Plan tier gating — Pro plan includes security, Starter does not. Dashboard security tab visible to customers on Pro plan.
+**Dependencies:** Features 13-15
+
+**Phase 7 Completion Gate:**
+- [ ] Feature 13: SecurityTeam HTTP service running on Oracle VM
+- [ ] Feature 13: Email fetcher polling support/sales mailboxes
+- [ ] Feature 13: Telegram approval bot operational
+- [ ] Feature 14: Engine calls SecurityTeam for outbound checks
+- [ ] Feature 14: Agent Zero reads approved inbound messages
+- [ ] Feature 15: Security tab in admin dashboard
+- [ ] Feature 15: Manual scan trigger working
+- [ ] Feature 16: Multi-tenant security tables
+- [ ] Feature 16: Pro plan security gating
+
+---
+
 ## Completion Summary
 
-All 12 features implemented. 529 tests across 30 suites. Build passes. Platform is invite-only launch ready.
+Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) is next. 529 tests across 30 suites. Build passes. Platform is invite-only launch ready.
 
 ### Commit History
 
