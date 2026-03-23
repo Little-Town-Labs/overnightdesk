@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/require-admin";
+import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { getEngineStatus, getSecurityServiceStatus } from "@/lib/engine-client";
 
 export async function GET() {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin.response;
+  const result = await requireProOrAdmin();
+  if (!result.ok) return result.response;
 
-  const instance = await getInstanceForUser(admin.session.user.id);
+  const instance = await getInstanceForUser(result.session.user.id);
   if (!instance?.subdomain || !instance?.engineApiKey || instance.status !== "running") {
     return NextResponse.json({ success: false, error: "Instance not running" }, { status: 404 });
   }

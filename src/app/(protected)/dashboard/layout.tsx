@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getInstanceForUser } from "@/lib/instance";
-import { isAdmin } from "@/lib/billing";
+import { isAdmin, getSubscriptionForUser } from "@/lib/billing";
 import { SignOutButton } from "./sign-out-button";
 import { DashboardNav } from "./dashboard-nav";
 
@@ -19,7 +19,10 @@ export default async function DashboardLayout({
     redirect("/sign-in");
   }
 
-  const inst = await getInstanceForUser(session.user.id);
+  const [inst, userSubscription] = await Promise.all([
+    getInstanceForUser(session.user.id),
+    getSubscriptionForUser(session.user.id),
+  ]);
   const instanceRunning = inst?.status === "running";
   const adminUser = isAdmin(session.user.email);
 
@@ -36,7 +39,7 @@ export default async function DashboardLayout({
           <SignOutButton />
         </div>
 
-        <DashboardNav instanceRunning={instanceRunning} isAdmin={adminUser} />
+        <DashboardNav instanceRunning={instanceRunning} isAdmin={adminUser} plan={userSubscription?.plan} />
 
         {children}
       </div>

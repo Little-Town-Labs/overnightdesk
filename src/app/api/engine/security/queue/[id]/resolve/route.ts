@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdmin } from "@/lib/require-admin";
+import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { resolveSecurityQueueItem } from "@/lib/engine-client";
 
@@ -12,10 +12,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await requireAdmin();
-  if (!admin.ok) return admin.response;
+  const result = await requireProOrAdmin();
+  if (!result.ok) return result.response;
 
-  const instance = await getInstanceForUser(admin.session.user.id);
+  const instance = await getInstanceForUser(result.session.user.id);
   if (!instance?.subdomain || !instance?.engineApiKey || instance.status !== "running") {
     return NextResponse.json({ success: false, error: "Instance not running" }, { status: 404 });
   }
@@ -27,7 +27,7 @@ export async function POST(
   }
 
   const { id } = await params;
-  const reviewedBy = admin.session.user.email;
+  const reviewedBy = result.session.user.email;
   const data = await resolveSecurityQueueItem(
     instance.subdomain,
     instance.engineApiKey,

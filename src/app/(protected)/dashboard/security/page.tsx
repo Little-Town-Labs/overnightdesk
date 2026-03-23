@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { isAdmin } from "@/lib/billing";
+import { isAdmin, getSubscriptionForUser } from "@/lib/billing";
 import { getEngineStatus } from "@/lib/engine-client";
 import { getInstanceForUser } from "@/lib/instance";
 import { ApprovalQueue } from "./approval-queue";
@@ -11,10 +11,18 @@ export default async function SecurityPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 
-  if (!isAdmin(session.user.email)) {
+  const subscription = await getSubscriptionForUser(session.user.id);
+  const adminUser = isAdmin(session.user.email);
+  const isPro = subscription?.plan === "pro" &&
+    (subscription.status === "active" || subscription.status === "past_due");
+
+  if (!adminUser && !isPro) {
     return (
       <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-        <p className="text-red-400">Access denied. Admin only.</p>
+        <p className="text-zinc-300">Security screening is available on the Pro plan.</p>
+        <a href="/pricing" className="mt-2 inline-block text-sm text-blue-400 hover:text-blue-300">
+          View plans &rarr;
+        </a>
       </div>
     );
   }
@@ -106,8 +114,8 @@ export default async function SecurityPage() {
         </div>
       )}
 
-      {/* Audit Panel */}
-      {isRunning && (
+      {/* Audit Panel - admin only */}
+      {isRunning && adminUser && (
         <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
           <h3 className="mb-4 text-sm font-medium uppercase tracking-wider text-zinc-400">
             Security Audits

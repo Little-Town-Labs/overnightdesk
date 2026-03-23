@@ -8,6 +8,7 @@ interface NavTab {
   href: string;
   requiresRunning: boolean;
   adminOnly?: boolean;
+  requiresPro?: boolean;
 }
 
 const tabs: NavTab[] = [
@@ -19,22 +20,24 @@ const tabs: NavTab[] = [
   { label: "Usage", href: "/dashboard/usage", requiresRunning: true },
   { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true },
   { label: "Settings", href: "/dashboard/settings", requiresRunning: false },
-  { label: "Security", href: "/dashboard/security", requiresRunning: true, adminOnly: true },
+  { label: "Security", href: "/dashboard/security", requiresRunning: true, requiresPro: true },
   { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, adminOnly: true },
 ];
 
 interface DashboardNavProps {
   instanceRunning: boolean;
   isAdmin?: boolean;
+  plan?: string;
 }
 
-export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false }: DashboardNavProps) {
+export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan }: DashboardNavProps) {
   const pathname = usePathname();
 
   const visibleTabs = tabs.filter(
     (tab) =>
       (!tab.requiresRunning || instanceRunning) &&
-      (!tab.adminOnly || isAdminUser)
+      (!tab.adminOnly || isAdminUser) &&
+      (!tab.requiresPro || isAdminUser || plan === "pro")
   );
 
   return (

@@ -26,6 +26,9 @@ const plans = [
     features: [
       "Everything in Starter",
       "512 MB RAM / 0.5 CPU",
+      "Outbound secret & PII screening",
+      "Inbound injection detection",
+      "Security approval workflows",
       "Priority provisioning",
       "Priority support",
     ],
@@ -75,8 +78,8 @@ export default async function PricingPage() {
         </div>
 
         <p className="text-center text-zinc-500 text-sm mt-12">
-          All plans include full feature access. Plans differ by container
-          resources only.
+          Pro plan includes security screening features.
+          All plans include core assistant features.
           <br />
           Cancel anytime — no contracts, no hidden fees.
         </p>
