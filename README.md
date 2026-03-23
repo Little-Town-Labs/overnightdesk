@@ -10,9 +10,9 @@ OvernightDesk is a multi-repo platform:
 
 | Repo | Purpose | Status |
 |------|---------|--------|
-| **overnightdesk** (this repo) | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | 12 features, invite-only launch ready |
-| [overnightdesk-engine](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, tenant REST API | Complete (81.2% coverage) |
-| [overnightdesk-securityteam](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor | Schema complete |
+| **overnightdesk** (this repo) | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | 16 features, invite-only launch ready |
+| [overnightdesk-engine](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, security integration | Complete (81.2% coverage) |
+| [overnightdesk-securityteam](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor, HTTP sidecar | Complete (660 tests) |
 
 ### How It Works
 
@@ -83,6 +83,10 @@ Customer Dashboard → Engine REST API → Jobs, Heartbeat, Conversations, Bridg
 - **Invite-Only Launch** — INVITED_EMAILS registration gate, middleware whitelist for system routes, timing-safe provisioner auth, security headers, landing page copy fix
 - **Contract Tests** — 28 contract tests validating all 16 engine-client functions against real engine response shapes. Fixed 7 integration bugs (WebSocket URL, heartbeat field mapping, Message JSON tags, job timestamps, status nested fields, bridge reconfig detection)
 
+### Phase 7: Security Integration
+- **Security Dashboard** — Admin Security tab with status card (circuit breaker, reachability), approval queue (approve/reject from dashboard), audit trigger panel (nightly/weekly/monthly). Pro plan users see status + queue; admin sees full dashboard including audit triggers.
+- **Customer Security Add-On** — Pro plan ($59/mo) includes outbound secret/PII screening, inbound injection detection, and approval workflows. Starter plan ($29/mo) has no security features. Engine-level gating: Pro containers get `SECURITY_URL`/`SECURITY_TOKEN` env vars, Starter containers don't. Plan-gated dashboard and API routes with `requireProOrAdmin()` helper.
+
 ## Project Structure
 
 ```
@@ -102,6 +106,7 @@ overnightdesk/
 │   │   │   ├── bridges/                    ← Telegram + Discord setup
 │   │   │   │   ├── telegram/
 │   │   │   │   └── discord/
+│   │   │   ├── security/                    ← Security dashboard (Pro + admin)
 │   │   │   ├── admin/                      ← Admin-only pages
 │   │   │   │   ├── fleet/                  ← Fleet health + events
 │   │   │   │   └── metrics/                ← Business metrics
@@ -109,7 +114,8 @@ overnightdesk/
 │   │   └── api/
 │   │       ├── auth/                       ← Better Auth endpoints
 │   │       ├── stripe/                     ← Webhook, checkout, portal
-│   │       ├── engine/                     ← Engine API proxy routes
+│   │       ├── engine/                     ← Engine API proxy routes (incl. security/)
+
 │   │       ├── admin/                      ← Admin fleet + metrics APIs
 │   │       ├── cron/                       ← Health check + usage collection
 │   │       ├── account/                    ← Account deletion
@@ -121,10 +127,11 @@ overnightdesk/
 │   │   ├── stripe.ts                       ← Lazy Stripe client
 │   │   ├── stripe-webhook-handlers.ts      ← 5 Stripe event handlers
 │   │   ├── instance.ts                     ← Instance CRUD + port allocation
-│   │   ├── engine-client.ts                ← Engine REST API client (18 functions)
+│   │   ├── engine-client.ts                ← Engine REST API client (23 functions)
 │   │   ├── provisioner.ts                  ← Oracle Cloud provisioner HTTP client
 │   │   ├── resolve-instance.ts             ← Shared auth + instance resolver
 │   │   ├── require-admin.ts                ← Shared admin auth helper
+│   │   ├── require-pro-or-admin.ts         ← Pro plan + admin auth helper
 │   │   ├── verify-cron-auth.ts             ← Timing-safe cron auth
 │   │   ├── health-check.ts                 ← Fleet health check logic
 │   │   ├── owner-notifications.ts          ← Owner Telegram alerts
@@ -140,7 +147,7 @@ overnightdesk/
 ├── .specify/                               ← Spec-kit specifications
 │   ├── memory/constitution.md
 │   ├── roadmap.md
-│   └── specs/1-10/                         ← All feature specs, plans, tasks
+│   └── specs/1-16/                         ← All feature specs, plans, tasks
 └── .env.example                            ← Required env vars
 ```
 
