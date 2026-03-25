@@ -14,6 +14,7 @@ export const auth = betterAuth({
   appName: "OvernightDesk",
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  trustedOrigins: ["https://overnightdesk.com", "https://www.overnightdesk.com"],
 
   database: drizzleAdapter(db, {
     provider: "pg",
