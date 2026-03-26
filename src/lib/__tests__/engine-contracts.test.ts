@@ -223,11 +223,11 @@ describe("Contract: getHeartbeatConfig", () => {
     const result = await getHeartbeatConfig(SUB, KEY);
 
     expect(result).not.toBeNull();
-    expect(result.enabled).toBe(true);
-    expect(result.interval_seconds).toBe(300);
-    expect(result.last_run).toBe("2026-03-22T10:00:00Z");
-    expect(result.next_run).toBe("2026-03-22T10:05:00Z");
-    expect(result.consecutive_failures).toBe(0);
+    expect(result!.enabled).toBe(true);
+    expect(result!.interval_seconds).toBe(300);
+    expect(result!.last_run).toBe("2026-03-22T10:00:00Z");
+    expect(result!.next_run).toBe("2026-03-22T10:05:00Z");
+    expect(result!.consecutive_failures).toBe(0);
   });
 
   it("returns null on engine error", async () => {
@@ -274,12 +274,15 @@ describe("Contract: getEngineStatus", () => {
     const result = await getEngineStatus(SUB, KEY);
 
     expect(result).not.toBeNull();
-    expect(result.version).toBe("0.1.0");
-    expect(result.queue.queue_depth).toBe(3);
-    expect(result.queue.running).toBe(true);
-    expect(result.heartbeat?.last_run).toBe("2026-03-22T10:00:00Z");
-    expect(result.claude_auth).toBe("connected");
-    expect(result.database_size_bytes).toBe(524288);
+    const status = result as Record<string, unknown>;
+    expect(status.version).toBe("0.1.0");
+    const queue = status.queue as Record<string, unknown>;
+    expect(queue.queue_depth).toBe(3);
+    expect(queue.running).toBe(true);
+    const heartbeat = status.heartbeat as Record<string, unknown> | undefined;
+    expect(heartbeat?.last_run).toBe("2026-03-22T10:00:00Z");
+    expect(status.claude_auth).toBe("connected");
+    expect(status.database_size_bytes).toBe(524288);
   });
 
   it("returns null on engine error", async () => {
@@ -362,6 +365,7 @@ describe("Contract: updateTelegramConfig", () => {
       bot_token: "123:ABC",
       allowed_users: ["12345"],
       enabled: true,
+      webhook_base_url: "https://tenant.overnightdesk.com",
     });
 
     expect(result).not.toBeNull();

@@ -304,7 +304,7 @@ export async function updateTelegramConfig(
   apiKey: string,
   config: {
     bot_token: string;
-    allowed_users: number[];
+    allowed_users: (string | number)[];
     enabled: boolean;
     webhook_base_url: string;
   }

@@ -200,7 +200,7 @@ describe("Engine Proxy API Routes", () => {
     });
 
     it("returns 404 when instance has no subdomain or engineApiKey", async () => {
-      setupAuthenticated({ subdomain: null, engineApiKey: null });
+      setupAuthenticated({ subdomain: undefined, engineApiKey: undefined });
 
       const { GET } = await import(
         "@/app/api/engine/status/route"

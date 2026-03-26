@@ -154,7 +154,7 @@ const mockSubscription = {
 // ---------------------------------------------------------------------------
 
 describe("POST /api/account/delete", () => {
-  const getSession = auth.api.getSession as jest.Mock;
+  const getSession = auth.api.getSession as unknown as jest.Mock;
   const dbSelect = (db as unknown as { _selectChain: { from: jest.Mock; where: jest.Mock } })._selectChain;
   const dbInsert = (db as unknown as { _insertChain: { values: jest.Mock; returning: jest.Mock } })._insertChain;
   const dbDelete = (db as unknown as { _deleteChain: { where: jest.Mock } })._deleteChain;
