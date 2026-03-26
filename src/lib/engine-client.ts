@@ -1,3 +1,8 @@
+import type {
+  EngineFlightRecorderStatus,
+  EngineSnapshotInfo,
+} from "./engine-contracts";
+
 export async function getAuthStatus(
   subdomain: string,
   apiKey: string
@@ -400,6 +405,133 @@ export async function deleteDiscordConfig(
     return response.ok;
   } catch {
     return false;
+  }
+}
+
+// --- Flight Recorder proxy (via engine's /api/flight-recorder/* endpoints) ---
+
+export async function getFlightRecorderStatus(
+  subdomain: string,
+  apiKey: string
+): Promise<EngineFlightRecorderStatus | null> {
+  try {
+    const response = await fetch(
+      `https://${subdomain}/api/flight-recorder/status`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function triggerFlightRecorderSnapshot(
+  subdomain: string,
+  apiKey: string,
+  reason?: string
+): Promise<EngineSnapshotInfo | null> {
+  try {
+    const response = await fetch(
+      `https://${subdomain}/api/flight-recorder/snapshot`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ reason: reason ?? "manual" }),
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFlightRecorderSnapshots(
+  subdomain: string,
+  apiKey: string
+): Promise<EngineSnapshotInfo[] | null> {
+  try {
+    const response = await fetch(
+      `https://${subdomain}/api/flight-recorder/snapshots`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFlightRecorderSnapshot(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineSnapshotInfo | null> {
+  try {
+    const response = await fetch(
+      `https://${subdomain}/api/flight-recorder/snapshots/${encodeURIComponent(id)}`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFlightRecorderSnapshotEvents(
+  subdomain: string,
+  apiKey: string,
+  id: string,
+  params?: Record<string, unknown>
+): Promise<string | null> {
+  try {
+    const url = buildUrlWithParams(
+      `https://${subdomain}/api/flight-recorder/snapshots/${encodeURIComponent(id)}/events`,
+      params
+    );
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.text();
+  } catch {
+    return null;
+  }
+}
+
+export async function getFlightRecorderSnapshotTrace(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<ArrayBuffer | null> {
+  try {
+    const response = await fetch(
+      `https://${subdomain}/api/flight-recorder/snapshots/${encodeURIComponent(id)}/trace`,
+      {
+        headers: { Authorization: `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      }
+    );
+    if (!response.ok) return null;
+    return await response.arrayBuffer();
+  } catch {
+    return null;
   }
 }
 

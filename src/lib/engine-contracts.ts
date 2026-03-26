@@ -186,6 +186,35 @@ export interface EngineDiscordConfigRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Flight Recorder
+// ---------------------------------------------------------------------------
+
+export interface EngineBufferStats {
+  capacity: number;
+  used_bytes: number;
+  total_written: number;
+  dropped: number;
+  wrapped: boolean;
+}
+
+export interface EngineFlightRecorderStatus {
+  enabled: boolean;
+  buffer_stats: EngineBufferStats;
+  snapshot_count: number;
+  runtime_trace_enabled: boolean;
+}
+
+export interface EngineSnapshotInfo {
+  id: string;
+  reason: string;
+  timestamp: string;
+  event_count: number;
+  buffer_stats: EngineBufferStats;
+  directory: string;
+  has_runtime_trace: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Test Fixtures
 // ---------------------------------------------------------------------------
 
@@ -343,4 +372,33 @@ export const FIXTURES = {
     status_message: "Bot is running",
     updated_at: "2026-03-22T10:00:00Z",
   } satisfies EngineDiscordConfigResponse,
+
+  flightRecorderStatus: {
+    enabled: true,
+    buffer_stats: {
+      capacity: 2097152,
+      used_bytes: 4096,
+      total_written: 10,
+      dropped: 0,
+      wrapped: false,
+    },
+    snapshot_count: 2,
+    runtime_trace_enabled: true,
+  } satisfies EngineFlightRecorderStatus,
+
+  snapshot: {
+    id: "20260326T143022Z",
+    reason: "manual",
+    timestamp: "2026-03-26T14:30:22Z",
+    event_count: 42,
+    buffer_stats: {
+      capacity: 2097152,
+      used_bytes: 4096,
+      total_written: 42,
+      dropped: 0,
+      wrapped: false,
+    },
+    directory: "/data/snapshots/20260326T143022Z_manual",
+    has_runtime_trace: true,
+  } satisfies EngineSnapshotInfo,
 };
