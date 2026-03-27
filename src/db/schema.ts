@@ -1,7 +1,8 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -69,6 +70,21 @@ export const emailTypeEnum = pgEnum("email_type", [
 ]);
 
 export const emailStatusEnum = pgEnum("email_status", ["sent", "failed"]);
+
+export const newsletterCategoryEnum = pgEnum("newsletter_category", [
+  "ai-llm",
+  "developer-tools",
+  "product-saas",
+  "fundraising-market",
+  "security",
+  "general-tech",
+]);
+
+export const contentWorthinessEnum = pgEnum("content_worthiness", [
+  "high",
+  "medium",
+  "low",
+]);
 
 // ---------------------------------------------------------------------------
 // Better Auth tables
@@ -255,6 +271,43 @@ export const emailLog = pgTable("email_log", {
     .notNull()
     .defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Newsletter Curator tables (replicated from aegis-prod)
+// Rows are immutable after sync — no updatedAt column by design.
+// The Curator always provides created_at from the source; defaultNow() is a
+// safety net only.
+// ---------------------------------------------------------------------------
+
+export const ocNewsletterInsights = pgTable(
+  "oc_newsletter_insights",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    ingestedId: text("ingested_id").notNull().unique(),
+    source: text("source").notNull(),
+    sender: text("sender"),
+    subject: text("subject"),
+    summary: text("summary").notNull(),
+    category: newsletterCategoryEnum("category").notNull(),
+    contentWorthiness: contentWorthinessEnum("content_worthiness").notNull(),
+    blogAngle: text("blog_angle"),
+    linkedinAngle: text("linkedin_angle"),
+    modelUsed: text("model_used").notNull(),
+    runId: text("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("idx_oc_newsletter_insights_category").on(table.category, table.createdAt.desc()),
+    index("idx_oc_newsletter_insights_high_value")
+      .on(table.contentWorthiness, table.createdAt.desc())
+      .where(sql`${table.contentWorthiness} = 'high'`),
+    index("idx_oc_newsletter_insights_run").on(table.runId),
+  ]
+);
 
 // ---------------------------------------------------------------------------
 // Relations (for type-safe Drizzle query API)
