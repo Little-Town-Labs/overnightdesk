@@ -34,3 +34,10 @@ next-env.d.ts
 
 # drizzle
 drizzle/meta/
+
+# claude code
+.claude/
+
+# local artifacts
+.docs/
+.herenow/
