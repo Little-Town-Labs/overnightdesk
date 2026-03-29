@@ -1,0 +1,327 @@
+openapi: 3.0.3
+info:
+  title: OvernightDesk Engine — Agents API
+  version: 1.0.0
+  description: Agent CRUD and lifecycle management endpoints added to the engine API.
+
+paths:
+  /api/agents:
+    get:
+      summary: List all agents
+      description: Returns all agents ordered by creation time. Includes status, role, budget, and hierarchy.
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [idle, running, paused, error]
+          description: Filter by agent status
+      responses:
+        '200':
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Agent'
+
+    post:
+      summary: Create a new agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAgentRequest'
+      responses:
+        '201':
+          description: Agent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          description: Validation error (duplicate name, circular hierarchy, max depth)
+        '409':
+          description: Agent name already exists
+
+  /api/agents/{agentId}:
+    get:
+      summary: Get agent detail
+      description: Returns full agent detail including runtime state.
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentDetail'
+        '404':
+          description: Agent not found
+
+    put:
+      summary: Update agent configuration
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAgentRequest'
+      responses:
+        '200':
+          description: Agent updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          description: Validation error
+        '404':
+          description: Agent not found
+
+    delete:
+      summary: Delete an agent
+      description: Deletes an agent. Agent Zero cannot be deleted. Queued jobs are canceled.
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Agent deleted
+        '403':
+          description: Cannot delete Agent Zero
+        '404':
+          description: Agent not found
+
+  /api/agents/{agentId}/pause:
+    post:
+      summary: Pause an agent
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  enum: [manual, budget, error]
+                  default: manual
+      responses:
+        '200':
+          description: Agent paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          description: Agent already paused
+        '404':
+          description: Agent not found
+
+  /api/agents/{agentId}/resume:
+    post:
+      summary: Resume a paused agent
+      parameters:
+        - name: agentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          description: Agent not paused
+        '404':
+          description: Agent not found
+
+  /api/agents/{agentId}/wakeup:
+    post:
+      summary: Trigger agent to execute work
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WakeupRequest'
+      responses:
+        '200':
+          description: Wakeup request created or deduplicated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WakeupResponse'
+        '400':
+          description: Agent is paused
+        '404':
+          description: Agent not found
+
+components:
+  schemas:
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          description: UUID or "agent-zero"
+        name:
+          type: string
+        role:
+          type: string
+        status:
+          type: string
+          enum: [idle, running, paused, error]
+        pause_reason:
+          type: string
+          nullable: true
+          enum: [manual, budget, error]
+        adapter_type:
+          type: string
+        heartbeat_interval_seconds:
+          type: integer
+        heartbeat_prompt:
+          type: string
+        last_heartbeat_at:
+          type: string
+          nullable: true
+          format: date-time
+        budget_monthly_cents:
+          type: integer
+        spent_monthly_cents:
+          type: integer
+        reports_to:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AgentDetail:
+      allOf:
+        - $ref: '#/components/schemas/Agent'
+        - type: object
+          properties:
+            runtime_state:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  nullable: true
+                state_json:
+                  type: object
+                updated_at:
+                  type: string
+                  format: date-time
+            queue_depth:
+              type: integer
+              description: Number of pending jobs for this agent
+
+    CreateAgentRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        role:
+          type: string
+          maxLength: 1000
+        reports_to:
+          type: string
+          nullable: true
+        heartbeat_interval_seconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+        heartbeat_prompt:
+          type: string
+        budget_monthly_cents:
+          type: integer
+          minimum: 0
+        runtime_config:
+          type: object
+
+    UpdateAgentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        role:
+          type: string
+          maxLength: 1000
+        reports_to:
+          type: string
+          nullable: true
+        heartbeat_interval_seconds:
+          type: integer
+          minimum: 0
+          maximum: 86400
+        heartbeat_prompt:
+          type: string
+        budget_monthly_cents:
+          type: integer
+          minimum: 0
+        runtime_config:
+          type: object
+
+    WakeupRequest:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [manual, bridge, webhook, system]
+          default: manual
+        prompt:
+          type: string
+          description: Optional prompt override for this wakeup
+        idempotency_key:
+          type: string
+          description: Dedup key (optional)
+
+    WakeupResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        agent_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, claimed, completed, rejected]
+        deduplicated:
+          type: boolean
+          description: True if an existing request with same idempotency key was found

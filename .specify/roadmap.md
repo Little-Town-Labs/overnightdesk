@@ -385,9 +385,146 @@ Feature 10 (Metrics) → Independent after 5
 
 ---
 
+### Phase 8: Multi-Agent Evolution
+**Goal:** Transform OvernightDesk from single-agent job execution to multi-agent orchestration platform. Inspired by Paperclip's architecture but built our way — in Go, with our container isolation model.
+
+**Vision:** A customer's container runs Agent Zero as the manager agent, with specialist agents created as needed. Issues replace flat jobs. Projects group work. Cost governance prevents runaway spending. The dashboard evolves from "status panel" to "business operations center."
+
+**Architectural Approach:**
+- Build back-to-front: engine data model → engine API → dashboard proxy → dashboard UI
+- Agent model lives in Go engine (SQLite), not platform DB
+- Dashboard proxies to engine API (same pattern as today)
+- Agent Zero pre-seeded on first container boot
+- Serial queue evolves to per-agent serial execution (N agents, each serial)
+- Bridges (Telegram/Discord) route messages to Agent Zero, who delegates
+
+**Features:**
+
+#### Feature 17: Agent Data Model (P0, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Introduce agents as first-class entities in the engine. Agents table with identity (name, role, status, icon), configuration (adapter config, runtime config, heartbeat policy), budget (monthly limit, spent), and hierarchy (reportsTo). Agent Zero pre-seeded on first boot. Agent runtime state table for session persistence. Agent wakeup request table for idempotent execution triggers.
+**Complexity:** Medium
+**Dependencies:** None (engine-only, additive)
+**Data Model:**
+- `agents` — id, name, role, status (idle/running/paused/error), adapter_type, runtime_config (JSON), budget_monthly_cents, spent_monthly_cents, reports_to (self-ref), heartbeat_interval_seconds, last_heartbeat_at, created_at, updated_at
+- `agent_runtime_state` — agent_id (FK), session_id, state_json, updated_at
+- `agent_wakeup_requests` — id, agent_id (FK), source, issue_id (nullable), idempotency_key, status, created_at
+
+#### Feature 18: Issue Lifecycle (P0, Large)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Evolve flat `agent_jobs` into a full issue lifecycle. Issues have status workflow (backlog → todo → in_progress → in_review → done → failed), priority, assignee (agent), project association, and source tracking. Issue comments for collaboration. Existing job creation endpoints produce issues. Bridges create issues assigned to Agent Zero. Heartbeat creates issues per the assigned agent's prompt.
+**Complexity:** Large
+**Dependencies:** Feature 17 (agents must exist)
+**Data Model:**
+- `issues` — id, identifier (e.g. "OD-42"), title, description, status, priority, assignee_agent_id (FK), project_id (nullable FK), source, prompt, result, started_at, completed_at, created_at, updated_at
+- `issue_comments` — id, issue_id (FK), author_agent_id (nullable FK), author_source, content, created_at
+- `issue_counter` — singleton row tracking next issue number
+- Migrate existing `agent_jobs` data → `issues` on schema upgrade
+
+#### Feature 19: Execution Runs (P0, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Replace the flat job status with structured execution runs. Each time an agent works on an issue, a run is created with full lifecycle tracking (queued → running → succeeded/failed/timed_out). Runs capture token usage, duration, exit code, session state. Per-agent serial queue (each agent processes one run at a time, multiple agents can run in parallel). Run events table for structured logging.
+**Complexity:** Medium
+**Dependencies:** Feature 17, Feature 18
+**Data Model:**
+- `runs` — id, agent_id (FK), issue_id (FK), status, source, exit_code, input_tokens, output_tokens, cost_cents, session_id_before, session_id_after, started_at, finished_at, created_at
+- `run_events` — id, run_id (FK), event_type, payload (JSON), created_at
+- Replace serial queue with agent-aware queue manager
+
+#### Feature 20: Projects (P1, Small)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Group issues by project. Projects have name, description, color, status, and optional target date. Issues can be assigned to a project. Dashboard shows project list and project-scoped issue views.
+**Complexity:** Small
+**Dependencies:** Feature 18 (issues must exist)
+**Data Model:**
+- `projects` — id, name, description, color, status (active/completed/archived), target_date, created_at, updated_at
+
+#### Feature 21: Cost Governance (P1, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Track per-run token costs. Aggregate by agent and project. Budget enforcement — pause agent when monthly budget exceeded. Cost analytics API for dashboard consumption. Budget policies (warn at 80%, pause at 100%).
+**Complexity:** Medium
+**Dependencies:** Feature 19 (runs must track tokens)
+**Data Model:**
+- `budget_policies` — id, agent_id (nullable FK), project_id (nullable FK), monthly_limit_cents, warn_threshold_pct, action (warn/pause), created_at
+- `budget_incidents` — id, policy_id (FK), type (warning/breach), spent_cents, limit_cents, created_at
+- Cost aggregation queries over `runs` table
+
+#### Feature 22: Routines (P1, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Evolve file-based cron jobs and heartbeat into DB-backed routines. Routines are scheduled tasks tied to a specific agent with cron expressions, webhook triggers, or interval-based timing. Concurrency policies (skip if running, queue, coalesce). Replaces both heartbeat_state and cron engine with unified routine system.
+**Complexity:** Medium
+**Dependencies:** Feature 17, Feature 19
+**Data Model:**
+- `routines` — id, agent_id (FK), name, description, enabled, trigger_type (cron/interval/webhook), trigger_config (JSON), concurrency_policy, last_run_at, next_run_at, created_at, updated_at
+
+#### Feature 23: Approval Workflows (P2, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Generalize the security approval queue into a structured approval workflow. Agents can request approval for sensitive actions. Approvals have status (pending/approved/rejected/revision_requested), comments, and association to issues. Dashboard shows approval queue. Integrates with existing SecurityTeam screening.
+**Complexity:** Medium
+**Dependencies:** Feature 17, Feature 18
+**Data Model:**
+- `approvals` — id, agent_id (FK), issue_id (nullable FK), type, status, payload (JSON), decided_at, created_at
+- `approval_comments` — id, approval_id (FK), author_source, content, created_at
+
+#### Feature 24: Skills Management (P2, Small)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Move agent skills from filesystem to database-backed management. Skills are markdown knowledge documents injected into agent context. CRUD API for skills. Dashboard skills editor. Agents can have skills assigned. Retains filesystem skills as read-only defaults.
+**Complexity:** Small
+**Dependencies:** Feature 17
+**Data Model:**
+- `skills` — id, name, slug, description, content (markdown), source (system/user/scanned), agent_id (nullable FK — null means all agents), created_at, updated_at
+
+#### Feature 25: Activity & Audit Log (P2, Small)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Structured activity log in the engine tracking all state changes: issue created/updated, agent status changed, run started/completed, approval decided, routine triggered. Dashboard activity page with filtering by entity type.
+**Complexity:** Small
+**Dependencies:** Features 17-19 (needs entities to log about)
+**Data Model:**
+- `activity_log` — id, entity_type, entity_id, action, actor_type (agent/system/user), actor_id, changes (JSON), created_at
+
+#### Feature 26: Dashboard Agent Management UI (P1, Large)
+**Repos:** `overnightdesk`
+**Description:** New dashboard pages for the multi-agent model. Agent list with status indicators and live run counts. Agent detail page with configuration, run history, and session info. Issue list with status workflow filters replacing the flat jobs page. Issue detail with comments and activity. Project list and detail. Cost analytics page. Routines management replacing heartbeat config. Approval queue. Activity log page. Updated dashboard overview with charts and metrics.
+**Complexity:** Large
+**Dependencies:** Features 17-25 (engine API must exist)
+**Notes:** This is the frontend for everything built in Features 17-25. Can be built incrementally as each engine feature lands.
+
+**Phase 8 Dependency Graph:**
+```
+Feature 17 (Agents) → Blocks: 18, 19, 22, 23, 24, 25, 26
+Feature 18 (Issues) → Blocks: 19, 20, 23, 25, 26
+Feature 19 (Runs)   → Blocks: 21, 25, 26
+Feature 20 (Projects) → Blocks: 26
+Feature 21 (Costs)  → Blocks: 26
+Feature 22 (Routines) → Blocks: 26
+Feature 23 (Approvals) → Blocks: 26
+Feature 24 (Skills) → Blocks: 26
+Feature 25 (Activity) → Blocks: 26
+Feature 26 (Dashboard) → Terminal node
+```
+
+**Critical Path:** Agents → Issues → Runs → Costs → Dashboard
+
+**Phase 8 Completion Gate:**
+- [ ] Feature 17: Agents exist as first-class entities, Agent Zero pre-seeded
+- [ ] Feature 18: Issues replace flat jobs, full status workflow, comments
+- [ ] Feature 19: Per-agent execution runs with token tracking, parallel agent execution
+- [ ] Feature 20: Projects group issues
+- [ ] Feature 21: Per-agent/project budgets with enforcement
+- [ ] Feature 22: Routines replace heartbeat + cron with unified scheduling
+- [ ] Feature 23: Approval queue for agent-requested actions
+- [ ] Feature 24: DB-backed skills management
+- [ ] Feature 25: Structured activity log
+- [ ] Feature 26: Full dashboard UI for multi-agent management
+- [ ] All features have 80%+ test coverage
+- [ ] Engine contract tests updated for new API surface
+- [ ] Existing bridges (Telegram/Discord) route to Agent Zero via issue creation
+
+---
+
 ## Completion Summary
 
-Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) is next. 529 tests across 30 suites. Build passes. Platform is invite-only launch ready.
+Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) is next. Phase 8 (multi-agent evolution) adds 10 features (17-26). 529 tests across 30 suites. Build passes. Platform is invite-only launch ready.
 
 ### Commit History
 
