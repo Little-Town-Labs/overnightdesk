@@ -13,11 +13,15 @@ interface NavTab {
 
 const tabs: NavTab[] = [
   { label: "Overview", href: "/dashboard", requiresRunning: false },
-  { label: "Heartbeat", href: "/dashboard/heartbeat", requiresRunning: true },
-  { label: "Jobs", href: "/dashboard/jobs", requiresRunning: true },
+  { label: "Agents", href: "/dashboard/agents", requiresRunning: true },
+  { label: "Issues", href: "/dashboard/issues", requiresRunning: true },
+  { label: "Projects", href: "/dashboard/projects", requiresRunning: true },
+  { label: "Routines", href: "/dashboard/routines", requiresRunning: true },
+  { label: "Approvals", href: "/dashboard/approvals", requiresRunning: true },
+  { label: "Skills", href: "/dashboard/skills", requiresRunning: true },
+  { label: "Costs", href: "/dashboard/costs", requiresRunning: true },
   { label: "Activity", href: "/dashboard/activity", requiresRunning: true },
   { label: "Logs", href: "/dashboard/logs", requiresRunning: true },
-  { label: "Usage", href: "/dashboard/usage", requiresRunning: true },
   { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true },
   { label: "Settings", href: "/dashboard/settings", requiresRunning: false },
   { label: "Security", href: "/dashboard/security", requiresRunning: true, requiresPro: true },

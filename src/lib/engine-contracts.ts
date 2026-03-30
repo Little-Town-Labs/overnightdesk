@@ -215,6 +215,243 @@ export interface EngineSnapshotInfo {
 }
 
 // ---------------------------------------------------------------------------
+// Agents
+// ---------------------------------------------------------------------------
+
+export interface EngineAgentResponse {
+  id: string;
+  name: string;
+  role: string;
+  status: "active" | "paused";
+  pause_reason: string | null;
+  adapter_type: string;
+  heartbeat_interval_seconds: number;
+  heartbeat_prompt: string;
+  last_heartbeat_at: string | null;
+  budget_monthly_cents: number;
+  spent_monthly_cents: number;
+  reports_to: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngineAgentListEnvelope {
+  agents: EngineAgentResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// Issues
+// ---------------------------------------------------------------------------
+
+export interface EngineIssueResponse {
+  id: string;
+  identifier: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: string;
+  assignee_agent_id: string | null;
+  project_id: string | null;
+  source: string;
+  result: string | null;
+  conversation_id: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngineIssueListEnvelope {
+  issues: EngineIssueResponse[];
+  total: number;
+}
+
+export interface EngineIssueCommentResponse {
+  id: string;
+  issue_id: string;
+  author_agent_id: string | null;
+  author_source: string;
+  content: string;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Runs
+// ---------------------------------------------------------------------------
+
+export interface EngineRunResponse {
+  id: string;
+  agent_id: string;
+  issue_id: string;
+  status: string;
+  source: string;
+  exit_code: number | null;
+  input_tokens: number;
+  output_tokens: number;
+  cost_cents: number;
+  session_id_before: string | null;
+  session_id_after: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+}
+
+export interface EngineRunListEnvelope {
+  runs: EngineRunResponse[];
+  total: number;
+}
+
+// ---------------------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------------------
+
+export interface EngineProjectResponse {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  status: string;
+  target_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngineProjectListEnvelope {
+  projects: EngineProjectResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// Routines
+// ---------------------------------------------------------------------------
+
+export interface EngineRoutineResponse {
+  id: string;
+  agent_id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  trigger_type: "cron" | "interval";
+  trigger_config: string;
+  prompt: string;
+  concurrency_policy: string;
+  quiet_start: number | null;
+  quiet_end: number | null;
+  timezone: string;
+  last_run_at: string;
+  next_run_at: string;
+  run_count: number;
+  consecutive_failures: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngineRoutineListEnvelope {
+  routines: EngineRoutineResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// Approvals
+// ---------------------------------------------------------------------------
+
+export interface EngineApprovalResponse {
+  id: string;
+  agent_id: string;
+  issue_id: string;
+  title: string;
+  type: string;
+  status: "pending" | "approved" | "rejected" | "revision_requested";
+  payload: string;
+  decided_by: string;
+  decided_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngineApprovalListEnvelope {
+  approvals: EngineApprovalResponse[];
+  pending_count: number;
+}
+
+export interface EngineApprovalCommentResponse {
+  id: string;
+  approval_id: string;
+  author_source: string;
+  content: string;
+  created_at: string;
+}
+
+// ---------------------------------------------------------------------------
+// Skills
+// ---------------------------------------------------------------------------
+
+export interface EngineSkillResponse {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  content: string;
+  source: "system" | "user" | "scanned";
+  agent_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EngineSkillListEnvelope {
+  skills: EngineSkillResponse[];
+}
+
+// ---------------------------------------------------------------------------
+// Activity Log
+// ---------------------------------------------------------------------------
+
+export interface EngineActivityResponse {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  actor_type: "agent" | "system" | "user";
+  actor_id: string;
+  changes: string;
+  created_at: string;
+}
+
+export interface EngineActivityListEnvelope {
+  activities: EngineActivityResponse[];
+  total: number;
+}
+
+// ---------------------------------------------------------------------------
+// Costs
+// ---------------------------------------------------------------------------
+
+export interface EngineCostSummary {
+  TotalCostCents: number;
+  TotalRuns: number;
+  TotalInput: number;
+  TotalOutput: number;
+}
+
+export interface EngineAgentCost {
+  AgentID: string;
+  TotalCostCents: number;
+  RunCount: number;
+  TotalInput: number;
+  TotalOutput: number;
+}
+
+export interface EngineProjectCost {
+  ProjectID: string;
+  TotalCostCents: number;
+  RunCount: number;
+}
+
+export interface EngineCostEnvelope {
+  summary: EngineCostSummary;
+  by_agent: EngineAgentCost[];
+  by_project: EngineProjectCost[];
+}
+
+// ---------------------------------------------------------------------------
 // Test Fixtures
 // ---------------------------------------------------------------------------
 

@@ -1,6 +1,21 @@
 import type {
   EngineFlightRecorderStatus,
   EngineSnapshotInfo,
+  EngineAgentResponse,
+  EngineAgentListEnvelope,
+  EngineIssueResponse,
+  EngineIssueListEnvelope,
+  EngineIssueCommentResponse,
+  EngineRunListEnvelope,
+  EngineProjectResponse,
+  EngineProjectListEnvelope,
+  EngineRoutineResponse,
+  EngineRoutineListEnvelope,
+  EngineApprovalListEnvelope,
+  EngineSkillResponse,
+  EngineSkillListEnvelope,
+  EngineActivityListEnvelope,
+  EngineCostEnvelope,
 } from "./engine-contracts";
 
 export async function getAuthStatus(
@@ -623,6 +638,283 @@ export async function getSecurityServiceStatus(
 ): Promise<Record<string, unknown> | null> {
   try {
     const response = await fetch(`https://${subdomain}/api/security/status`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Agents ---
+
+export async function getAgents(
+  subdomain: string,
+  apiKey: string
+): Promise<EngineAgentListEnvelope | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/agents`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getAgent(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineAgentResponse | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/agents/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Issues ---
+
+export async function getIssues(
+  subdomain: string,
+  apiKey: string,
+  params?: Record<string, unknown>
+): Promise<EngineIssueListEnvelope | null> {
+  try {
+    const url = buildUrlWithParams(`https://${subdomain}/api/issues`, params);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getIssue(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineIssueResponse | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/issues/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getIssueComments(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineIssueCommentResponse[]> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/issues/${encodeURIComponent(id)}/comments`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.comments ?? [];
+  } catch {
+    return [];
+  }
+}
+
+// --- Runs ---
+
+export async function getRuns(
+  subdomain: string,
+  apiKey: string,
+  params?: Record<string, unknown>
+): Promise<EngineRunListEnvelope | null> {
+  try {
+    const url = buildUrlWithParams(`https://${subdomain}/api/runs`, params);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Projects ---
+
+export async function getProjects(
+  subdomain: string,
+  apiKey: string
+): Promise<EngineProjectListEnvelope | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/projects`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getProject(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineProjectResponse | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/projects/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Routines ---
+
+export async function getRoutines(
+  subdomain: string,
+  apiKey: string
+): Promise<EngineRoutineListEnvelope | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/routines`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getRoutine(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineRoutineResponse | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/routines/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Approvals ---
+
+export async function getApprovals(
+  subdomain: string,
+  apiKey: string,
+  params?: Record<string, unknown>
+): Promise<EngineApprovalListEnvelope | null> {
+  try {
+    const url = buildUrlWithParams(`https://${subdomain}/api/approvals`, params);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Skills ---
+
+export async function getSkills(
+  subdomain: string,
+  apiKey: string,
+  params?: Record<string, unknown>
+): Promise<EngineSkillListEnvelope | null> {
+  try {
+    const url = buildUrlWithParams(`https://${subdomain}/api/skills`, params);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function getSkill(
+  subdomain: string,
+  apiKey: string,
+  id: string
+): Promise<EngineSkillResponse | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/skills/${encodeURIComponent(id)}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Activity Log ---
+
+export async function getActivities(
+  subdomain: string,
+  apiKey: string,
+  params?: Record<string, unknown>
+): Promise<EngineActivityListEnvelope | null> {
+  try {
+    const url = buildUrlWithParams(`https://${subdomain}/api/activities`, params);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// --- Costs ---
+
+export async function getCosts(
+  subdomain: string,
+  apiKey: string,
+  params?: Record<string, unknown>
+): Promise<EngineCostEnvelope | null> {
+  try {
+    const url = buildUrlWithParams(`https://${subdomain}/api/costs`, params);
+    const response = await fetch(url, {
       headers: { Authorization: `Bearer ${apiKey}` },
       signal: AbortSignal.timeout(10_000),
     });

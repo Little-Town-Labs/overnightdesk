@@ -4,11 +4,12 @@ import { tabs, type NavTab } from "../dashboard-nav";
 // which require a browser/jsdom environment. We test the exported tab
 // configuration and the filtering logic that drives tab visibility.
 
-function getVisibleTabs(allTabs: NavTab[], instanceRunning: boolean, isAdmin = false): NavTab[] {
+function getVisibleTabs(allTabs: NavTab[], instanceRunning: boolean, isAdmin = false, plan?: string): NavTab[] {
   return allTabs.filter(
     (tab) =>
       (!tab.requiresRunning || instanceRunning) &&
-      (!tab.adminOnly || isAdmin)
+      (!tab.adminOnly || isAdmin) &&
+      (!tab.requiresPro || isAdmin || plan === "pro")
   );
 }
 
@@ -26,21 +27,26 @@ function getActiveClass(
 
 describe("DashboardNav", () => {
   describe("tab configuration", () => {
-    it("exports all nine tabs", () => {
-      expect(tabs).toHaveLength(9);
+    it("exports all fourteen tabs", () => {
+      expect(tabs).toHaveLength(14);
     });
 
     it("has correct tab labels in order", () => {
       const labels = tabs.map((t) => t.label);
       expect(labels).toEqual([
         "Overview",
-        "Heartbeat",
-        "Jobs",
+        "Agents",
+        "Issues",
+        "Projects",
+        "Routines",
+        "Approvals",
+        "Skills",
+        "Costs",
         "Activity",
         "Logs",
-        "Usage",
         "Bridges",
         "Settings",
+        "Security",
         "Admin",
       ]);
     });
@@ -49,13 +55,18 @@ describe("DashboardNav", () => {
       const hrefs = tabs.map((t) => t.href);
       expect(hrefs).toEqual([
         "/dashboard",
-        "/dashboard/heartbeat",
-        "/dashboard/jobs",
+        "/dashboard/agents",
+        "/dashboard/issues",
+        "/dashboard/projects",
+        "/dashboard/routines",
+        "/dashboard/approvals",
+        "/dashboard/skills",
+        "/dashboard/costs",
         "/dashboard/activity",
         "/dashboard/logs",
-        "/dashboard/usage",
         "/dashboard/bridges",
         "/dashboard/settings",
+        "/dashboard/security",
         "/dashboard/admin/fleet",
       ]);
     });
@@ -69,15 +80,20 @@ describe("DashboardNav", () => {
       ]);
     });
 
-    it("marks Heartbeat, Jobs, Activity, Logs, Usage, Bridges as requiring running instance", () => {
+    it("marks management tabs as requiring running instance", () => {
       const managementTabs = tabs.filter((t) => t.requiresRunning);
       expect(managementTabs.map((t) => t.label)).toEqual([
-        "Heartbeat",
-        "Jobs",
+        "Agents",
+        "Issues",
+        "Projects",
+        "Routines",
+        "Approvals",
+        "Skills",
+        "Costs",
         "Activity",
         "Logs",
-        "Usage",
         "Bridges",
+        "Security",
       ]);
     });
 
@@ -85,28 +101,31 @@ describe("DashboardNav", () => {
       const adminTabs = tabs.filter((t) => t.adminOnly);
       expect(adminTabs.map((t) => t.label)).toEqual(["Admin"]);
     });
+
+    it("marks Security tab as requiring pro", () => {
+      const proTabs = tabs.filter((t) => t.requiresPro);
+      expect(proTabs.map((t) => t.label)).toEqual(["Security"]);
+    });
   });
 
   describe("tab visibility filtering", () => {
-    it("shows all non-admin tabs when instance is running (non-admin user)", () => {
+    it("shows all non-admin non-pro tabs when instance is running (non-admin user)", () => {
       const visible = getVisibleTabs(tabs, true, false);
-      expect(visible).toHaveLength(8);
-      expect(visible.map((t) => t.label)).toEqual([
-        "Overview",
-        "Heartbeat",
-        "Jobs",
-        "Activity",
-        "Logs",
-        "Usage",
-        "Bridges",
-        "Settings",
-      ]);
+      expect(visible).toHaveLength(12);
+      expect(visible.map((t) => t.label)).not.toContain("Admin");
+      expect(visible.map((t) => t.label)).not.toContain("Security");
     });
 
-    it("shows all tabs including Admin when instance is running and user is admin", () => {
+    it("shows all tabs including Admin and Security when instance is running and user is admin", () => {
       const visible = getVisibleTabs(tabs, true, true);
-      expect(visible).toHaveLength(9);
+      expect(visible).toHaveLength(14);
       expect(visible.map((t) => t.label)).toContain("Admin");
+      expect(visible.map((t) => t.label)).toContain("Security");
+    });
+
+    it("shows Security for pro plan users", () => {
+      const visible = getVisibleTabs(tabs, true, false, "pro");
+      expect(visible.map((t) => t.label)).toContain("Security");
     });
 
     it("hides management tabs when instance is not running", () => {
@@ -128,25 +147,25 @@ describe("DashboardNav", () => {
     });
 
     it("marks Overview as inactive on sub-paths", () => {
-      expect(getActiveClass("/dashboard/heartbeat", "/dashboard")).toBe(
+      expect(getActiveClass("/dashboard/agents", "/dashboard")).toBe(
         "inactive"
       );
     });
 
-    it("marks Heartbeat as active on /dashboard/heartbeat", () => {
+    it("marks Agents as active on /dashboard/agents", () => {
       expect(
-        getActiveClass("/dashboard/heartbeat", "/dashboard/heartbeat")
+        getActiveClass("/dashboard/agents", "/dashboard/agents")
       ).toBe("active");
     });
 
-    it("marks Jobs as active on /dashboard/jobs", () => {
-      expect(getActiveClass("/dashboard/jobs", "/dashboard/jobs")).toBe(
+    it("marks Issues as active on /dashboard/issues", () => {
+      expect(getActiveClass("/dashboard/issues", "/dashboard/issues")).toBe(
         "active"
       );
     });
 
-    it("marks Jobs as active on sub-paths like /dashboard/jobs/123", () => {
-      expect(getActiveClass("/dashboard/jobs/123", "/dashboard/jobs")).toBe(
+    it("marks Issues as active on sub-paths like /dashboard/issues/123", () => {
+      expect(getActiveClass("/dashboard/issues/123", "/dashboard/issues")).toBe(
         "active"
       );
     });
