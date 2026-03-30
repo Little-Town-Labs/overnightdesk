@@ -522,9 +522,194 @@ Feature 26 (Dashboard) → Terminal node
 
 ---
 
+## Phase 9: Platform Hardening & Agent Intelligence
+
+**Source:** Paperclip (paperclip.ing) feature gap analysis, 2026-03-30
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Dependencies:** Phase 8 complete
+
+This phase closes the feature gap with the open-source state of the art (Paperclip, 35.5k stars) while maintaining OvernightDesk's managed hosting + SecurityTeam differentiation. Multi-adapter support excluded — OvernightDesk is Claude Code only by design.
+
+### Small Features (engine-only, 1-2 hours each)
+
+#### Feature 27: Issue Checkout/Release (P0, Small)
+**Repos:** `overnightdesk-engine`
+**Description:** Atomic issue claim via `POST /api/issues/:id/checkout` that sets assignee + transitions to `in_progress` in a single transaction. Returns 409 Conflict if already checked out. `POST /api/issues/:id/release` returns issue to `todo`. Prevents two agents working the same task.
+**Data Model:**
+- `issues` — add `checkout_run_id` column (nullable FK to runs)
+
+#### Feature 28: Agent Config Revisions (P1, Small)
+**Repos:** `overnightdesk-engine`
+**Description:** Track every agent configuration change with before/after snapshots. `GET /api/agents/:id/config-revisions` lists history. `POST /api/agents/:id/config-revisions/:revisionId/rollback` restores a previous config. Safety net for destructive config changes.
+**Data Model:**
+- `agent_config_revisions` — id, agent_id, source (patch/rollback), changed_keys (JSON), before_config (JSON), after_config (JSON), created_at
+
+#### Feature 29: Billing Codes (P2, Small)
+**Repos:** `overnightdesk-engine`
+**Description:** Optional `billing_code` field on issues that propagates to runs and cost tracking. Enables cost allocation by business function (e.g., "marketing", "devops", "research").
+**Data Model:**
+- `issues` — add `billing_code` column (nullable TEXT)
+- Cost queries group by billing_code when present
+
+#### Feature 30: Issue Labels (P2, Small)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Color-coded labels for issue classification. CRUD API for labels, M:N join table. Dashboard shows label pills on issue list.
+**Data Model:**
+- `labels` — id, name, color, created_at
+- `issue_labels` — issue_id, label_id (composite PK)
+
+#### Feature 31: Wakeup Coalescing (P1, Small)
+**Repos:** `overnightdesk-engine`
+**Description:** Deduplicate agent wakeup requests using idempotency keys. If a wakeup with the same key is already pending, increment a coalesced_count instead of creating a duplicate. Prevents thundering herd on rapid events.
+**Data Model:**
+- `agent_wakeup_requests` — add `idempotency_key` (nullable UNIQUE), `coalesced_count` (default 0)
+
+#### Feature 32: Routine Catch-up Policies (P2, Small)
+**Repos:** `overnightdesk-engine`
+**Description:** When a routine misses scheduled runs (engine downtime, quiet hours), determine behavior: `skip_missed` (default, current behavior) or `enqueue_missed_with_cap` (enqueue up to N missed runs, default 5). Prevents silent missed work.
+**Data Model:**
+- `routines` — add `catch_up_policy` (TEXT, default 'skip_missed'), `catch_up_cap` (INTEGER, default 5)
+
+#### Feature 33: Org Chart Visualization (P2, Small)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** `GET /api/agents/org` returns agent hierarchy as a tree JSON. Dashboard renders an interactive org chart showing reporting lines, status badges, and budget info.
+**Data Model:** None — derived from existing `reports_to` field on agents.
+
+### Medium Features (engine + dashboard, 2-4 hours each)
+
+#### Feature 34: Issue Documents (P1, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Keyed markdown documents attached to issues (e.g., "plan", "research", "spec"). Full revision history with change summaries. Agents can create/update documents during execution. Dashboard document viewer with revision diff.
+**Data Model:**
+- `documents` — id, title, format (default 'markdown'), latest_body, latest_revision_number, created_at, updated_at
+- `document_revisions` — id, document_id, revision_number, body, change_summary, created_at
+- `issue_documents` — id, issue_id, document_id, key (UNIQUE per issue)
+
+#### Feature 35: Work Products (P1, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Track external artifacts linked to issues — PRs, deployments, reports, URLs. Each work product has a type, provider, external ID, URL, review state, and health status. Dashboard shows work products on issue detail.
+**Data Model:**
+- `issue_work_products` — id, issue_id, type (pr/deployment/report/url), provider, external_id, title, url, status, review_state, is_primary, created_at
+
+#### Feature 36: Goal Hierarchy (P1, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Four-level goal system: company → team → agent → task. Goals have parent goals (tree), link to projects and issues. Issues trace back to company mission. Dashboard goal tree visualization.
+**Data Model:**
+- `goals` — id, title, description, level (company/team/agent/task), status (active/completed/archived), parent_id (self-ref), owner_agent_id, created_at, updated_at
+- `projects` — add `goal_id` column (nullable FK)
+- `issues` — add `goal_id` column (nullable FK)
+
+#### Feature 37: Run Streaming (SSE) (P0, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Server-Sent Events endpoint `GET /api/runs/:id/stream` that pushes real-time execution events (stdout lines, status changes, token counts) during active runs. Dashboard live run widget replaces polling.
+**Data Model:** None new — streams from existing `run_events` table.
+
+#### Feature 38: Kanban Board (P1, Medium)
+**Repos:** `overnightdesk`
+**Description:** Drag-and-drop Kanban board view for issues. Columns: backlog, todo, in_progress, in_review, done. Drag to change status. Filter by assignee, project, priority. Toggle between list and board views.
+**Data Model:** None — frontend only, uses existing issue API.
+
+#### Feature 39: Finance Ledger (P2, Medium)
+**Repos:** `overnightdesk-engine`, `overnightdesk`
+**Description:** Extend cost tracking beyond simple token counts. Support event kinds: inference_charge, platform_fee, credit_purchase, manual_adjustment. Debit/credit directions. Provider and biller tracking. Dashboard finance summary with breakdowns.
+**Data Model:**
+- `finance_events` — id, agent_id, event_kind, direction (debit/credit), biller, provider, model, amount_cents, currency, created_at
+
+#### Feature 40: Secrets Management (P1, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Encrypted secret storage with rotation support. Secrets scoped to company, injected into agent environment during execution. API for CRUD and rotation. Never exposed in API responses — write-only after creation.
+**Data Model:**
+- `secrets` — id, name, encrypted_value, provider (local_encrypted), version, rotated_at, created_at, updated_at
+
+#### Feature 41: Company Export/Import (P2, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Export full tenant configuration (agents, projects, routines, skills, budget policies) as a JSON archive. Import with preview before applying. Enables backup, migration, and template sharing.
+**Data Model:** None — serialization of existing entities.
+
+#### Feature 42: Agent Instructions Bundle (P2, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Replace monolithic CLAUDE.md with structured instruction files. Per-agent instruction bundle with named files (identity.md, constraints.md, tools.md). API to manage individual files. Assembled into CLAUDE.md at execution time.
+**Data Model:**
+- `agent_instruction_files` — id, agent_id, filename, content, created_at, updated_at
+
+#### Feature 43: Per-Task Session Management (P1, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Track Claude Code sessions per issue/task (not just globally per agent). When an agent resumes work on a specific issue, restore the session from that task. Session compaction policy: auto-compact when context exceeds threshold.
+**Data Model:**
+- `agent_task_sessions` — id, agent_id, issue_id, session_id, session_params (JSON), created_at, updated_at
+
+### Large Features (significant architecture, 4-8 hours)
+
+#### Feature 44: Workspace Isolation (P1, Large)
+**Repos:** `overnightdesk-engine`
+**Description:** Git worktree management for parallel agent work. Each issue can get its own branch and working directory. Workspace reuse strategies (per-issue, per-project, shared). Setup/cleanup commands. Prevents agents from stepping on each other's filesystem changes.
+**Data Model:**
+- `project_workspaces` — id, project_id, name, source_type (local/git), cwd, repo_url, repo_ref, setup_command, cleanup_command
+- `execution_workspaces` — id, project_id, issue_id, mode, status, cwd, branch_name, created_at
+
+#### Feature 45: Plugin System (P2, Large)
+**Repos:** `overnightdesk-engine`
+**Description:** Manifest-driven plugin architecture. Plugins can register API endpoints, scheduled jobs, event listeners, and agent tools. Plugin state storage scoped by entity. Plugin lifecycle management (install, configure, enable, disable, uninstall).
+**Data Model:**
+- `plugins` — id, plugin_key, version, manifest (JSON), status, created_at
+- `plugin_config` — plugin_id, config (JSON)
+- `plugin_state` — plugin_id, scope_kind, scope_id, key, value
+- `plugin_jobs` — plugin_id, job_key, schedule, status, next_run_at
+- `plugin_job_runs` — id, job_id, trigger, status, duration_ms, created_at
+
+**Phase 9 Dependency Graph:**
+```
+Feature 27 (Checkout) → Blocks: 37, 43, 44
+Feature 28 (Config Revisions) → Independent
+Feature 29 (Billing Codes) → Blocks: 39
+Feature 30 (Labels) → Independent
+Feature 31 (Wakeup Coalescing) → Independent
+Feature 32 (Catch-up) → Independent
+Feature 33 (Org Chart) → Independent
+Feature 34 (Documents) → Independent
+Feature 35 (Work Products) → Independent
+Feature 36 (Goals) → Independent
+Feature 37 (SSE Streaming) → Depends: 27
+Feature 38 (Kanban) → Independent (frontend only)
+Feature 39 (Finance Ledger) → Depends: 29
+Feature 40 (Secrets) → Independent
+Feature 41 (Export/Import) → Independent
+Feature 42 (Instructions Bundle) → Independent
+Feature 43 (Task Sessions) → Depends: 27
+Feature 44 (Workspaces) → Depends: 27
+Feature 45 (Plugins) → Independent
+```
+
+**Critical Path:** Checkout → SSE Streaming → Task Sessions → Workspaces
+
+**Phase 9 Completion Gate:**
+- [ ] Feature 27: Atomic issue checkout with 409 conflict
+- [ ] Feature 28: Agent config revision history with rollback
+- [ ] Feature 29: Billing codes on issues propagated to costs
+- [ ] Feature 30: Color-coded issue labels
+- [ ] Feature 31: Wakeup request deduplication
+- [ ] Feature 32: Routine catch-up policies
+- [ ] Feature 33: Org chart visualization
+- [ ] Feature 34: Keyed issue documents with revision history
+- [ ] Feature 35: Work product tracking on issues
+- [ ] Feature 36: Goal hierarchy (company→team→agent→task)
+- [ ] Feature 37: Real-time run streaming via SSE
+- [ ] Feature 38: Kanban board for issues
+- [ ] Feature 39: Finance ledger with event kinds
+- [ ] Feature 40: Encrypted secrets management
+- [ ] Feature 41: Tenant export/import
+- [ ] Feature 42: Structured agent instructions bundle
+- [ ] Feature 43: Per-task session management
+- [ ] Feature 44: Git worktree workspace isolation
+- [ ] Feature 45: Plugin system
+- [ ] All features have 80%+ test coverage
+- [ ] Dashboard updated for all new features
+
+---
+
 ## Completion Summary
 
-Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) complete. Phase 8 (multi-agent evolution): all 10 features complete (17-26), deployed to aegis-prod. Engine has 531+ tests across 15 packages. Platform dashboard shows all multi-agent management pages. Instance row wired to aegis-prod tenant-0.
+Phases 1-8 complete (26 features). Phase 9 (platform hardening & agent intelligence) planned: 19 features derived from Paperclip gap analysis. Engine has 531+ tests across 15 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
 
 ### Commit History
 
