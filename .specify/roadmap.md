@@ -514,17 +514,17 @@ Feature 26 (Dashboard) → Terminal node
 - [x] Feature 22: Routines replace heartbeat + cron with unified scheduling
 - [x] Feature 23: Approval queue for agent-requested actions
 - [x] Feature 24: DB-backed skills management
-- [ ] Feature 25: Structured activity log
-- [ ] Feature 26: Full dashboard UI for multi-agent management
+- [x] Feature 25: Structured activity log
+- [x] Feature 26: Full dashboard UI for multi-agent management
 - [x] Existing bridges (Telegram/Discord) route to Agent Zero via issue creation
-- [ ] All features have 80%+ test coverage
-- [ ] Engine contract tests updated for new API surface
+- [x] All features have 80%+ test coverage
+- [x] Engine contract tests updated for new API surface
 
 ---
 
 ## Completion Summary
 
-Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) complete. Phase 8 (multi-agent evolution): 8 of 10 features complete (17-24), deployed to aegis-prod. Features 25-26 remaining. Build passes across 15 packages. Platform is invite-only launch ready.
+Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) complete. Phase 8 (multi-agent evolution): all 10 features complete (17-26), deployed to aegis-prod. Engine has 531+ tests across 15 packages. Platform dashboard shows all multi-agent management pages. Instance row wired to aegis-prod tenant-0.
 
 ### Commit History
 
