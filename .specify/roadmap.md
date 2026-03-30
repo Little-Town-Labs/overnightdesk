@@ -506,25 +506,25 @@ Feature 26 (Dashboard) → Terminal node
 **Critical Path:** Agents → Issues → Runs → Costs → Dashboard
 
 **Phase 8 Completion Gate:**
-- [ ] Feature 17: Agents exist as first-class entities, Agent Zero pre-seeded
-- [ ] Feature 18: Issues replace flat jobs, full status workflow, comments
-- [ ] Feature 19: Per-agent execution runs with token tracking, parallel agent execution
-- [ ] Feature 20: Projects group issues
-- [ ] Feature 21: Per-agent/project budgets with enforcement
-- [ ] Feature 22: Routines replace heartbeat + cron with unified scheduling
-- [ ] Feature 23: Approval queue for agent-requested actions
-- [ ] Feature 24: DB-backed skills management
+- [x] Feature 17: Agents exist as first-class entities, Agent Zero pre-seeded
+- [x] Feature 18: Issues replace flat jobs, full status workflow, comments
+- [x] Feature 19: Per-agent execution runs with token tracking, parallel agent execution
+- [x] Feature 20: Projects group issues
+- [x] Feature 21: Per-agent/project budgets with enforcement
+- [x] Feature 22: Routines replace heartbeat + cron with unified scheduling
+- [x] Feature 23: Approval queue for agent-requested actions
+- [x] Feature 24: DB-backed skills management
 - [ ] Feature 25: Structured activity log
 - [ ] Feature 26: Full dashboard UI for multi-agent management
+- [x] Existing bridges (Telegram/Discord) route to Agent Zero via issue creation
 - [ ] All features have 80%+ test coverage
 - [ ] Engine contract tests updated for new API surface
-- [ ] Existing bridges (Telegram/Discord) route to Agent Zero via issue creation
 
 ---
 
 ## Completion Summary
 
-Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) is next. Phase 8 (multi-agent evolution) adds 10 features (17-26). 529 tests across 30 suites. Build passes. Platform is invite-only launch ready.
+Phases 1-6 complete (12 features). Phase 7 (security pipeline integration) complete. Phase 8 (multi-agent evolution): 8 of 10 features complete (17-24), deployed to aegis-prod. Features 25-26 remaining. Build passes across 15 packages. Platform is invite-only launch ready.
 
 ### Commit History
 
