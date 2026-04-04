@@ -657,9 +657,36 @@ This phase closes the feature gap with the open-source state of the art (Papercl
 - `plugin_jobs` — plugin_id, job_key, schedule, status, next_run_at
 - `plugin_job_runs` — id, job_id, trigger, status, duration_ms, created_at
 
+### New Features (Agentic Primitives Audit, 2026-04-03)
+
+These features were identified by assessing OvernightDesk against universal agentic system primitives (tool registries, permission tiers, session persistence, workflow state, budget tracking, streaming events, system logging, verification harnesses).
+
+#### Feature 46: Pre-Execution Budget Gate (P0, Small) ✅
+**Repos:** `overnightdesk-engine`
+**Description:** Add pre-execution budget check in `executeWithIssue()` that blocks agents whose `spent_monthly_cents >= budget_monthly_cents` before invoking Claude CLI. Creates full audit trail: failed run, run event, failed issue with dollar-formatted message, paused agent, budget incident. Previously budget enforcement was post-execution only — a single expensive run could blow past the limit.
+**Data Model:** None — uses existing budget fields and tables.
+**Commit:** `7e306b8` (2026-04-03)
+
+#### Feature 47: Approval-Gated Execution (P1, Medium) ✅
+**Repos:** `overnightdesk-engine`
+**Description:** Per-agent `approval_mode` field (`none|log|gate`). In `gate` mode, `executeWithIssue()` checks for pending approvals scoped to agent+issue before Claude CLI invocation. Blocked issues stay as `todo` (deferred, not failed). Default `none` — fully backward compatible. Includes migration 017, API validation, config snapshot/rollback support.
+**Data Model:**
+- `agents` — add `approval_mode TEXT NOT NULL DEFAULT 'none' CHECK (approval_mode IN ('none', 'log', 'gate'))`
+- New query: `PendingApprovalsForExecution(agentID, issueID)` — counts pending approvals for agent+issue or agent-level (NULL issue)
+**Commit:** `662ac2a` (2026-04-03)
+
+#### Feature 48: Cross-Service Contract Constraint Tests (P1, Medium) ✅
+**Repos:** `overnightdesk-SecurityCouncil`
+**Description:** Contract tests validating SecurityCouncil's DispatchRequest building against CommunicationModule's validator constraints (title ≤256 bytes, summary ≤500 bytes, body ≤50 items each ≤1024 bytes). Found and fixed 5 real violations: title had no length limit, body items had no per-item or count limit, summary used rune-based truncation that could exceed byte limit, drilldown body passed raw untruncated content.
+**Data Model:** None — test-only feature with bug fixes.
+**Commit:** `7febca6` (2026-04-03)
+
 **Phase 9 Dependency Graph:**
 ```
-Feature 27 (Checkout) → Blocks: 37, 43, 44
+Feature 46 (Budget Gate) → COMPLETE
+Feature 47 (Approval Gate) → COMPLETE (depends: 46)
+Feature 48 (Contract Tests) → COMPLETE
+Feature 27 (Checkout) → COMPLETE
 Feature 28 (Config Revisions) → Independent
 Feature 29 (Billing Codes) → Blocks: 39
 Feature 30 (Labels) → Independent
@@ -669,21 +696,24 @@ Feature 33 (Org Chart) → Independent
 Feature 34 (Documents) → Independent
 Feature 35 (Work Products) → Independent
 Feature 36 (Goals) → Independent
-Feature 37 (SSE Streaming) → Depends: 27
+Feature 37 (SSE Streaming) → COMPLETE
 Feature 38 (Kanban) → Independent (frontend only)
 Feature 39 (Finance Ledger) → Depends: 29
 Feature 40 (Secrets) → Independent
 Feature 41 (Export/Import) → Independent
 Feature 42 (Instructions Bundle) → Independent
-Feature 43 (Task Sessions) → Depends: 27
-Feature 44 (Workspaces) → Depends: 27
+Feature 43 (Task Sessions) → COMPLETE
+Feature 44 (Workspaces) → COMPLETE
 Feature 45 (Plugins) → Independent
 ```
 
-**Critical Path:** Checkout → SSE Streaming → Task Sessions → Workspaces
+**Critical Path:** ~~Checkout (27) → SSE Streaming (37) → Task Sessions (43) → Workspaces (44)~~ ALL COMPLETE
 
 **Phase 9 Completion Gate:**
-- [ ] Feature 27: Atomic issue checkout with 409 conflict
+- [x] Feature 46: Pre-execution budget gate blocks over-budget agents (engine `7e306b8`)
+- [x] Feature 47: Approval-gated execution with per-agent approval_mode (engine `662ac2a`)
+- [x] Feature 48: Cross-service contract constraint tests + fixes (SecurityCouncil `7febca6`)
+- [x] Feature 27: Atomic issue checkout with 409 conflict (engine `bc0b634`)
 - [ ] Feature 28: Agent config revision history with rollback
 - [ ] Feature 29: Billing codes on issues propagated to costs
 - [ ] Feature 30: Color-coded issue labels
@@ -693,14 +723,14 @@ Feature 45 (Plugins) → Independent
 - [ ] Feature 34: Keyed issue documents with revision history
 - [ ] Feature 35: Work product tracking on issues
 - [ ] Feature 36: Goal hierarchy (company→team→agent→task)
-- [ ] Feature 37: Real-time run streaming via SSE
+- [x] Feature 37: Real-time run streaming via SSE (engine `05a65a7`)
 - [ ] Feature 38: Kanban board for issues
 - [ ] Feature 39: Finance ledger with event kinds
 - [ ] Feature 40: Encrypted secrets management
 - [ ] Feature 41: Tenant export/import
 - [ ] Feature 42: Structured agent instructions bundle
-- [ ] Feature 43: Per-task session management
-- [ ] Feature 44: Git worktree workspace isolation
+- [x] Feature 43: Per-task session management (engine `9bd8015`)
+- [x] Feature 44: Git worktree workspace isolation (engine `6758478`)
 - [ ] Feature 45: Plugin system
 - [ ] All features have 80%+ test coverage
 - [ ] Dashboard updated for all new features
@@ -709,7 +739,7 @@ Feature 45 (Plugins) → Independent
 
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 9 (platform hardening & agent intelligence) planned: 19 features derived from Paperclip gap analysis. Engine has 531+ tests across 15 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
+Phases 1-8 complete (26 features). Phase 9 in progress: 7 of 22 features complete (46-48 from agentic primitives audit + 27, 37, 43, 44 from critical path), 15 remaining. Engine has 580+ tests across 16 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
 
 ### Commit History
 
@@ -722,6 +752,13 @@ Phases 1-8 complete (26 features). Phase 9 (platform hardening & agent intellige
 | Phase 5 | `b6978dc` | Fleet Monitoring, Usage Metrics |
 | Reviews | `4028d89`, `749a2cb` | Code quality, security, performance fixes |
 | Phase 6 | `10ebadf`, `f65a59d` | Invite-only hardening, contract tests (Features 11-12) |
+| Phase 9 | engine `7e306b8` | Feature 46: Pre-execution budget gate |
+| Phase 9 | engine `662ac2a` | Feature 47: Approval-gated execution |
+| Phase 9 | SC `7febca6` | Feature 48: Contract constraint tests + fixes |
+| Phase 9 | engine `bc0b634` | Feature 27: Atomic issue checkout |
+| Phase 9 | engine `05a65a7` | Feature 37: SSE run streaming |
+| Phase 9 | engine `9bd8015` | Feature 43: Per-task session management |
+| Phase 9 | engine `6758478` | Feature 44: Workspace isolation |
 
 ### Remaining Operational Work
 
