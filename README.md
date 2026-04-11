@@ -6,13 +6,15 @@ Customer-facing web platform for [OvernightDesk](https://overnightdesk.com) — 
 
 ## Architecture
 
-OvernightDesk is a multi-repo platform:
+OvernightDesk is a multi-repo platform deployed on Oracle Cloud (aegis-prod):
 
-| Repo | Purpose | Status |
-|------|---------|--------|
-| **overnightdesk** (this repo) | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | 16 features, invite-only launch ready |
-| [overnightdesk-engine](../overnightdesk-engine) | Go daemon — Claude Code CLI wrapper, scheduler, messaging bridges, security integration | Complete (81.2% coverage) |
-| [overnightdesk-securityteam](../overnightdesk-securityteam) | Security pipeline — inbound sanitization, outbound guards, call governor, HTTP sidecar | Complete (660 tests) |
+| Repo | Language | Purpose | Status |
+|------|----------|---------|--------|
+| **overnightdesk** (this repo) | TypeScript/Next.js | Vercel frontend — landing, auth, billing, dashboard, provisioning orchestration | 16 features, invite-only launch ready |
+| [overnightdesk-engine](../overnightdesk-engine) | Go | Daemon — Claude Code CLI wrapper, scheduler, messaging bridges, security integration | Complete (81.2% coverage) |
+| [overnightdesk-securityteam](../overnightdesk-securityteam) | TypeScript/Fastify | Message traffic security — inbound sanitization, outbound guards, call governor, HTTP sidecar | Complete (660 tests) |
+| [overnightdesk-SecurityCouncil](../overnightdesk-SecurityCouncil) | Go | Platform security — codebase scanning, AI code review, vulnerability scanning (Trivy + OCI VSS) | Active |
+| [overnightdesk-communicationmodule](../overnightdesk-communicationmodule) | Go | gRPC notification bus — dispatches to Telegram and Discord with retry + circuit breaker | Active |
 
 ### How It Works
 
@@ -211,6 +213,17 @@ npm test -- --watch   # Watch mode
 3. **Neon:** Apply all migrations (`drizzle/0001-0004`)
 4. **Oracle Cloud:** Deploy provisioner scripts, configure dead-man's switch cron
 5. **Telegram:** Create owner notification bot, set `OWNER_TELEGRAM_BOT_TOKEN` + `OWNER_TELEGRAM_CHAT_ID`
+
+## Security & Vulnerability Scanning
+
+The platform runs a two-layer vulnerability scanning pipeline:
+
+| Layer | Tool | Scope | Schedule |
+|-------|------|-------|----------|
+| **Host OS** | OCI Vulnerability Scanning Service (VSS) | OS packages, open ports, CIS benchmarks | Weekly (OCI-managed) |
+| **Container images** | Trivy (via SecurityCouncil `--vuln-scan`) | Docker image CVEs, secrets, Go/Node deps | Weekly Sunday 3am UTC |
+
+Both scan results are combined into a single report dispatched to Discord (`security-reports` channel) via the CommunicationModule gRPC API.
 
 ## Remaining Operational Work
 
