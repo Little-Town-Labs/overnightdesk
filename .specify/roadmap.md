@@ -697,9 +697,9 @@ Feature 34 (Documents) → COMPLETE
 Feature 35 (Work Products) → COMPLETE
 Feature 36 (Goals) → COMPLETE
 Feature 37 (SSE Streaming) → COMPLETE
-Feature 38 (Kanban) → Independent (frontend only)
-Feature 39 (Finance Ledger) → Depends: 29
-Feature 40 (Secrets) → Independent
+Feature 38 (Kanban) → COMPLETE
+Feature 39 (Finance Ledger) → COMPLETE
+Feature 40 (Secrets) → COMPLETE (Phase.dev cloud)
 Feature 41 (Export/Import) → Independent
 Feature 42 (Instructions Bundle) → COMPLETE
 Feature 43 (Task Sessions) → COMPLETE
@@ -724,9 +724,9 @@ Feature 45 (Plugins) → Independent
 - [x] Feature 35: Work product tracking on issues (engine `6fa0b27`)
 - [x] Feature 36: Goal hierarchy (company→team→agent→task) (engine `6eac2eb`)
 - [x] Feature 37: Real-time run streaming via SSE (engine `05a65a7`)
-- [ ] Feature 38: Kanban board for issues
-- [ ] Feature 39: Finance ledger with event kinds
-- [ ] Feature 40: Encrypted secrets management
+- [x] Feature 38: Kanban board for issues (dashboard `6c2079c`)
+- [x] Feature 39: Finance ledger with event kinds (engine `627787f`)
+- [x] Feature 40: Phase.dev secrets integration (engine `361c0b9`, `627e0c7`)
 - [ ] Feature 41: Tenant export/import
 - [x] Feature 42: Structured agent instructions bundle (engine `6fa0b27`)
 - [x] Feature 43: Per-task session management (engine `9bd8015`)
@@ -739,7 +739,7 @@ Feature 45 (Plugins) → Independent
 
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 9 in progress: 17 of 22 features complete. Engine has 690+ tests across 17 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
+Phases 1-8 complete (26 features). Phase 9 in progress: 20 of 22 features complete. Engine has 720+ tests across 18 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0. Secrets managed via Phase.dev cloud.
 
 ### Commit History
 
