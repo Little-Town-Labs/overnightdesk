@@ -690,12 +690,12 @@ Feature 27 (Checkout) → COMPLETE
 Feature 28 (Config Revisions) → Independent
 Feature 29 (Billing Codes) → Blocks: 39
 Feature 30 (Labels) → Independent
-Feature 31 (Wakeup Coalescing) → Independent
-Feature 32 (Catch-up) → Independent
-Feature 33 (Org Chart) → Independent
+Feature 31 (Wakeup Coalescing) → COMPLETE
+Feature 32 (Catch-up) → COMPLETE
+Feature 33 (Org Chart) → COMPLETE
 Feature 34 (Documents) → Independent
 Feature 35 (Work Products) → Independent
-Feature 36 (Goals) → Independent
+Feature 36 (Goals) → COMPLETE
 Feature 37 (SSE Streaming) → COMPLETE
 Feature 38 (Kanban) → Independent (frontend only)
 Feature 39 (Finance Ledger) → Depends: 29
@@ -717,12 +717,12 @@ Feature 45 (Plugins) → Independent
 - [ ] Feature 28: Agent config revision history with rollback
 - [ ] Feature 29: Billing codes on issues propagated to costs
 - [ ] Feature 30: Color-coded issue labels
-- [ ] Feature 31: Wakeup request deduplication
-- [ ] Feature 32: Routine catch-up policies
-- [ ] Feature 33: Org chart visualization
+- [x] Feature 31: Wakeup request deduplication (engine `6eac2eb`)
+- [x] Feature 32: Routine catch-up policies (engine `6eac2eb`)
+- [x] Feature 33: Org chart visualization (engine `6eac2eb`)
 - [ ] Feature 34: Keyed issue documents with revision history
 - [ ] Feature 35: Work product tracking on issues
-- [ ] Feature 36: Goal hierarchy (company→team→agent→task)
+- [x] Feature 36: Goal hierarchy (company→team→agent→task) (engine `6eac2eb`)
 - [x] Feature 37: Real-time run streaming via SSE (engine `05a65a7`)
 - [ ] Feature 38: Kanban board for issues
 - [ ] Feature 39: Finance ledger with event kinds
@@ -739,7 +739,7 @@ Feature 45 (Plugins) → Independent
 
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 9 in progress: 7 of 22 features complete (46-48 from agentic primitives audit + 27, 37, 43, 44 from critical path), 15 remaining. Engine has 580+ tests across 16 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
+Phases 1-8 complete (26 features). Phase 9 in progress: 11 of 22 features complete. Engine has 610+ tests across 17 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
 
 ### Commit History
 
@@ -759,6 +759,7 @@ Phases 1-8 complete (26 features). Phase 9 in progress: 7 of 22 features complet
 | Phase 9 | engine `05a65a7` | Feature 37: SSE run streaming |
 | Phase 9 | engine `9bd8015` | Feature 43: Per-task session management |
 | Phase 9 | engine `6758478` | Feature 44: Workspace isolation |
+| Phase 9 | engine `6eac2eb` | Features 31, 32, 33, 36: Wakeup coalescing, routine catch-up, org chart, goal hierarchy |
 
 ### Remaining Operational Work
 
