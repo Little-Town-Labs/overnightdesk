@@ -693,15 +693,15 @@ Feature 30 (Labels) → Independent
 Feature 31 (Wakeup Coalescing) → COMPLETE
 Feature 32 (Catch-up) → COMPLETE
 Feature 33 (Org Chart) → COMPLETE
-Feature 34 (Documents) → Independent
-Feature 35 (Work Products) → Independent
+Feature 34 (Documents) → COMPLETE
+Feature 35 (Work Products) → COMPLETE
 Feature 36 (Goals) → COMPLETE
 Feature 37 (SSE Streaming) → COMPLETE
 Feature 38 (Kanban) → Independent (frontend only)
 Feature 39 (Finance Ledger) → Depends: 29
 Feature 40 (Secrets) → Independent
 Feature 41 (Export/Import) → Independent
-Feature 42 (Instructions Bundle) → Independent
+Feature 42 (Instructions Bundle) → COMPLETE
 Feature 43 (Task Sessions) → COMPLETE
 Feature 44 (Workspaces) → COMPLETE
 Feature 45 (Plugins) → Independent
@@ -720,15 +720,15 @@ Feature 45 (Plugins) → Independent
 - [x] Feature 31: Wakeup request deduplication (engine `6eac2eb`)
 - [x] Feature 32: Routine catch-up policies (engine `6eac2eb`)
 - [x] Feature 33: Org chart visualization (engine `6eac2eb`)
-- [ ] Feature 34: Keyed issue documents with revision history
-- [ ] Feature 35: Work product tracking on issues
+- [x] Feature 34: Keyed issue documents with revision history (engine `6fa0b27`)
+- [x] Feature 35: Work product tracking on issues (engine `6fa0b27`)
 - [x] Feature 36: Goal hierarchy (company→team→agent→task) (engine `6eac2eb`)
 - [x] Feature 37: Real-time run streaming via SSE (engine `05a65a7`)
 - [ ] Feature 38: Kanban board for issues
 - [ ] Feature 39: Finance ledger with event kinds
 - [ ] Feature 40: Encrypted secrets management
 - [ ] Feature 41: Tenant export/import
-- [ ] Feature 42: Structured agent instructions bundle
+- [x] Feature 42: Structured agent instructions bundle (engine `6fa0b27`)
 - [x] Feature 43: Per-task session management (engine `9bd8015`)
 - [x] Feature 44: Git worktree workspace isolation (engine `6758478`)
 - [ ] Feature 45: Plugin system
@@ -739,7 +739,7 @@ Feature 45 (Plugins) → Independent
 
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 9 in progress: 11 of 22 features complete. Engine has 610+ tests across 17 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
+Phases 1-8 complete (26 features). Phase 9 in progress: 14 of 22 features complete. Engine has 650+ tests across 17 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
 
 ### Commit History
 
@@ -760,6 +760,7 @@ Phases 1-8 complete (26 features). Phase 9 in progress: 11 of 22 features comple
 | Phase 9 | engine `9bd8015` | Feature 43: Per-task session management |
 | Phase 9 | engine `6758478` | Feature 44: Workspace isolation |
 | Phase 9 | engine `6eac2eb` | Features 31, 32, 33, 36: Wakeup coalescing, routine catch-up, org chart, goal hierarchy |
+| Phase 9 | engine `6fa0b27` | Features 34, 35, 42: Issue documents, work products, instruction files |
 
 ### Remaining Operational Work
 
