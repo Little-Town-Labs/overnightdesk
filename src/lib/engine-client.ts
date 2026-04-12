@@ -720,6 +720,29 @@ export async function getIssue(
   }
 }
 
+export async function updateIssue(
+  subdomain: string,
+  apiKey: string,
+  id: string,
+  updates: Record<string, unknown>
+): Promise<EngineIssueResponse | null> {
+  try {
+    const response = await fetch(`https://${subdomain}/api/issues/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updates),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function getIssueComments(
   subdomain: string,
   apiKey: string,

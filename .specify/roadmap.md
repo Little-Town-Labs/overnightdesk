@@ -687,9 +687,9 @@ Feature 46 (Budget Gate) → COMPLETE
 Feature 47 (Approval Gate) → COMPLETE (depends: 46)
 Feature 48 (Contract Tests) → COMPLETE
 Feature 27 (Checkout) → COMPLETE
-Feature 28 (Config Revisions) → Independent
-Feature 29 (Billing Codes) → Blocks: 39
-Feature 30 (Labels) → Independent
+Feature 28 (Config Revisions) → COMPLETE
+Feature 29 (Billing Codes) → COMPLETE (unblocks: 39)
+Feature 30 (Labels) → COMPLETE
 Feature 31 (Wakeup Coalescing) → COMPLETE
 Feature 32 (Catch-up) → COMPLETE
 Feature 33 (Org Chart) → COMPLETE
@@ -714,9 +714,9 @@ Feature 45 (Plugins) → Independent
 - [x] Feature 47: Approval-gated execution with per-agent approval_mode (engine `662ac2a`)
 - [x] Feature 48: Cross-service contract constraint tests + fixes (SecurityCouncil `7febca6`)
 - [x] Feature 27: Atomic issue checkout with 409 conflict (engine `bc0b634`)
-- [ ] Feature 28: Agent config revision history with rollback
-- [ ] Feature 29: Billing codes on issues propagated to costs
-- [ ] Feature 30: Color-coded issue labels
+- [x] Feature 28: Agent config revision history with rollback (engine `0d2d01e`)
+- [x] Feature 29: Billing codes on issues propagated to costs (engine `0d2d01e`)
+- [x] Feature 30: Color-coded issue labels (engine `0d2d01e`)
 - [x] Feature 31: Wakeup request deduplication (engine `6eac2eb`)
 - [x] Feature 32: Routine catch-up policies (engine `6eac2eb`)
 - [x] Feature 33: Org chart visualization (engine `6eac2eb`)
@@ -739,7 +739,7 @@ Feature 45 (Plugins) → Independent
 
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 9 in progress: 14 of 22 features complete. Engine has 650+ tests across 17 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
+Phases 1-8 complete (26 features). Phase 9 in progress: 17 of 22 features complete. Engine has 690+ tests across 17 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0.
 
 ### Commit History
 
