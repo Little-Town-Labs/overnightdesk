@@ -12,9 +12,10 @@
 ## Phase 1: PostgreSQL Schema + Stored Procedures
 
 ### Task 1.1: Schema — Tests
-**Status:** 🟡 Ready
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** None
 **Delegate:** tdd-guide
+**Notes:** 6 SQL assertion test files in `tenet-0/db/tests/01_*.sql` through `06_*.sql`. Verified failing before migrations existed.
 
 **Description:**
 Write SQL-level tests for all tables in data-model.md. Tests MUST fail before migrations exist.
@@ -37,8 +38,9 @@ Write SQL-level tests for all tables in data-model.md. Tests MUST fail before mi
 ---
 
 ### Task 1.2: Schema — Implementation
-**Status:** 🔴 Blocked by 1.1
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 1.1
+**Notes:** Migrations 001-006 in `tenet-0/db/migrations/`. All 6 schema tests pass. Verified on aegis-prod's deploy-postgres-1.
 
 **Description:**
 Write migrations 001–006 covering all tables from data-model.md.
@@ -64,9 +66,10 @@ Write migrations 001–006 covering all tables from data-model.md.
 ---
 
 ### Task 1.3: Stored Procedures — Tests
-**Status:** 🔴 Blocked by 1.2
+**Status:** ✅ Complete (2026-04-14, partial)
 **Dependencies:** Task 1.2
 **Delegate:** tdd-guide
+**Notes:** `tenet-0/db/tests/10_sp_publish_event.sql` (7 cases: happy path, namespace, unauth, rule rejection, valid approval, approval reuse, causality depth) and `11_sp_governor.sql` (4 cases: initial check, threshold warn, blocked at 100%). Edge cases EC-6 (rate limiting), EC-9 (disk full), EC-11 (budget reset race), EC-1b (credential rotation), and metric view tests deferred to a follow-up session — they require additional infrastructure (rate limiting middleware, disk-pressure simulation, retention jobs).
 
 **Description:**
 Write SP-level tests covering every code path in `publish_event`, `record_token_usage`, `check_budget`, approvals helpers.
@@ -120,8 +123,9 @@ Write SP-level tests covering every code path in `publish_event`, `record_token_
 ---
 
 ### Task 1.4: Stored Procedures — Implementation
-**Status:** 🔴 Blocked by 1.3
+**Status:** ✅ Complete (2026-04-14, partial)
 **Dependencies:** Task 1.3
+**Notes:** Migration 007 implements `_verify_credential` (bcrypt with grace window), `_audit`, `_causality_depth` (cycle + depth), `_matching_rule` (exact + wildcard), `publish_event`, `check_budget`, `record_token_usage`, `register_subscription`, `ack_event`, `rotate_credential`, `activate_constitution`. All 11 SP test cases pass. Migration 008 (retention jobs) and 009 (department seed) deferred — production deployment will need them.
 
 **Description:**
 Write migration `007_stored_procedures.sql` implementing every SP in data-model.md.
