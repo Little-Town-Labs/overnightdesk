@@ -739,9 +739,109 @@ Feature 45 (Plugins) → Independent
 
 ---
 
+## Phase 10: Tenet-0 Corporate Agent Hierarchy
+
+**Source:** `.docs/tenet-0/sub-agent-architecture.md` (drafted 2026-03-23)
+**Companion:** `.docs/tenet-0/infosec-ops-standards.md` (47 testable controls)
+**Repos:** `overnightdesk-engine`, new `tenet-0/` scaffold (likely new repo), `overnightdesk-securityteam`
+**Dependencies:** Phase 9 complete
+**Status:** Planning — architecture doc exists, no implementation yet
+
+Agent Zero is promoted from "the tenant's agent" to **President/CEO** of a corporate hierarchy running on the tenant VM. Sub-agents are modeled as departments (Operations, Technology, Sales & Marketing, Customer Support, Finance) communicating via a PostgreSQL LISTEN/NOTIFY event bus. Post-hoc constitutional review, not pre-approval. Independent SecOps auditor sits outside the hierarchy.
+
+**Vision:** The tenant container stops being a single-threaded agent executor and becomes an autonomous organization. Each department runs its own multi-step workflows within constitutional policies and token budgets. Platform-side dashboard evolves from "status panel" to "boardroom" — showing department health, event streams, approval queues, P&L, SLA dashboards.
+
+**Architectural Approach:**
+- PostgreSQL-native event bus (LISTEN/NOTIFY + events table) — no Redis, no RabbitMQ
+- Every department embeds the constitution in its system prompt
+- Token budget governor per department with auto-kill on overage
+- Departments run as isolated processes on the same VM (same network as engine)
+- This is the right surface for the **Vercel advisor tool** — multi-step agentic executors with cost sensitivity; Haiku+Opus-advisor becomes a default pattern for each department
+
+### Phase 10 Rollout Sub-Phases (per architecture doc)
+
+#### Phase 10.0 — Foundation
+
+**Features 49–51 (proposed):**
+
+- **Feature 49: Event Bus + Constitution + Token Governor (P0, Large)**
+  PostgreSQL event bus schema, publish/subscribe helper library (Go + TypeScript clients), constitution document baked into every agent prompt, per-department token spend governor.
+
+- **Feature 50: President Scaffolding (P0, Medium)**
+  Agent Zero's role upgraded to President: event consumer, report aggregator, approval workflow, department healthcheck poller, escalation handler.
+
+- **Feature 51: Department Interface Contract (P0, Small)**
+  Every department implements `healthcheck`, `report`, `handle_event`. Shared Go + TypeScript interfaces, lifecycle contract, crash-restart semantics.
+
+#### Phase 10.1 — MVP (product runs autonomously)
+
+- **Feature 52: Operations Department (P0, Medium)**
+  Wrap existing Engine + SecurityTeam in the department interface. Publish `job.completed`, `job.failed`, `security.alert`, `scan.blocked`, `sla.breach` to the bus. No rewrite — additive event publishing.
+
+- **Feature 53: Technology Department (P0, Large)**
+  New department. Provisioning, deprovisioning, VM health, container lifecycle, deployment pipeline, security patching, uptime SLA. Subscribes to `fin.payment.received` / `fin.subscription.cancelled` / `president.deploy.approved`.
+
+#### Phase 10.2 — Build Demand
+
+- **Feature 54: Sales & Marketing Department (P1, Medium)**
+  Marketing agent generates content, manages waitlist, runs landing page. No customer-facing operations — demand-building while Phase 10.1 hardens.
+
+#### Phase 10.3 — Open for Business
+
+- **Feature 55: Customer Support Department (P1, Medium)**
+  Ticket triage, customer replies, onboarding, churn prevention. Multi-step reasoning with draft+delay patterns (30-min review window, President intercept).
+
+- **Feature 56: Finance Department (P1, Large)**
+  Stripe reconciliation, P&L, forecasting, refund handling (auto under $X, President-approval over $X). No outbound payments without President approval.
+
+#### Phase 10.4 — Independent Audit
+
+- **Feature 57: SecOps Auditor (P0, Medium)**
+  Sits outside the department hierarchy. Read-only observer on the entire event bus. Audits against the 47 InfoSec & Ops controls. Can raise `secops.violation.critical` → automatic department freeze that the President cannot suppress without documented justification.
+
+### Phase 10 Dependency Graph
+
+```
+49 (Event Bus) ─┬→ 50 (President)
+                ├→ 51 (Dept Interface)
+                ├→ 52 (Ops) ─┐
+                ├→ 53 (Tech) ┤
+                ├→ 54 (S+M)  ├→ 57 (SecOps — observes all)
+                ├→ 55 (Supp) ┤
+                └→ 56 (Fin) ─┘
+```
+
+**Critical Path:** 49 → 50 → 51 → (52 || 53) → 57
+
+### Phase 10 Completion Gate
+
+- [ ] Feature 49: PostgreSQL event bus live, ≥1 publisher and ≥1 subscriber wired
+- [ ] Feature 50: President agent consumes events, aggregates reports, enforces approvals
+- [ ] Feature 51: All departments implement the shared interface
+- [ ] Feature 52: Operations publishes job/security events to the bus
+- [ ] Feature 53: Technology provisions/deprovisions from `fin.payment.received` events
+- [ ] Feature 54: Sales & Marketing runs waitlist + content pipeline autonomously
+- [ ] Feature 55: Customer Support handles tickets with constitutional policies
+- [ ] Feature 56: Finance reconciles Stripe, auto-approves refunds under policy limit
+- [ ] Feature 57: SecOps audits against all 47 controls, can trigger department freeze
+- [ ] Constitutional violations in event chain cause event rejection at bus level
+- [ ] Token budget governor active per department with auto-kill on overage
+- [ ] Platform dashboard shows department health, event stream, approval queue
+- [ ] Advisor tool integration evaluated per department (cost lever)
+
+### Open Questions (to resolve before `/speckit-specify`)
+
+- Is `tenet-0/` a new repo, a new directory in this repo, or distributed across existing repos?
+- Does the event bus reuse the existing NeonDB Postgres or need a separate instance on the tenant VM?
+- How does this interact with multi-tenancy (Feature 16)? Each tenant gets its own President?
+- Token budgets per department vs per tenant vs both?
+- Where does the constitution live — platform DB, tenant DB, or file on disk?
+
+---
+
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 7 (Security) 3 of 4 deployed. Phase 9 in progress: 21 of 22 features complete. Engine has 720+ tests across 18 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0. Secrets managed via Phase.dev cloud.
+Phases 1-8 complete (26 features). Phase 7 (Security) 3 of 4 deployed. Phase 9 in progress: 21 of 22 features complete. Phase 10 (Tenet-0 corporate hierarchy) planning stage — architecture doc drafted, 9 features scoped (49–57), no implementation yet. Engine has 720+ tests across 18 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0. Secrets managed via Phase.dev cloud.
 
 ### Commit History
 
