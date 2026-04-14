@@ -1,0 +1,249 @@
+openapi: 3.0.3
+info:
+  title: OvernightDesk Engine — Export/Import API
+  version: "1.0"
+  description: Tenant configuration export, preview, and import endpoints.
+
+paths:
+  /api/export:
+    get:
+      summary: Export tenant configuration
+      description: >
+        Exports all (or filtered) tenant configuration as a JSON archive.
+        Does not include operational history, secrets, or customer data.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: include
+          in: query
+          required: false
+          description: >
+            Comma-separated entity type keys to include.
+            If omitted, all types are exported.
+          schema:
+            type: string
+            example: "agents,skills,routines"
+      responses:
+        "200":
+          description: Configuration archive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Archive"
+        "401":
+          description: Unauthorized
+
+  /api/import/preview:
+    post:
+      summary: Preview import changes
+      description: >
+        Accepts an archive and returns what would change without modifying data.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: strategy
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [skip, overwrite, fail]
+            default: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Archive"
+      responses:
+        "200":
+          description: Import preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportPreview"
+        "400":
+          description: Invalid archive format
+        "401":
+          description: Unauthorized
+        "409":
+          description: Version incompatible (archive from newer schema)
+
+  /api/import:
+    post:
+      summary: Import tenant configuration
+      description: >
+        Applies an archive to the tenant instance. Atomic — all or nothing.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: strategy
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [skip, overwrite, fail]
+            default: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Archive"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResult"
+        "400":
+          description: Invalid archive or entity error
+        "401":
+          description: Unauthorized
+        "409":
+          description: Conflict detected (strategy=fail) or version incompatible
+        "413":
+          description: Archive too large (>10MB)
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Archive:
+      type: object
+      required: [version, metadata, data]
+      properties:
+        version:
+          type: integer
+          description: Archive format version (currently 1)
+          example: 1
+        metadata:
+          $ref: "#/components/schemas/ArchiveMetadata"
+        data:
+          $ref: "#/components/schemas/ArchiveData"
+
+    ArchiveMetadata:
+      type: object
+      required: [exported_at, engine_version, schema_version]
+      properties:
+        exported_at:
+          type: string
+          format: date-time
+        engine_version:
+          type: string
+          example: "1.14.0"
+        schema_version:
+          type: integer
+          description: Goose migration number at export time
+          example: 27
+
+    ArchiveData:
+      type: object
+      description: >
+        Each key is an entity type. Value is an array of entity records.
+        Empty arrays for types not included in a selective export.
+      properties:
+        agents:
+          type: array
+          items:
+            type: object
+        projects:
+          type: array
+          items:
+            type: object
+        project_workspaces:
+          type: array
+          items:
+            type: object
+        routines:
+          type: array
+          items:
+            type: object
+        skills:
+          type: array
+          items:
+            type: object
+        goals:
+          type: array
+          items:
+            type: object
+        labels:
+          type: array
+          items:
+            type: object
+        budget_policies:
+          type: array
+          items:
+            type: object
+        agent_instruction_files:
+          type: array
+          items:
+            type: object
+        telegram_config:
+          type: array
+          items:
+            type: object
+        discord_config:
+          type: array
+          items:
+            type: object
+        heartbeat_state:
+          type: array
+          items:
+            type: object
+
+    ImportPreview:
+      type: object
+      properties:
+        compatible:
+          type: boolean
+          description: Whether the archive schema is compatible
+        warnings:
+          type: array
+          items:
+            type: string
+        entities:
+          type: object
+          description: Per-type summary of create/update/skip/conflict counts
+          additionalProperties:
+            $ref: "#/components/schemas/EntityPreview"
+
+    EntityPreview:
+      type: object
+      properties:
+        create:
+          type: integer
+        update:
+          type: integer
+        skip:
+          type: integer
+        conflict:
+          type: integer
+
+    ImportResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        entities:
+          type: object
+          description: Per-type summary of what was created/updated/skipped
+          additionalProperties:
+            $ref: "#/components/schemas/EntityResult"
+        warnings:
+          type: array
+          items:
+            type: string
+
+    EntityResult:
+      type: object
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        skipped:
+          type: integer
