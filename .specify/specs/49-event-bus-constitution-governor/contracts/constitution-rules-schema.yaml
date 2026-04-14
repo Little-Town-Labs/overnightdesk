@@ -1,0 +1,75 @@
+# Schema for constitution-rules.yaml
+# This is the machine-readable portion of the constitution that the bus evaluates.
+# Loaded into constitution_rules table via migration.
+
+version: 1
+
+# Each rule defines constraints for a matching event type.
+rules:
+  - id: fin-payment-outbound-requires-approval
+    description: Outbound payments require per-action President approval
+    event_type_pattern: fin.payment.outbound
+    requires_approval: per_action
+    additional_checks:
+      required_payload_fields:
+        - amount_cents
+        - destination
+        - reason
+
+  - id: fin-small-refund-blanket
+    description: Refunds under $100 fall under blanket auto-approval
+    event_type_pattern: fin.refund.processed
+    requires_approval: blanket_category
+    approval_category: routine.finance.small_refund
+    additional_checks:
+      max_payload_field:
+        field: amount_cents
+        limit: 10000
+
+  - id: tech-deploy-production-requires-approval
+    description: Production deploys require per-action approval
+    event_type_pattern: tech.deploy.production
+    requires_approval: per_action
+
+  - id: marketing-content-blanket
+    description: Scheduled marketing content falls under blanket auto-approval
+    event_type_pattern: cro.content.published
+    requires_approval: blanket_category
+    approval_category: routine.marketing.content
+
+  - id: secops-violation-always-allowed
+    description: SecOps violation events are never blocked by rules
+    event_type_pattern: secops.violation.*
+    requires_approval: none
+
+# Approval categories define the constraints that blanket authorizations carry.
+approval_categories:
+  - name: routine.finance.small_refund
+    description: Auto-approve refunds up to configurable limit
+    allowed_event_types:
+      - fin.refund.processed
+    default_constraints:
+      max_amount_cents: 10000
+
+  - name: routine.marketing.content
+    description: Scheduled content publication
+    allowed_event_types:
+      - cro.content.published
+      - cro.content.scheduled
+    default_constraints: {}
+
+# Rule evaluation order (first match wins):
+# 1. Exact event_type_pattern match (e.g., fin.payment.outbound)
+# 2. Wildcard match (e.g., fin.*, secops.violation.*)
+# 3. Global fallback (no rule → no approval required)
+evaluation_order:
+  - exact
+  - wildcard
+  - fallback
+
+# Constitution metadata
+metadata:
+  published_at: "2026-04-14T00:00:00Z"
+  published_by: gary
+  prose_sibling: constitution.md
+  prose_sha256: "TBD at publish time"
