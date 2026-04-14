@@ -743,20 +743,42 @@ Feature 45 (Plugins) → Independent
 
 **Source:** `.docs/tenet-0/sub-agent-architecture.md` (drafted 2026-03-23)
 **Companion:** `.docs/tenet-0/infosec-ops-standards.md` (47 testable controls)
-**Repos:** `overnightdesk-engine`, new `tenet-0/` scaffold (likely new repo), `overnightdesk-securityteam`
+**Location:** `/tenet-0/` subdirectory in `overnightdesk` repo
+**Event bus:** dedicated PostgreSQL instance on the tenant VM (aegis-prod) — latency-critical inter-department traffic stays local; NeonDB remains for platform metadata
 **Dependencies:** Phase 9 complete
 **Status:** Planning — architecture doc exists, no implementation yet
 
-Agent Zero is promoted from "the tenant's agent" to **President/CEO** of a corporate hierarchy running on the tenant VM. Sub-agents are modeled as departments (Operations, Technology, Sales & Marketing, Customer Support, Finance) communicating via a PostgreSQL LISTEN/NOTIFY event bus. Post-hoc constitutional review, not pre-approval. Independent SecOps auditor sits outside the hierarchy.
+### Scope clarification — Tenet-0 only
 
-**Vision:** The tenant container stops being a single-threaded agent executor and becomes an autonomous organization. Each department runs its own multi-step workflows within constitutional policies and token budgets. Platform-side dashboard evolves from "status panel" to "boardroom" — showing department health, event streams, approval queues, P&L, SLA dashboards.
+**Tenet-0 is the platform itself** (Gary's business running on aegis-prod). It is the "zeroth tenant" that eats its own dog food. Phase 10 builds the corporate hierarchy *for Tenet-0 only*, covering:
+- Gary's business operations (billing, deployment, content, support)
+- Platform-wide security (SecOps, the 47 InfoSec controls)
+
+**Customer tenants are NOT in scope for Phase 10.** Each customer tenant has its own perspective and determines its own organizational model. **The corporate hierarchy is NOT a universal tenant pattern** — most early customer tenants (e.g., Mitchell's Diamond Sales) will not want or need it. Future phases may offer the corporate-hierarchy model as an opt-in template, but it is never mandatory.
+
+**Naming note:** "Tenet" (a guiding principle/doctrine) is a deliberate pun — Tenet-0 is the doctrine the platform operates under and the frame through which it treats customer tenants.
+
+### Architecture summary
+
+Agent Zero is promoted from "the tenant's agent" to **President/CEO** of Tenet-0's corporate hierarchy on the aegis-prod VM. Sub-agents are modeled as departments (Operations, Technology, Sales & Marketing, Customer Support, Finance) communicating via a PostgreSQL LISTEN/NOTIFY event bus. Post-hoc constitutional review, not pre-approval. Independent SecOps auditor sits outside the hierarchy.
+
+**Vision:** The platform stops being a thin Vercel frontend around a Go engine and becomes an autonomous organization that runs the business. Each department runs multi-step workflows within constitutional policies. Platform-side dashboard evolves from "status panel" to "boardroom" — department health, event streams, approval queues, P&L, SLA dashboards.
 
 **Architectural Approach:**
-- PostgreSQL-native event bus (LISTEN/NOTIFY + events table) — no Redis, no RabbitMQ
-- Every department embeds the constitution in its system prompt
-- Token budget governor per department with auto-kill on overage
-- Departments run as isolated processes on the same VM (same network as engine)
+- PostgreSQL-native event bus (LISTEN/NOTIFY + events table) on the tenant VM — no Redis, no RabbitMQ, no NeonDB round-trip
+- Every department embeds the Tenet-0 constitution in its system prompt
+- Token budget governor per department (allocation strategy TBD — see Deferred Decisions)
+- Departments run as isolated processes on the same VM (same Docker network as engine)
 - This is the right surface for the **Vercel advisor tool** — multi-step agentic executors with cost sensitivity; Haiku+Opus-advisor becomes a default pattern for each department
+
+### The Tenet-0 Constitution
+
+The constitution is a file in `/tenet-0/shared/constitution.md`. It governs:
+- **How Gary's business builds** — test-first, security as a feature, no shortcuts
+- **How Gary's business acts** — post-hoc review, pre-approval only for listed exceptions
+- **How Gary's business treats customer tenants** — Data Sacred, credentials never touched, honest status reporting, no surveillance
+
+It is loaded into every Tenet-0 agent's system prompt at startup. Event-bus rejection enforces constitutional compliance at the protocol level (e.g., Finance cannot publish `payment.outbound` without `president.approved` in the event chain).
 
 ### Phase 10 Rollout Sub-Phases (per architecture doc)
 
@@ -829,13 +851,21 @@ Agent Zero is promoted from "the tenant's agent" to **President/CEO** of a corpo
 - [ ] Platform dashboard shows department health, event stream, approval queue
 - [ ] Advisor tool integration evaluated per department (cost lever)
 
-### Open Questions (to resolve before `/speckit-specify`)
+### Resolved Decisions (2026-04-14)
 
-- Is `tenet-0/` a new repo, a new directory in this repo, or distributed across existing repos?
-- Does the event bus reuse the existing NeonDB Postgres or need a separate instance on the tenant VM?
-- How does this interact with multi-tenancy (Feature 16)? Each tenant gets its own President?
-- Token budgets per department vs per tenant vs both?
-- Where does the constitution live — platform DB, tenant DB, or file on disk?
+- **Location:** `/tenet-0/` subdirectory in `overnightdesk` repo — not a new repo
+- **Event bus Postgres:** dedicated instance on aegis-prod VM, not NeonDB (latency-critical inter-department messaging stays local)
+- **Scope:** Tenet-0 only (Gary's business operations + platform security). Customer tenants are out of scope for Phase 10.
+- **Per-tenant corporate hierarchy:** NOT a universal pattern. Early customer tenants (Mitchell's, etc.) will not have it. Future phases may offer it as an opt-in template.
+- **Constitution:** file on disk at `/tenet-0/shared/constitution.md`, loaded into every Tenet-0 agent's system prompt at startup. It is Tenet-0's guide for how the platform builds, acts, and treats customer tenants.
+
+### Deferred Decisions
+
+- **Token budget allocation strategy** — per-department caps are in Feature 49, but the specific dollar values, soft-warn thresholds, and rollover/rebalancing rules will be decided during `/speckit-specify 49-event-bus-constitution-governor` based on observed usage.
+
+### Future Phase (not Phase 10)
+
+- **Per-tenant organizational templates** — after Tenet-0 is proven, optionally expose the corporate hierarchy as a selectable template that a customer tenant can adopt. Most tenants will decline; heavy users (agencies, multi-founder startups) may opt in. Scope for Phase 11+ if customer demand emerges.
 
 ---
 
