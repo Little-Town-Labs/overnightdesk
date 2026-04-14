@@ -380,7 +380,7 @@ Tests for `bus-go/metrics.go` — operational metrics exposure.
 Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic TS instead of Go.
 
 ### Task 3.1: TS Bus Client — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Parallel with:** 2.1
 **Delegate:** tdd-guide
 
@@ -393,7 +393,7 @@ Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic
 ---
 
 ### Task 3.2: TS Bus Client — Implementation
-**Status:** 🔴 Blocked by 3.1
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 3.1
 
 **Acceptance Criteria:**
@@ -402,34 +402,34 @@ Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic
 ---
 
 ### Task 3.3: TS Governor — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Parallel with:** 2.3, 3.1
 
 ---
 
 ### Task 3.4: TS Governor — Implementation
-**Status:** 🔴 Blocked by 3.3
+**Status:** ✅ Complete (2026-04-14)
 
 ---
 
 ### Task 3.5: TS Constitution — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Parallel with:** 2.5, 3.1, 3.3
 
 ---
 
 ### Task 3.6: TS Constitution — Implementation
-**Status:** 🔴 Blocked by 3.5
+**Status:** ✅ Complete (2026-04-14)
 
 ---
 
 ### Task 3.7: TS Approvals — Tests
-**Status:** 🔴 Blocked by 3.2
+**Status:** ✅ Complete (2026-04-14)
 
 ---
 
 ### Task 3.8: TS Approvals — Implementation
-**Status:** 🔴 Blocked by 3.7
+**Status:** ✅ Complete (2026-04-14)
 
 ---
 
@@ -444,7 +444,7 @@ Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic
 ---
 
 ### Task 3.11: TS Audit — Tests
-**Status:** 🔴 Blocked by 3.2
+**Status:** ✅ Complete (2026-04-14)
 **Parallel with:** 2.11
 
 **Description:** Vitest tests for `bus-ts/src/audit.ts`. Same test cases as 2.11.
@@ -452,12 +452,12 @@ Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic
 ---
 
 ### Task 3.12: TS Audit — Implementation
-**Status:** 🔴 Blocked by 3.11
+**Status:** ✅ Complete (2026-04-14)
 
 ---
 
 ### Task 3.13: TS Metrics — Tests
-**Status:** 🔴 Blocked by 3.2
+**Status:** ✅ Complete (2026-04-14)
 **Parallel with:** 2.13
 
 **Description:** Same test cases as 2.13, idiomatic TS.
@@ -465,7 +465,7 @@ Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic
 ---
 
 ### Task 3.14: TS Metrics — Implementation
-**Status:** 🔴 Blocked by 3.13
+**Status:** ✅ Complete (2026-04-14)
 
 ---
 
