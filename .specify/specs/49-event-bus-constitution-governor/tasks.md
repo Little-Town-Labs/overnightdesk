@@ -472,8 +472,9 @@ Mirrors Phase 2 task-for-task. Same test cases, same coverage, Fastify-idiomatic
 ## Phase 4: Constitution Migration Tooling
 
 ### Task 4.1: Migration Runner — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 1.4
+**Notes:** 7 integration tests in `shared/bus-ts/test/migrator.test.ts` covering valid YAML activation, no-op on duplicate SHAs, invalid YAML rejection, invalid requires_approval mode, duplicate rule IDs, concurrent-bump race (advisory lock serializes), and prior-version deactivation atomicity.
 
 **Description:**
 Tests for `db/migrate.sh bump-constitution` — a shell/script tool that parses `constitution-rules.yaml`, creates a new `constitution_versions` row, populates `constitution_rules`, and calls `activate_constitution()`.
@@ -490,7 +491,8 @@ Tests for `db/migrate.sh bump-constitution` — a shell/script tool that parses 
 ---
 
 ### Task 4.2: Migration Runner — Implementation
-**Status:** 🔴 Blocked by 4.1
+**Status:** ✅ Complete (2026-04-14)
+**Notes:** Library at `shared/bus-ts/src/migrator.ts` exports `bumpConstitution()` — single-transaction with `pg_advisory_xact_lock` serializing concurrent callers. CLI at `shared/bus-ts/src/cli/bump-constitution.ts` using `node:util.parseArgs`. Shell wrapper at `tenet-0/db/migrate.sh bump-constitution`. All 7 tests pass.
 
 ---
 
