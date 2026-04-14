@@ -153,10 +153,11 @@ Plus migration `008_retention_jobs.sql` (daily archive + budget rollover schedul
 ## Phase 2: Go Client Library (parallel with Phase 3)
 
 ### Task 2.1: Go Bus Client — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 1.4
 **Delegate:** tdd-guide
 **Parallel with:** Task 3.1
+**Notes:** 9 integration tests in `bus_test.go` covering Connect (valid/invalid cred), Publish (happy, namespace, constitution, with parent, causality loop), Subscribe (new events, replay of missed events). All against real Postgres via `testutil`.
 
 **Description:**
 Tests for `tenet-0/shared/bus-go/bus.go`.
@@ -179,8 +180,9 @@ Tests for `tenet-0/shared/bus-go/bus.go`.
 ---
 
 ### Task 2.2: Go Bus Client — Implementation
-**Status:** 🔴 Blocked by 2.1
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.1
+**Notes:** `bus.go` implements Bus with Publish/Subscribe. LISTEN uses dedicated `pgx.Connect` (not pool) to avoid connection starvation. NOTIFY payload carries `<id>:<event_type>` (SP migration 008) for in-memory pre-filter. Unified pattern parser in `patterns.go`. Status constants in `status.go`. Ack uses fresh context with 5s timeout.
 
 **Description:**
 Implement `bus-go/bus.go` using `jackc/pgx/v5`.
@@ -193,10 +195,11 @@ Implement `bus-go/bus.go` using `jackc/pgx/v5`.
 ---
 
 ### Task 2.3: Go Governor — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 1.4
 **Delegate:** tdd-guide
 **Parallel with:** 2.1, 3.1, 3.3
+**Notes:** 4 tests in `governor_test.go` covering CheckBudget (ok state), Call (records usage, blocks on over-budget, skips Claude call when blocked). Uses `fakeClaudeClient` for isolation.
 
 **Description:**
 Tests for `bus-go/governor.go`.
@@ -215,8 +218,9 @@ Tests for `bus-go/governor.go`.
 ---
 
 ### Task 2.4: Go Governor — Implementation
-**Status:** 🔴 Blocked by 2.3
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.3
+**Notes:** `governor.go` implements Governor.Call (pre-check budget → Claude → record usage) and CheckBudget. Records usage on both success and failure paths. Narrow `ClaudeClient` interface for easy mocking; avoids coupling to any specific Anthropic SDK version.
 
 **Description:**
 Implement `bus-go/governor.go` wrapping Anthropic SDK calls.
