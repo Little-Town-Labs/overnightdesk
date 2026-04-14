@@ -232,10 +232,11 @@ Implement `bus-go/governor.go` wrapping Anthropic SDK calls.
 ---
 
 ### Task 2.5: Go Constitution — Tests
-**Status:** 🔴 Blocked by 1.4
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 1.4
 **Delegate:** tdd-guide
 **Parallel with:** 2.1, 2.3
+**Notes:** 4 tests in `constitution_test.go` (Load returns prose+rules, CurrentVersion, Watch fires on bump, Watch silent when stable).
 
 **Description:**
 Tests for `bus-go/constitution.go`.
@@ -254,18 +255,17 @@ Tests for `bus-go/constitution.go`.
 ---
 
 ### Task 2.6: Go Constitution — Implementation
-**Status:** 🔴 Blocked by 2.5
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.5
-
-**Acceptance Criteria:**
-- [ ] All 2.5 tests pass
+**Notes:** `constitution.go` implements Load (prose + rules), CurrentVersion (cheap version-only query), Watch (poll-and-callback with ≥ 1s minimum interval clamp). EC-5 task-boundary reload is the caller's responsibility — Watch fires the callback; the agent decides when to reload.
 
 ---
 
 ### Task 2.7: Go Approvals — Tests
-**Status:** 🔴 Blocked by 2.2
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.2
 **Delegate:** tdd-guide
+**Notes:** 3 tests in `approvals_test.go` (per-action grant→consume→reuse-rejected, blanket grant→use→revoke→rejected, namespace enforcement on non-President callers).
 
 **Description:**
 Tests for `bus-go/approvals.go`.
@@ -284,11 +284,9 @@ Tests for `bus-go/approvals.go`.
 ---
 
 ### Task 2.8: Go Approvals — Implementation
-**Status:** 🔴 Blocked by 2.7
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.7
-
-**Acceptance Criteria:**
-- [ ] All 2.7 tests pass
+**Notes:** `approvals.go` implements GrantPerAction (with default 10min expiry), GrantBlanket (constraints + optional expiry), Revoke (looks up category from approval ID and publishes revoke). Non-President credentials get ErrNamespaceViolation back from the underlying Publish.
 
 ---
 
@@ -321,9 +319,10 @@ Tests for spool-to-disk behavior when Postgres is unreachable.
 ---
 
 ### Task 2.11: Go Audit — Tests
-**Status:** 🔴 Blocked by 2.2
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.2
 **Delegate:** tdd-guide
+**Notes:** 4 tests in `audit_test.go` (filter by actor, filter by action, time window, Stream delivers new entries).
 
 **Description:**
 Tests for `bus-go/audit.go` — SecOps-only read-only API.
@@ -342,18 +341,17 @@ Tests for `bus-go/audit.go` — SecOps-only read-only API.
 ---
 
 ### Task 2.12: Go Audit — Implementation
-**Status:** 🔴 Blocked by 2.11
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.11
-
-**Acceptance Criteria:**
-- [ ] All 2.11 tests pass
+**Notes:** `audit.go` implements Query (one-shot with filter+limit) and Stream (id-cursor incremental polling). Library doesn't enforce role separation — caller chooses PostgresURL configured for tenet0_secops grants.
 
 ---
 
 ### Task 2.13: Go Metrics — Tests
-**Status:** 🔴 Blocked by 2.2
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.2
 **Delegate:** tdd-guide
+**Notes:** 3 tests in `metrics_test.go` (empty snapshot, snapshot after publishes shows events_per_minute + budget, Stream fires on interval).
 
 **Description:**
 Tests for `bus-go/metrics.go` — operational metrics exposure.
@@ -371,11 +369,9 @@ Tests for `bus-go/metrics.go` — operational metrics exposure.
 ---
 
 ### Task 2.14: Go Metrics — Implementation
-**Status:** 🔴 Blocked by 2.13
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 2.13
-
-**Acceptance Criteria:**
-- [ ] All 2.13 tests pass
+**Notes:** `metrics.go` implements Snapshot (5 sequential view queries) and Stream (poll-and-callback). Migration 009 adds the 5 backing views with appropriate role grants. GeneratedAt stamped after queries complete for accurate "as-of" semantics.
 
 ---
 

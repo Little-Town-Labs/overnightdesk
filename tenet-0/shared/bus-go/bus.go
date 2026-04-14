@@ -91,10 +91,17 @@ func (b *Bus) Publish(ctx context.Context, eventType string, payload json.RawMes
 		approvalArg = o.approvalEventID
 	}
 
+	// Normalize nil payload to "{}" so callers don't need to specify it for
+	// metadata-only events. The events.payload column is NOT NULL.
+	body := []byte(payload)
+	if len(body) == 0 {
+		body = []byte("{}")
+	}
+
 	var status, eventID, errMsg *string
 	err := b.pool.QueryRow(ctx,
 		`SELECT status, event_id, error_msg FROM publish_event($1, $2, $3, $4, $5)`,
-		b.config.Credential, eventType, []byte(payload), parentArg, approvalArg,
+		b.config.Credential, eventType, body, parentArg, approvalArg,
 	).Scan(&status, &eventID, &errMsg)
 	if err != nil {
 		return "", fmt.Errorf("bus: publish: %w", err)
