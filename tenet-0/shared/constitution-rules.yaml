@@ -1,0 +1,64 @@
+# Tenet-0 machine-readable constitution rules.
+# Loaded into constitution_rules via bump-constitution. Sibling of
+# constitution.md — intent lives there, enforcement lives here. If the
+# two ever disagree, THIS file is authoritative for rule enforcement.
+#
+# See .specify/specs/49-event-bus-constitution-governor/contracts/constitution-rules-schema.yaml
+# for the full schema. Fields used in v1:
+#   id                    Unique rule identifier, snake-case.
+#   description           Human-readable purpose (ignored by the enforcer,
+#                         present so auditors can read the file alone).
+#   event_type_pattern    Event type the rule matches. Exact or "prefix.*"
+#                         / "*.suffix" or "*" for all.
+#   requires_approval     per_action | blanket_category | none
+#   approval_category     Required when requires_approval is blanket_category.
+#
+# Sections present in the full schema but OPTIONAL in v1 (the migration
+# runner tolerates their absence and ignores them at load time):
+#   approval_categories   Category → default constraints
+#   additional_checks     Per-rule payload checks (e.g. required fields)
+#   evaluation_order      Rule match order (currently exact → wildcard → fallback)
+#   metadata              Published-at / by / prose-sibling pins
+# These will be wired up when the rule engine grows beyond approval-mode
+# matching. Keep them out of the YAML until the enforcer honors them.
+
+# Content version of this rules file. Bumped when content changes.
+version: 1
+
+rules:
+  # Financial outbound money movement is always per-action. Every single
+  # payment requires a fresh President approval.
+  - id: fin-payment-outbound-requires-approval
+    description: Outbound payments require per-action President approval
+    event_type_pattern: fin.payment.outbound
+    requires_approval: per_action
+
+  # Small refunds happen often; we authorize them by category with an
+  # amount cap. Constraints live in the approval event payload, not here.
+  - id: fin-refund-processed-blanket
+    description: Small refunds fall under blanket auto-approval with amount cap
+    event_type_pattern: fin.refund.processed
+    requires_approval: blanket_category
+    approval_category: routine.finance.small_refund
+
+  # Production deploys always need explicit approval — never automated.
+  - id: tech-deploy-production-requires-approval
+    description: Production deploys require per-action approval
+    event_type_pattern: tech.deploy.production
+    requires_approval: per_action
+
+  # Scheduled marketing content is blanket-authorized. The President
+  # revokes the blanket if the category goes off the rails.
+  - id: cro-content-published-blanket
+    description: Scheduled marketing content under blanket auto-approval
+    event_type_pattern: cro.content.published
+    requires_approval: blanket_category
+    approval_category: routine.marketing.content
+
+  # SecOps violation events are never blocked by the bus — we want them
+  # in the audit log regardless. (The underlying action they describe is
+  # separately governed; this rule is about the violation notice itself.)
+  - id: secops-violation-always-allowed
+    description: SecOps violation events are never blocked by constitutional rules
+    event_type_pattern: secops.violation.*
+    requires_approval: none

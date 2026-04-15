@@ -592,8 +592,9 @@ Full suite of cross-language tests.
 ## Phase 7: Documentation and Initial Constitution
 
 ### Task 7.1: README + Quickstart
-**Status:** 🔴 Blocked by 6.2
+**Status:** ✅ Complete (2026-04-15)
 **Dependencies:** Task 6.2
+**Notes:** `tenet-0/README.md` covers architecture (ASCII diagram + repo layout), local dev quickstart (docker compose + make all-tests), Go/TS publish examples, bump-constitution how-to, credential rotation runbook, aegis-prod deploy procedure. All password examples source from `secrets/tenet0.env` via `set -a; source; set +a` — no credentials on command line.
 
 **Description:**
 Write `/tenet-0/README.md` with:
@@ -609,8 +610,9 @@ Write `/tenet-0/README.md` with:
 ---
 
 ### Task 7.2: Initial Constitution (prose)
-**Status:** 🔴 Blocked by 5.3
+**Status:** ✅ Complete (2026-04-15)
 **Dependencies:** Task 5.3
+**Notes:** `tenet-0/shared/constitution.md` — 8 parts covering who the departments are (with reserved hr/legal callout), decision modes (routine/blanket/per-action), causality rules (no cycles, depth 10), Governor budget semantics, audit log + credential hygiene, customer-tenant scope (Tenet-0 is an example, not a mandate), and the amendment process. Explicit tie-breaker: YAML authoritative for enforcement, prose authoritative for intent.
 
 **Description:**
 Gary drafts `/tenet-0/shared/constitution.md`. Content is the principles for Tenet-0 — how Gary's business builds, acts, treats customer tenants. Drawn from existing platform constitution + architecture doc.
@@ -623,8 +625,9 @@ Gary drafts `/tenet-0/shared/constitution.md`. Content is the principles for Ten
 ---
 
 ### Task 7.3: Initial Constitution Rules (machine-readable)
-**Status:** 🔴 Blocked by 7.2
+**Status:** ✅ Complete (2026-04-15)
 **Dependencies:** Task 7.2
+**Notes:** `tenet-0/shared/constitution-rules.yaml` with all 5 spec-required rules: fin.payment.outbound (per_action), fin.refund.processed (blanket routine.finance.small_refund), tech.deploy.production (per_action), cro.content.published (blanket routine.marketing.content), secops.violation.* (none). Validated end-to-end against disposable DB via `bumpConstitution`: activated version 1, 5 rules stored, SHAs recorded, re-run returns `unchanged`. Header comment documents which schema sections are v1-optional.
 
 **Description:**
 Write `/tenet-0/shared/constitution-rules.yaml` using the schema from `contracts/constitution-rules-schema.yaml`.
