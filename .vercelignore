@@ -1,0 +1,9 @@
+# Standalone subprojects unrelated to the Next.js frontend.
+# tenet-0 is a PostgreSQL event bus with Go + TS client libraries and
+# a Docker Compose deploy — Vercel doesn't build or serve any of it.
+tenet-0/
+
+# Local notes — already .gitignored; listed here as belt-and-suspenders.
+.docs/
+.claude/
+.herenow/
