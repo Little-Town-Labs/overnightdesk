@@ -39,7 +39,11 @@ applied=0
 skipped=0
 for m in "${migrations[@]}"; do
   base="$(basename "$m")"
-  already=$(psql -tAc "SELECT COUNT(*)::INT FROM schema_migrations WHERE filename = '$base'" \
+  # Use psql variable binding so the filename never enters the SQL text —
+  # defends against a hypothetical malicious filename like
+  #   001_x';DROP TABLE audit_log;--.sql
+  already=$(psql -v ON_ERROR_STOP=1 -v fname="$base" -tAc \
+    "SELECT COUNT(*)::INT FROM schema_migrations WHERE filename = :'fname'" \
     --username "$POSTGRES_USER" --dbname "$POSTGRES_DB")
   if [[ "$already" != "0" ]]; then
     skipped=$((skipped+1))
@@ -48,11 +52,12 @@ for m in "${migrations[@]}"; do
   echo "tenet0 init: applying $base"
   # Append the bookkeeping insert to the migration body; psql --single-transaction
   # wraps both in one BEGIN/COMMIT so either both persist or neither does.
+  # The filename flows in via :'fname' so psql handles the quoting.
   {
     cat "$m"
     echo
-    echo "INSERT INTO schema_migrations (filename) VALUES ('$base');"
-  } | psql -v ON_ERROR_STOP=1 --single-transaction \
+    echo "INSERT INTO schema_migrations (filename) VALUES (:'fname');"
+  } | psql -v ON_ERROR_STOP=1 -v fname="$base" --single-transaction \
            --username "$POSTGRES_USER" --dbname "$POSTGRES_DB"
   applied=$((applied+1))
 done

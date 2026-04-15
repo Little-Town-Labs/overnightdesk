@@ -125,10 +125,11 @@ func (a *Audit) pollSince(ctx context.Context, sinceID int64, f AuditFilter) ([]
 	if limit <= 0 {
 		limit = 1000
 	}
+	args = append(args, limit)
 
 	q := fmt.Sprintf(`SELECT id, actor_id, action, detail_json, recorded_at
-		FROM audit_log WHERE %s ORDER BY id ASC LIMIT %d`,
-		strings.Join(clauses, " AND "), limit)
+		FROM audit_log WHERE %s ORDER BY id ASC LIMIT $%d`,
+		strings.Join(clauses, " AND "), len(args))
 
 	rows, err := a.bus.pool.Query(ctx, q, args...)
 	if err != nil {
@@ -159,6 +160,7 @@ func buildAuditQuery(f AuditFilter) (string, []any) {
 	if limit <= 0 {
 		limit = 1000
 	}
+	args = append(args, limit)
 
 	where := ""
 	if len(clauses) > 0 {
@@ -166,7 +168,7 @@ func buildAuditQuery(f AuditFilter) (string, []any) {
 	}
 
 	q := fmt.Sprintf(`SELECT id, actor_id, action, detail_json, recorded_at
-		FROM audit_log %s ORDER BY recorded_at DESC LIMIT %d`, where, limit)
+		FROM audit_log %s ORDER BY recorded_at DESC LIMIT $%d`, where, len(args))
 	return q, args
 }
 

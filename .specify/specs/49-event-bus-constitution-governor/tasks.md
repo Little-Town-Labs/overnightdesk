@@ -648,8 +648,9 @@ Initial rules:
 ## Quality Gates
 
 ### QG-1: Security Review
-**Status:** 🔴 Blocked by 6.2
+**Status:** ✅ Complete (2026-04-15) — APPROVE WITH CHANGES
 **Dependencies:** Task 6.2
+**Notes:** Full report at `.specify/specs/49-event-bus-constitution-governor/security-review.md`. 2 of 3 critical findings fixed in migration 010 + audit LIMIT parameterization + migration filename SQL injection hardening. C2 (tenet0_app direct SELECT on events) deferred as tracked backlog — requires Bus library refactor to route event reads through a SECURITY DEFINER SP; mitigated by protecting the tenet0_app DB password at bearer-token sensitivity level. Migration 010 applied to aegis-prod and verified; all three test suites green after hardening (bus-go -race, bus-ts 30/30, contract 4/4).
 **Delegate:** security-reviewer
 
 **Description:**

@@ -29,9 +29,10 @@ export class Audit {
   async query(f: AuditFilter = {}): Promise<AuditEntry[]> {
     const { clauses, args } = buildClauses(f);
     const limit = f.limit && f.limit > 0 ? f.limit : 1000;
+    args.push(limit);
     const where = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "";
     const sql = `SELECT id, actor_id, action, detail_json, recorded_at
-                   FROM audit_log ${where} ORDER BY recorded_at DESC LIMIT ${limit}`;
+                   FROM audit_log ${where} ORDER BY recorded_at DESC LIMIT $${args.length}`;
     const { rows } = await this.bus.pool.query(sql, args);
     return rows.map(rowToEntry);
   }
@@ -60,9 +61,10 @@ export class Audit {
       args.push(lastId);
       clauses.push(`id > $${args.length}`);
       const limit = f.limit && f.limit > 0 ? f.limit : 1000;
+      args.push(limit);
       const sql = `SELECT id, actor_id, action, detail_json, recorded_at
                      FROM audit_log WHERE ${clauses.join(" AND ")}
-                    ORDER BY id ASC LIMIT ${limit}`;
+                    ORDER BY id ASC LIMIT $${args.length}`;
       try {
         const { rows } = await this.bus.pool.query(sql, args);
         for (const row of rows) {
