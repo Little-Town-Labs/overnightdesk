@@ -1,0 +1,20 @@
+{
+  "name": "@tenet-0/contract-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build-go-cli": "cd ../shared/bus-go && go build -o ../../contract-tests/bin/contract-cli ./cmd/contract-cli",
+    "test": "npm run build-go-cli && vitest run"
+  },
+  "dependencies": {
+    "@tenet-0/bus": "file:../shared/bus-ts",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

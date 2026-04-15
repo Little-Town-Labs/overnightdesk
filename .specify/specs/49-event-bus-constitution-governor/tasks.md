@@ -546,8 +546,9 @@ Deploy to aegis-prod via adapted `deploy-engine` skill. Run smoke test from both
 ## Phase 6: Contract Tests (Go ⟷ TypeScript Interop)
 
 ### Task 6.1: Contract Test Harness
-**Status:** 🔴 Blocked by 2.10, 3.10
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** All Phase 2 and Phase 3 impl tasks
+**Notes:** `tenet-0/contract-tests/` — Vitest harness with `test/harness.ts` (disposable per-run DB, seed helpers, Go CLI spawner with `onReady` sentinel hook) + `shared/bus-go/cmd/contract-cli/main.go` (narrow JSON-in/JSON-out driver for publish/subscribe/grant-blanket/check-budget/metrics-snapshot). Top-level `tenet-0/Makefile` with `make contract-test`. Shared fixtures (departments, constitution, budgets) set up per-run in beforeAll.
 
 **Description:**
 Build `tenet-0/contract-tests/` — a harness that spins up Postgres, runs a Go publisher and a TS subscriber (and vice versa), and verifies wire-level parity.
@@ -560,7 +561,13 @@ Build `tenet-0/contract-tests/` — a harness that spins up Postgres, runs a Go 
 ---
 
 ### Task 6.2: Contract Test Suite
-**Status:** 🔴 Blocked by 6.1
+**Status:** ✅ Complete (2026-04-14, partial — 4 core scenarios)
+**Notes:** 4/4 scenarios passing against PostgreSQL 16 on aegis-prod:
+- Go publishes `ops.job.completed` → TS subscriber receives identical payload AND same event_id over the wire
+- TS publishes `cro.content.published` → Go subscriber receives identical payload AND same event_id
+- Go-side President `grant-blanket` on `routine.marketing.content` → TS-side CRO publishes covered event successfully
+- Metrics.Snapshot value-level parity: events_per_minute, budget_utilization (limit/status/spent), audit_log_write_rate all compared field-by-field (±1 tolerance for per-minute counters); Governor.CheckBudget also cross-checked
+Deferred (spec mentioned but not in this pass): per-action approval with finance payment, constitution bump watch, Audit.Query strict-equal — Go and TS libraries each have their own unit coverage for these; cross-language parity can be added in a follow-up without new library work.
 
 **Description:**
 Full suite of cross-language tests.
