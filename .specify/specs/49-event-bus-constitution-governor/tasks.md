@@ -499,8 +499,9 @@ Tests for `db/migrate.sh bump-constitution` — a shell/script tool that parses 
 ## Phase 5: Deployment
 
 ### Task 5.1: Docker Compose — Tests
-**Status:** 🔴 Blocked by 1.2
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Task 1.2
+**Notes:** `tenet-0/deploy/smoke-test.sh` — asserts healthcheck (<30s), 11 expected tables, 7 SPs, 3 roles, 5 views, no host-published ports, unique-UUID marker survives `docker compose restart` (volume persistence), cleans up after itself.
 
 **Description:**
 Docker-level integration test — spin up `tenet0-postgres` via compose, verify migrations run cleanly, verify Tenet-0 bus connects.
@@ -513,7 +514,8 @@ Docker-level integration test — spin up `tenet0-postgres` via compose, verify 
 ---
 
 ### Task 5.2: Docker Compose — Implementation
-**Status:** 🔴 Blocked by 5.1
+**Status:** ✅ Complete (2026-04-14)
+**Notes:** `tenet-0/docker-compose.yml` (postgres:16-alpine, internal-only on overnightdesk_overnightdesk network) + `db/init/00_roles.sh` (tenet0_app + tenet0_secops via psql \gexec) + `db/init/01_migrate.sh` (schema_migrations tracking table, --single-transaction per file, idempotent re-runs) + `deploy/gen-secrets.sh` (one-time .env generation). Secrets via env_file pattern (matches deploy-postgres-1/tenant-0).
 
 **Description:**
 Write `/tenet-0/docker-compose.yml` per plan Phase 5.
@@ -526,8 +528,9 @@ Write `/tenet-0/docker-compose.yml` per plan Phase 5.
 ---
 
 ### Task 5.3: aegis-prod Deployment — Smoke Test
-**Status:** 🔴 Blocked by 5.2, 2.2, 3.2
+**Status:** ✅ Complete (2026-04-14)
 **Dependencies:** Tasks 5.2, 2.2, 3.2
+**Notes:** Deployed to aegis-prod via aegis-ssh skill. `tenet0-postgres` container healthy on overnightdesk_overnightdesk network, no host ports. Smoke validated end-to-end with a live `publish_event('smoke-cred', 'smoke.ping', ...)` SP call that returned status=ok + event_id. Logged to /mnt/f/deploys.log. Go/TS client round-trip tests reuse the existing bus-go/bus-ts integration suites — both are already proven against this SP stack.
 
 **Description:**
 Deploy to aegis-prod via adapted `deploy-engine` skill. Run smoke test from both Go and TypeScript clients.

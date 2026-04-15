@@ -1,0 +1,43 @@
+# Tenet-0 PostgreSQL — dedicated bus database.
+# Isolated from deploy-postgres-1 (Ironclaw / customer data) to keep Tenet-0
+# governance traffic independent from any tenant workload.
+#
+# Secrets: passwords live in ./secrets/tenet0.env (gitignored, 0600), loaded
+# by compose at start. Matches the tenant-0 and deploy-postgres-1 pattern on
+# aegis-prod — Docker Secrets are avoided because the init scripts run as
+# the postgres user and cannot read root-owned /run/secrets/* files.
+
+services:
+  tenet0-postgres:
+    image: postgres:16-alpine
+    container_name: tenet0-postgres
+    env_file:
+      - ./secrets/tenet0.env
+    environment:
+      POSTGRES_USER: tenet0_admin
+      POSTGRES_DB: tenet0
+    volumes:
+      - tenet0-pg-data:/var/lib/postgresql/data
+      # Migrations + role seeding run once on first boot via the postgres
+      # image's entrypoint. Ordering is alphabetical:
+      #   00_roles.sh   creates tenet0_app / tenet0_secops roles
+      #   01_migrate.sh applies db/migrations/*.sql in numeric order
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - ./db/migrations:/migrations:ro
+    networks:
+      - overnightdesk
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tenet0_admin -d tenet0"]
+      interval: 5s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  tenet0-pg-data:
+
+networks:
+  overnightdesk:
+    external: true
+    name: overnightdesk_overnightdesk
