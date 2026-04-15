@@ -1,0 +1,67 @@
+services:
+  tenant-0:
+    build:
+      context: /home/ubuntu/overnightdesk-engine
+      dockerfile: Dockerfile
+    container_name: overnightdesk-tenant-0
+    restart: unless-stopped
+    user: "1001:1001"
+    environment:
+      - HOME=/home/engine
+      - BEARER_TOKEN
+      - BIND_ADDRESS
+      - CLAUDE_CODE_OAUTH_TOKEN
+      - CLAUDE_PATH
+      - DATA_DIR
+      - HEARTBEAT_ENABLED
+      - HEARTBEAT_INTERVAL
+      - HEARTBEAT_QUIET_END
+      - HEARTBEAT_QUIET_START
+      - LOG_LEVEL
+      - OPENAI_API_KEY
+      - PORT
+      - SECURITY_TOKEN
+      - SECURITY_URL
+      - TIMEZONE
+    volumes:
+      - tenant-0-data:/data
+      - /home/ubuntu/.claude-agent-zero:/home/engine/.claude
+      - /home/ubuntu/.claude.json:/home/engine/.claude.json
+      - /opt/overnightdesk/health:/data/health
+      - /home/ubuntu/ltl-marketing:/data/ltl-marketing
+      - /opt/overnightdesk/logs:/data/platform-logs:ro
+      - /opt/overnightdesk/deploys.log:/data/workspace/deploys.log:ro
+    networks:
+      - overnightdesk
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: overnightdesk-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    networks:
+      - overnightdesk
+    depends_on:
+      - tenant-0
+
+  certbot:
+    image: certbot/certbot
+    container_name: overnightdesk-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+
+volumes:
+  tenant-0-data:
+
+networks:
+  overnightdesk:
+    driver: bridge
