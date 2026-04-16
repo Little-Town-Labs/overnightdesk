@@ -23,6 +23,7 @@ services:
       - SECURITY_TOKEN
       - SECURITY_URL
       - TIMEZONE
+      - DATABASE_URL
     volumes:
       - tenant-0-data:/data
       - /home/ubuntu/.claude-agent-zero:/home/engine/.claude
