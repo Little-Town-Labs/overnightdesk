@@ -32,6 +32,8 @@ services:
       - /home/ubuntu/ltl-marketing:/data/ltl-marketing
       - /opt/overnightdesk/logs:/data/platform-logs:ro
       - /opt/overnightdesk/deploys.log:/data/workspace/deploys.log:ro
+      - /opt/overnightdesk/zero-skills/newsletter-sources:/data/workspace/.claude/skills/newsletter-sources:ro
+      - /opt/overnightdesk/zero-skills/runbooks:/data/workspace/runbooks:ro
     networks:
       - overnightdesk
     expose:

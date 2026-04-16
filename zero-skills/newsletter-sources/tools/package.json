@@ -1,0 +1,10 @@
+{
+  "name": "newsletter-sources-cli",
+  "version": "1.0.0",
+  "description": "CLI tool backing the Agent Zero newsletter-sources skill. Manages oc_newsletter_sources on deploy-postgres-1.",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "pg": "^8.13.0"
+  }
+}
