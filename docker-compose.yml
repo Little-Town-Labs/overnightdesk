@@ -132,11 +132,15 @@ services:
       - ORCHESTRATOR_PORT
       - BIND_ADDRESS
       - DATABASE_URL
-      # Phase.dev (required in prod, optional in dev).
-      - PHASE_SERVICE_TOKEN
-      - PHASE_APP_NAME
-      - PHASE_ENV_NAME
-      # Secrets — injected by Phase in prod, plain env in dev.
+      # PHASE_SERVICE_TOKEN is intentionally NOT passed through — it
+      # stays on the host shell (see /opt/overnightdesk/start-orchestrator.sh).
+      # A pwned orchestrator should not be able to read from Phase.
+      # Consequence: config.IsProduction() reports false inside the
+      # container; the required-secrets check is skipped. Secrets are
+      # still fully injected by `phase run` at compose-up time, so
+      # everything the orchestrator needs is present — the cosmetic
+      # production=false line in logs is the documented tradeoff.
+      # Secrets — injected by Phase at compose-up, passed as plain env.
       - OPERATOR_BOOTSTRAP_TOKEN
       - JWT_SEAL_KEY
       - AUDIT_CHAIN_KEY
