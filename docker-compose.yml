@@ -39,6 +39,125 @@ services:
     expose:
       - "8080"
 
+  # Dedicated Postgres for platform orchestrator metadata (Feature 58 / CR-1).
+  # NOT shared with any tenant — orchestrator isolation is a constitutional
+  # invariant (FR-8). A compromise of the orchestrator plane must not hand
+  # an attacker tenant-db access, and vice versa.
+  platform-orchestrator-db:
+    image: postgres:16-alpine
+    container_name: overnightdesk-platform-orchestrator-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=platform_orchestrator
+      - POSTGRES_USER=orchestrator
+      - POSTGRES_PASSWORD
+    volumes:
+      - platform-orchestrator-db-data:/var/lib/postgresql/data
+    networks:
+      - overnightdesk
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orchestrator -d platform_orchestrator"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # Least-privilege Docker API proxy. Only the specific verbs the
+  # orchestrator's DockerProvisioner needs (container CRUD + inspect)
+  # are exposed; exec/build/privileged are disabled so a compromised
+  # orchestrator cannot escape to the host daemon.
+  docker-socket-proxy:
+    image: ghcr.io/tecnativa/docker-socket-proxy:0.3.0
+    container_name: overnightdesk-docker-socket-proxy
+    restart: unless-stopped
+    # Hardening: the proxy container holds the keys to the host daemon.
+    # Drop every cap it doesn't need, deny privilege escalation, and make
+    # its own filesystem read-only. The verb whitelist below is the real
+    # access-control boundary; these knobs are defense-in-depth.
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      - CONTAINERS=1
+      - NETWORKS=1
+      - IMAGES=1
+      - VOLUMES=1
+      - INFO=1
+      - VERSION=1
+      - POST=1   # enables create/start/stop/restart
+      - EXEC=0   # orchestrator never needs to docker exec
+      - BUILD=0
+      - COMMIT=0
+      - CONFIGS=0
+      - SECRETS=0
+      - SERVICES=0
+      - SWARM=0
+      - SYSTEM=0
+      - TASKS=0
+    volumes:
+      # RW: the proxy forwards POST verbs (ContainerCreate/Start/Stop),
+      # which require write access to the socket. The proxy binary itself
+      # enforces the verb whitelist — the bind mount is not the gate.
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - overnightdesk
+    expose:
+      - "2375"
+
+  # Platform orchestrator: multi-tenant control plane. Provisions tenant
+  # containers, brokers JWT auth for the communication-module, resolves
+  # inbound-channel → tenant routes, and runs background maintenance.
+  platform-orchestrator:
+    build:
+      context: /home/ubuntu/overnightdesk-engine
+      dockerfile: Dockerfile.orchestrator
+      args:
+        VERSION: "${ORCHESTRATOR_VERSION:-dev}"
+    container_name: overnightdesk-platform-orchestrator
+    restart: unless-stopped
+    depends_on:
+      platform-orchestrator-db:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_started
+    environment:
+      - LOG_LEVEL
+      - ORCHESTRATOR_PORT
+      - BIND_ADDRESS
+      - DATABASE_URL
+      # Phase.dev (required in prod, optional in dev).
+      - PHASE_SERVICE_TOKEN
+      - PHASE_APP_NAME
+      - PHASE_ENV_NAME
+      # Secrets — injected by Phase in prod, plain env in dev.
+      - OPERATOR_BOOTSTRAP_TOKEN
+      - JWT_SEAL_KEY
+      - AUDIT_CHAIN_KEY
+      - SERVICE_TOKEN_ROUTE_LOOKUP
+      # Tenant provisioning. TENANT_NETWORK is set in the deploy env
+      # (see deploy/orchestrator.env.example) so the value is not
+      # duplicated between compose and env docs.
+      - TENANT_IMAGE_REF
+      - TENANT_NETWORK
+      - TENANT_MEMORY_BYTES
+      - TENANT_PIDS_LIMIT
+      # JWT broker settings.
+      - JWT_ISSUER
+      - JWT_AUDIENCE
+      - JWT_TTL
+      # Feature flags.
+      - DISABLE_LEGACY_BEARER
+      # Docker via least-privilege proxy (NOT host socket).
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+    networks:
+      - overnightdesk
+    expose:
+      - "8080"
+
   nginx:
     image: nginx:1.27-alpine
     container_name: overnightdesk-nginx
@@ -52,8 +171,14 @@ services:
       - ./certbot/www:/var/www/certbot:ro
     networks:
       - overnightdesk
+    # Short-form depends_on (start-only). nginx may briefly 502 while the
+    # orchestrator runs its boot-time migrations on cold start; the
+    # restart: unless-stopped + client retries absorb it. Promote to
+    # `condition: service_healthy` once the orchestrator gains a health
+    # probe that works under distroless (planned follow-up).
     depends_on:
       - tenant-0
+      - platform-orchestrator
 
   certbot:
     image: certbot/certbot
@@ -64,6 +189,7 @@ services:
 
 volumes:
   tenant-0-data:
+  platform-orchestrator-db-data:
 
 networks:
   overnightdesk:
