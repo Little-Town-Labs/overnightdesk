@@ -73,10 +73,13 @@ services:
     container_name: overnightdesk-docker-socket-proxy
     restart: unless-stopped
     # Hardening: the proxy container holds the keys to the host daemon.
-    # Drop every cap it doesn't need, deny privilege escalation, and make
-    # its own filesystem read-only. The verb whitelist below is the real
-    # access-control boundary; these knobs are defense-in-depth.
-    read_only: true
+    # Drop every cap it doesn't need and deny privilege escalation. The
+    # verb whitelist below is the real access-control boundary; these
+    # knobs are defense-in-depth.
+    #
+    # read_only is NOT set — the entrypoint renders /usr/local/etc/haproxy/
+    # haproxy.cfg from a baked-in template at startup. A tmpfs overlay on
+    # that directory would mask the template and crash-loop the container.
     cap_drop:
       - ALL
     security_opt:
