@@ -1,0 +1,715 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://overnightdesk.com/schemas/feature-50/president-events.yaml"
+title: "Tenet-0 President + SecOps + Lifecycle Event Contracts"
+version: "1.0.0"
+description: |
+  Schemas for every event the President (Zero), the four daemons, and the six
+  MCP servers PUBLISH on the Feature 49 bus, plus the catalog of events this
+  feature CONSUMES.
+
+  All payloads inherit Feature 49's base envelope (FR-1: id, event_type,
+  source, timestamp, payload, parent_event_id) and conform to FR-2 namespace
+  rules (department prefix matches credential per FR-2a). Approval events
+  conform to FR-11a. Causality references conform to FR-12.
+
+  Cardinal rules:
+    1. Every president.* payload MUST include `decision_mode` ("rule"|"llm")
+       and `rationale` (<=2000 chars). This is what makes Flow A observable
+       (spec FR-5) and what audit-self-checker (FR-21) correlates against.
+    2. Every payload sets `additionalProperties: false`. Adding a field is a
+       version bump (this file's `version`).
+    3. secops.violation.* payloads MUST NOT carry the offending content.
+       They carry pattern category, identifiers, and counts only — never
+       the matched substring, never the memory body, never PII. Logging
+       the content would defeat the violation's purpose.
+
+# ---------------------------------------------------------------------------
+# Shared envelope (extends Feature 49 FR-1)
+# ---------------------------------------------------------------------------
+$defs:
+
+  BusEnvelope:
+    description: |
+      Feature 49 base envelope. Reproduced here for self-containment of this
+      contract; the authoritative source remains Feature 49 FR-1. Every event
+      defined below is wrapped by this envelope; the per-event schemas describe
+      ONLY the `payload` object.
+    type: object
+    required: [id, event_type, source, timestamp, payload]
+    additionalProperties: false
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: "Bus-assigned UUID v7 (time-ordered)."
+      event_type:
+        type: string
+        pattern: "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$"
+        description: "Feature 49 FR-2 namespace: <department>.<subject>.<verb>."
+      source:
+        type: string
+        description: "Publishing department; bus verifies via FR-2a credential."
+      timestamp:
+        type: string
+        format: date-time
+        description: "Bus-host clock at publish (Feature 49 EC-12)."
+      parent_event_id:
+        type: ["string", "null"]
+        format: uuid
+        description: "Causality (Feature 49 FR-12). Null only for root events."
+      payload:
+        type: object
+        description: "Per-event-type payload; see definitions below."
+
+  PresidentDecisionMixin:
+    description: |
+      Required on EVERY president.* payload. Surfaces the rule-vs-LLM split
+      (spec FR-5) and the Director's reasoning trail. Subagent-LLM-path
+      decisions also include `confidence` and `model`; rule-path omits both.
+    type: object
+    required: [decision_mode, rationale]
+    properties:
+      decision_mode:
+        type: string
+        enum: [rule, llm]
+      rationale:
+        type: string
+        minLength: 1
+        maxLength: 2000
+      confidence:
+        type: number
+        minimum: 0
+        maximum: 1
+        description: "LLM-path only. Director's stated confidence."
+      model:
+        type: string
+        description: "LLM-path only. Claude Code subagent model identifier."
+      director:
+        type: string
+        pattern: "^[a-z][a-z0-9_]+$"
+        description: "Department namespace of the Director that produced the decision (omitted when Zero acts inline at rule-path)."
+
+  ApprovalScopeRef:
+    type: object
+    required: [scope]
+    properties:
+      scope:
+        type: string
+        description: "Event type the approval authorizes (Feature 49 FR-11a)."
+      expires_at:
+        type: string
+        format: date-time
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Decision outcomes (per-action, Feature 49 FR-11a)
+  # -------------------------------------------------------------------------
+
+  PresidentApproved:
+    description: "Per-action approval. Feature 49 FR-11a per-action format."
+    allOf:
+      - $ref: "#/$defs/PresidentDecisionMixin"
+    type: object
+    required: [approves_event_id, scope, expires_at, reason, issued_by, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      approves_event_id: { type: string, format: uuid }
+      scope:             { type: string }
+      expires_at:        { type: string, format: date-time }
+      reason:            { type: string, maxLength: 2000 }
+      issued_by:         { const: "president" }
+      decision_mode:     { type: string, enum: [rule, llm] }
+      rationale:         { type: string, maxLength: 2000 }
+      confidence:        { type: number, minimum: 0, maximum: 1 }
+      model:             { type: string }
+      director:          { type: string }
+      pending_approval_id: { type: string, format: uuid, description: "Row ID in pending_approvals (FR-7) for cross-reference." }
+
+  PresidentRejected:
+    type: object
+    required: [rejects_event_id, scope, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      rejects_event_id:  { type: string, format: uuid }
+      scope:             { type: string }
+      reason:            { type: string, maxLength: 2000 }
+      decision_mode:     { type: string, enum: [rule, llm] }
+      rationale:         { type: string, maxLength: 2000 }
+      confidence:        { type: number, minimum: 0, maximum: 1 }
+      model:             { type: string }
+      director:          { type: string }
+      pending_approval_id: { type: string, format: uuid }
+      expired:           { type: boolean, description: "True when emitted by deadline-sweeper (FR-20). reason will be 'expired awaiting operator input'." }
+
+  PresidentDeferred:
+    type: object
+    required: [defers_event_id, scope, defer_until, required_input, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      defers_event_id:   { type: string, format: uuid }
+      scope:             { type: string }
+      defer_until:       { type: string, format: date-time }
+      required_input:    { type: string, maxLength: 1000, description: "What the Director needs before re-deciding (operator input, missing data, dependency event, etc.)." }
+      reason:            { type: string, maxLength: 2000 }
+      decision_mode:     { type: string, enum: [rule, llm] }
+      rationale:         { type: string, maxLength: 2000 }
+      confidence:        { type: number, minimum: 0, maximum: 1 }
+      model:             { type: string }
+      director:          { type: string }
+      pending_approval_id: { type: string, format: uuid }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Blanket authorizations (Feature 49 FR-11a)
+  # -------------------------------------------------------------------------
+
+  PresidentAuthorizationGranted:
+    type: object
+    required: [category, expires_at, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      category:
+        type: string
+        description: "Approval category defined in constitution-rules.yaml."
+      expires_at:
+        type: ["string", "null"]
+        format: date-time
+        description: "Null = indefinite, revocable (Feature 49 FR-11a)."
+      constraints:
+        type: object
+        description: "Category-specific parameters (e.g., max_amount_cents)."
+        additionalProperties: true
+      reason:        { type: string, maxLength: 2000 }
+      decision_mode: { type: string, enum: [rule, llm] }
+      rationale:     { type: string, maxLength: 2000 }
+      confidence:    { type: number, minimum: 0, maximum: 1 }
+      model:         { type: string }
+      director:      { type: string }
+
+  PresidentAuthorizationRevoked:
+    type: object
+    required: [category, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      category:      { type: string }
+      reason:        { type: string, maxLength: 2000 }
+      decision_mode: { type: string, enum: [rule, llm] }
+      rationale:     { type: string, maxLength: 2000 }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Escalation
+  # -------------------------------------------------------------------------
+
+  PresidentEscalationResolved:
+    type: object
+    required: [resolves_event_id, disposition, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      resolves_event_id: { type: string, format: uuid }
+      disposition:
+        type: string
+        enum: [auto_handle, delegate, surface, abandoned]
+      delegated_to:
+        type: string
+        description: "Department namespace receiving the delegation (disposition=delegate only)."
+      reason:        { type: string, maxLength: 2000 }
+      decision_mode: { type: string, enum: [rule, llm] }
+      rationale:     { type: string, maxLength: 2000 }
+      confidence:    { type: number, minimum: 0, maximum: 1 }
+      model:         { type: string }
+      director:      { type: string }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Health (US-6, US-9, FR-18, FR-19)
+  # -------------------------------------------------------------------------
+
+  PresidentHealthEvent:
+    description: "Used for president.health.warning|critical|recovered|suspect."
+    type: object
+    required: [subject, severity, observed_at, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      subject:       { type: string, description: "Director/MCP/daemon under observation." }
+      severity:      { type: string, enum: [warning, critical, recovered, suspect] }
+      observed_at:   { type: string, format: date-time }
+      detail:        { type: string, maxLength: 2000 }
+      probe_kind:    { type: string, enum: [poll, reactive, self_report] }
+      decision_mode: { type: string, enum: [rule, llm] }
+      rationale:     { type: string, maxLength: 2000 }
+
+  PresidentDepartmentPaused:
+    type: object
+    required: [department, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      department:        { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      reason:            { type: string, maxLength: 2000 }
+      expected_resume_at: { type: string, format: date-time }
+      decision_mode:     { type: string, enum: [rule, llm] }
+      rationale:         { type: string, maxLength: 2000 }
+
+  PresidentDepartmentResumed:
+    type: object
+    required: [department, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      department:    { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      reason:        { type: string, maxLength: 2000 }
+      decision_mode: { type: string, enum: [rule, llm] }
+      rationale:     { type: string, maxLength: 2000 }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Daily digest (US-4)
+  # -------------------------------------------------------------------------
+
+  PresidentDigestDaily:
+    type: object
+    required: [window_started_at, window_closes_at, source_event_ids, headline_metrics, exceptions, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      window_started_at: { type: string, format: date-time }
+      window_closes_at:  { type: string, format: date-time }
+      source_event_ids:
+        type: array
+        items: { type: string, format: uuid }
+        description: "Causality multi-parent: every event aggregated into this digest. parent_event_id (envelope) carries the most recent."
+      headline_metrics:
+        type: object
+        description: "Free-form per-department aggregates."
+        additionalProperties: true
+      exceptions:
+        type: array
+        description: "Events the President flagged for operator attention."
+        items:
+          type: object
+          required: [event_id, event_type, summary]
+          additionalProperties: false
+          properties:
+            event_id:  { type: string, format: uuid }
+            event_type: { type: string }
+            summary:   { type: string, maxLength: 1000 }
+      decision_mode:
+        const: "llm"
+        description: "Daily digests are always LLM-path (synthesis)."
+      rationale: { type: string, maxLength: 2000 }
+      model:     { type: string }
+      director:  { type: string }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — LLM/session lifecycle (Risks: Zero session SPOF)
+  # -------------------------------------------------------------------------
+
+  PresidentLlmUnavailable:
+    type: object
+    required: [reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      reason:        { type: string, maxLength: 2000 }
+      detected_at:   { type: string, format: date-time }
+      decision_mode: { const: "rule" }
+      rationale:     { type: string, maxLength: 2000 }
+
+  PresidentLlmRecovered:
+    type: object
+    required: [decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      recovered_at:  { type: string, format: date-time }
+      downtime_seconds: { type: integer, minimum: 0 }
+      decision_mode: { const: "rule" }
+      rationale:     { type: string, maxLength: 2000 }
+
+  PresidentLifecycleRestarted:
+    type: object
+    required: [restarted_at, reason, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      restarted_at:  { type: string, format: date-time }
+      reason:        { type: string, maxLength: 2000 }
+      decision_mode: { const: "rule" }
+      rationale:     { type: string, maxLength: 2000 }
+
+  PresidentLifecycleBusRecovered:
+    type: object
+    required: [recovered_at, queued_event_count, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      recovered_at:        { type: string, format: date-time }
+      queued_event_count:  { type: integer, minimum: 0, description: "Events delivered on backlog flush (EC-6)." }
+      decision_mode:       { const: "rule" }
+      rationale:           { type: string, maxLength: 2000 }
+
+  PresidentSessionUnresponsive:
+    type: object
+    required: [last_seen_at, threshold_seconds, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      last_seen_at:      { type: string, format: date-time }
+      threshold_seconds: { type: integer, minimum: 1 }
+      decision_mode:     { const: "rule" }
+      rationale:         { type: string, maxLength: 2000 }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Memory caps (CL-3, EC-9)
+  # -------------------------------------------------------------------------
+
+  PresidentMemoryCapWarned:
+    type: object
+    required: [department, current_count, soft_cap, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      department:    { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      current_count: { type: integer, minimum: 0 }
+      soft_cap:      { type: integer, minimum: 1, description: "1000 per CL-3 default." }
+      decision_mode: { const: "rule" }
+      rationale:     { type: string, maxLength: 2000 }
+
+  PresidentMemoryCapRejected:
+    type: object
+    required: [department, current_count, hard_cap, attempted_write_name, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      department:           { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      current_count:        { type: integer, minimum: 0 }
+      hard_cap:             { type: integer, minimum: 1, description: "5000 per CL-3 default." }
+      attempted_write_name: { type: string, maxLength: 200 }
+      decision_mode:        { const: "rule" }
+      rationale:            { type: string, maxLength: 2000 }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Operator surfacing (US-5, EC-7)
+  # -------------------------------------------------------------------------
+
+  PresidentNotificationDegraded:
+    type: object
+    required: [channel, reason, fallback_active, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      channel:
+        type: string
+        enum: [comm_module_telegram, polling_fallback, out_of_band_telegram]
+      reason:          { type: string, maxLength: 2000 }
+      fallback_active:
+        type: string
+        enum: [comm_module_telegram, polling_fallback, out_of_band_telegram, none]
+      decision_mode:   { const: "rule" }
+      rationale:       { type: string, maxLength: 2000 }
+
+  PresidentOperatorUnavailable:
+    type: object
+    required: [consecutive_timeouts, window_hours, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      consecutive_timeouts: { type: integer, minimum: 1 }
+      window_hours:         { type: number, minimum: 0 }
+      first_timeout_at:     { type: string, format: date-time }
+      latest_timeout_at:    { type: string, format: date-time }
+      decision_mode:        { const: "rule" }
+      rationale:            { type: string, maxLength: 2000 }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Director lifecycle (US-9, FR-22)
+  # event_type: "<department>.lifecycle.{registered|deregistered|degraded|recovered}"
+  # -------------------------------------------------------------------------
+
+  DirectorLifecycleRegistered:
+    type: object
+    required: [department, version, mcp_grants, file_hash, registered_at]
+    additionalProperties: false
+    properties:
+      department:
+        type: string
+        pattern: "^[a-z][a-z0-9_]+$"
+        description: "MUST equal envelope.source's namespace prefix."
+      version:    { type: string, description: "Semver from Director frontmatter." }
+      mcp_grants:
+        type: array
+        items:
+          type: string
+          enum:
+            - tenet0-bus-mcp
+            - tenet0-constitution-mcp
+            - tenet0-governor-mcp
+            - tenet0-pending-mcp
+            - tenet0-audit-mcp
+            - tenet0-director-memory-mcp
+        uniqueItems: true
+      file_hash:    { type: string, pattern: "^[a-f0-9]{64}$", description: "SHA256 of the markdown file." }
+      file_path:    { type: string }
+      registered_at: { type: string, format: date-time }
+
+  DirectorLifecycleDeregistered:
+    type: object
+    required: [department, deregistered_at, reason]
+    additionalProperties: false
+    properties:
+      department:      { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      deregistered_at: { type: string, format: date-time }
+      reason:
+        type: string
+        enum: [file_removed, file_edited_pre_register, quarantined_invalid, quarantined_conflict, operator_initiated]
+      file_path:       { type: string }
+      memory_preserved: { type: boolean, description: "Always true (FR-11/US-9)." }
+
+  DirectorLifecycleDegraded:
+    type: object
+    required: [department, failed_mcp, failure_mode, detected_via, detected_at]
+    additionalProperties: false
+    properties:
+      department:   { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      failed_mcp:
+        type: string
+        enum:
+          - tenet0-bus-mcp
+          - tenet0-constitution-mcp
+          - tenet0-governor-mcp
+          - tenet0-pending-mcp
+          - tenet0-audit-mcp
+          - tenet0-director-memory-mcp
+      failure_mode:
+        type: string
+        enum: [mcp_unreachable, mcp_timeout, mcp_error_response, spawn_failure, first_call_failure]
+      detected_via:
+        type: string
+        enum: [poller, reactive]
+        description: "FR-18 vs FR-19."
+      detected_at:  { type: string, format: date-time }
+      detail:       { type: string, maxLength: 1000 }
+
+  DirectorLifecycleRecovered:
+    type: object
+    required: [department, recovered_mcp, recovered_at, downtime_seconds]
+    additionalProperties: false
+    properties:
+      department:       { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      recovered_mcp:    { type: string }
+      recovered_at:     { type: string, format: date-time }
+      downtime_seconds: { type: integer, minimum: 0 }
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — SecOps violations (US-8, FR-21)
+  # IMPORTANT: NEVER include the offending content. Categories + IDs only.
+  # -------------------------------------------------------------------------
+
+  SecopsViolationNamespaceImpersonation:
+    type: object
+    required: [offending_event_id, observed_at, detection_lag_seconds]
+    additionalProperties: false
+    properties:
+      offending_event_id:    { type: string, format: uuid }
+      observed_at:           { type: string, format: date-time }
+      detection_lag_seconds: { type: integer, minimum: 0 }
+      claimed_source:        { type: string, description: "Namespace the event was published under." }
+
+  SecopsViolationAuditGap:
+    type: object
+    required: [gap_event_ids, audit_window_start, audit_window_end]
+    additionalProperties: false
+    properties:
+      gap_event_ids:
+        type: array
+        items: { type: string, format: uuid }
+        minItems: 1
+      audit_window_start: { type: string, format: date-time }
+      audit_window_end:   { type: string, format: date-time }
+      gap_kind:
+        type: string
+        enum: [missing_outcome, missing_decision_log_row, multiple_outcomes]
+
+  SecopsViolationAuditCorruption:
+    type: object
+    required: [affected_row_range, expected_hash, actual_hash, corruption_detected_at]
+    additionalProperties: false
+    properties:
+      affected_row_range:
+        type: object
+        required: [first_row_id, last_validated_row_id]
+        additionalProperties: false
+        properties:
+          first_row_id:          { type: integer }
+          last_validated_row_id: { type: integer }
+      expected_hash:          { type: string, pattern: "^[a-f0-9]{64}$" }
+      actual_hash:            { type: string, pattern: "^[a-f0-9]{64}$" }
+      corruption_detected_at: { type: string, format: date-time }
+      validation_kind:
+        type: string
+        enum: [random_sample, nightly_full]
+
+  SecopsViolationMemoryPii:
+    description: |
+      EC-4. Records the PATTERN CATEGORY that matched and the attempted
+      write's name. NEVER includes the matched substring or the body —
+      logging the content would defeat the violation's purpose.
+    type: object
+    required: [department, pattern_category, attempted_write_name, detected_at]
+    additionalProperties: false
+    properties:
+      department:           { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      pattern_category:
+        type: string
+        enum:
+          - customer_email
+          - credit_card
+          - conversation_transcript_heuristic
+          - anthropic_credential
+          - other
+      attempted_write_name: { type: string, maxLength: 200 }
+      detected_at:          { type: string, format: date-time }
+
+  SecopsViolationMemoryAccess:
+    description: "EC-5. Cross-namespace read/write attempt denied at MCP."
+    type: object
+    required: [offending_director, target_namespace, attempted_operation, denied_at]
+    additionalProperties: false
+    properties:
+      offending_director:  { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      target_namespace:    { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      attempted_operation:
+        type: string
+        enum: [read_memory, search_memory, write_memory, update_memory, forget_memory, load_memory_index]
+      denied_at:           { type: string, format: date-time }
+
+  SecopsViolationRegistryInvalid:
+    description: "FR-23. Director markdown failed contract validation."
+    type: object
+    required: [file_path, missing_sections, detected_at]
+    additionalProperties: false
+    properties:
+      file_path:        { type: string }
+      missing_sections:
+        type: array
+        items: { type: string }
+        minItems: 1
+      frontmatter_errors:
+        type: array
+        items: { type: string }
+      detected_at:      { type: string, format: date-time }
+
+  SecopsViolationRegistryConflict:
+    description: "EC-12. Two markdown files claim the same department namespace."
+    type: object
+    required: [department, conflicting_file_paths, detected_at]
+    additionalProperties: false
+    properties:
+      department:             { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+      conflicting_file_paths:
+        type: array
+        items: { type: string }
+        minItems: 2
+      detected_at:            { type: string, format: date-time }
+
+  SecopsViolationMatrixDrift:
+    description: |
+      Audit-self-checker (FR-21) detects effective memory_access_matrix grants
+      diverging from the last-amended baseline recorded in
+      constitution-rules.yaml. Raised by tenet0-audit-self-checker.
+      Payload reports baseline + observed differences only — never the matrix
+      content itself (T1 mitigation: avoid leaking grant semantics in audit log).
+    type: object
+    required: [baseline_constitution_version, observed_at, divergence_summary]
+    additionalProperties: false
+    properties:
+      baseline_constitution_version: { type: string, description: "Constitution version of last legitimate amendment" }
+      observed_at:                   { type: string, format: date-time }
+      divergence_summary:
+        type: object
+        required: [added_grants_count, removed_grants_count, modified_grants_count]
+        additionalProperties: false
+        properties:
+          added_grants_count:    { type: integer, minimum: 0 }
+          removed_grants_count:  { type: integer, minimum: 0 }
+          modified_grants_count: { type: integer, minimum: 0 }
+      affected_namespaces:
+        type: array
+        items: { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+        description: "Namespaces whose grants diverged. Specific grant deltas NOT included."
+
+  # -------------------------------------------------------------------------
+  # PUBLISHED — Constitution amendment notification (EC-10)
+  # -------------------------------------------------------------------------
+
+  PresidentConstitutionMatrixAmended:
+    type: object
+    required: [old_version, new_version, changes_summary, amended_at, decision_mode, rationale]
+    additionalProperties: false
+    properties:
+      old_version:     { type: string }
+      new_version:     { type: string }
+      changes_summary: { type: string, maxLength: 2000, description: "Human-readable diff summary; full diff in constitution repo." }
+      amended_at:      { type: string, format: date-time }
+      decision_mode:   { const: "rule" }
+      rationale:       { type: string, maxLength: 2000 }
+
+# ---------------------------------------------------------------------------
+# Master event-type → schema map
+# ---------------------------------------------------------------------------
+
+published_events:
+  president.approved:                         { payload: { $ref: "#/$defs/PresidentApproved" } }
+  president.rejected:                         { payload: { $ref: "#/$defs/PresidentRejected" } }
+  president.deferred:                         { payload: { $ref: "#/$defs/PresidentDeferred" } }
+  president.authorization.granted:            { payload: { $ref: "#/$defs/PresidentAuthorizationGranted" } }
+  president.authorization.revoked:            { payload: { $ref: "#/$defs/PresidentAuthorizationRevoked" } }
+  president.escalation.resolved:              { payload: { $ref: "#/$defs/PresidentEscalationResolved" } }
+  president.health.warning:                   { payload: { $ref: "#/$defs/PresidentHealthEvent" } }
+  president.health.critical:                  { payload: { $ref: "#/$defs/PresidentHealthEvent" } }
+  president.health.recovered:                 { payload: { $ref: "#/$defs/PresidentHealthEvent" } }
+  president.health.suspect:                   { payload: { $ref: "#/$defs/PresidentHealthEvent" } }
+  president.department.paused:                { payload: { $ref: "#/$defs/PresidentDepartmentPaused" } }
+  president.department.resumed:               { payload: { $ref: "#/$defs/PresidentDepartmentResumed" } }
+  president.digest.daily:                     { payload: { $ref: "#/$defs/PresidentDigestDaily" } }
+  president.llm.unavailable:                  { payload: { $ref: "#/$defs/PresidentLlmUnavailable" } }
+  president.llm.recovered:                    { payload: { $ref: "#/$defs/PresidentLlmRecovered" } }
+  president.lifecycle.restarted:              { payload: { $ref: "#/$defs/PresidentLifecycleRestarted" } }
+  president.lifecycle.bus_recovered:          { payload: { $ref: "#/$defs/PresidentLifecycleBusRecovered" } }
+  president.session.unresponsive:             { payload: { $ref: "#/$defs/PresidentSessionUnresponsive" } }
+  president.memory.cap_warned:                { payload: { $ref: "#/$defs/PresidentMemoryCapWarned" } }
+  president.memory.cap_rejected:              { payload: { $ref: "#/$defs/PresidentMemoryCapRejected" } }
+  president.notification.degraded:            { payload: { $ref: "#/$defs/PresidentNotificationDegraded" } }
+  president.operator.unavailable:             { payload: { $ref: "#/$defs/PresidentOperatorUnavailable" } }
+  president.constitution.matrix_amended:      { payload: { $ref: "#/$defs/PresidentConstitutionMatrixAmended" } }
+
+  # Director lifecycle — event_type pattern: <department>.lifecycle.<verb>
+  # Validators MUST resolve by suffix, not literal type.
+  "*.lifecycle.registered":   { payload: { $ref: "#/$defs/DirectorLifecycleRegistered" } }
+  "*.lifecycle.deregistered": { payload: { $ref: "#/$defs/DirectorLifecycleDeregistered" } }
+  "*.lifecycle.degraded":     { payload: { $ref: "#/$defs/DirectorLifecycleDegraded" } }
+  "*.lifecycle.recovered":    { payload: { $ref: "#/$defs/DirectorLifecycleRecovered" } }
+
+  # SecOps violations
+  secops.violation.namespace_impersonation: { payload: { $ref: "#/$defs/SecopsViolationNamespaceImpersonation" } }
+  secops.violation.audit_gap:               { payload: { $ref: "#/$defs/SecopsViolationAuditGap" } }
+  secops.violation.audit_corruption:        { payload: { $ref: "#/$defs/SecopsViolationAuditCorruption" } }
+  secops.violation.memory_pii:              { payload: { $ref: "#/$defs/SecopsViolationMemoryPii" } }
+  secops.violation.memory_access:           { payload: { $ref: "#/$defs/SecopsViolationMemoryAccess" } }
+  secops.violation.registry_invalid:        { payload: { $ref: "#/$defs/SecopsViolationRegistryInvalid" } }
+  secops.violation.registry_conflict:       { payload: { $ref: "#/$defs/SecopsViolationRegistryConflict" } }
+  secops.violation.matrix_drift:            { payload: { $ref: "#/$defs/SecopsViolationMatrixDrift" } }
+
+# ---------------------------------------------------------------------------
+# Catalog of events this feature CONSUMES (schemas owned upstream)
+# ---------------------------------------------------------------------------
+consumed_events:
+  - pattern: "*.report.*"
+    purpose: "Daily digest aggregation (US-4, president.digest.daily)."
+    handler: "Zero (President), via tenet0-bus-watcher routing."
+  - pattern: "*.approval.requested"
+    purpose: "Pre-approval flows (US-2, Flow A); claim_for_decision then dispatch."
+    handler: "Zero (President); produces president.{approved|rejected|deferred}."
+  - pattern: "*.escalation.requested"
+    purpose: "Escalation routing; produces president.escalation.resolved."
+    handler: "Zero (President)."
+  - pattern: "*.violation.*"
+    purpose: "Operator surfacing for SecOps violations; correlates with audit-self-checker output."
+    handler: "Zero (President)."
+  - pattern: "bus.backlog.warning"
+    purpose: "Bus-watcher backpressure signal; may publish president.notification.degraded."
+    handler: "tenet0-bus-watcher daemon."
+  - pattern: "*.lifecycle.registered"
+    purpose: "Update Director routing table; refresh dispatch eligibility."
+    handler: "Zero (President)."
+  - pattern: "*.lifecycle.deregistered"
+    purpose: "Remove Director from routing table; preserve memory rows."
+    handler: "Zero (President)."
+  - pattern: "operator.approval.responded"
+    purpose: "Operator response from comm-module → convert to president.{approved|rejected|deferred}."
+    handler: "Zero (President); FR-25 signature verification before treating as decision."
+    payload_owner: "comm-module (Feature 49 sibling); shape governed by FR-25."

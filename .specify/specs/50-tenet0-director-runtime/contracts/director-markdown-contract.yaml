@@ -1,0 +1,190 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://overnightdesk.com/schemas/feature-50/director-markdown-contract.yaml"
+title: "Director Markdown Contract"
+version: "1.0.0"
+description: |
+  Schema validating the structure of every Director `.md` file in
+  `~/.claude-agent-zero/agents/`. The file is markdown, but its YAML
+  frontmatter and required body sections are validated by this contract.
+
+  FR-23: A markdown file missing any required section, or with invalid
+  frontmatter, raises `secops.violation.registry_invalid` and is quarantined
+  (no dispatch) until corrected.
+
+  FR-24: This feature ships exactly one Director (`president.md`) as the
+  worked example. Future Directors (Features 52-57) reuse this contract.
+
+  Validation runs in two phases:
+    1. Frontmatter parsed as YAML; checked against `frontmatter_schema` below.
+    2. Body parsed for required H2 sections; checked against `body_sections`.
+
+# ---------------------------------------------------------------------------
+# Phase 1: Frontmatter (YAML between leading and trailing `---`)
+# ---------------------------------------------------------------------------
+
+frontmatter_schema:
+  $schema: "https://json-schema.org/draft/2020-12/schema"
+  type: object
+  required:
+    - name
+    - department
+    - version
+    - charter
+    - mcp_grants
+    - bus_namespace
+    - constitution_acknowledged
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: "Human-readable Director name (e.g., 'President', 'Operations Director')."
+    department:
+      type: string
+      pattern: "^[a-z][a-z0-9_]+$"
+      maxLength: 32
+      description: |
+        Bus namespace prefix; lowercase, alphanumeric+underscore.
+        MUST match Feature 49 FR-2 valid prefixes: president, ops, tech, cro,
+        cso, cfo, secops, governor — or a future-amended additions list.
+    version:
+      type: string
+      pattern: "^[0-9]+\\.[0-9]+\\.[0-9]+(-[a-zA-Z0-9.-]+)?$"
+      description: "Semver."
+    charter:
+      type: string
+      minLength: 20
+      maxLength: 500
+      description: "One-paragraph mission statement (expanded in body section)."
+    mcp_grants:
+      type: array
+      uniqueItems: true
+      minItems: 1
+      items:
+        type: string
+        enum:
+          - tenet0-bus-mcp
+          - tenet0-constitution-mcp
+          - tenet0-governor-mcp
+          - tenet0-pending-mcp
+          - tenet0-audit-mcp
+          - tenet0-director-memory-mcp
+      description: "Subset of the global MCP catalog this Director may use."
+    bus_namespace:
+      type: string
+      pattern: "^[a-z][a-z0-9_]+$"
+      description: "MUST equal `department`. Validator enforces equality."
+    constitution_acknowledged:
+      const: true
+      description: "MUST be literal `true`. False or missing fails validation."
+    visible_to_president:
+      type: boolean
+      default: true
+      description: "Whether the President's cross-namespace read access applies (default true; only set false for special opt-out cases recorded in constitution)."
+
+# Cross-field rule (validator enforces): bus_namespace == department.
+
+# ---------------------------------------------------------------------------
+# Phase 2: Body sections (markdown H2 headings)
+# ---------------------------------------------------------------------------
+
+body_sections:
+  description: |
+    Every Director markdown body MUST contain these H2 sections in this
+    order. Validator extracts headings via a markdown AST walk; missing or
+    out-of-order sections fail validation.
+
+  required_in_order:
+    - heading: "Identity"
+      level: 2
+      min_length_chars: 50
+      description: "Reaffirms name + department; describes the Director's role in plain English."
+
+    - heading: "Charter"
+      level: 2
+      min_length_chars: 100
+      description: "Expanded mission statement. Should reference the constitution version this Director acknowledges."
+
+    - heading: "MCP Grants"
+      level: 2
+      min_length_chars: 30
+      description: "Human-readable bulleted list of MCPs from frontmatter. Validator checks list items match `mcp_grants` set-equality."
+      cross_check: "items must equal frontmatter.mcp_grants"
+
+    - heading: "Memory Protocol"
+      level: 2
+      min_length_chars: 100
+      description: "The standard memory-protocol footer; validated by exact-text or regex match against the canonical block (see canonical_memory_protocol below)."
+      cross_check: "matches canonical_memory_protocol regex"
+
+    - heading: "Constitutional Acknowledgment"
+      level: 2
+      min_length_chars: 50
+      description: |
+        Director's explicit acknowledgment of the constitution and the
+        memory access matrix. Must include the literal string
+        'I acknowledge constitution version' followed by a semver token
+        matching frontmatter.version constraints elsewhere is fine; the
+        version cited here may differ if Director was authored under an
+        older constitution.
+
+# ---------------------------------------------------------------------------
+# Canonical memory-protocol block (regex)
+# ---------------------------------------------------------------------------
+
+canonical_memory_protocol:
+  description: |
+    The Memory Protocol section body must contain (regex, case-sensitive):
+      - reference to `tenet0-director-memory-mcp`
+      - reference to `load_memory_index`
+      - reference to `write_memory`
+      - reference to one of: append-only / supersede / immutable
+      - reference to `pre-write scrubber` OR `PII scrubber`
+  regex_pattern: "(?s)tenet0-director-memory-mcp.*load_memory_index.*write_memory.*(append-only|supersede|immutable).*(pre-write scrubber|PII scrubber)"
+
+# ---------------------------------------------------------------------------
+# Validator behavior
+# ---------------------------------------------------------------------------
+
+validator:
+  name: "director-markdown-validator"
+  invocation: "Internal Go package; run by lifecycle daemon on file-system event (FR-22) and by CI as a contract test."
+  failure_modes:
+    - condition: "frontmatter YAML parse error"
+      action: "publish secops.violation.registry_invalid with frontmatter_errors"
+    - condition: "frontmatter schema violation (missing required, wrong type, pattern fail)"
+      action: "publish secops.violation.registry_invalid with frontmatter_errors"
+    - condition: "bus_namespace != department"
+      action: "publish secops.violation.registry_invalid with frontmatter_errors=['bus_namespace must equal department']"
+    - condition: "missing required body section"
+      action: "publish secops.violation.registry_invalid with missing_sections"
+    - condition: "body sections out of order"
+      action: "publish secops.violation.registry_invalid with missing_sections=['<heading>: out_of_order']"
+    - condition: "Memory Protocol section fails canonical regex"
+      action: "publish secops.violation.registry_invalid with missing_sections=['Memory Protocol: non-canonical']"
+    - condition: "two files declare the same department"
+      action: "publish secops.violation.registry_conflict with conflicting_file_paths; both quarantined (EC-12)"
+  success:
+    action: "publish <department>.lifecycle.registered with version, mcp_grants, file_hash"
+
+# ---------------------------------------------------------------------------
+# Reference example: president.md frontmatter (FR-24 worked example)
+# ---------------------------------------------------------------------------
+
+reference_example:
+  file_path: "~/.claude-agent-zero/agents/president.md"
+  frontmatter:
+    name: "President"
+    department: "president"
+    version: "1.0.0"
+    charter: "Govern Tenet-0 by reviewing department activity, deciding pre-approval requests, routing escalations, and synthesizing daily digests grounded in cross-departmental memory."
+    mcp_grants:
+      - tenet0-bus-mcp
+      - tenet0-constitution-mcp
+      - tenet0-governor-mcp
+      - tenet0-pending-mcp
+      - tenet0-audit-mcp
+      - tenet0-director-memory-mcp
+    bus_namespace: "president"
+    constitution_acknowledged: true
