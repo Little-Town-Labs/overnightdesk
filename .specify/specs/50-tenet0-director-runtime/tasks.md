@@ -75,7 +75,7 @@ Aggregate RES results. Write `research.md` "Phase 0 Verdict" section: per-RES st
 Goal: monorepo setup, shared packages, migrations applied, constitution amended to v1.1.0.
 
 ### Task 1.1: Repo skeleton
-🔴 Blocked by 0.9 · S
+✅ Complete (2026-04-19) — `tenet-0/go.mod` + 10 `cmd/<binary>/main.go` stubs created. `go build ./cmd/...` green. Commit pending.
 Create `tenet-0/go.mod` (module `github.com/littletownlabs/overnightdesk/tenet-0`), `tenet-0/cmd/{bus-mcp,constitution-mcp,governor-mcp,pending-mcp,audit-mcp,director-memory-mcp,bus-watcher,healthcheck-poller,deadline-sweeper,audit-self-checker}/` empty main.go stubs. Replace directive for `./shared/bus-go`.
 **Acceptance:** `go build ./cmd/...` succeeds (all stubs). PR opened.
 
