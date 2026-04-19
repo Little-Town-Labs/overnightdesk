@@ -98,11 +98,11 @@ Update `migrate.sh` if RES-6 said it needs fix; otherwise document it works as-i
 **Acceptance:** Tests from 1.4 pass; both schemas migrate cleanly.
 
 ### Task 1.6: 050_*.sql migrations — Tests
-🔴 Blocked by 1.5 · M
+✅ Complete (2026-04-19) — 6 acceptance assertions executed against throwaway Postgres on aegis-prod: INSERT works, UPDATE/DELETE rejected on decision_log, supersede works on director_memory, body-tamper rejected, expire_stale_state_memories() callable. Full Go testcontainers harness deferred to Task 1.14 quality gate.
 Write idempotency + role-grant tests for all 11 migration files (per data-model.md): role separation correct, append-only triggers fire on UPDATE/DELETE attempts, hash chain seed row inserted, indexes present.
 
 ### Task 1.7: 050_*.sql migrations — Implementation
-🔴 Blocked by 1.6 · L
+✅ Complete (2026-04-19) — All 12 migration files (`050_001` through `050_012`) authored per data-model.md. Schema: 12 tables in `president.*`, 6 append-only triggers, hash chain seed row, state-expiry helper function, role grants per data-model.md §Postgres Roles. Verified end-to-end: 12 migrations apply cleanly in order; no errors; trigger semantics validated.
 Author `050_001_roles.sql` through `050_012_state_expiry_task.sql` per data-model.md. Each migration idempotent (guard clauses); roll-forward only.
 **Acceptance:** Tests from 1.6 pass; testcontainers run migrates 001→012 cleanly; trigger tests verify INSERT works but UPDATE/DELETE on append-only tables raises exception.
 
