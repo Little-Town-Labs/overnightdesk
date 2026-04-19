@@ -107,11 +107,11 @@ Author `050_001_roles.sql` through `050_012_state_expiry_task.sql` per data-mode
 **Acceptance:** Tests from 1.6 pass; testcontainers run migrates 001→012 cleanly; trigger tests verify INSERT works but UPDATE/DELETE on append-only tables raises exception.
 
 ### Task 1.8: `internal/shared/config` — Tests
-🔴 Blocked by 1.1 · S · **Parallel with 1.2–1.7**
+✅ Complete (2026-04-19) — 7 tests covering: missing TENET0_DATABASE_URL rejected, bad scheme rejected, dev mode accepts minimal, prod mode fails-closed on each missing secret (5 enumerated), prod mode passes with all secrets, env helpers (envOr/envIntOr/envBoolOr/envDurationOr), port range validation. Confirmed FAILING before impl.
 Test env-var loading mirroring engine pattern: required-vs-optional, `PHASE_SERVICE_TOKEN` fail-closed mode, all listed vars present in fail-closed test fixtures.
 
 ### Task 1.9: `internal/shared/config` — Implementation
-🔴 Blocked by 1.8 · S
+✅ Complete (2026-04-19) — `Load()` mirroring engine pattern. 5 required-in-prod secrets per research §Credential Management: PRESIDENT_BUS_CREDENTIAL, COMM_MODULE_TOKEN, OPERATOR_DECISION_PUBKEY, OPERATOR_REGISTRATION_PUBKEY, DIRECTOR_HMAC_SECRET. envOr/envIntOr/envBoolOr/envDurationOr helpers. **Coverage: 91.5%** (target ≥80%). All 7 tests GREEN.
 Implement loader. Mirror `/mnt/f/overnightdesk-engine/internal/shared/config/config.go`.
 **Acceptance:** Tests pass; missing required var causes clear startup error.
 
