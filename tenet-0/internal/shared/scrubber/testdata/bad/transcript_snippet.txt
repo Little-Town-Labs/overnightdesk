@@ -1,0 +1,3 @@
+Customer: my email is bob@buyer.test and card ends in 1234.
+Tenant: thanks, I'll look that up.
+Customer: appreciate it.

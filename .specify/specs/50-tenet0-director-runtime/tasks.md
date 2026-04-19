@@ -116,16 +116,16 @@ Implement loader. Mirror `/mnt/f/overnightdesk-engine/internal/shared/config/con
 **Acceptance:** Tests pass; missing required var causes clear startup error.
 
 ### Task 1.10: `internal/shared/{pgxutil,mcp,buslisten,credentials,operatorch,metrics}` — Tests
-🔴 Blocked by 1.9 · M · `@tdd-guide`
+✅ Complete (2026-04-19) — 47 tests across 6 packages, all FAIL with `panic: not implemented (Task 1.11)`. `go vet` clean. Stub `types.go` per package establishes intended public API for Task 1.11 to fulfill. Deps added: pgx/v5 v5.9.2, pgxmock/v3 v3.4.0, prometheus/client_golang v1.23.2, mark3labs/mcp-go v0.48.0. Test seams (ConnAcquirer, TxBeginner, invokeTool) avoid Postgres in unit tests.
 Unit tests for each shared package: pgxutil pool setup with role-aware DSN; mcp harness wraps mark3labs (or in-house shim per RES-1) with stdio bind + slog + panic recovery; buslisten reconnect logic; credentials HMAC verifier; operatorch interface with two impls (CommModuleNotifier, PollingShim); metrics registry with standard histograms. Tests FAIL.
 
 ### Task 1.11: `internal/shared/{pgxutil,mcp,buslisten,credentials,operatorch,metrics}` — Implementation
-🔴 Blocked by 1.10 · L
+✅ Complete (2026-04-19) — All 47+ tests GREEN under `-race`. Per-package coverage: pgxutil 90.9%, mcp 90.7%, buslisten 85.9%, credentials 92.0%, operatorch 80.0%, metrics 95.0% (all ≥80%). `go vet` clean. Sub-package `buslisten/pgxconn` added for production pgx-backed `ConnAcquirer` (keeps `buslisten` itself free of unreachable real-DB paths). Two test-signature widenings: `pgxutil.WithTx` takes `TxBeginner` interface (satisfied by both *pgxpool.Pool and pgxmock); `buslisten.Config` exposes `Acquirer` field. **Note for Task 1.13:** a minimal type-checking output validator is inlined in `mcp/types.go` to satisfy `TestInvokeTool_OutputSchemaMismatchDetected`; Task 1.13 must replace with full JSON-Schema validator in dedicated `mcp/output_validate.go`.
 Implement each package. ≥80% coverage target.
 **Acceptance:** All tests pass; `go vet` clean; race detector clean.
 
 ### Task 1.12: `internal/shared/{hashchain,scrubber,accessmatrix,lifecycle}` — Tests
-🔴 Blocked by 1.9 · M · `@security-reviewer`
+✅ Complete (2026-04-19) — 71 tests across 4 packages, all FAIL with `panic: not implemented (Task 1.13)`. Stub `types.go` per package. Small scrubber fixture corpus (10 bad + 5 good) in `scrubber/testdata/`; full 200/50 expansion deferred to Task 4.1. Deps added: fsnotify v1.9.0. **Decisions for Task 1.13 to honor:** (1) Director body sections per contract = Identity/Charter/MCP Grants/Memory Protocol/Constitutional Acknowledgment (5, not 6); (2) namespaces from constitution v2 = president/ops/tech/finance/s_m/support/secops (7); (3) reserved namespaces = president, secops; (4) Op enum: Search uses read grant, Update/Forget use write grant; (5) 8 known scrubber layers (added conversation_transcript + aws_access_key); (6) hash chain `Seed()` keeps simple in-package zero-prev-hash form, separate `SeedFromConstitution(constitutionSHA []byte)` may be needed for production audit-mcp wiring; (7) flock via `golang.org/x/sys/unix.Flock` or `github.com/gofrs/flock`; (8) excerpt cap = 16 chars + "..." suffix.
 Security-critical packages — ≥95% coverage target. Tests:
 - hashchain: seed row, extension, validation, corruption detection
 - scrubber: 7-layer pipeline; 50-known-bad + 20-known-good fixture corpus (security §5)
@@ -134,7 +134,7 @@ Security-critical packages — ≥95% coverage target. Tests:
 Tests FAIL.
 
 ### Task 1.13: `internal/shared/{hashchain,scrubber,accessmatrix,lifecycle}` — Implementation
-🔴 Blocked by 1.12 · L · `@security-reviewer`
+✅ Complete (2026-04-19) — All 71 RED tests GREEN under `-race`. Coverage: hashchain 95.3%, scrubber 96.2%, accessmatrix 96.4%, lifecycle 95.8% (all ≥95%). **RES-1 obligation fulfilled**: `mcp/output_validate.go` added with full draft-2020-12 JSON-Schema validator (santhosh-tekuri/jsonschema/v5); legacy minimal validator kept as test-only back-compat alias; production hot path in `runTool` switched to new validator; mcp coverage held at 90.4%. Deps added: gofrs/flock v0.13.0, santhosh-tekuri/jsonschema/v5 v5.3.1, golang.org/x/text v0.29.0 promoted to direct. Notable choices: scrubber adds Cyrillic/Greek→Latin confusables fold (NFKC alone insufficient for IDN spoofing); hashchain Canonicalize escapes whitespace bytes within JSON strings for deterministic byte-output. Security review summary: hashchain failure → forgeable decision_log; scrubber failure → PII leakage to bus/digests; accessmatrix failure → cross-Director privilege escalation; lifecycle failure → unsigned malicious President/SecOps Director registration; mcp validator failure → silent bus corruption from out-of-spec tool outputs.
 Implement each. Particular attention to scrubber Unicode NFKC normalize → encoding decode → 5 patterns → high-entropy ordering.
 **Acceptance:** All tests pass; ≥95% coverage on each; `@security-reviewer` agent run, no CRITICAL findings.
 
