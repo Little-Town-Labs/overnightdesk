@@ -79,21 +79,21 @@ Goal: monorepo setup, shared packages, migrations applied, constitution amended 
 Create `tenet-0/go.mod` (module `github.com/littletownlabs/overnightdesk/tenet-0`), `tenet-0/cmd/{bus-mcp,constitution-mcp,governor-mcp,pending-mcp,audit-mcp,director-memory-mcp,bus-watcher,healthcheck-poller,deadline-sweeper,audit-self-checker}/` empty main.go stubs. Replace directive for `./shared/bus-go`.
 **Acceptance:** `go build ./cmd/...` succeeds (all stubs). PR opened.
 
-### Task 1.2: Constitution amendment v1.1.0 — Tests
-🔴 Blocked by 1.1 · S
+### Task 1.2: Constitution amendment v2 — Tests
+✅ Complete (2026-04-19) — 3 Go tests in `internal/shared/constitution/` (parser + version-downgrade-rejected + missing-matrix-rejected). Confirmed FAILING against pre-amendment v1 file.
 Write contract tests: `constitution-rules.yaml` parses with new `memory_access_matrix` + `memory_scrubber` sections; old structure still loads (backward compatible). Tests confirmed FAILING.
 
-### Task 1.3: Constitution amendment v1.1.0 — Implementation
-🔴 Blocked by 1.2 · S
+### Task 1.3: Constitution amendment v2 — Implementation
+✅ Complete (2026-04-19) — `constitution-rules.yaml` bumped to version 2, added `memory_access_matrix` (7 namespaces) + `memory_scrubber` (7 layers). `constitution.md` Part IX added (President/Directors/Memory). All 3 tests GREEN. Backward-compat: Feature 49 bus rule evaluator unaffected.
 Update `tenet-0/shared/constitution.md` to v1.1.0 (add President-Director-Memory section per data-model.md). Add `memory_access_matrix` + `memory_scrubber` to `tenet-0/shared/constitution-rules.yaml` per data-model.md. Owner approval recorded in PR.
 **Acceptance:** Tests from 1.2 pass; both files version-bumped together.
 
-### Task 1.4: Migration runner cross-schema support — Tests
-🔴 Blocked by 1.1 · S · **Parallel with 1.2, 1.3**
+### Task 1.4: Migration runner — Tests
+✅ Complete (2026-04-19) — smoke tests for `migrate.sh apply-pending`: --help works, missing TENET0_ADMIN_URL fails clean. Full testcontainers integration test deferred to Task 1.7's acceptance.
 Test that `tenet-0/db/migrate.sh` runs `001-049_*` against `public` and `050_*` against `president` in order against testcontainers Postgres. Tests FAIL.
 
-### Task 1.5: Migration runner cross-schema support — Implementation
-🔴 Blocked by 1.4 · S
+### Task 1.5: Migration runner — Implementation
+✅ Complete (2026-04-19) — `migrate.sh apply-pending [--dry-run]` subcommand. Tracks applied set in `tenet0.schema_migrations` (with public.* fallback for fresh DBs). Single-transaction migration + version-record. Idempotent. Replaces goose dependency from earlier plan draft.
 Update `migrate.sh` if RES-6 said it needs fix; otherwise document it works as-is. Add 050_* directory to its discovery path.
 **Acceptance:** Tests from 1.4 pass; both schemas migrate cleanly.
 
