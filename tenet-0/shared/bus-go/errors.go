@@ -33,4 +33,21 @@ var (
 	// ErrConnectionLost: the underlying PostgreSQL connection is unavailable.
 	// Callers may spool and retry.
 	ErrConnectionLost = errors.New("bus: connection lost")
+
+	// ErrNotFound: the requested event (by ID) does not exist. Returned by
+	// GetEvent and WalkCausality when the starting event is missing.
+	ErrNotFound = errors.New("bus: not found")
+
+	// ErrQueryInvalid: query filter arguments are mutually inconsistent
+	// (e.g. StartTime > EndTime). Returned by QueryEvents.
+	ErrQueryInvalid = errors.New("bus: query invalid")
+
+	// ErrDuplicateIdempotency: the caller supplied an idempotency key that
+	// was previously used with a different payload within the dedup window.
+	// NOTE: the Feature 49 stored procedure does not currently track
+	// idempotency state; this sentinel exists so MCP adapters can surface
+	// the concept consistently once SP-side dedup lands. For now the
+	// bus-go client only returns this if the error string coming back from
+	// the SP contains an "idempotency" marker (detected client-side).
+	ErrDuplicateIdempotency = errors.New("bus: duplicate idempotency key")
 )
