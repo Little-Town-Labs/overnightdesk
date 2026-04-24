@@ -1,16 +1,16 @@
 # OvernightDesk — Product Requirements Document
 
-**Version:** 2.1
-**Date:** 2026-03-21
+**Version:** 3.0
+**Date:** 2026-04-24
 **Author:** OvernightDesk team
-**Status:** Draft
-**Supersedes:** PRD v1.0 (IronClaw + OpenRouter BYOK model), PRD v2.0 (pre-engine)
+**Status:** Active
+**Supersedes:** PRD v2.1 (Go daemon + Claude Code BYOS), PRD v1.0 (IronClaw + OpenRouter BYOK model)
 
 ---
 
 ## 1. Overview
 
-OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs and small businesses. Customers bring their own Claude Code subscription, pay OvernightDesk a monthly fee for hosting and management, and receive a fully isolated AI assistant instance that handles support, operations, and reporting 24/7.
+OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs and small businesses. Customers bring their own OpenRouter API key, pay OvernightDesk a monthly fee for hosting and management, and receive a fully isolated AI assistant instance that handles support, operations, and reporting 24/7.
 
 ### Vision
 
@@ -22,6 +22,19 @@ OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs 
 - Regulated industries: healthcare IT, financial advisory, government contracting, consulting
 - Non-technical operators who need privacy guarantees and audit trails
 - People who have looked at AI tools but can't trust shared infrastructure with client data
+
+### What Changed (v2 → v3)
+
+| v2 (Go daemon + Claude Code) | v3 (hermes-agent + OpenRouter + Phase) |
+|------------------------------|----------------------------------------|
+| Custom Go daemon wrapping Claude Code CLI | hermes-agent (Nous Research, Python/FastAPI) |
+| Claude Code subscription (BYOS OAuth) | OpenRouter API key — customer brings their own |
+| Customer authenticates Claude Code post-provisioning | Customer provides OpenRouter key in setup wizard |
+| No credential management — Claude CLI handles auth | Secrets stored encrypted in Phase.dev, injected via `phase run` |
+| Platform dashboard + terminal proxy for onboarding | Platform dashboard + web chat interface (Vercel AI SDK) |
+| Agent Zero = custom Go engine instance | Agent Zero = hermes-agent instance (Gary's, on aegis-prod) |
+| NeonDB for platform + SQLite per tenant | Same — NeonDB platform + hermes-agent SQLite per tenant |
+| No self-service provisioning | Self-service setup wizard: key → Phase → container → live |
 
 ### What Changed (v1 → v2)
 
@@ -90,37 +103,46 @@ OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs 
 ### System Architecture
 
 ```
-┌──────────────────────────────────────────────┐
-│  Vercel                                      │
-│  Next.js 15 (App Router)                     │
-│  ├── Landing page + waitlist                 │
-│  ├── Auth (Better Auth / Neon Auth)          │
-│  ├── Stripe billing                          │
-│  ├── Customer dashboard                      │
-│  └── Instance management UI                  │
-│       │                                      │
-│       ├── NeonDB ←→ Platform data            │
-│       └── Tenant API ←→ Per-tenant subdomain │
-├──────────────────────────────────────────────┤
-│  NeonDB (Postgres)                           │
-│  Platform database:                          │
-│  ├── users, subscriptions                    │
-│  ├── instances (status, port, subdomain)     │
-│  ├── fleet_events, usage_metrics             │
-│  └── platform_audit_log                      │
-├──────────────────────────────────────────────┤
-│  Oracle Cloud ARM (4 OCPU / 24GB / 200GB)    │
-│                                              │
-│  overnightdesk-infra-net:                    │
-│  ├── nginx (TLS, wildcard subdomain routing) │
-│  ├── provisioner (Stripe webhook receiver)   │
-│  └── Agent Zero (fleet monitoring, support)  │
-│                                              │
-│  overnightdesk-tenant-net:                   │
-│  ├── tenant-alice (Go daemon + SQLite)       │
-│  ├── tenant-bob   (Go daemon + SQLite)       │
-│  └── ... up to ~40 tenants                   │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  Vercel                                          │
+│  Next.js 15 (App Router)                         │
+│  ├── Landing page + waitlist                     │
+│  ├── Auth (Better Auth)                          │
+│  ├── Stripe billing                              │
+│  ├── Customer dashboard (hermes hub)             │
+│  ├── Web chat UI (Vercel AI SDK → hermes :8642)  │
+│  └── Self-service setup wizard (secrets → Phase) │
+│       │                                          │
+│       ├── NeonDB ←→ Platform data                │
+│       └── Tenant API ←→ {tenantId}.overnightdesk.com │
+├──────────────────────────────────────────────────┤
+│  NeonDB (Postgres)                               │
+│  Platform database:                              │
+│  ├── users, subscriptions                        │
+│  ├── instances (status, subdomain, phase token)  │
+│  ├── fleet_events, usage_metrics                 │
+│  └── platform_audit_log                          │
+├──────────────────────────────────────────────────┤
+│  Phase.dev                                       │
+│  Per-tenant secret paths:                        │
+│  ├── /agent-zero  (Gary — Agent Zero)            │
+│  ├── /aero-fett   (Mitchel — reference tenant)   │
+│  └── /{tenantId}  (each new tenant)              │
+│  Secrets: OPENROUTER_API_KEY, TELEGRAM_BOT_TOKEN │
+│  Injected at container start via `phase run`     │
+├──────────────────────────────────────────────────┤
+│  Oracle Cloud ARM (4 OCPU / 24GB / 200GB)        │
+│                                                  │
+│  overnightdesk-infra-net:                        │
+│  ├── nginx (TLS, {tenantId}.overnightdesk.com)   │
+│  ├── provisioner (Stripe webhook receiver)       │
+│  └── Agent Zero (hermes-agent, Gary's instance)  │
+│                                                  │
+│  overnightdesk-tenant-net:                       │
+│  ├── hermes-mitchel  (hermes-agent + SQLite)     │
+│  ├── hermes-alice    (hermes-agent + SQLite)     │
+│  └── ... up to ~40 tenants                       │
+└──────────────────────────────────────────────────┘
 ```
 
 ### Per-Tenant Container
@@ -128,29 +150,38 @@ OvernightDesk is a managed AI assistant hosting platform for solo entrepreneurs 
 Each customer gets an isolated Docker container running:
 
 ```
-┌─────────────────────────────────────┐
-│  Docker container (read-only rootfs) │
-│                                     │
-│  Go daemon (overnightdesk-engine)   │
-│  ├── Claude Code CLI wrapper        │
-│  │   └── claude -p <prompt>         │
-│  │       --resume <session>         │
-│  │       --dangerously-skip-perms   │
-│  ├── Heartbeat scheduler            │
-│  ├── Cron job engine                │
-│  ├── Telegram bridge (optional)     │
-│  ├── Discord bridge (optional)      │
-│  ├── REST API (dashboard backend)   │
-│  └── Web terminal (xterm.js, auth)  │
-│                                     │
-│  /data (bind mount, tenant storage) │
-│  ├── tenant.db (SQLite)             │
-│  ├── .claude/ (CLI session data)    │
-│  ├── workspace/ (tenant files)      │
-│  └── logs/                          │
-│                                     │
-│  /tmp, /run (tmpfs, ephemeral)      │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  hermes-mitchel  (gateway container)         │
+│  image: nousresearch/hermes-agent:latest     │
+│                                              │
+│  hermes gateway run                          │
+│  ├── Telegram bridge (WebSocket to gateway)  │
+│  ├── Discord bridge (optional)               │
+│  ├── Cron scheduler                          │
+│  ├── OpenAI-compatible API  :8642            │
+│  └── Session / memory management            │
+│                                              │
+│  /opt/data (bind mount — /opt/{tenantId})    │
+│  ├── .env  ← written by `phase secrets export` │
+│  ├── config.yaml                             │
+│  ├── state.db (SQLite)                       │
+│  ├── sessions/                               │
+│  └── skills/                                 │
+└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  hermes-mitchel-dashboard  (sidecar)         │
+│  image: nousresearch/hermes-agent:latest     │
+│                                              │
+│  hermes dashboard --host 0.0.0.0 :9119       │
+│  ├── Web UI (React SPA)                      │
+│  └── REST API (config, sessions, cron, logs) │
+│                                              │
+│  /opt/data (same bind mount as gateway)      │
+└──────────────────────────────────────────────┘
+        ↑ both served via nginx at
+          {tenantId}.overnightdesk.com
+          / → dashboard :9119
+          /v1/* → gateway API :8642
 ```
 
 ### Tech Stack
@@ -201,49 +232,45 @@ Each customer gets an isolated Docker container running:
 
 ## 4. Authentication Model
 
-### Customer AI Auth (Claude Code)
+### Customer AI Auth (OpenRouter + Phase.dev)
 
-Customers bring their own **Claude Code subscription**. No API keys are exchanged, stored, or managed by OvernightDesk.
+Customers bring their own **OpenRouter API key**. The key is collected once during setup and stored encrypted in Phase.dev — OvernightDesk never stores it in plaintext.
 
 **Onboarding flow:**
 
 ```
-1. Customer pays (Stripe) → container provisioned
-2. Welcome email with dashboard URL + bearer token
-3. Customer opens dashboard → "Connect your Claude Code account"
-4. Clicks button → embedded web terminal opens inside dashboard
-5. Claude Code launches → OAuth flow opens in new browser tab
-6. Customer logs into their Anthropic account → terminal shows "✓ Authenticated"
-7. Dashboard switches to "Your assistant is live" → done
+1. Customer pays (Stripe) → setup wizard opens
+2. Customer enters OpenRouter API key + optional bot tokens
+3. Platform writes secrets to Phase.dev at /{tenantId}/
+4. Provisioner runs: phase secrets export --path /{tenantId} > /opt/{tenantId}/.env
+5. hermes-agent container starts — reads .env as normal
+6. Welcome email with dashboard URL
+7. Customer opens dashboard → "Your assistant is live" + Launch Dashboard button + Chat
 ```
 
-After initial auth, Claude Code manages its own token refresh. Customer never touches the terminal again unless they choose to.
+Customer never touches the server. Credential rotation = update in Phase.dev + restart container.
 
 **Why this model:**
-- Zero credential management burden for us
-- Customer's Claude usage bills directly to their Anthropic account
-- No API key rotation, validation, or encryption needed
-- Matches how Claude Code works on their own machine
-- We never see their conversations or API traffic
+- Customer's OpenRouter usage bills to their own account
+- Secrets never touch the platform DB in plaintext — Phase.dev is the source of truth
+- Rotation without redeploy: update Phase.dev secret → restart container
+- hermes-agent unchanged — reads from `.env` file as designed
+- No OAuth flow or terminal proxying required
 
-### Platform AI Auth (OpenRouter)
+### Platform AI Auth (OpenRouter — Agent Zero)
 
 OvernightDesk uses its own OpenRouter API key for platform-level operations only:
-- Agent Zero fleet monitoring and health checks
-- Automated support responses
+- Agent Zero (Gary's hermes-agent instance) — fleet monitoring, support, ops
 - Usage summarization and reporting
 - Operations that customers don't see or pay for
 
-This key is stored in the Agent Zero container's environment, not exposed to tenant containers.
+This key lives in Phase.dev at `/agent-zero/`, injected via `phase run` at Agent Zero's container start.
 
-### Dashboard Auth
+### Platform → Tenant API Auth
 
-Each tenant gets a bearer token generated at provisioning time for their web dashboard. The token is:
-- Generated via `openssl rand -base64 32`
-- Sent in the welcome email
-- Required for all dashboard API calls
-- Stored hashed in the platform database
-- Rotatable via dashboard settings (once authenticated)
+The OvernightDesk platform communicates with the hermes dashboard sidecar on each tenant's subdomain. The hermes dashboard uses an ephemeral session token (generated per server start). The platform accesses the hermes dashboard **only** via the "Launch Dashboard" button — the token is injected into the SPA at page load. The platform does not proxy hermes API calls directly.
+
+> **Future (Phase 7):** The web chat interface calls the hermes OpenAI-compatible API on `:8642` via the platform's `/api/engine/chat` route. The `API_SERVER_KEY` stored in Phase.dev and the instance's `engineApiKey` field are used as the bearer token for this channel.
 
 ---
 
@@ -378,6 +405,80 @@ Each tenant gets a bearer token generated at provisioning time for their web das
 
 **Dependencies:** Phase 5 (provisioning), Phase 6 (dashboard)
 
+### Phase 9: Agent Zero — Hermes Migration
+
+**Goal:** Replace the current overnightdesk-engine Agent Zero (Gary's tenant-0) with a hermes-agent instance. This is the reference implementation for the new platform architecture and validates the Phase.dev + hermes-agent pattern before it rolls out to paying tenants.
+
+**Requirements:**
+- Deploy Gary's hermes-agent container on aegis-prod with Phase.dev secrets injection (`phase secrets export --path /agent-zero > /opt/agent-zero/.env`)
+- Validate `phase secrets export` → `.env` → hermes-agent startup flow end-to-end
+- Migrate Agent Zero capabilities (fleet monitoring, heartbeat, Telegram bridge) to hermes-agent
+- Decommission overnightdesk-tenant-0 (Go daemon) once hermes Agent Zero is stable
+- Document the validated deploy pattern as the template for all future tenant provisioning
+
+**Reference:** Mitchel's container (`hermes-mitchel`) was manually provisioned and serves as the structural reference. This phase validates the Phase.dev secrets path and formalises the deploy script.
+
+**Dependencies:** Phase.dev `/agent-zero/` path configured, hermes-agent container image available on aegis-prod
+
+---
+
+### Phase 10: Hermes Provisioner
+
+**Goal:** When a user completes signup + payment, automatically provision their hermes-agent instance on aegis-prod using the Phase.dev secrets pattern validated in Phase 9.
+
+**Requirements:**
+- Stripe webhook triggers provisioning
+- Provisioner service on aegis-prod receives provisioning request from platform
+- Creates per-tenant Phase.dev path (`/{tenantId}/`) via Phase API
+- Creates Phase service token scoped to that path — stored in platform DB (`instance.phaseServiceToken`)
+- Runs: `phase secrets export --path /{tenantId} > /opt/{tenantId}/.env`
+- Starts hermes-agent gateway container + dashboard sidecar
+- Provisions nginx server block + certbot TLS for `{tenantId}.overnightdesk.com`
+- Updates instance status through lifecycle: `queued → provisioning → running`
+- Health check polling to confirm container is live
+- Deprovision on cancellation: stop containers, preserve `/opt/{tenantId}/` data 30 days
+- Fleet event logged at each state transition
+
+**Dependencies:** Phase 9 (validated pattern), Phase 2 (Stripe), Phase.dev API access
+
+---
+
+### Phase 11: Self-Service Setup Wizard
+
+**Goal:** Non-technical users can configure their hermes-agent instance entirely from the OvernightDesk dashboard — no CLI, no server access.
+
+**Requirements:**
+- Post-payment wizard flow in the dashboard (replaces Claude Code onboarding)
+- Step 1: OpenRouter API key (with link to openrouter.ai, validation call)
+- Step 2: Messaging bridge (Telegram bot token + user IDs, or skip)
+- Step 3: Agent personality (name, role, timezone — maps to hermes config.yaml)
+- Platform writes secrets to Phase.dev via Phase API — never stores them in platform DB
+- Platform stores Phase service token for the tenant (encrypted, used by provisioner)
+- Secret update flow: user can update any secret from Settings → platform updates Phase.dev + restarts container
+- Wizard shows provisioning progress in real time (queued → running)
+
+**Dependencies:** Phase 10 (provisioner), Phase.dev API integration
+
+---
+
+### Phase 12: Web Chat Interface
+
+**Goal:** Customers can chat directly with their hermes-agent instance from the OvernightDesk platform — no Telegram or Discord account required.
+
+**Requirements:**
+- `/dashboard/chat` page — hermes tenants only
+- "Chat" tab in the hermes nav (alongside Overview and Settings)
+- Vercel AI SDK `useChat` hook — streams responses in real time
+- Platform `/api/engine/chat` route: validates session + instance, proxies to `https://{tenantId}.overnightdesk.com/v1/chat/completions`
+- nginx `/v1/*` location block on `{tenantId}.overnightdesk.com` → hermes gateway `:8642`
+- `API_SERVER_KEY` stored in Phase.dev, referenced by platform API route
+- Conversation history displayed in the UI (scrollable, timestamped)
+- Mobile-responsive layout
+
+**Dependencies:** Phase 10 (provisioner — containers must be running), Phase 11 (secrets wizard — API_SERVER_KEY in Phase)
+
+---
+
 ### Phase 8: Transactional Email (Resend)
 
 **Goal:** Send essential lifecycle emails.
@@ -425,18 +526,23 @@ subscriptions
 instances
 ├── id (uuid, PK)
 ├── user_id (FK → users)
-├── tenant_id (text, unique — slug derived from email)
-├── status (enum: queued, provisioning, awaiting_auth, running, stopped, error, deprovisioned)
-├── container_id (text)
-├── gateway_port (integer, unique)
-├── dashboard_token_hash (text — bcrypt)
-├── claude_auth_status (enum: not_configured, connected, expired)
-├── subdomain (text, unique — {tenant}.overnightdesk.com)
+├── tenant_id (text, unique — slug, e.g. "aero-fett")
+├── status (enum: queued, provisioning, running, stopped, error, deprovisioned)
+├── container_id (text — e.g. "hermes-aero-fett")
+├── gateway_port (integer, unique — legacy, may be null for subdomain-routed tenants)
+├── engine_api_key (text — bearer token for hermes dashboard sidecar API)
+├── phase_service_token (text — encrypted, scoped to /{tenantId}/ in Phase.dev)
+├── claude_auth_status (enum: not_configured, connected, expired — "connected" for all hermes tenants)
+├── subdomain (text, unique — {tenantId}.overnightdesk.com)
 ├── provisioned_at (timestamp)
 ├── deprovisioned_at (timestamp)
 ├── last_health_check (timestamp)
+├── consecutive_health_failures (integer, default 0)
 ├── created_at
 └── updated_at
+
+NOTE: claude_auth_status is retained for schema compatibility. All hermes tenants set this
+to "connected" at provisioning time — it does not represent Claude Code auth.
 
 fleet_events
 ├── id (serial, PK)
@@ -618,11 +724,12 @@ Claude Code runs with full tool access inside the container. The container secur
 - Graceful degradation if Oracle instance is unreachable
 
 ### Capacity
-- 40 tenants on Oracle Cloud free tier (4 OCPU, 24GB RAM, 200GB disk)
-- ~600MB total daemon memory at 40 tenants (Go efficiency)
-- Scale-out to Contabo (~$14/mo) at 35 tenants or 85% memory utilization
-- Go daemon idle: ~10MB RAM, ~0% CPU per tenant
-- Go daemon active (during Claude call): ~150MB RAM, 5-15% CPU (IO-bound)
+- ~20–25 tenants on Oracle Cloud free tier (4 OCPU, 24GB RAM, 200GB disk) — hermes-agent uses ~180–250MB RAM idle per tenant vs ~10MB for Go daemon
+- Scale-out to Contabo (~$14/mo) at 18 tenants or 80% memory utilization
+- hermes-agent idle: ~180–250MB RAM per tenant (Python runtime overhead)
+- hermes-agent active: ~350–500MB RAM per tenant during inference
+- Dashboard sidecar: ~100–150MB additional per tenant (second Python process)
+- NOTE: Capacity is lower than v2 (Go daemon) due to Python memory footprint — offset by eliminating per-tenant Claude Code subscription cost
 
 ---
 
@@ -670,10 +777,13 @@ Claude Code runs with full tool access inside the container. The container secur
 
 | Term | Definition |
 |------|-----------|
-| **Tenant** | A single customer's isolated instance (container + SQLite + Claude Code session) |
-| **Engine** | The Go daemon (`overnightdesk-engine`) that wraps Claude Code CLI |
-| **Platform** | The Vercel frontend + NeonDB + provisioner + Agent Zero — everything the customer doesn't run |
-| **BYOS** | Bring Your Own Subscription — customer uses their Claude Code subscription, billed by Anthropic |
-| **Agent Zero** | Platform ops agent that monitors the fleet, handles support, uses OpenRouter (our key) |
+| **Tenant** | A single customer's isolated hermes-agent instance (gateway container + dashboard sidecar + Phase.dev secret path) |
+| **Engine** | hermes-agent (Nous Research, Python/FastAPI) — OpenAI-compatible API on :8642, dashboard sidecar on :9119 |
+| **Platform** | The Vercel frontend + NeonDB + provisioner — everything the customer doesn't run |
+| **BYOS** | Bring Your Own Subscription — customer brings their OpenRouter API key, billed by OpenRouter |
+| **Agent Zero** | Gary's hermes-agent instance on aegis-prod — fleet monitoring, support, ops. Replaces the v2 Go daemon tenant-0. |
 | **Heartbeat** | Periodic prompt execution (e.g., "check git status", "summarize today's emails") |
-| **Dashboard** | Customer-facing UI on Vercel + per-tenant API for real-time instance data |
+| **Dashboard** | Customer-facing UI on Vercel — hermes hub with web chat + "Launch Agent Dashboard" button |
+| **hermes-agent** | Nous Research open-source agent runtime. Standard tenant engine from v3.0. |
+| **Phase.dev** | Secrets management. Per-tenant path `/{tenantId}/`. Secrets injected at container start via `phase secrets export`. |
+| **aegis-prod** | Oracle Cloud ARM VM hosting all tenant containers, nginx, Phase CLI, and TLS termination. |

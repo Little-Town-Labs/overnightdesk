@@ -869,9 +869,132 @@ It is loaded into every Tenet-0 agent's system prompt at startup. Event-bus reje
 
 ---
 
+## Phase 11: Multi-Tenant Platform Foundation & Messaging Refactor
+
+**Source:** `docs/architecture/messaging-refactor-plan.md` (drafted 2026-04-16)
+**Dependencies:** Phase 9 complete; runs in parallel with or before Phase 10
+**Status:** Planning — architecture doc drafted, 4 features scoped (58–61), no implementation yet
+**Trigger:** Inbound messaging bypasses securityteam (acceptable for operator-only tenants today, breaks when customer-facing email/messaging ships); engine is single-tenant monolith with no platform/tenant role separation; bridges embedded per-tenant don't scale to N customers.
+
+### Scope clarification — Platform infrastructure, not tenant internals
+
+Phase 11 builds the **multi-tenant infrastructure underneath the platform**:
+- A new `overnightdesk-platform-orchestrator` service that owns tenant lifecycle, registry, JWT broker, and fleet operations
+- Extraction of all bridge code (Telegram, Discord, email) from per-tenant containers into the shared `overnightdesk-communicationmodule`
+- `overnightdesk-securityteam` upgraded to enforce per-channel screening policies on all customer-facing inbound/outbound traffic
+
+**Phase 11 does NOT touch the per-tenant agent org chart.** That capability is already in the engine (Feature 33 org chart, Feature 36 goal hierarchy, Feature 47 approval gates, Feature 44 git-worktree workspaces) and is consumed by Phase 10 inside Tenet-0. Phase 11 sits one layer above: it manages tenants, not agents within tenants.
+
+**Relationship to Phase 10:**
+- Phase 10 (Tenet-0 Corporate Hierarchy) builds President + departments inside one tenant container, with an internal Postgres LISTEN/NOTIFY event bus
+- Phase 11 builds the cross-tenant control plane (provisioning, registry, messaging routing) that runs above all tenants
+- They are independent: Phase 11 can ship before, after, or in parallel with Phase 10
+- When both exist, Phase 10's Technology Department uses Phase 11's provisioning API to onboard new customer tenants
+
+### Architecture summary
+
+```
+PLATFORM-ORCHESTRATOR (new repo)
+  ├── tenant registry, provisioning, JWT broker, fleet ops
+  ▼
+TENANT N (engine, slimmed)  ◄──gRPC──►  COMM-MODULE  ◄──HTTP──►  SECURITYTEAM
+  - agents (org chart from              - all bridges            - channel policies
+    Phase 9 stays here)                 - inbound adapters       - inbound/outbound
+  - workspace, tenant.db                - canonical messages       screening
+  - NO bridges                          - durable inbound queue  - approval queue
+                                                ▲
+                                                │
+                                            NGINX (TLS)
+                                                ▲
+                                                │
+                                  External (Telegram, Discord, Email)
+```
+
+### Features
+
+#### Feature 58: Platform Orchestrator Binary (P0, Large)
+**Repos:** `overnightdesk-engine` (new `cmd/orchestrator/main.go` binary, new `internal/orchestrator/` package, shared utilities moved into `internal/shared/`)
+**Description:** Add a second binary to the engine repo that owns platform-level concerns. Same Docker image builds both `cmd/engine/` (tenant binary, existing) and `cmd/orchestrator/` (platform binary, new) via build ARG. Repurposes the existing zombie `overnightdesk-engine` container by snapshotting its tenant.db for archive, renaming the docker-compose service to `overnightdesk-platform-orchestrator`, and changing its `command:` to run the new binary. REST API: `GET/POST /api/tenants` (provisioning, suspend, resume), tenant registry (`GET /api/registry/agents`, `GET /api/registry/channels`, `GET /api/registry/route?channel_instance=X`), JWT broker (`POST /api/auth/token`, `POST /api/auth/rotate`), fleet monitoring (`GET /api/fleet/health`, `GET /api/fleet/usage`). Wraps existing aegis-prod docker-compose flow for tenant provisioning. EdDSA JWT signing with key rotation. Persists to a new `platform_orchestrator` database (tenants, tenant_agents, channel_routes, jwt_signing_keys tables). Package boundary enforced via `depguard` lint: `internal/orchestrator/` cannot import from `internal/tenant/` and vice versa.
+**Data Model:** New database, new tables — see plan doc §Schema Changes. Engine repo grows: `cmd/orchestrator/`, `internal/orchestrator/`, `internal/shared/` (refactored from existing utility code).
+**Dependencies:** None (greenfield code, existing infra).
+**Unblocks:** 59, 61 (provides JWT broker for tenant↔comm-module auth).
+
+#### Feature 59: Communication-Module Bridges + Inbound API (P0, Large)
+**Repos:** `overnightdesk-communicationmodule`
+**Description:** Move Telegram + Discord bridge code from `overnightdesk-engine/internal/{telegram,discord}/` into comm-module. Add IMAP/SMTP email adapter (net new). Add `Communication` gRPC service with `SendMessage`, `SubscribeInbound` (server-streaming), `ListChannels`. Build durable inbound queue (Postgres or SQLite) so a tenant restart doesn't lose messages. Channel registry table. New nginx route `/webhooks/telegram/*` → securityteam → comm-module. Old route to tenant-0:8080 stays live for rollback.
+**Data Model:** New tables — `channels`, `inbound_queue`, `outbound_log` — see plan doc §Schema Changes.
+**Dependencies:** 58 (JWT broker for tenant auth), 60 (securityteam screening middleware).
+**Unblocks:** 61 (tenant client).
+
+#### Feature 60: SecurityTeam Channel Policies + Screening (P0, Medium)
+**Repos:** `overnightdesk-securityteam`
+**Description:** Add channel-policies.toml config (versioned, hot-reload on SIGHUP). Internal API `POST /screen/inbound` and `POST /screen/outbound` returning `{action: allow|deny|modify, modified_payload?, reason}`. Wire as mandatory middleware in comm-module's inbound and outbound paths. Operator-only channels skip content screening (just enforce `allowed_user_ids`); public channels (email) get full screening using the existing email-security-pipeline staging-poller pattern. Approval queue for high-stakes outbound (Mitchell's wholesale diamond price quotes).
+**Data Model:** Config-file driven; existing approval queue tables reused.
+**Dependencies:** None for the screening API itself; 59 wires into it.
+**Unblocks:** 59 (comm-module integration).
+
+#### Feature 61: Tenant-Engine De-Bridge + Multi-Tenant Hardening (P0, Medium)
+**Repos:** `overnightdesk-engine`
+**Description:** Add `internal/commclient/` — gRPC client that subscribes to comm-module inbound stream and sends outbound. Wire inbound stream into existing issue-creation path (same code triggered today by `/telegram/webhook`). Gate embedded `internal/{telegram,discord}/` packages behind `EMBEDDED_BRIDGES=true` flag (default false). Add `tenant_id` column to `agent_jobs`, `runs`, `cost_events`, `activity_log` for cross-container queries. Migrate from `BEARER_TOKEN` env var to JWT issued by platform-orchestrator (cached with TTL). Migrate Tenet-0: register channels in comm-module, transfer bot tokens, swap webhook URL at BotFather, restart with `EMBEDDED_BRIDGES=false`. Final cleanup: delete `internal/telegram/` and `internal/discord/` packages.
+**Data Model:**
+- Migrations: add `tenant_id TEXT NOT NULL DEFAULT 'tenet-0'` to listed tables (backfill default for existing data)
+- Removes: `internal/telegram/` and `internal/discord/` packages (after migration verified)
+**Dependencies:** 58, 59, 60.
+**Unblocks:** Phase 11 cleanup gate.
+
+### Phase 11 Dependency Graph
+
+```
+58 (Platform Orchestrator) ─┬→ 59 (Comm-Module Bridges + Inbound)
+                            │       ▲
+                            │       │
+                            └→ 60 (SecurityTeam Policies) ──┘
+                                                 │
+                                                 └→ 61 (Tenant-Engine De-Bridge)
+```
+
+**Critical Path:** 58 → (59 ‖ 60) → 61
+
+### Phase 11 Completion Gate
+
+- [ ] Feature 58: platform-orchestrator running on aegis-prod, Tenet-0 registered, JWTs mintable, provisioning API can spawn a test tenant
+- [ ] Feature 59: synthetic Telegram webhook → securityteam → comm-module → gRPC stream → test consumer receives canonical message
+- [ ] Feature 60: channel-policies.toml drives screening decisions; operator-only fast-path < 50ms p95; public-channel full-screen path tested
+- [ ] Feature 61: Tenet-0 Telegram + Discord work end-to-end via new path; embedded bridge code deleted from engine; `EMBEDDED_BRIDGES` flag removed
+- [ ] Email channel `zero@overnightdesk.com` receives mail via securityteam screening, replies sent via SMTP
+- [ ] `overnightdesk-engine` zombie container killed (replaced by platform-orchestrator)
+- [ ] All self-check skills updated to query comm-module for bridge status
+- [ ] Documentation: CLAUDE.md files updated across all 4 affected repos; architecture plan doc archived as "Implemented"
+- [ ] Test coverage ≥ 80% on all new code in all 4 repos
+
+### Resolved Decisions (2026-04-16)
+
+- **Transport tenant ↔ comm-module:** gRPC (server-streaming for inbound). Comm-module already runs gRPC :9090.
+- **Fate of shared `overnightdesk-engine` container:** repurpose, don't kill. Snapshot its `tenant.db` to aegis-prod `/tmp/zombie-engine-snapshot-<date>.db` for 30-day archive, then rename the docker-compose service to `overnightdesk-platform-orchestrator` and change its `command:` to run the new orchestrator binary. The container slot is reused; no new container in docker-compose.
+- **Code organization (Option C, not Option A or B):** same `overnightdesk-engine` repo, two binaries — `cmd/engine/` (existing tenant binary) and `cmd/orchestrator/` (new platform binary). Shared utilities live in `internal/shared/`. Clean separation enforced via `depguard` lint rule preventing cross-imports between `internal/tenant/` and `internal/orchestrator/`. Per Gary: "engine was intended to do the platform-orchestrator role work" — Option C completes that original intent without spinning up a new repo.
+- **Auth model:** Bearer token initially (already in tenant env), migrate to JWT once platform-orchestrator's broker exists. EdDSA signing with key rotation.
+- **Inbound delivery semantics:** at-least-once with `message_id` idempotency. Tenants must de-duplicate.
+- **Conversation state:** two-store model. Comm-module persists canonical raw messages (audit log, cross-channel, operator visibility). Tenants keep their own working memory in `tenant.db`. No single source of truth.
+- **`tenant_id` schema rollout:** add only to tables platform queries cross containers (`agent_jobs`, `runs`, `cost_events`, `activity_log`). NOT retroactively to every table — most are scoped per-container so `tenant_id` is implicit.
+- **Multi-tenant design from day one:** do not optimize phase ordering around Agent One's ship date. Build the right architecture; Agent One ships when Phase 11 is ready or stays on the legacy path until then.
+
+### Deferred Decisions
+
+- **JWT key rotation cadence and TTL** — pin during `/speckit-specify 58-platform-orchestrator`. Likely 24h tokens, weekly key rotation, 7-day key retirement window.
+- **Inbound queue storage backend in comm-module** — Postgres (consistency with platform-orchestrator) vs SQLite (simpler, fits comm-module's existing `tenant.db` pattern). Decide during `/speckit-plan 59`.
+- **Email provider for Phase 11.3** — IMAP/SMTP direct vs SES vs Postmark. Decide during `/speckit-specify 59` based on deliverability + cost.
+
+### Future Phase (after Phase 11)
+
+- **HA platform-orchestrator** — current spec is single instance; add active-passive failover when tenant count justifies it.
+- **Cross-region tenant placement** — platform-orchestrator could route tenant containers to closest region; out of scope for v1.
+- **Per-tenant organizational templates** — already deferred from Phase 10; relevant once multi-tenant infra exists.
+
+---
+
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 7 (Security) 3 of 4 deployed. Phase 9 in progress: 21 of 22 features complete. Phase 10 (Tenet-0 corporate hierarchy) planning stage — architecture doc drafted, 9 features scoped (49–57), no implementation yet. Engine has 720+ tests across 18 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0. Secrets managed via Phase.dev cloud.
+Phases 1-8 complete (26 features). Phase 7 (Security) 3 of 4 deployed. Phase 9 in progress: 21 of 22 features complete. Phase 10 (Tenet-0 corporate hierarchy) planning stage — architecture doc drafted, 9 features scoped (49–57), no implementation yet. Phase 11 (Multi-tenant platform foundation & messaging refactor) planning stage — architecture doc drafted at `docs/architecture/messaging-refactor-plan.md`, 4 features scoped (58–61), no implementation yet. Engine has 720+ tests across 18 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0. Secrets managed via Phase.dev cloud.
 
 ### Commit History
 
