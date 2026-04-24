@@ -32,16 +32,20 @@ interface DashboardNavProps {
   instanceRunning: boolean;
   isAdmin?: boolean;
   plan?: string;
+  isHermesTenant?: boolean;
 }
 
-export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan }: DashboardNavProps) {
+const HERMES_ALLOWED_TABS = new Set(["/dashboard", "/dashboard/settings", "/dashboard/admin/fleet"]);
+
+export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, isHermesTenant = false }: DashboardNavProps) {
   const pathname = usePathname();
 
   const visibleTabs = tabs.filter(
     (tab) =>
       (!tab.requiresRunning || instanceRunning) &&
       (!tab.adminOnly || isAdminUser) &&
-      (!tab.requiresPro || isAdminUser || plan === "pro")
+      (!tab.requiresPro || isAdminUser || plan === "pro") &&
+      (!isHermesTenant || HERMES_ALLOWED_TABS.has(tab.href))
   );
 
   return (

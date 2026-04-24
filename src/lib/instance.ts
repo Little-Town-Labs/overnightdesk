@@ -43,6 +43,10 @@ export async function hashToken(token: string): Promise<string> {
   return hash(token, 10);
 }
 
+export function isHermesTenant(inst: { containerId: string | null } | null): boolean {
+  return inst?.containerId?.startsWith("hermes-") ?? false;
+}
+
 export async function createInstance(
   userId: string,
   plan: "starter" | "pro"
