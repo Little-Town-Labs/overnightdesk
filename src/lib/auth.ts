@@ -17,7 +17,8 @@ export const auth = betterAuth({
   trustedOrigins: [
     "https://overnightdesk.com",
     "https://www.overnightdesk.com",
-    /^https:\/\/[a-z0-9-]+\.overnightdesk\.com$/,
+    "https://aegis-prod.overnightdesk.com",
+    "https://aero-fett.overnightdesk.com",
   ],
   advanced: {
     defaultCookieAttributes: {
