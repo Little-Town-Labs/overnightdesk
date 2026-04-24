@@ -31,6 +31,23 @@ jest.mock("@/db/schema", () => ({
   },
   platformAuditLog: {},
   user: { id: "id", email: "email", name: "name" },
+  instance: { userId: "userId", status: "status", id: "id" },
+}));
+
+// Mock provisioner
+const mockProvision = jest.fn().mockResolvedValue({ success: true });
+const mockDeprovision = jest.fn().mockResolvedValue({ success: true });
+jest.mock("@/lib/provisioner", () => ({
+  provisionerClient: {
+    provision: (...args: unknown[]) => mockProvision(...args),
+    deprovision: (...args: unknown[]) => mockDeprovision(...args),
+  },
+}));
+
+// Mock createInstance
+const mockCreateInstance = jest.fn();
+jest.mock("@/lib/instance", () => ({
+  createInstance: (...args: unknown[]) => mockCreateInstance(...args),
 }));
 
 // Mock email service
@@ -94,6 +111,17 @@ describe("Stripe Webhook Handlers", () => {
       subscription: "sub_xyz",
     };
 
+    beforeEach(() => {
+      mockCreateInstance.mockResolvedValue({
+        instance: {
+          tenantId: "a1b2c3",
+          subdomain: "a1b2c3.overnightdesk.com",
+          status: "queued",
+        },
+        plaintextToken: "tok_abc",
+      });
+    });
+
     it("creates a subscription record", async () => {
       await handleCheckoutCompleted(session, "price_starter");
 
@@ -113,6 +141,55 @@ describe("Stripe Webhook Handlers", () => {
 
       // insert called twice: subscription + audit log
       expect(db.insert).toHaveBeenCalledTimes(2);
+    });
+
+    it("calls provisioner with subdomain, not gatewayPort or dashboardTokenHash", async () => {
+      await handleCheckoutCompleted(session, "price_starter");
+
+      // Wait for fire-and-forget to settle
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(mockProvision).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tenantId: "a1b2c3",
+          subdomain: "a1b2c3.overnightdesk.com",
+        })
+      );
+      const call = mockProvision.mock.calls[0][0];
+      expect(call.gatewayPort).toBeUndefined();
+      expect(call.dashboardTokenHash).toBeUndefined();
+    });
+
+    it("skips provisioning if instance is already running", async () => {
+      mockCreateInstance.mockResolvedValue({
+        instance: {
+          tenantId: "a1b2c3",
+          subdomain: "a1b2c3.overnightdesk.com",
+          status: "running",
+        },
+        plaintextToken: null,
+      });
+
+      await handleCheckoutCompleted(session, "price_starter");
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(mockProvision).not.toHaveBeenCalled();
+    });
+
+    it("skips provisioning if instance is already provisioning", async () => {
+      mockCreateInstance.mockResolvedValue({
+        instance: {
+          tenantId: "a1b2c3",
+          subdomain: "a1b2c3.overnightdesk.com",
+          status: "provisioning",
+        },
+        plaintextToken: null,
+      });
+
+      await handleCheckoutCompleted(session, "price_starter");
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(mockProvision).not.toHaveBeenCalled();
     });
   });
 

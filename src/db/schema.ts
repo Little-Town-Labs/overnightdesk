@@ -206,6 +206,7 @@ export const instance = pgTable("instance", {
   gatewayPort: integer("gateway_port").unique(),
   dashboardTokenHash: text("dashboard_token_hash"),
   engineApiKey: text("engine_api_key"),
+  phaseServiceToken: text("phase_service_token"),
   claudeAuthStatus: claudeAuthStatusEnum("claude_auth_status")
     .notNull()
     .default("not_configured"),

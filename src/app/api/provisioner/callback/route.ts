@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { tenantId, status, containerId, error: errorMsg } = body;
+  const { tenantId, status, containerId, phaseServiceToken, error: errorMsg } = body;
 
   if (!tenantId || !status) {
     return NextResponse.json(
@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
 
   const extraFields: Record<string, unknown> = {};
   if (containerId) extraFields.containerId = containerId;
+  if (phaseServiceToken) extraFields.phaseServiceToken = phaseServiceToken;
 
   await updateInstanceStatus(tenantId, status, details, extraFields);
 

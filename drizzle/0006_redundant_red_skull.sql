@@ -1,0 +1,1 @@
+ALTER TABLE "instance" ADD COLUMN "phase_service_token" text;

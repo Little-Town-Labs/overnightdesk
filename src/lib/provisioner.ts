@@ -1,8 +1,7 @@
 interface ProvisionParams {
   tenantId: string;
+  subdomain: string;
   plan: "starter" | "pro";
-  gatewayPort: number;
-  dashboardTokenHash: string;
   callbackUrl: string;
 }
 

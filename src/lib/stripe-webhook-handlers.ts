@@ -58,17 +58,20 @@ export async function handleCheckoutCompleted(
 
   // Trigger provisioning
   try {
-    const { instance: inst, plaintextToken } = await createInstance(userId, plan);
+    const { instance: inst } = await createInstance(userId, plan);
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
+
+    // Skip if already provisioned or in progress (idempotency guard)
+    const skipStatuses = ["running", "provisioning", "awaiting_auth"];
+    if (skipStatuses.includes(inst.status)) return;
 
     // Fire-and-forget: don't await the provisioner response
     provisionerClient
       .provision({
         tenantId: inst.tenantId,
+        subdomain: inst.subdomain ?? `${inst.tenantId}.overnightdesk.com`,
         plan,
-        gatewayPort: inst.gatewayPort!,
-        dashboardTokenHash: inst.dashboardTokenHash!,
         callbackUrl: `${appUrl}/api/provisioner/callback`,
       })
       .catch(() => {
