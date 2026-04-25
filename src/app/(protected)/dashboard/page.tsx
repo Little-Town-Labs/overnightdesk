@@ -20,7 +20,7 @@ const statusConfig: Record<
 > = {
   queued: {
     label: "Setup Required",
-    color: "text-blue-400",
+    color: "text-sky-400",
     detail: "Complete the setup wizard to activate your agent.",
   },
   awaiting_provisioning: {
@@ -29,34 +29,34 @@ const statusConfig: Record<
     detail: "Your setup is complete — spinning up your agent now...",
   },
   provisioning: {
-    label: "Creating",
+    label: "Provisioning",
     color: "text-amber-400",
-    detail: "Your container is being created...",
+    detail: "Your agent container is being created...",
   },
   awaiting_auth: {
     label: "Awaiting Auth",
-    color: "text-blue-400",
-    detail: "Connect your Claude Code account to get started.",
+    color: "text-sky-400",
+    detail: "Authentication required to activate.",
   },
   running: {
-    label: "Running",
+    label: "Online",
     color: "text-emerald-400",
-    detail: "Your assistant is live and running 24/7.",
+    detail: "Your agent is live and ready.",
   },
   stopped: {
-    label: "Stopped",
-    color: "text-zinc-400",
-    detail: "Your instance has been stopped.",
+    label: "Offline",
+    color: "text-od-text-2",
+    detail: "Your agent has been stopped.",
   },
   error: {
     label: "Error",
     color: "text-red-400",
-    detail: "Setup failed. Please contact support.",
+    detail: "Something went wrong. Please contact support.",
   },
   deprovisioned: {
     label: "Deprovisioned",
-    color: "text-zinc-500",
-    detail: "Your instance has been deprovisioned.",
+    color: "text-od-text-3",
+    detail: "This instance has been deprovisioned.",
   },
 };
 
@@ -132,63 +132,57 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
-            Account Info
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="od-card p-6">
+          <h2 className="text-sm font-medium mb-4 uppercase tracking-wider" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}>
+            Account
           </h2>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm text-zinc-500">Name</dt>
-              <dd className="text-white">{session.user.name}</dd>
+              <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Name</dt>
+              <dd className="text-sm font-medium" style={{ color: "var(--color-od-text)" }}>{session.user.name}</dd>
             </div>
             <div>
-              <dt className="text-sm text-zinc-500">Email</dt>
-              <dd className="text-white">{session.user.email}</dd>
-            </div>
-            <div>
-              <dt className="text-sm text-zinc-500">Email Verified</dt>
-              <dd className="text-white">
-                {session.user.emailVerified ? "Yes" : "No"}
-              </dd>
+              <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Email</dt>
+              <dd className="text-sm" style={{ color: "var(--color-od-text-2)" }}>{session.user.email}</dd>
             </div>
           </dl>
         </div>
 
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">
+        <div className="od-card p-6">
+          <h2 className="text-sm font-medium mb-4 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}>
             Subscription
             {userIsAdmin && (
-              <span className="ml-2 text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-normal">
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--color-od-accent-bg)", color: "var(--color-od-accent)" }}>
                 Admin
               </span>
             )}
           </h2>
           <dl className="space-y-3">
             <div>
-              <dt className="text-sm text-zinc-500">Plan</dt>
-              <dd className="text-white capitalize">
+              <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Plan</dt>
+              <dd className="text-sm font-medium capitalize" style={{ color: "var(--color-od-text)" }}>
                 {userIsAdmin ? "Pro (Admin)" : (sub?.plan ?? "None")}
               </dd>
             </div>
             <div>
-              <dt className="text-sm text-zinc-500">Status</dt>
-              <dd className="text-white capitalize">
+              <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Status</dt>
+              <dd className="text-sm capitalize" style={{ color: "var(--color-od-text-2)" }}>
                 {userIsAdmin ? "Active" : (sub?.status ?? "No subscription")}
               </dd>
             </div>
             {sub?.currentPeriodEnd && (
               <div>
-                <dt className="text-sm text-zinc-500">Next Billing Date</dt>
-                <dd className="text-white">
+                <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Renews</dt>
+                <dd className="text-sm" style={{ color: "var(--color-od-text-2)" }}>
                   {new Date(sub.currentPeriodEnd).toLocaleDateString()}
                 </dd>
               </div>
             )}
           </dl>
           {sub?.hasStripeCustomer && (
-            <div className="mt-4">
-              <ManageBillingButton className="text-sm text-blue-400 hover:text-blue-300 underline" />
+            <div className="mt-4" style={{ color: "var(--color-od-accent)" }}>
+              <ManageBillingButton className="text-xs underline" />
             </div>
           )}
         </div>
@@ -210,25 +204,28 @@ export default async function DashboardPage() {
               <ProvisioningProgress initialStatus={inst.status} />
             </div>
           ) : (
-            <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
+            <div className="mt-4 od-card p-6">
+              <h2 className="text-sm font-medium mb-4 uppercase tracking-wider" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}>
+                Instance
+              </h2>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-sm text-zinc-500">Status</dt>
-                  <dd className={`font-medium ${instConfig.color}`}>
+                  <dt className="text-xs mb-1" style={{ color: "var(--color-od-text-3)" }}>Status</dt>
+                  <dd className={`text-sm font-medium ${instConfig.color}`}>
                     {instConfig.label}
                   </dd>
-                  <dd className="text-zinc-500 text-sm mt-1">
+                  <dd className="text-xs mt-0.5" style={{ color: "var(--color-od-text-3)" }}>
                     {instConfig.detail}
                   </dd>
                 </div>
                 {inst.subdomain && inst.status === "running" && (
                   <div>
-                    <dt className="text-sm text-zinc-500">Subdomain</dt>
-                    <dd className="text-white">
+                    <dt className="text-xs mb-1" style={{ color: "var(--color-od-text-3)" }}>Endpoint</dt>
+                    <dd>
                       <a
                         href={`https://${inst.subdomain}`}
-                        className="text-blue-400 hover:text-blue-300 underline"
+                        className="text-xs underline transition-colors"
+                        style={{ color: "var(--color-od-accent)", fontFamily: "var(--font-mono)" }}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -239,7 +236,7 @@ export default async function DashboardPage() {
                 )}
                 {inst.status === "running" && !hermesAgent && (
                   <div>
-                    <dt className="text-sm text-zinc-500">Claude Code</dt>
+                    <dt className="text-xs mb-1" style={{ color: "var(--color-od-text-3)" }}>Claude Code</dt>
                     <dd className="mt-1">
                       <AuthStatusBadge status={inst.claudeAuthStatus} />
                     </dd>
@@ -251,40 +248,42 @@ export default async function DashboardPage() {
           )}
         </>
       ) : (
-        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
-          <p className="text-zinc-400">No instance provisioned yet.</p>
-          <p className="text-zinc-500 text-sm mt-1">
-            Your instance will be created automatically after payment.
+        <div className="mt-4 od-card p-8 text-center">
+          <p className="text-sm" style={{ color: "var(--color-od-text-2)" }}>No instance provisioned yet.</p>
+          <p className="text-xs mt-1" style={{ color: "var(--color-od-text-3)" }}>
+            Your agent will be created automatically after payment.
           </p>
         </div>
       )}
 
       {hermesStatus && inst?.subdomain && (
-        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Agent</h2>
+        <div className="mt-4 od-card p-6" style={inst.status === "running" ? { boxShadow: "0 0 40px var(--color-od-glow)" } : {}}>
+          <h2 className="text-sm font-medium mb-4 uppercase tracking-wider" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}>
+            Agent
+          </h2>
           <dl className="space-y-3">
             {hermesStatus.version != null && (
               <div>
-                <dt className="text-sm text-zinc-500">Version</dt>
-                <dd className="text-white">{String(hermesStatus.version)}</dd>
+                <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Version</dt>
+                <dd className="text-sm" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text)" }}>{String(hermesStatus.version)}</dd>
               </div>
             )}
             {hermesStatus.active_sessions != null && (
               <div>
-                <dt className="text-sm text-zinc-500">Active Sessions</dt>
-                <dd className="text-white">{String(hermesStatus.active_sessions)}</dd>
+                <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Active Sessions</dt>
+                <dd className="text-sm" style={{ color: "var(--color-od-text)" }}>{String(hermesStatus.active_sessions)}</dd>
               </div>
             )}
           </dl>
-          <div className="mt-6">
+          <div className="mt-5">
             <a
               href={`https://${inst.subdomain}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-medium px-4 py-2 rounded-lg transition-colors btn-accent"
             >
               Launch Agent Dashboard
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
             </a>

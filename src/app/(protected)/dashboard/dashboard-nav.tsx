@@ -51,7 +51,7 @@ export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, pl
 
   return (
     <nav className="mb-6 overflow-x-auto">
-      <div className="flex gap-1 whitespace-nowrap">
+      <div className="flex gap-0.5 whitespace-nowrap border-b pb-0" style={{ borderColor: "var(--color-od-border)" }}>
         {visibleTabs.map((tab) => {
           const isActive =
             tab.href === "/dashboard"
@@ -62,11 +62,16 @@ export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, pl
             <Link
               key={tab.href}
               href={tab.href}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-zinc-800 text-white"
-                  : "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-300"
-              }`}
+              className="px-3 py-2 text-sm font-medium transition-colors rounded-t-md"
+              style={isActive ? {
+                color: "var(--color-od-text)",
+                background: "var(--color-od-raised)",
+                borderBottom: "2px solid var(--color-od-accent)",
+              } : {
+                color: "var(--color-od-text-2)",
+              }}
+              onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.color = "var(--color-od-text)"; }}
+              onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.color = "var(--color-od-text-2)"; }}
             >
               {tab.label}
             </Link>

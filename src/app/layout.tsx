@@ -1,6 +1,29 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { Bricolage_Grotesque, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+
+const bricolage = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["opsz"],
+  weight: ["200", "400", "700", "800"],
+});
+
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+  weight: ["300", "400", "500"],
+});
+
+const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500"],
+});
 
 export const metadata: Metadata = {
   title: "OvernightDesk — Your business never sleeps",
@@ -29,10 +52,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="antialiased">
-          {children}
-          <Analytics />
-        </body>
+      <body className={`${bricolage.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} antialiased font-body`}>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

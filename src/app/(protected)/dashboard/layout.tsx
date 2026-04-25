@@ -28,13 +28,15 @@ export default async function DashboardLayout({
   const hermesAgent = isHermesTenant(inst);
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-8">
+    <div className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--color-od-base)" }}>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-zinc-400">
-              Welcome back, {session.user.name}
+            <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--color-od-text)" }}>
+              OvernightDesk
+            </h1>
+            <p className="text-sm mt-0.5" style={{ color: "var(--color-od-text-2)" }}>
+              {session.user.name}
             </p>
           </div>
           <SignOutButton />
