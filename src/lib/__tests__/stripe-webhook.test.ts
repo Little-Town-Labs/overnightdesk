@@ -143,53 +143,28 @@ describe("Stripe Webhook Handlers", () => {
       expect(db.insert).toHaveBeenCalledTimes(2);
     });
 
-    it("calls provisioner with subdomain, not gatewayPort or dashboardTokenHash", async () => {
+    it("does NOT call provisioner — wizard must complete first", async () => {
       await handleCheckoutCompleted(session, "price_starter");
 
-      // Wait for fire-and-forget to settle
-      await new Promise((r) => setTimeout(r, 0));
-
-      expect(mockProvision).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tenantId: "a1b2c3",
-          subdomain: "a1b2c3.overnightdesk.com",
-        })
-      );
-      const call = mockProvision.mock.calls[0][0];
-      expect(call.gatewayPort).toBeUndefined();
-      expect(call.dashboardTokenHash).toBeUndefined();
-    });
-
-    it("skips provisioning if instance is already running", async () => {
-      mockCreateInstance.mockResolvedValue({
-        instance: {
-          tenantId: "a1b2c3",
-          subdomain: "a1b2c3.overnightdesk.com",
-          status: "running",
-        },
-        plaintextToken: null,
-      });
-
-      await handleCheckoutCompleted(session, "price_starter");
+      // Wait for any async work to settle
       await new Promise((r) => setTimeout(r, 0));
 
       expect(mockProvision).not.toHaveBeenCalled();
     });
 
-    it("skips provisioning if instance is already provisioning", async () => {
-      mockCreateInstance.mockResolvedValue({
-        instance: {
-          tenantId: "a1b2c3",
-          subdomain: "a1b2c3.overnightdesk.com",
-          status: "provisioning",
-        },
-        plaintextToken: null,
-      });
+    it("never calls provisioner regardless of instance status", async () => {
+      for (const status of ["queued", "running", "provisioning", "awaiting_provisioning"]) {
+        mockCreateInstance.mockResolvedValue({
+          instance: { tenantId: "a1b2c3", subdomain: "a1b2c3.overnightdesk.com", status },
+          plaintextToken: null,
+        });
+        mockProvision.mockClear();
 
-      await handleCheckoutCompleted(session, "price_starter");
-      await new Promise((r) => setTimeout(r, 0));
+        await handleCheckoutCompleted(session, "price_starter");
+        await new Promise((r) => setTimeout(r, 0));
 
-      expect(mockProvision).not.toHaveBeenCalled();
+        expect(mockProvision).not.toHaveBeenCalled();
+      }
     });
   });
 

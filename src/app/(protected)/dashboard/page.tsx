@@ -17,9 +17,14 @@ const statusConfig: Record<
   { label: string; color: string; detail: string }
 > = {
   queued: {
-    label: "Setting up",
+    label: "Setup Required",
+    color: "text-blue-400",
+    detail: "Complete the setup wizard to activate your agent.",
+  },
+  awaiting_provisioning: {
+    label: "Starting Up",
     color: "text-amber-400",
-    detail: "Your instance is queued for provisioning...",
+    detail: "Your setup is complete — spinning up your agent now...",
   },
   provisioning: {
     label: "Creating",

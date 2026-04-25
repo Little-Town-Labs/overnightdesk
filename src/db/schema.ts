@@ -42,6 +42,7 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 
 export const instanceStatusEnum = pgEnum("instance_status", [
   "queued",
+  "awaiting_provisioning",
   "provisioning",
   "awaiting_auth",
   "running",
@@ -207,6 +208,7 @@ export const instance = pgTable("instance", {
   dashboardTokenHash: text("dashboard_token_hash"),
   engineApiKey: text("engine_api_key"),
   phaseServiceToken: text("phase_service_token"),
+  wizardState: jsonb("wizard_state").$type<{ completedSteps: number[]; currentStep: number } | null>(),
   claudeAuthStatus: claudeAuthStatusEnum("claude_auth_status")
     .notNull()
     .default("not_configured"),
