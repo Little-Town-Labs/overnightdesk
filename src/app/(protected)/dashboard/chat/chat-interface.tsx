@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { useId } from "react";
 
 interface ChatInterfaceProps {
   instanceStatus: string;
@@ -10,8 +11,15 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ instanceStatus, agentName }: ChatInterfaceProps) {
+  // Stable session ID for this browser session — hermes uses this to maintain
+  // conversation state internally (same as Telegram channel sessions)
+  const sessionId = useId().replace(/:/g, "");
+
   const { messages, sendMessage, status, error, stop } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/engine/chat" }),
+    transport: new DefaultChatTransport({
+      api: "/api/engine/chat",
+      headers: { "x-hermes-session-id": sessionId },
+    }),
   });
 
   const [input, setInput] = useState("");
