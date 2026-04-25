@@ -5,6 +5,24 @@ interface ProvisionParams {
   callbackUrl: string;
 }
 
+export interface HermesMessage {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: number;
+}
+
+export interface HermesSession {
+  id: string;
+  source: string; // telegram | api_server | discord | cli
+  started_at: number;
+  ended_at: number | null;
+  message_count: number;
+  title: string | null;
+  est_cost: number;
+  messages: HermesMessage[];
+}
+
 interface WriteSecretsParams {
   tenantId: string;
   secrets: Record<string, string>;
@@ -104,6 +122,20 @@ export const provisionerClient = {
       return { success: true };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  async getSessions(containerId: string): Promise<{ sessions: HermesSession[] } | null> {
+    const { url, secret } = getConfig();
+    try {
+      const response = await fetch(`${url}/sessions?containerId=${encodeURIComponent(containerId)}`, {
+        headers: { Authorization: `Bearer ${secret}` },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
     }
   },
 
