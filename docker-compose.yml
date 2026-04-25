@@ -1,44 +1,4 @@
 services:
-  tenant-0:
-    build:
-      context: /home/ubuntu/overnightdesk-engine
-      dockerfile: Dockerfile
-    container_name: overnightdesk-tenant-0
-    restart: unless-stopped
-    user: "1001:1001"
-    environment:
-      - HOME=/home/engine
-      - BEARER_TOKEN
-      - BIND_ADDRESS
-      - CLAUDE_CODE_OAUTH_TOKEN
-      - CLAUDE_PATH
-      - DATA_DIR
-      - HEARTBEAT_ENABLED
-      - HEARTBEAT_INTERVAL
-      - HEARTBEAT_QUIET_END
-      - HEARTBEAT_QUIET_START
-      - LOG_LEVEL
-      - OPENAI_API_KEY
-      - PORT
-      - SECURITY_TOKEN
-      - SECURITY_URL
-      - TIMEZONE
-      - DATABASE_URL
-    volumes:
-      - tenant-0-data:/data
-      - /home/ubuntu/.claude-agent-zero:/home/engine/.claude
-      - /home/ubuntu/.claude.json:/home/engine/.claude.json
-      - /opt/overnightdesk/health:/data/health
-      - /home/ubuntu/ltl-marketing:/data/ltl-marketing
-      - /opt/overnightdesk/logs:/data/platform-logs:ro
-      - /opt/overnightdesk/deploys.log:/data/workspace/deploys.log:ro
-      - /opt/overnightdesk/zero-skills/newsletter-sources:/data/workspace/.claude/skills/newsletter-sources:ro
-      - /opt/overnightdesk/zero-skills/runbooks:/data/workspace/runbooks:ro
-    networks:
-      - overnightdesk
-    expose:
-      - "8080"
-
   # Dedicated Postgres for platform orchestrator metadata (Feature 58 / CR-1).
   # NOT shared with any tenant — orchestrator isolation is a constitutional
   # invariant (FR-8). A compromise of the orchestrator plane must not hand
@@ -184,7 +144,6 @@ services:
     # `condition: service_healthy` once the orchestrator gains a health
     # probe that works under distroless (planned follow-up).
     depends_on:
-      - tenant-0
       - platform-orchestrator
 
   certbot:
@@ -195,7 +154,6 @@ services:
       - ./certbot/www:/var/www/certbot
 
 volumes:
-  tenant-0-data:
   platform-orchestrator-db-data:
 
 networks:
