@@ -36,7 +36,7 @@ interface DashboardNavProps {
   isHermesTenant?: boolean;
 }
 
-const HERMES_ALLOWED_TABS = new Set(["/dashboard", "/dashboard/settings", "/dashboard/chat", "/dashboard/admin/fleet"]);
+const HERMES_ALLOWED_TABS = new Set(["/dashboard", "/dashboard/settings", "/dashboard/admin/fleet"]);
 
 export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, isHermesTenant = false }: DashboardNavProps) {
   const pathname = usePathname();

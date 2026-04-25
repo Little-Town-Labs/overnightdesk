@@ -26,6 +26,8 @@ interface ChatInterfaceProps {
   instanceStatus: string;
   agentName: string;
   initialSessions: HermesSession[];
+  /** When embedded inside a parent container, use "h-full" instead of the default viewport height. */
+  embedded?: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -480,7 +482,7 @@ function SessionsSidebar({
 
 // ─── Root Component ──────────────────────────────────────────────────────────
 
-export function ChatInterface({ instanceStatus, agentName, initialSessions }: ChatInterfaceProps) {
+export function ChatInterface({ instanceStatus, agentName, initialSessions, embedded = false }: ChatInterfaceProps) {
   const [activeView, setActiveView] = useState<"live" | string>("live");
   const [showSidebar, setShowSidebar] = useState(true);
 
@@ -501,7 +503,7 @@ export function ChatInterface({ instanceStatus, agentName, initialSessions }: Ch
   }
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+    <div className={`flex ${embedded ? "h-full" : "h-[calc(100vh-8rem)]"} overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950`}>
       {/* Sidebar */}
       <div
         className={`

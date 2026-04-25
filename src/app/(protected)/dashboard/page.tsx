@@ -13,6 +13,8 @@ import { getEngineStatus } from "@/lib/engine-client";
 import { isHermesTenant } from "@/lib/instance";
 import { SetupWizard } from "./setup-wizard";
 import { ProvisioningProgress } from "./provisioning-progress";
+import { ChatInterface } from "./chat/chat-interface";
+import { provisionerClient } from "@/lib/provisioner";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -42,16 +44,25 @@ export default async function DashboardPage() {
     engineStatus = await getEngineStatus(inst.subdomain, inst.engineApiKey);
   }
 
-  // Hermes: public status (no auth)
+  // Hermes: public status + sessions (fetched in parallel)
   let hermesStatus: Record<string, unknown> | null = null;
-  if (hermesAgent && inst?.status === "running" && inst.subdomain) {
-    try {
-      const res = await fetch(`https://${inst.subdomain}/api/status`, {
+  let initialSessions: import("./chat/chat-interface").HermesSession[] = [];
+
+  if (hermesAgent && inst?.status === "running" && inst.subdomain && inst.containerId) {
+    const [statusRes, sessionsData] = await Promise.allSettled([
+      fetch(`https://${inst.subdomain}/api/status`, {
         signal: AbortSignal.timeout(8_000),
         next: { revalidate: 30 },
-      });
-      if (res.ok) hermesStatus = await res.json();
-    } catch { /* non-fatal */ }
+      }),
+      provisionerClient.getSessions(inst.containerId),
+    ]);
+
+    if (statusRes.status === "fulfilled" && statusRes.value.ok) {
+      hermesStatus = await statusRes.value.json();
+    }
+    if (sessionsData.status === "fulfilled" && sessionsData.value?.sessions) {
+      initialSessions = sessionsData.value.sessions;
+    }
   }
 
   const showOnboarding = inst?.status === "running" && inst.claudeAuthStatus !== "connected";
@@ -148,6 +159,16 @@ export default async function DashboardPage() {
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Embedded chat — full two-panel layout below hero */}
+        <div className="od-card overflow-hidden" style={{ height: "calc(100vh - 28rem)" }}>
+          <ChatInterface
+            instanceStatus={inst.status}
+            agentName={inst.tenantId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+            initialSessions={initialSessions}
+            embedded
+          />
         </div>
 
         {/* Account strip — compact, secondary */}
