@@ -46,5 +46,7 @@ export async function POST(request: NextRequest) {
     messages,
   });
 
-  return result.toTextStreamResponse();
+  // toDataStreamResponse() is required for DefaultChatTransport (AI SDK v6 protocol)
+  // toTextStreamResponse() sends plain text which DefaultChatTransport cannot parse
+  return result.toDataStreamResponse();
 }
