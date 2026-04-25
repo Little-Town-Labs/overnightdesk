@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { streamText } from "ai";
+import { streamText, convertToModelMessages } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
-import { convertToModelMessages } from "@ai-sdk/react";
 import { auth } from "@/lib/auth";
 import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 
