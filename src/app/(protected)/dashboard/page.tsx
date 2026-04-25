@@ -11,6 +11,8 @@ import { OnboardingWizard } from "./onboarding-wizard";
 import { RestartButton } from "./restart-button";
 import { getEngineStatus } from "@/lib/engine-client";
 import { isHermesTenant } from "@/lib/instance";
+import { SetupWizard } from "./setup-wizard";
+import { ProvisioningProgress } from "./provisioning-progress";
 
 const statusConfig: Record<
   string,
@@ -193,44 +195,61 @@ export default async function DashboardPage() {
       </div>
 
       {inst ? (
-        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm text-zinc-500">Status</dt>
-              <dd className={`font-medium ${instConfig.color}`}>
-                {instConfig.label}
-              </dd>
-              <dd className="text-zinc-500 text-sm mt-1">
-                {instConfig.detail}
-              </dd>
+        <>
+          {/* Hermes tenants: setup wizard replaces the instance card while queued */}
+          {hermesAgent && inst.status === "queued" ? (
+            <div className="mt-6">
+              <SetupWizard
+                tenantId={inst.tenantId}
+                instanceId={inst.id}
+                wizardState={inst.wizardState ?? null}
+              />
             </div>
-            {inst.subdomain && inst.status === "running" && (
-              <div>
-                <dt className="text-sm text-zinc-500">Subdomain</dt>
-                <dd className="text-white">
-                  <a
-                    href={`https://${inst.subdomain}`}
-                    className="text-blue-400 hover:text-blue-300 underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {inst.subdomain}
-                  </a>
-                </dd>
-              </div>
-            )}
-            {inst.status === "running" && !hermesAgent && (
-              <div>
-                <dt className="text-sm text-zinc-500">Claude Code</dt>
-                <dd className="mt-1">
-                  <AuthStatusBadge status={inst.claudeAuthStatus} />
-                </dd>
-              </div>
-            )}
-          </dl>
-          <RestartButton instanceRunning={inst.status === "running"} />
-        </div>
+          ) : hermesAgent && (inst.status === "awaiting_provisioning" || inst.status === "provisioning") ? (
+            <div className="mt-6">
+              <ProvisioningProgress initialStatus={inst.status} />
+            </div>
+          ) : (
+            <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm text-zinc-500">Status</dt>
+                  <dd className={`font-medium ${instConfig.color}`}>
+                    {instConfig.label}
+                  </dd>
+                  <dd className="text-zinc-500 text-sm mt-1">
+                    {instConfig.detail}
+                  </dd>
+                </div>
+                {inst.subdomain && inst.status === "running" && (
+                  <div>
+                    <dt className="text-sm text-zinc-500">Subdomain</dt>
+                    <dd className="text-white">
+                      <a
+                        href={`https://${inst.subdomain}`}
+                        className="text-blue-400 hover:text-blue-300 underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {inst.subdomain}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {inst.status === "running" && !hermesAgent && (
+                  <div>
+                    <dt className="text-sm text-zinc-500">Claude Code</dt>
+                    <dd className="mt-1">
+                      <AuthStatusBadge status={inst.claudeAuthStatus} />
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <RestartButton instanceRunning={inst.status === "running"} />
+            </div>
+          )}
+        </>
       ) : (
         <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
           <p className="text-zinc-400">No instance provisioned yet.</p>
