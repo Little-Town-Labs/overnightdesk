@@ -27,8 +27,15 @@ function getActiveClass(
 
 describe("DashboardNav", () => {
   describe("tab configuration", () => {
-    it("exports all fourteen tabs", () => {
-      expect(tabs).toHaveLength(14);
+    it("exports all fifteen tabs", () => {
+      expect(tabs).toHaveLength(15);
+    });
+
+    it("includes Chat tab", () => {
+      const chat = tabs.find((t) => t.label === "Chat");
+      expect(chat).toBeDefined();
+      expect(chat?.href).toBe("/dashboard/chat");
+      expect(chat?.requiresRunning).toBe(false);
     });
 
     it("has correct tab labels in order", () => {
@@ -46,6 +53,7 @@ describe("DashboardNav", () => {
         "Logs",
         "Bridges",
         "Settings",
+        "Chat",
         "Security",
         "Admin",
       ]);
@@ -66,16 +74,18 @@ describe("DashboardNav", () => {
         "/dashboard/logs",
         "/dashboard/bridges",
         "/dashboard/settings",
+        "/dashboard/chat",
         "/dashboard/security",
         "/dashboard/admin/fleet",
       ]);
     });
 
-    it("marks Overview, Settings, and Admin as not requiring running instance", () => {
+    it("marks Overview, Settings, Chat, and Admin as not requiring running instance", () => {
       const alwaysVisible = tabs.filter((t) => !t.requiresRunning);
       expect(alwaysVisible.map((t) => t.label)).toEqual([
         "Overview",
         "Settings",
+        "Chat",
         "Admin",
       ]);
     });
@@ -111,14 +121,14 @@ describe("DashboardNav", () => {
   describe("tab visibility filtering", () => {
     it("shows all non-admin non-pro tabs when instance is running (non-admin user)", () => {
       const visible = getVisibleTabs(tabs, true, false);
-      expect(visible).toHaveLength(12);
+      expect(visible).toHaveLength(13);
       expect(visible.map((t) => t.label)).not.toContain("Admin");
       expect(visible.map((t) => t.label)).not.toContain("Security");
     });
 
     it("shows all tabs including Admin and Security when instance is running and user is admin", () => {
       const visible = getVisibleTabs(tabs, true, true);
-      expect(visible).toHaveLength(14);
+      expect(visible).toHaveLength(15);
       expect(visible.map((t) => t.label)).toContain("Admin");
       expect(visible.map((t) => t.label)).toContain("Security");
     });
@@ -130,14 +140,14 @@ describe("DashboardNav", () => {
 
     it("hides management tabs when instance is not running", () => {
       const visible = getVisibleTabs(tabs, false, false);
-      expect(visible).toHaveLength(2);
-      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings"]);
+      expect(visible).toHaveLength(3);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Chat"]);
     });
 
     it("shows Admin tab for admin even when instance is not running", () => {
       const visible = getVisibleTabs(tabs, false, true);
-      expect(visible).toHaveLength(3);
-      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Admin"]);
+      expect(visible).toHaveLength(4);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Chat", "Admin"]);
     });
   });
 

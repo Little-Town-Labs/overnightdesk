@@ -24,6 +24,7 @@ const tabs: NavTab[] = [
   { label: "Logs", href: "/dashboard/logs", requiresRunning: true },
   { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true },
   { label: "Settings", href: "/dashboard/settings", requiresRunning: false },
+  { label: "Chat", href: "/dashboard/chat", requiresRunning: false },
   { label: "Security", href: "/dashboard/security", requiresRunning: true, requiresPro: true },
   { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, adminOnly: true },
 ];
@@ -35,7 +36,7 @@ interface DashboardNavProps {
   isHermesTenant?: boolean;
 }
 
-const HERMES_ALLOWED_TABS = new Set(["/dashboard", "/dashboard/settings", "/dashboard/admin/fleet"]);
+const HERMES_ALLOWED_TABS = new Set(["/dashboard", "/dashboard/settings", "/dashboard/chat", "/dashboard/admin/fleet"]);
 
 export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, isHermesTenant = false }: DashboardNavProps) {
   const pathname = usePathname();
