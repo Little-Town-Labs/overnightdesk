@@ -1,0 +1,25 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { getInstanceForUser } from "@/lib/instance";
+
+const UNAUTHORIZED = NextResponse.json(
+  { error: "Unauthorized" },
+  { status: 401 }
+);
+
+export async function GET(request: NextRequest) {
+  // Called by nginx auth_request — passes Cookie + X-Original-Host headers
+  const host = request.headers.get("x-original-host");
+  if (!host) return UNAUTHORIZED;
+
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session) return UNAUTHORIZED;
+
+  const instance = await getInstanceForUser(session.user.id);
+  if (!instance || instance.status !== "running") return UNAUTHORIZED;
+
+  // Confirm the requested subdomain belongs to this user's instance
+  if (instance.subdomain !== host) return UNAUTHORIZED;
+
+  return new NextResponse(null, { status: 200 });
+}

@@ -1,8 +1,10 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 import { ChangePassword } from "./change-password";
 import { DeleteAccount } from "./delete-account";
+import { AgentCredentials } from "./agent-credentials";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -12,6 +14,9 @@ export default async function SettingsPage() {
   if (!session) {
     redirect("/sign-in");
   }
+
+  const inst = await getInstanceForUser(session.user.id);
+  const showCredentials = isHermesTenant(inst) && inst?.status === "running";
 
   return (
     <div className="space-y-6">
@@ -28,6 +33,8 @@ export default async function SettingsPage() {
           </div>
         </dl>
       </div>
+
+      {showCredentials && <AgentCredentials />}
 
       <ChangePassword />
 

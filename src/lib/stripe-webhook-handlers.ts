@@ -56,24 +56,9 @@ export async function handleCheckoutCompleted(
     details: { stripeSubscriptionId: subscriptionId, plan, status: "active" },
   });
 
-  // Trigger provisioning
+  // Create instance at queued status — wizard must complete before provisioning fires
   try {
-    const { instance: inst, plaintextToken } = await createInstance(userId, plan);
-    const appUrl =
-      process.env.NEXT_PUBLIC_APP_URL || "https://overnightdesk.com";
-
-    // Fire-and-forget: don't await the provisioner response
-    provisionerClient
-      .provision({
-        tenantId: inst.tenantId,
-        plan,
-        gatewayPort: inst.gatewayPort!,
-        dashboardTokenHash: inst.dashboardTokenHash!,
-        callbackUrl: `${appUrl}/api/provisioner/callback`,
-      })
-      .catch(() => {
-        // Provisioner failure handled via callback or manual retry
-      });
+    await createInstance(userId, plan);
   } catch {
     // Instance creation failure — logged but doesn't block subscription creation
   }

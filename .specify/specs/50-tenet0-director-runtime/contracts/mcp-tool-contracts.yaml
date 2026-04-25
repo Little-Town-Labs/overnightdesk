@@ -1,0 +1,866 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://overnightdesk.com/schemas/feature-50/mcp-tool-contracts.yaml"
+title: "Tenet-0 MCP Tool Contracts (6 servers)"
+version: "1.0.0"
+description: |
+  Tool surface for the six Go MCP servers that expose Feature 49 plumbing and
+  the new Feature 50 state stores to Claude Code subagents (the President and
+  future Directors) via stdio MCP.
+
+  Compatible with the MCP `tools/list` response: each tool has `name`,
+  `description`, `inputSchema`. We additionally specify `outputSchema` and
+  `errorCodes` (richer than the MCP spec; tools/list omits them but we use
+  them for contract testing and code generation).
+
+  ## Authentication
+
+  Every MCP server identifies the calling Director by:
+    1. `TENET0_DIRECTOR_CREDENTIAL` env var injected by the spawn (Phase.dev),
+       OR
+    2. `X-Director-Credential` header on the JSON-RPC envelope (when stdio is
+       wrapped by an HTTP proxy in tests).
+
+  The credential maps to a department namespace via Feature 49 FR-2a. Every
+  tool call is authorized against that namespace. Cross-namespace operations
+  (e.g., President reading another Director's memory) are checked against the
+  `memory_access_matrix` in `constitution-rules.yaml` (FR-13/FR-14).
+
+  ## Errors
+
+  All tools return errors using the JSON-RPC error envelope:
+    { error: string, code: string, details?: object }
+  Internal stack traces are NEVER exposed to the caller; they are recorded in
+  the daemon's structured logs only.
+
+  ## Idempotency
+
+  Mutating tools (write_memory, update_memory, forget_memory, record_decision,
+  claim_for_decision, reserve_tokens, record_spend, record_spawn_telemetry)
+  accept an OPTIONAL `idempotency_key` (UUID or ULID). Repeating a call with
+  the same key within 24h returns the prior response unchanged.
+
+# ---------------------------------------------------------------------------
+# Shared error envelope and credential note
+# ---------------------------------------------------------------------------
+$defs:
+
+  Error:
+    type: object
+    required: [error, code]
+    additionalProperties: false
+    properties:
+      error:   { type: string, description: "Human-readable message; SAFE to surface to operator." }
+      code:    { type: string, description: "Machine-readable error code (see per-tool errorCodes)." }
+      details:
+        type: object
+        additionalProperties: true
+        description: "Structured context. Never includes credentials, never includes raw memory bodies for PII errors."
+
+  IdempotencyKey:
+    type: string
+    pattern: "^[0-9a-fA-F-]{36}$|^[0-9A-HJKMNP-TV-Z]{26}$"
+
+# ===========================================================================
+# Server: tenet0-bus-mcp
+# ===========================================================================
+servers:
+
+  tenet0-bus-mcp:
+    description: |
+      Read/write access to the Feature 49 event bus. Every publish carries the
+      caller's credential; the bus enforces FR-2a namespace authorization. Used
+      by Zero (publishing president.*), the four daemons (publishing health,
+      lifecycle, secops violations), and any subagent that needs to read
+      causality.
+    tools:
+
+      - name: publish_event
+        description: |
+          Publish an event to the Feature 49 bus. Conforms to FR-1 envelope.
+          Returns the bus-assigned event ID. Idempotent on idempotency_key.
+        inputSchema:
+          type: object
+          required: [event_type, payload]
+          additionalProperties: false
+          properties:
+            event_type:      { type: string, pattern: "^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$" }
+            payload:         { type: object, additionalProperties: true }
+            parent_event_id: { type: ["string", "null"], format: uuid }
+            idempotency_key: { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [event_id, published_at]
+          additionalProperties: false
+          properties:
+            event_id:     { type: string, format: uuid }
+            published_at: { type: string, format: date-time }
+        errorCodes:
+          - BUS_UNAUTHORIZED          # credential missing or revoked
+          - BUS_NAMESPACE_VIOLATION   # event_type prefix doesn't match credential
+          - BUS_RULE_VIOLATION        # constitution rule rejected (FR-11)
+          - BUS_PAYLOAD_INVALID       # JSON Schema validation failed
+          - BUS_DOWN                  # transport failure
+          - BUS_DUPLICATE_IDEMPOTENCY # idempotency_key reused with different payload
+
+      - name: query_events
+        description: "Query historical events. Auth-scoped: subscriber wildcard rules per FR-4."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            event_type_pattern: { type: string, description: "Exact, dept.*, *, or *.suffix." }
+            source_department:  { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            start_time:         { type: string, format: date-time }
+            end_time:           { type: string, format: date-time }
+            limit:              { type: integer, minimum: 1, maximum: 1000, default: 100 }
+            cursor:             { type: ["string", "null"] }
+        outputSchema:
+          type: object
+          required: [events]
+          additionalProperties: false
+          properties:
+            events:
+              type: array
+              items: { type: object, additionalProperties: true }
+            next_cursor: { type: ["string", "null"] }
+        errorCodes: [BUS_UNAUTHORIZED, BUS_QUERY_INVALID, BUS_DOWN]
+
+      - name: get_event
+        description: "Fetch a single event by ID. Auth-scoped to subscription rights."
+        inputSchema:
+          type: object
+          required: [event_id]
+          additionalProperties: false
+          properties:
+            event_id: { type: string, format: uuid }
+        outputSchema:
+          type: object
+          required: [event]
+          additionalProperties: false
+          properties:
+            event: { type: object, additionalProperties: true }
+        errorCodes: [BUS_UNAUTHORIZED, BUS_NOT_FOUND, BUS_DOWN]
+
+      - name: walk_causality
+        description: "Walk Feature 49 FR-12 causality chain from a leaf event up to a root or N hops, whichever comes first."
+        inputSchema:
+          type: object
+          required: [event_id]
+          additionalProperties: false
+          properties:
+            event_id:  { type: string, format: uuid }
+            max_depth: { type: integer, minimum: 1, maximum: 50, default: 10, description: "Cycle protection per Feature 49 EC-8." }
+            direction:
+              type: string
+              enum: [ancestors, descendants]
+              default: ancestors
+        outputSchema:
+          type: object
+          required: [chain, terminated_reason]
+          additionalProperties: false
+          properties:
+            chain:
+              type: array
+              items: { type: object, additionalProperties: true }
+            terminated_reason:
+              type: string
+              enum: [reached_root, max_depth, cycle_detected]
+        errorCodes: [BUS_UNAUTHORIZED, BUS_NOT_FOUND, BUS_DOWN]
+
+      - name: list_unprocessed_events
+        description: |
+          CL-1 polling fallback. Returns events the calling Director hasn't yet
+          acknowledged via record_decision OR an explicit ack. Used when the
+          comm-module bridge is unavailable and Zero is on a cron-driven poll.
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            limit:          { type: integer, minimum: 1, maximum: 500, default: 50 }
+            since_event_id: { type: ["string", "null"], format: uuid }
+        outputSchema:
+          type: object
+          required: [events]
+          additionalProperties: false
+          properties:
+            events:
+              type: array
+              items: { type: object, additionalProperties: true }
+            high_water_mark: { type: ["string", "null"], format: uuid, description: "Pass back as since_event_id next call." }
+        errorCodes: [BUS_UNAUTHORIZED, BUS_DOWN]
+
+  # =========================================================================
+  # Server: tenet0-constitution-mcp
+  # =========================================================================
+
+  tenet0-constitution-mcp:
+    description: |
+      Read-only access to constitution.md + constitution-rules.yaml (Feature
+      49 FR-6). Loads fresh on every server startup; runtime amendments
+      require restart per spec NFR-6 (memory access matrix).
+    tools:
+
+      - name: load_constitution
+        description: "Return the current constitution.md prose + version."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties: {}
+        outputSchema:
+          type: object
+          required: [version, prose_markdown, rules_hash]
+          additionalProperties: false
+          properties:
+            version:        { type: string }
+            prose_markdown: { type: string }
+            rules_hash:     { type: string, pattern: "^[a-f0-9]{64}$" }
+        errorCodes: [CONSTITUTION_LOAD_FAILED]
+
+      - name: evaluate_event
+        description: "Evaluate a candidate event payload against current rules. Returns pass/fail + matched rule."
+        inputSchema:
+          type: object
+          required: [event_type, payload]
+          additionalProperties: false
+          properties:
+            event_type:        { type: string }
+            payload:           { type: object, additionalProperties: true }
+            causality_chain:
+              type: array
+              items: { type: object, additionalProperties: true }
+              description: "Walked ancestor chain (for approval-presence checks)."
+        outputSchema:
+          type: object
+          required: [allowed]
+          additionalProperties: false
+          properties:
+            allowed:          { type: boolean }
+            violated_rule_id: { type: ["string", "null"] }
+            reason:           { type: ["string", "null"], maxLength: 2000 }
+        errorCodes: [CONSTITUTION_RULE_INVALID, CONSTITUTION_LOAD_FAILED]
+
+      - name: requires_approval
+        description: "FR-6a: does this event type need per-action approval, or fall under blanket?"
+        inputSchema:
+          type: object
+          required: [event_type]
+          additionalProperties: false
+          properties:
+            event_type: { type: string }
+        outputSchema:
+          type: object
+          required: [approval_mode]
+          additionalProperties: false
+          properties:
+            approval_mode:
+              type: string
+              enum: [none, per_action, blanket_eligible]
+            blanket_category: { type: ["string", "null"] }
+        errorCodes: [CONSTITUTION_LOAD_FAILED]
+
+      - name: list_blanket_authorizations
+        description: "Currently-active president.authorization.granted blanket auths (not yet revoked / not expired)."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            category: { type: string }
+        outputSchema:
+          type: object
+          required: [authorizations]
+          additionalProperties: false
+          properties:
+            authorizations:
+              type: array
+              items:
+                type: object
+                required: [category, granted_event_id, expires_at]
+                additionalProperties: false
+                properties:
+                  category:         { type: string }
+                  granted_event_id: { type: string, format: uuid }
+                  expires_at:       { type: ["string", "null"], format: date-time }
+                  constraints:      { type: object, additionalProperties: true }
+        errorCodes: [CONSTITUTION_LOAD_FAILED, BUS_DOWN]
+
+      - name: get_memory_access_matrix
+        description: |
+          FR-13/FR-14. Returns the current memory access matrix from
+          constitution-rules.yaml. Consumed by tenet0-director-memory-mcp on
+          startup and reload.
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties: {}
+        outputSchema:
+          type: object
+          required: [matrix_version, matrix]
+          additionalProperties: false
+          properties:
+            matrix_version: { type: string }
+            matrix:
+              type: object
+              additionalProperties:
+                type: object
+                required: [read, write]
+                additionalProperties: false
+                properties:
+                  read:
+                    type: array
+                    items: { type: string, description: "Department namespace, or '*' for all." }
+                  write:
+                    type: array
+                    items: { type: string }
+        errorCodes: [CONSTITUTION_LOAD_FAILED]
+
+  # =========================================================================
+  # Server: tenet0-governor-mcp
+  # =========================================================================
+
+  tenet0-governor-mcp:
+    description: |
+      Token + spawn telemetry per Director. Even though Zero's OAuth
+      subscription means zero per-token bill (NFR-7), the governor measures
+      token-equivalent reasoning effort for capacity modeling and rate-limit
+      hygiene, AND records subagent spawn timings (OQ-5).
+    tools:
+
+      - name: reserve_tokens
+        description: "Pre-call reservation (FR-10). Returns a reservation token; commit via record_spend or release implicitly via TTL."
+        inputSchema:
+          type: object
+          required: [department, model, estimated_input_tokens, estimated_output_tokens]
+          additionalProperties: false
+          properties:
+            department:               { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            model:                    { type: string }
+            estimated_input_tokens:   { type: integer, minimum: 0 }
+            estimated_output_tokens:  { type: integer, minimum: 0 }
+            idempotency_key:          { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [reservation_id, allowed]
+          additionalProperties: false
+          properties:
+            reservation_id: { type: string, format: uuid }
+            allowed:        { type: boolean }
+            denied_reason:
+              type: ["string", "null"]
+              enum: [null, budget_exceeded, department_paused, rate_limited]
+        errorCodes: [GOVERNOR_UNAUTHORIZED, GOVERNOR_DEPT_UNKNOWN]
+
+      - name: record_spend
+        description: "Reconcile actual spend post-call (FR-9, FR-10)."
+        inputSchema:
+          type: object
+          required: [reservation_id, actual_input_tokens, actual_output_tokens]
+          additionalProperties: false
+          properties:
+            reservation_id:       { type: string, format: uuid }
+            actual_input_tokens:  { type: integer, minimum: 0 }
+            actual_output_tokens: { type: integer, minimum: 0 }
+            actual_cost_cents:    { type: integer, minimum: 0, description: "Always 0 under NFR-7 OAuth model; column kept for future per-key Directors." }
+            idempotency_key:      { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [committed, current_spend_cents, budget_cents]
+          additionalProperties: false
+          properties:
+            committed:           { type: boolean }
+            current_spend_cents: { type: integer, minimum: 0 }
+            budget_cents:        { type: integer, minimum: 0 }
+            warn_threshold_hit:  { type: boolean }
+        errorCodes: [GOVERNOR_RESERVATION_UNKNOWN, GOVERNOR_RESERVATION_EXPIRED]
+
+      - name: budget_remaining
+        description: "Cheap read of remaining budget for a department this period."
+        inputSchema:
+          type: object
+          required: [department]
+          additionalProperties: false
+          properties:
+            department: { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+        outputSchema:
+          type: object
+          required: [department, period_start, period_end, budget_cents, spent_cents, remaining_cents]
+          additionalProperties: false
+          properties:
+            department:      { type: string }
+            period_start:    { type: string, format: date-time }
+            period_end:      { type: string, format: date-time }
+            budget_cents:    { type: integer, minimum: 0 }
+            spent_cents:     { type: integer, minimum: 0 }
+            remaining_cents: { type: integer }
+        errorCodes: [GOVERNOR_DEPT_UNKNOWN]
+
+      - name: check_budget
+        description: "Boolean gate used by daemons before triggering work that may spawn LLM calls."
+        inputSchema:
+          type: object
+          required: [department]
+          additionalProperties: false
+          properties:
+            department:                  { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            estimated_marginal_cost_cents: { type: integer, minimum: 0, default: 0 }
+        outputSchema:
+          type: object
+          required: [allowed]
+          additionalProperties: false
+          properties:
+            allowed:        { type: boolean }
+            denied_reason:  { type: ["string", "null"], enum: [null, budget_exceeded, department_paused, rate_limited] }
+        errorCodes: [GOVERNOR_DEPT_UNKNOWN]
+
+      - name: record_spawn_telemetry
+        description: |
+          OQ-5. Records subagent spawn timings (cold/warm/wall-clock) for
+          capacity planning. Called by Zero immediately after a Task spawn
+          completes (success or failure).
+        inputSchema:
+          type: object
+          required: [department, director, spawn_kind, wall_clock_ms, outcome]
+          additionalProperties: false
+          properties:
+            department:    { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            director:      { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            spawn_kind:    { type: string, enum: [cold, warm] }
+            wall_clock_ms: { type: integer, minimum: 0 }
+            outcome:       { type: string, enum: [success, spawn_failure, first_call_failure, timeout] }
+            event_id:      { type: ["string", "null"], format: uuid, description: "Triggering bus event, if any." }
+            idempotency_key: { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [recorded]
+          additionalProperties: false
+          properties:
+            recorded: { type: boolean }
+        errorCodes: [GOVERNOR_UNAUTHORIZED]
+
+  # =========================================================================
+  # Server: tenet0-pending-mcp
+  # =========================================================================
+
+  tenet0-pending-mcp:
+    description: |
+      Pending-approvals queue (FR-7). Backed by Postgres `pending_approvals`
+      table. Every mutation is durable; claim_for_decision is the
+      anti-double-handling primitive (US-2).
+    tools:
+
+      - name: list_pending
+        description: "List approvals matching filters. Used by US-5 'show me what's pending'."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            department: { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            status:
+              type: string
+              enum: [pending, awaiting_llm, awaiting_operator, decided, expired]
+            limit:  { type: integer, minimum: 1, maximum: 500, default: 50 }
+            cursor: { type: ["string", "null"] }
+        outputSchema:
+          type: object
+          required: [items]
+          additionalProperties: false
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                required: [id, request_event_id, target_event_type, requesting_department, status, operator_deadline]
+                additionalProperties: true
+                properties:
+                  id:                    { type: string, format: uuid }
+                  request_event_id:      { type: string, format: uuid }
+                  target_event_type:     { type: string }
+                  requesting_department: { type: string }
+                  status:                { type: string }
+                  operator_deadline:     { type: string, format: date-time }
+                  rule_id:               { type: ["string", "null"] }
+            next_cursor: { type: ["string", "null"] }
+        errorCodes: [PENDING_UNAUTHORIZED, PENDING_QUERY_INVALID]
+
+      - name: claim_for_decision
+        description: |
+          Atomically claims a pending approval row for processing (US-2).
+          Returns success only if the row was in `pending`; concurrent claims
+          fail with PENDING_ALREADY_CLAIMED.
+        inputSchema:
+          type: object
+          required: [request_event_id]
+          additionalProperties: false
+          properties:
+            request_event_id:  { type: string, format: uuid }
+            new_status:
+              type: string
+              enum: [awaiting_llm, awaiting_operator]
+              default: awaiting_llm
+            operator_deadline: { type: string, format: date-time, description: "Required when new_status=awaiting_operator." }
+            idempotency_key:   { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [pending_approval_id, claimed_at]
+          additionalProperties: false
+          properties:
+            pending_approval_id: { type: string, format: uuid }
+            claimed_at:          { type: string, format: date-time }
+        errorCodes:
+          - PENDING_UNAUTHORIZED
+          - PENDING_NOT_FOUND
+          - PENDING_ALREADY_CLAIMED
+          - PENDING_INVALID_TRANSITION
+
+      - name: record_decision
+        description: |
+          Records the decision (approve/reject/defer) and writes the
+          decision_log row with hash-chain integrity (FR-9, FR-10).
+          MUST be called BEFORE publishing the outcome event so the
+          audit-self-checker (FR-21) finds the matching row.
+        inputSchema:
+          type: object
+          required: [pending_approval_id, outcome, decision_mode, rationale]
+          additionalProperties: false
+          properties:
+            pending_approval_id: { type: string, format: uuid }
+            outcome:             { type: string, enum: [approve, reject, defer] }
+            decision_mode:       { type: string, enum: [rule, llm] }
+            rationale:           { type: string, maxLength: 2000 }
+            confidence:          { type: number, minimum: 0, maximum: 1, description: "LLM-path only." }
+            model:               { type: string, description: "LLM-path only." }
+            rule_id:             { type: string, description: "Rule-path only." }
+            director:            { type: string }
+            outcome_event_id:    { type: string, format: uuid, description: "Bus event ID published for the outcome (for FR-21 cross-reference)." }
+            idempotency_key:     { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [decision_log_id, row_hash, recorded_at]
+          additionalProperties: false
+          properties:
+            decision_log_id: { type: integer }
+            row_hash:        { type: string, pattern: "^[a-f0-9]{64}$" }
+            recorded_at:     { type: string, format: date-time }
+        errorCodes:
+          - PENDING_UNAUTHORIZED
+          - PENDING_NOT_FOUND
+          - PENDING_INVALID_TRANSITION
+          - DECISION_LOG_HASH_FAILURE
+
+      - name: expire_overdue
+        description: |
+          Called by the deadline-sweeper daemon every minute (FR-20).
+          Atomically transitions awaiting_operator rows past deadline to
+          expired. Returns the IDs expired in this call so the daemon can
+          publish the matching president.rejected events.
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            now:       { type: string, format: date-time, description: "For deterministic testing; production uses server clock." }
+            max_batch: { type: integer, minimum: 1, maximum: 1000, default: 200 }
+        outputSchema:
+          type: object
+          required: [expired]
+          additionalProperties: false
+          properties:
+            expired:
+              type: array
+              items:
+                type: object
+                required: [pending_approval_id, request_event_id, target_event_type]
+                additionalProperties: false
+                properties:
+                  pending_approval_id: { type: string, format: uuid }
+                  request_event_id:    { type: string, format: uuid }
+                  target_event_type:   { type: string }
+        errorCodes: [PENDING_UNAUTHORIZED]
+
+  # =========================================================================
+  # Server: tenet0-audit-mcp
+  # =========================================================================
+
+  tenet0-audit-mcp:
+    description: |
+      Read-only audit surface (FR-9, FR-21). Hash-chain validation, decision
+      queries, and gap detection. Called primarily by the audit-self-checker
+      daemon and (in future) by the SecOps Auditor (Feature 57).
+    tools:
+
+      - name: verify_chain
+        description: "Validate the decision_log SHA256 hash chain over a sample or full range."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            mode:
+              type: string
+              enum: [random_sample, full_range]
+              default: random_sample
+            sample_size:   { type: integer, minimum: 1, maximum: 100000, default: 1000, description: "random_sample only." }
+            start_row_id:  { type: integer, description: "full_range only." }
+            end_row_id:    { type: integer, description: "full_range only." }
+        outputSchema:
+          type: object
+          required: [valid, rows_checked]
+          additionalProperties: false
+          properties:
+            valid:           { type: boolean }
+            rows_checked:    { type: integer, minimum: 0 }
+            first_bad_row_id: { type: ["integer", "null"] }
+            last_bad_row_id:  { type: ["integer", "null"] }
+            expected_hash:    { type: ["string", "null"], pattern: "^[a-f0-9]{64}$" }
+            actual_hash:      { type: ["string", "null"], pattern: "^[a-f0-9]{64}$" }
+        errorCodes: [AUDIT_UNAUTHORIZED, AUDIT_QUERY_INVALID]
+
+      - name: query_decisions
+        description: "Read decision_log rows with filters. Append-only; no mutation tools exist."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            outcome_event_id: { type: string, format: uuid }
+            department:       { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+            outcome:          { type: string, enum: [approve, reject, defer] }
+            decision_mode:    { type: string, enum: [rule, llm] }
+            start_time:       { type: string, format: date-time }
+            end_time:         { type: string, format: date-time }
+            limit:            { type: integer, minimum: 1, maximum: 1000, default: 100 }
+            cursor:           { type: ["string", "null"] }
+        outputSchema:
+          type: object
+          required: [items]
+          additionalProperties: false
+          properties:
+            items:
+              type: array
+              items: { type: object, additionalProperties: true }
+            next_cursor: { type: ["string", "null"] }
+        errorCodes: [AUDIT_UNAUTHORIZED, AUDIT_QUERY_INVALID]
+
+      - name: find_gaps
+        description: |
+          FR-21. For each president.* event in the window, verify a matching
+          decision_log row exists; for each *.approval.requested, verify
+          exactly one outcome event exists. Returns offending event IDs.
+        inputSchema:
+          type: object
+          required: [window_start, window_end]
+          additionalProperties: false
+          properties:
+            window_start:    { type: string, format: date-time }
+            window_end:      { type: string, format: date-time }
+            include_kinds:
+              type: array
+              items: { type: string, enum: [missing_decision_log_row, missing_outcome, multiple_outcomes] }
+              default: [missing_decision_log_row, missing_outcome, multiple_outcomes]
+        outputSchema:
+          type: object
+          required: [gaps]
+          additionalProperties: false
+          properties:
+            gaps:
+              type: array
+              items:
+                type: object
+                required: [kind, event_id]
+                additionalProperties: false
+                properties:
+                  kind:           { type: string, enum: [missing_decision_log_row, missing_outcome, multiple_outcomes] }
+                  event_id:       { type: string, format: uuid }
+                  related_ids:
+                    type: array
+                    items: { type: string, format: uuid }
+                    description: "For multiple_outcomes: the duplicate outcome event IDs."
+        errorCodes: [AUDIT_UNAUTHORIZED]
+
+  # =========================================================================
+  # Server: tenet0-director-memory-mcp
+  # =========================================================================
+
+  tenet0-director-memory-mcp:
+    description: |
+      Per-Director persistent memory (FR-11..FR-17). Every call enforces the
+      memory_access_matrix (FR-13/FR-14) loaded from constitution-rules.yaml.
+      Writes pass through the pre-write scrubber (FR-15); rejections raise
+      secops.violation.memory_pii via tenet0-bus-mcp. Append-only with
+      supersedes (FR-16); soft/hard caps per CL-3.
+
+      Cross-namespace operations (President reads other Directors; SecOps
+      reads all) require the calling credential to have `read: ["*"]` or an
+      explicit target-namespace grant in the matrix.
+    tools:
+
+      - name: load_memory_index
+        description: "Returns the MEMORY.md-shaped index for the calling Director's own namespace (or a target if cross-read is granted)."
+        inputSchema:
+          type: object
+          additionalProperties: false
+          properties:
+            target_department: { type: string, pattern: "^[a-z][a-z0-9_]+$", description: "Omit to default to caller's own namespace." }
+        outputSchema:
+          type: object
+          required: [department, index_markdown, entry_count, generated_at]
+          additionalProperties: false
+          properties:
+            department:     { type: string }
+            index_markdown: { type: string, description: "Pre-rendered MEMORY.md content." }
+            entry_count:    { type: integer, minimum: 0 }
+            generated_at:   { type: string, format: date-time }
+        errorCodes: [MEMORY_UNAUTHORIZED, MEMORY_ACCESS_DENIED]
+
+      - name: read_memory
+        description: "Fetch a single memory row by name within a namespace."
+        inputSchema:
+          type: object
+          required: [name]
+          additionalProperties: false
+          properties:
+            name:              { type: string, maxLength: 200 }
+            target_department: { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+        outputSchema:
+          type: object
+          required: [entry]
+          additionalProperties: false
+          properties:
+            entry:
+              type: object
+              required: [id, department, type, name, description, body, created_at]
+              additionalProperties: true
+              properties:
+                id:                  { type: string, format: uuid }
+                department:          { type: string }
+                type:                { type: string, enum: [charter, decision, pattern, state, reference] }
+                name:                { type: string }
+                description:         { type: string }
+                body:                { type: string }
+                source_event_id:     { type: ["string", "null"], format: uuid }
+                superseded_by:       { type: ["string", "null"], format: uuid }
+                visible_to:
+                  type: array
+                  items: { type: string }
+                created_at:          { type: string, format: date-time }
+                constitution_version: { type: ["string", "null"] }
+        errorCodes: [MEMORY_UNAUTHORIZED, MEMORY_ACCESS_DENIED, MEMORY_NOT_FOUND]
+
+      - name: search_memory
+        description: |
+          Full-text search within a namespace (or across all if caller has
+          `read: ["*"]`). Cross-namespace reads are audit-logged so SecOps
+          can verify the President is not over-reaching (US-4 acceptance).
+        inputSchema:
+          type: object
+          required: [query]
+          additionalProperties: false
+          properties:
+            query:             { type: string, maxLength: 500 }
+            type:              { type: string, enum: [charter, decision, pattern, state, reference] }
+            target_department: { type: string, pattern: "^[a-z][a-z0-9_]+$", description: "Omit for caller's namespace; '*' for all (requires cross-read grant)." }
+            limit:             { type: integer, minimum: 1, maximum: 100, default: 20 }
+        outputSchema:
+          type: object
+          required: [results]
+          additionalProperties: false
+          properties:
+            results:
+              type: array
+              items:
+                type: object
+                required: [department, name, type, description, score]
+                additionalProperties: true
+                properties:
+                  department:  { type: string }
+                  name:        { type: string }
+                  type:        { type: string }
+                  description: { type: string }
+                  body:        { type: string }
+                  score:       { type: number }
+        errorCodes: [MEMORY_UNAUTHORIZED, MEMORY_ACCESS_DENIED]
+
+      - name: write_memory
+        description: |
+          Insert a new memory row. Pre-write scrubber (FR-15) scans for PII
+          patterns; matches reject the call AND publish
+          secops.violation.memory_pii (with category, NOT content).
+          Hard cap (CL-3) rejects with MEMORY_CAP_EXCEEDED.
+        inputSchema:
+          type: object
+          required: [type, name, description, body]
+          additionalProperties: false
+          properties:
+            type:            { type: string, enum: [charter, decision, pattern, state, reference] }
+            name:            { type: string, maxLength: 200 }
+            description:     { type: string, maxLength: 1000 }
+            body:            { type: string, maxLength: 100000 }
+            source_event_id: { type: ["string", "null"], format: uuid }
+            visible_to:
+              type: array
+              items: { type: string, pattern: "^[a-z][a-z0-9_]+$" }
+              default: []
+              description: "Optional cross-namespace read grant for this single entry (OQ-3)."
+            idempotency_key: { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [id, written_at]
+          additionalProperties: false
+          properties:
+            id:         { type: string, format: uuid }
+            written_at: { type: string, format: date-time }
+            soft_cap_warning_emitted: { type: boolean, description: "True if this write crossed the soft cap (CL-3)." }
+        errorCodes:
+          - MEMORY_UNAUTHORIZED
+          - MEMORY_ACCESS_DENIED
+          - MEMORY_PII_REJECTED            # FR-15; secops.violation.memory_pii also emitted
+          - MEMORY_CAP_EXCEEDED            # CL-3 hard cap; president.memory.cap_rejected also emitted
+          - MEMORY_INVALID_TYPE
+          - MEMORY_DUPLICATE_NAME
+
+      - name: update_memory
+        description: |
+          Append-only supersede (FR-16). Creates a new row referencing the
+          old via superseded_by; old row remains for audit.
+        inputSchema:
+          type: object
+          required: [name, body]
+          additionalProperties: false
+          properties:
+            name:            { type: string, maxLength: 200 }
+            body:            { type: string, maxLength: 100000 }
+            description:     { type: string, maxLength: 1000 }
+            source_event_id: { type: ["string", "null"], format: uuid }
+            visible_to:
+              type: array
+              items: { type: string }
+            idempotency_key: { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [new_id, superseded_id, written_at]
+          additionalProperties: false
+          properties:
+            new_id:        { type: string, format: uuid }
+            superseded_id: { type: string, format: uuid }
+            written_at:    { type: string, format: date-time }
+        errorCodes:
+          - MEMORY_UNAUTHORIZED
+          - MEMORY_ACCESS_DENIED
+          - MEMORY_NOT_FOUND
+          - MEMORY_PII_REJECTED
+          - MEMORY_CAP_EXCEEDED
+
+      - name: forget_memory
+        description: "Mark a row superseded with no replacement; reason recorded for audit (FR-16)."
+        inputSchema:
+          type: object
+          required: [name, reason]
+          additionalProperties: false
+          properties:
+            name:            { type: string, maxLength: 200 }
+            reason:          { type: string, maxLength: 1000 }
+            idempotency_key: { $ref: "#/$defs/IdempotencyKey" }
+        outputSchema:
+          type: object
+          required: [forgotten_id, forgotten_at]
+          additionalProperties: false
+          properties:
+            forgotten_id: { type: string, format: uuid }
+            forgotten_at: { type: string, format: date-time }
+        errorCodes: [MEMORY_UNAUTHORIZED, MEMORY_ACCESS_DENIED, MEMORY_NOT_FOUND]

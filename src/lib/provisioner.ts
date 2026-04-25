@@ -1,9 +1,13 @@
 interface ProvisionParams {
   tenantId: string;
+  subdomain: string;
   plan: "starter" | "pro";
-  gatewayPort: number;
-  dashboardTokenHash: string;
   callbackUrl: string;
+}
+
+interface WriteSecretsParams {
+  tenantId: string;
+  secrets: Record<string, string>;
 }
 
 interface ProvisionerResult {
@@ -76,6 +80,30 @@ export const provisionerClient = {
         success: false,
         error: error instanceof Error ? error.message : String(error),
       };
+    }
+  },
+
+  async writeSecrets(params: WriteSecretsParams): Promise<ProvisionerResult> {
+    const { url, secret } = getConfig();
+
+    try {
+      const response = await fetch(`${url}/write-secrets`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify(params),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (!response.ok) {
+        return { success: false, error: `Provisioner returned ${response.status}` };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   },
 

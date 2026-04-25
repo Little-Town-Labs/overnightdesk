@@ -64,6 +64,67 @@ Stops a subscription but preserves the offset — reconnect will resume.
 ### `Bus.Close() → void`
 Clean shutdown. Drains in-flight handlers, closes pool.
 
+## Read API
+
+Historical-event reads. Promised by spec.md FR §"President can query historical events" (lines 55, 111, 199, 231) but originally absent from the SDK shape; added in Feature 50 Task 2.2 (Path C drift closure).
+
+These methods are read-only and do not consume budget or write audit entries. The Postgres role grants (`tenet0_app: SELECT ON events`, migration `002_events.sql:35`) are sufficient — no SP changes required.
+
+### `Bus.QueryEvents(filter) → QueryResult`
+Returns events matching the filter, ordered by `(published_at, id)` ascending. Uses keyset pagination so a `Cursor` is stable under concurrent inserts.
+
+**Filter:**
+- `EventTypePattern` — same pattern shape as `Subscribe` (`""`/`"*"` = all, exact, `dept.*` prefix, `*.verb` suffix)
+- `SourceDepartment` — exact-match department slug
+- `StartTime`, `EndTime` — `published_at` range (both optional, both inclusive)
+- `Limit` — default 100, max 1000
+- `Cursor` — opaque pagination cursor; pass `QueryResult.NextCursor` from the prior call
+
+**Result:** `{Events []Event, NextCursor string}` — `NextCursor` is empty when the page is the final one.
+
+**Errors:**
+- `ErrQueryInvalid` — `StartTime > EndTime`, or malformed cursor
+
+**Go:**
+```go
+res, err := bus.QueryEvents(ctx, tenet0.QueryFilter{
+    EventTypePattern: "president.*",
+    Limit:            50,
+})
+```
+
+### `Bus.GetEvent(eventID) → Event`
+Returns one event by ID.
+
+**Errors:**
+- `ErrNotFound` — event does not exist
+
+### `Bus.WalkCausality(eventID, opts) → WalkResult`
+Walks the causality chain rooted at `eventID`. Direction `WalkAncestors` follows `parent_event_id` until a root is reached. Direction `WalkDescendants` does a breadth-first traversal of children (rows where `parent_event_id = current.id`).
+
+**Options:**
+- `MaxDepth` — default 10, max 50
+- `Direction` — `WalkAncestors` (default) or `WalkDescendants`
+
+**Result:** `{Chain []Event, TerminatedReason WalkTermination}` where `TerminatedReason` is one of:
+- `WalkReachedRoot` — natural end (no parent / no more children)
+- `WalkMaxDepth` — hit the depth cap
+- `WalkCycleDetected` — encountered an already-visited event (the duplicate is NOT appended)
+
+**Errors:**
+- `ErrNotFound` — `eventID` does not exist
+
+### `Bus.ListUnprocessedEvents(req) → ListUnprocessedResult`
+CL-1 polling primitive: returns events newer than `SinceEventID`, ordered ASC. Empty `SinceEventID` means "from the beginning" (cold start).
+
+**Request:**
+- `Limit` — default 50, max 500
+- `SinceEventID` — opaque high-water-mark from prior call
+
+**Result:** `{Events []Event, HighWaterMark string}` — `HighWaterMark` is the id of the last returned row; pass it back as `SinceEventID` on the next poll. Empty when zero events were returned.
+
+NOTE: this MVP implementation is **not** department-scoped; access is gated by the calling MCP server. A future revision may add department-aware filtering.
+
 ## Approval API
 
 ### `Approvals.RequestPerAction(targetEventType, payload, reason) → Request`

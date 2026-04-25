@@ -10,15 +10,23 @@ import { AuthStatusBadge } from "./auth-status-badge";
 import { OnboardingWizard } from "./onboarding-wizard";
 import { RestartButton } from "./restart-button";
 import { getEngineStatus } from "@/lib/engine-client";
+import { isHermesTenant } from "@/lib/instance";
+import { SetupWizard } from "./setup-wizard";
+import { ProvisioningProgress } from "./provisioning-progress";
 
 const statusConfig: Record<
   string,
   { label: string; color: string; detail: string }
 > = {
   queued: {
-    label: "Setting up",
+    label: "Setup Required",
+    color: "text-blue-400",
+    detail: "Complete the setup wizard to activate your agent.",
+  },
+  awaiting_provisioning: {
+    label: "Starting Up",
     color: "text-amber-400",
-    detail: "Your instance is queued for provisioning...",
+    detail: "Your setup is complete — spinning up your agent now...",
   },
   provisioning: {
     label: "Creating",
@@ -91,10 +99,25 @@ export default async function DashboardPage() {
   const showOnboarding =
     inst?.status === "running" && inst.claudeAuthStatus !== "connected";
 
+  const hermesAgent = isHermesTenant(inst);
+
   // Fetch engine status when the instance is running
   let engineStatus: Record<string, unknown> | null = null;
-  if (inst?.status === "running" && inst.subdomain && inst.engineApiKey) {
+  if (inst?.status === "running" && inst.subdomain && inst.engineApiKey && !hermesAgent) {
     engineStatus = await getEngineStatus(inst.subdomain, inst.engineApiKey);
+  }
+
+  // Hermes: fetch public /api/status (no auth required)
+  let hermesStatus: Record<string, unknown> | null = null;
+  if (hermesAgent && inst?.status === "running" && inst.subdomain) {
+    try {
+      const res = await fetch(`https://${inst.subdomain}/api/status`, {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (res.ok) hermesStatus = await res.json();
+    } catch {
+      // non-fatal
+    }
   }
 
   return (
@@ -172,50 +195,100 @@ export default async function DashboardPage() {
       </div>
 
       {inst ? (
-        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-sm text-zinc-500">Status</dt>
-              <dd className={`font-medium ${instConfig.color}`}>
-                {instConfig.label}
-              </dd>
-              <dd className="text-zinc-500 text-sm mt-1">
-                {instConfig.detail}
-              </dd>
+        <>
+          {/* Hermes tenants: setup wizard replaces the instance card while queued */}
+          {hermesAgent && inst.status === "queued" ? (
+            <div className="mt-6">
+              <SetupWizard
+                tenantId={inst.tenantId}
+                instanceId={inst.id}
+                wizardState={inst.wizardState ?? null}
+              />
             </div>
-            {inst.subdomain && inst.status === "running" && (
-              <div>
-                <dt className="text-sm text-zinc-500">Subdomain</dt>
-                <dd className="text-white">
-                  <a
-                    href={`https://${inst.subdomain}`}
-                    className="text-blue-400 hover:text-blue-300 underline"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {inst.subdomain}
-                  </a>
-                </dd>
-              </div>
-            )}
-            {inst.status === "running" && (
-              <div>
-                <dt className="text-sm text-zinc-500">Claude Code</dt>
-                <dd className="mt-1">
-                  <AuthStatusBadge status={inst.claudeAuthStatus} />
-                </dd>
-              </div>
-            )}
-          </dl>
-          <RestartButton instanceRunning={inst.status === "running"} />
-        </div>
+          ) : hermesAgent && (inst.status === "awaiting_provisioning" || inst.status === "provisioning") ? (
+            <div className="mt-6">
+              <ProvisioningProgress initialStatus={inst.status} />
+            </div>
+          ) : (
+            <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-white mb-4">Instance</h2>
+              <dl className="space-y-3">
+                <div>
+                  <dt className="text-sm text-zinc-500">Status</dt>
+                  <dd className={`font-medium ${instConfig.color}`}>
+                    {instConfig.label}
+                  </dd>
+                  <dd className="text-zinc-500 text-sm mt-1">
+                    {instConfig.detail}
+                  </dd>
+                </div>
+                {inst.subdomain && inst.status === "running" && (
+                  <div>
+                    <dt className="text-sm text-zinc-500">Subdomain</dt>
+                    <dd className="text-white">
+                      <a
+                        href={`https://${inst.subdomain}`}
+                        className="text-blue-400 hover:text-blue-300 underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {inst.subdomain}
+                      </a>
+                    </dd>
+                  </div>
+                )}
+                {inst.status === "running" && !hermesAgent && (
+                  <div>
+                    <dt className="text-sm text-zinc-500">Claude Code</dt>
+                    <dd className="mt-1">
+                      <AuthStatusBadge status={inst.claudeAuthStatus} />
+                    </dd>
+                  </div>
+                )}
+              </dl>
+              <RestartButton instanceRunning={inst.status === "running"} />
+            </div>
+          )}
+        </>
       ) : (
         <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6 text-center">
           <p className="text-zinc-400">No instance provisioned yet.</p>
           <p className="text-zinc-500 text-sm mt-1">
             Your instance will be created automatically after payment.
           </p>
+        </div>
+      )}
+
+      {hermesStatus && inst?.subdomain && (
+        <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-white mb-4">Agent</h2>
+          <dl className="space-y-3">
+            {hermesStatus.version != null && (
+              <div>
+                <dt className="text-sm text-zinc-500">Version</dt>
+                <dd className="text-white">{String(hermesStatus.version)}</dd>
+              </div>
+            )}
+            {hermesStatus.active_sessions != null && (
+              <div>
+                <dt className="text-sm text-zinc-500">Active Sessions</dt>
+                <dd className="text-white">{String(hermesStatus.active_sessions)}</dd>
+              </div>
+            )}
+          </dl>
+          <div className="mt-6">
+            <a
+              href={`https://${inst.subdomain}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              Launch Agent Dashboard
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+            </a>
+          </div>
         </div>
       )}
 

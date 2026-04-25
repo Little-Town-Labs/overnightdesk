@@ -1,0 +1,245 @@
+openapi: 3.1.0
+info:
+  title: Tenet-0 Daemon Internal HTTP API
+  version: 1.0.0
+  description: |
+    Internal HTTP endpoints exposed by the four Tenet-0 daemons beyond
+    `/healthz` and `/metrics` (see daemon-health-contracts.yaml for those).
+
+    These endpoints are reachable ONLY on the `overnightdesk_overnightdesk`
+    Docker bridge — no host port mapping, no nginx route, no public exposure.
+    Callers are co-resident services (comm-module, healthcheck-poller).
+
+    All operator-decision authentication uses Ed25519 signatures generated
+    on the operator's device (per spec FR-25 / research §Operator Decision
+    Authentication). Comm-module is treated as untrusted transport — a
+    compromised comm-module CANNOT forge a decision because it does not
+    hold the signing key.
+
+    Contracts versioned independently. A field rename or removal is a
+    major version bump.
+
+servers:
+  - url: http://tenet0-bus-watcher:9201
+    description: bus-watcher daemon (operator-decision intake)
+  # Other daemons may add internal endpoints in future; document here.
+
+components:
+  securitySchemes:
+    OperatorEd25519:
+      type: apiKey
+      in: header
+      name: X-Operator-Sig
+      description: |
+        Base64-encoded Ed25519 signature over the canonical request body
+        (UTF-8 JSON with sorted keys). The verifying public key lives in
+        env var `OPERATOR_DECISION_PUBKEY` (Phase.dev path
+        `/tenet-0/operator/decision-pubkey`). Signature validation MUST
+        be performed before any state mutation.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+      description: |
+        MUST equal the `operator_nonce` returned in the original notification.
+        Replay of a previously-consumed nonce returns the cached prior result
+        with HTTP 200 and an `Idempotent-Replay: true` response header
+        (per security T8 mitigation, spec EC-9 idempotency contract).
+
+  schemas:
+    OperatorDecisionRequest:
+      type: object
+      required: [approval_id, decision, operator_nonce, timestamp]
+      additionalProperties: false
+      properties:
+        approval_id:
+          type: string
+          format: uuid
+          description: |
+            The `pending_approvals.id` (NOT the bus event ID) from the
+            original surfacing notification.
+        decision:
+          type: string
+          enum: [approve, reject, defer]
+        operator_nonce:
+          type: string
+          minLength: 16
+          maxLength: 128
+          description: Single-use nonce returned in the original notification.
+        timestamp:
+          type: integer
+          description: |
+            Unix epoch seconds at signing time. The server rejects requests
+            outside a 30-second window (now ± 30s) to defeat replay across
+            time gaps (security T8).
+        reason:
+          type: string
+          maxLength: 2000
+          description: |
+            Operator-supplied rationale; recorded in `decision_log.rationale`
+            and in the published `president.{approved|rejected|deferred}`
+            event payload.
+        defer_until:
+          type: string
+          format: date-time
+          description: Required when decision=defer; optional otherwise.
+
+    OperatorDecisionAccepted:
+      type: object
+      required: [approval_id, outcome_event_id, recorded_at]
+      additionalProperties: false
+      properties:
+        approval_id:           { type: string, format: uuid }
+        outcome_event_id:      { type: string, format: uuid }
+        recorded_at:           { type: string, format: date-time }
+        idempotent_replay:     { type: boolean, description: "True when this response is a cached reply to a replayed nonce." }
+
+    Error:
+      type: object
+      required: [error, code]
+      additionalProperties: false
+      properties:
+        error:
+          type: string
+          description: Short human-readable summary. NEVER includes stack traces or internal paths.
+        code:
+          type: string
+          enum:
+            - INVALID_SIGNATURE
+            - SIGNATURE_TIMESTAMP_OUT_OF_WINDOW
+            - NONCE_NOT_FOUND
+            - NONCE_ALREADY_CONSUMED
+            - APPROVAL_NOT_FOUND
+            - APPROVAL_ALREADY_DECIDED
+            - APPROVAL_EXPIRED
+            - INVALID_REQUEST
+            - BUS_UNAVAILABLE
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional structured detail; MUST NOT include credentials or PII.
+
+paths:
+  /internal/operator-decision:
+    post:
+      summary: Submit an operator decision on a pending approval
+      description: |
+        Comm-module forwards the operator's signed decision (received via
+        Telegram) to this endpoint. The bus-watcher daemon:
+          1. Verifies the Ed25519 signature against `OPERATOR_DECISION_PUBKEY`
+          2. Validates the timestamp is within ±30s of now
+          3. Looks up the nonce in `president.operator_nonces`:
+             - missing → 404 NONCE_NOT_FOUND
+             - already consumed → 200 with cached response + `Idempotent-Replay: true`
+             - valid → proceed
+          4. Calls `tenet0-pending-mcp.record_decision`
+          5. `tenet0-audit-mcp.record_decision` writes hash-chained log row
+          6. Publishes `president.{approved|rejected|deferred}` to bus
+          7. All four steps in one transaction; partial failure rolls back
+        Implements spec US-5, FR-25, NFR-2 (operator round-trip), security T4
+        (untrusted-transport defense), T8 (nonce replay defense).
+      operationId: postOperatorDecision
+      security:
+        - OperatorEd25519: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OperatorDecisionRequest"
+      responses:
+        "202":
+          description: Decision accepted, recorded, and outcome event published.
+          headers:
+            Idempotent-Replay:
+              schema: { type: boolean }
+              description: Always `false` on first acceptance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperatorDecisionAccepted"
+        "200":
+          description: |
+            Idempotent replay of a previously-consumed nonce. Returns the
+            cached result. `Idempotent-Replay: true` header set.
+          headers:
+            Idempotent-Replay:
+              schema: { type: boolean, enum: [true] }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperatorDecisionAccepted"
+        "400":
+          description: Malformed body or missing required field.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: |
+            Signature verification failed (INVALID_SIGNATURE) OR signature
+            timestamp outside ±30s window (SIGNATURE_TIMESTAMP_OUT_OF_WINDOW).
+            Treated as identical from the caller's perspective to prevent
+            timing-based discrimination between key-leak and clock-skew failures.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "404":
+          description: |
+            NONCE_NOT_FOUND — the operator_nonce does not match any issued
+            nonce in `president.operator_nonces`. May indicate a stale or
+            forged request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: |
+            APPROVAL_ALREADY_DECIDED — a different decision has already been
+            recorded for this approval_id (possible TOCTOU between two operator
+            devices). Or APPROVAL_EXPIRED if the deadline-sweeper expired the
+            approval before the operator's reply arrived.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503":
+          description: |
+            BUS_UNAVAILABLE — the bus is unreachable so the outcome event
+            cannot be published. The decision is NOT recorded; comm-module
+            should retry. Exposed honestly per Constitution Principle 6.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /internal/lifecycle/rescan:
+    post:
+      summary: Trigger an immediate Director registry rescan
+      description: |
+        Forces `tenet0-bus-watcher`'s file-system watcher to rescan
+        `~/.claude-agent-zero/agents/` immediately, bypassing the 5-second
+        debounce window. Used by the operator runbook to expedite a known
+        Director addition or removal without waiting for fsnotify.
+        Idempotent.
+      operationId: rescanLifecycle
+      security: []  # Bridge-only; no auth required since it's idempotent and read-trigger
+      responses:
+        "202":
+          description: Rescan scheduled; lifecycle events will be published as appropriate.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scheduled_at]
+                properties:
+                  scheduled_at: { type: string, format: date-time }
+        "503":
+          description: bus-watcher cannot accept rescan (e.g., shutting down).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }

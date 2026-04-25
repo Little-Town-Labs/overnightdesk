@@ -1,0 +1,7 @@
+# President Daily Digest
+
+- 4 approvals processed
+- 1 escalation pending operator
+- No SecOps violations
+
+See decision_log row 81f2 for the deferred fin.payment.outbound case.

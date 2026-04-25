@@ -1,15 +1,17 @@
 # Constitution
 
+> **v2.0.0 (2026-04-24) — Engine pivot.** Tenant engine replaced: overnightdesk-engine (Go + Claude Code CLI) → hermes-agent (Nous Research, Python/FastAPI). Model routing: Claude Code BYOS → OpenRouter. Secrets: platform DB → Phase.dev per-tenant paths, injected via `phase run`. Added secrets-management principle under Security. Reference tenant: aero-fett (Mitchel).
+
 ## OvernightDesk Platform — Operating Principles
 
-**Version:** 1.0.0
+**Version:** 2.0.0
 **Owner:** Gary Brown / LittleTownLabs
 **Ratified:** 2026-03-21
-**Last Amended:** 2026-03-21
+**Last Amended:** 2026-04-24
 
 **Platform Lineage:** Inherits from [Little Town Labs Platform Constitution v1.0.0](/mnt/f/ltl-ops/.specify/memory/constitution.md). This document specializes the platform principles for the OvernightDesk Vercel frontend. Where this document is silent, the platform constitution applies.
 
-**Sibling:** [overnightdesk-engine Constitution v2.0](/mnt/f/overnightdesk-engine/.specify/memory/constitution.md) governs the Go daemon. This document governs the Next.js platform frontend, billing, and provisioning orchestration.
+**Tenant Engine:** Tenants run [hermes-agent](https://github.com/NousResearch/hermes-agent) (Nous Research, Python/FastAPI) as the standard engine image. The custom Go daemon (overnightdesk-engine) is deprecated as of v2.0.0. This document governs the Next.js platform frontend, billing, provisioning orchestration, and the hermes-agent container contract.
 
 ---
 
@@ -23,9 +25,9 @@ These principles are shared across the OvernightDesk system. They apply to every
 
 **No exceptions.**
 
-- Each tenant runs in a physically isolated Docker container. The frontend never accesses tenant container filesystems, databases, or Claude Code sessions directly.
-- The frontend communicates with tenant instances only through the engine's authenticated REST API — never via direct container access.
-- Customer Claude Code credentials are never seen, stored, or proxied by the platform frontend. The onboarding terminal connects the browser directly to the tenant container's WebSocket PTY.
+- Each tenant runs in a physically isolated Docker container. The frontend never accesses tenant container filesystems, databases, or agent sessions directly.
+- The frontend communicates with tenant instances only through the hermes-agent authenticated REST API — never via direct container access.
+- Customer model-provider credentials (OpenRouter API keys, messaging tokens) are never stored in plaintext by the platform. They live in Phase.dev under `/{tenantId}/` and are injected into the hermes-agent container at start time via `phase run`. The platform database stores only Phase bootstrap credentials, never the downstream secrets themselves.
 - We do not log, analyze, or store tenant conversations on the platform side. The platform database stores only operational metadata (status, billing, events).
 - If a customer asks what data we hold, the dashboard shows them completely and honestly.
 - After subscription cancellation, platform records are retained for billing compliance (90 days). Tenant container data is preserved 30 days, then permanently purged.
@@ -44,6 +46,13 @@ The frontend is the public attack surface. Every route, endpoint, and form is a 
 - Stripe webhooks MUST verify signature before processing any event
 - Provisioning actions MUST verify active subscription status before execution
 - Bearer tokens for tenant API communication MUST be stored hashed (bcrypt), never plaintext
+
+**Secrets management:**
+- Tenant secrets (OpenRouter API keys, messaging bridge tokens, gateway credentials) MUST NOT be stored in the platform database in plaintext or reversible encryption.
+- All tenant secrets MUST live in Phase.dev under the per-tenant path `/{tenantId}/`.
+- Secrets MUST be injected into the hermes-agent container at start via `phase run` — never baked into images, never passed as plaintext Docker env vars sourced from the platform DB.
+- The platform DB MAY store Phase.dev bootstrap credentials (service tokens scoped to the tenant path) but MUST treat them as sensitive credentials (encrypted at rest, never logged).
+- Secret rotation MUST be possible without platform redeploys — updating a secret in Phase.dev and restarting the container is the only supported rotation flow.
 
 **Input validation:**
 - All user input MUST be validated with Zod schemas before processing
@@ -91,6 +100,12 @@ This is a Next.js App Router project. The stack is deliberately narrow:
 | Email | Resend | Transactional only, no marketing automation |
 | Validation | Zod | Shared schemas between frontend and API routes |
 | Hosting | Vercel | Edge-optimized, serverless functions |
+| Tenant engine | hermes-agent (`nousresearch/hermes-agent:latest`) | Python/FastAPI; OpenAI-compatible API on :8642, dashboard sidecar on :9119 |
+| Model routing | OpenRouter | All tenant model calls; keys managed via Phase.dev — replaces Claude Code BYOS |
+| Secrets | Phase.dev | Per-tenant path `/{tenantId}/`, injected via `phase run` at container start |
+| Chat UI | Vercel AI SDK (`/dashboard/chat`) | Talks to hermes OpenAI-compatible endpoint on tenant container port 8642 |
+| Messaging bridge | hermes gateway | Telegram, Discord, etc. — runs inside the tenant container |
+| Routing/TLS | nginx on aegis-prod | `{tenantId}.overnightdesk.com` → tenant container |
 
 **What we do NOT use:**
 - No state management libraries (React state + server components are sufficient)
@@ -126,8 +141,8 @@ Every new feature must either retain existing customers or acquire new ones.
 
 ## Principle 6: Honesty with Customers
 
-- The pricing page shows exactly what customers get and what they need to bring (their own Claude Code subscription)
-- We clearly communicate: "You're logging into YOUR Claude Code account. We never see your credentials."
+- The pricing page shows exactly what customers get and what they need to bring (their own OpenRouter API key — we never store it in plaintext)
+- We clearly communicate: "Your API key lives in Phase.dev under your tenant's isolated path. We never see it in plaintext, and it's injected into your container only at runtime."
 - Error states are shown honestly in the dashboard — no fake "everything is fine" when a container is unhealthy
 - If provisioning fails, the customer sees the real status, not a spinner that runs forever
 - Billing is transparent — Stripe Customer Portal for self-service, no hidden fees
@@ -210,7 +225,9 @@ The frontend orchestrates provisioning but does not execute it directly:
 **Rules:**
 - Provisioning state transitions MUST be logged in `fleet_events`
 - Webhook handlers MUST be idempotent (Stripe may deliver events multiple times)
-- Container creation MUST apply all security hardening from the engine constitution (seccomp, AppArmor, read-only rootfs, cap-drop ALL)
+- Container image MUST be `nousresearch/hermes-agent:latest` (pinned per release); custom engine images are prohibited
+- Container start MUST use `phase run` so secrets are resolved from Phase.dev at runtime — never passed as plaintext env vars sourced from the platform DB
+- Container creation MUST apply the platform container security baseline (seccomp, AppArmor, cap-drop ALL plus explicit adds; read-only rootfs where compatible with hermes-agent)
 - Deprovisioning MUST NOT delete data immediately — 30-day retention before purge
 
 ---
@@ -292,8 +309,8 @@ The frontend orchestrates provisioning but does not execute it directly:
 
 The OvernightDesk system has three constitutions:
 1. **ltl-ops** (platform) — foundational principles inherited by all LTL projects
-2. **overnightdesk-engine** — Go daemon, container security, engine-specific constraints
-3. **overnightdesk** (this repo) — Next.js frontend, billing, provisioning orchestration
+2. **overnightdesk-engine** — DEPRECATED as of v2.0.0. Go daemon retained for historical reference; tenant engine is now hermes-agent (upstream: Nous Research)
+3. **overnightdesk** (this repo) — Next.js frontend, billing, provisioning orchestration, hermes-agent container contract
 
 Shared principles (Data Sacred, Security, Honesty, Simple Over Clever, Owner's Time, Test-First) MUST remain consistent across all three. If one repo amends a shared principle, the others MUST be reviewed and updated.
 
@@ -303,14 +320,17 @@ Shared principles (Data Sacred, Security, Honesty, Simple Over Clever, Owner's T
 
 | Term | Definition |
 |------|-----------|
-| **Tenant** | A single customer's isolated instance (container + SQLite + Claude Code session) |
-| **Engine** | The Go daemon (`overnightdesk-engine`) that wraps Claude Code CLI |
-| **Platform** | The Vercel frontend + NeonDB + provisioner + Agent Zero — everything the customer doesn't run |
-| **BYOS** | Bring Your Own Subscription — customer uses their Claude Code subscription, billed by Anthropic |
-| **Agent Zero** | Platform ops agent that monitors the fleet, handles support, uses OpenRouter (our key) |
+| **Tenant** | A single customer's isolated instance (hermes-agent container + Phase.dev secret path + OpenRouter routing) |
+| **Engine** | hermes-agent (Nous Research, Python/FastAPI) running inside the tenant container. Exposes an OpenAI-compatible API on :8642 and a dashboard sidecar on :9119. Replaces the deprecated Go daemon. |
+| **Platform** | The Vercel frontend + NeonDB + provisioner — everything the customer doesn't run |
+| **BYOS** | Bring Your Own Subscription — customer brings their OpenRouter API key (stored in Phase.dev), billed by OpenRouter |
+| **Agent Zero** | Platform ops agent (Gary's tenant-0) that monitors the fleet, handles support |
 | **Fleet Event** | A logged operational event (provisioned, started, stopped, health_check, error, restart) |
-| **Dashboard** | Customer-facing UI on Vercel showing instance status, settings, and management controls |
-| **Provisioner** | Service on Oracle Cloud that creates/destroys tenant containers on webhook events |
+| **Dashboard** | Customer-facing UI on Vercel showing instance status, chat interface, and management controls |
+| **Provisioner** | Service on aegis-prod that creates/destroys hermes-agent tenant containers on webhook events |
+| **Phase.dev** | Secrets management service. Each tenant has an isolated path `/{tenantId}/`. Secrets injected into containers at runtime via `phase run`. |
+| **hermes-agent** | Nous Research open-source agent runtime. Standard tenant engine from v2.0.0. |
+| **aegis-prod** | Oracle Cloud VM hosting all tenant containers, nginx, and TLS termination for `*.overnightdesk.com`. |
 
 ---
 
@@ -319,3 +339,4 @@ Shared principles (Data Sacred, Security, Honesty, Simple Over Clever, Owner's T
 | Version | Date | Change |
 |---------|------|--------|
 | 1.0.0 | 2026-03-21 | Initial constitution. Derived from overnightdesk-engine v2.0 and ltl-ops platform v1.0.0. Specialized for Next.js frontend, Stripe billing, and provisioning orchestration. |
+| 2.0.0 | 2026-04-24 | MAJOR: Tenant engine replaced. overnightdesk-engine (Go daemon wrapping Claude Code CLI) deprecated in favour of hermes-agent (Nous Research, Python/FastAPI). Model routing moved from Claude Code BYOS to OpenRouter. Added Phase.dev secrets-management principle under Principle 2. Updated Principle 1 (credentials), Principle 6 (honesty), Pillar C (image + `phase run` rules), stack table, cross-repo references, and glossary. Reference implementation: aero-fett (Mitchel). |

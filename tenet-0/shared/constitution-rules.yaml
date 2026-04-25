@@ -23,7 +23,14 @@
 # matching. Keep them out of the YAML until the enforcer honors them.
 
 # Content version of this rules file. Bumped when content changes.
-version: 1
+version: 2
+
+# v2 amendment (2026-04-19, Feature 50): adds memory_access_matrix and
+# memory_scrubber sections (appended at end of file) required by the
+# President + Director runtime. Bus rule evaluator (Feature 49) ignores
+# these sections — backward compatible. See
+# .specify/specs/50-tenet0-director-runtime/research.md
+# §Memory Access Matrix and §PII Scrubber Catalog.
 
 rules:
   # Financial outbound money movement is always per-action. Every single
@@ -62,3 +69,70 @@ rules:
     description: SecOps violation events are never blocked by constitutional rules
     event_type_pattern: secops.violation.*
     requires_approval: none
+
+# ---------------------------------------------------------------------------
+# v2 — Memory access matrix (Feature 50 FR-13)
+# ---------------------------------------------------------------------------
+# Defines, per Director namespace, which other namespaces it may READ
+# memories from and WRITE memories under. Loaded by tenet0-director-memory-mcp
+# at startup; fail-closed if invalid. Amendments follow Constitution Part IV
+# (owner approval, version bump, both files updated together).
+#
+# Default policy: every Director writes its own namespace and reads its own.
+# President + SecOps can read everyone (cross-cutting roles); neither can
+# write into another's namespace.
+
+memory_access_matrix:
+  president:
+    write: [president]
+    read:  [president, ops, tech, finance, s_m, support, secops]
+  ops:
+    write: [ops]
+    read:  [ops]
+  tech:
+    write: [tech]
+    read:  [tech]
+  finance:
+    write: [finance]
+    read:  [finance]
+  s_m:
+    write: [s_m]
+    read:  [s_m]
+  support:
+    write: [support]
+    read:  [support]
+  secops:
+    write: [secops]
+    read:  [president, ops, tech, finance, s_m, support, secops]
+
+# ---------------------------------------------------------------------------
+# v2 — Memory pre-write PII scrubber (Feature 50 FR-15)
+# ---------------------------------------------------------------------------
+# Seven-layer defense pipeline applied to every director_memory write.
+# Layers run in order; first match REJECTS the write and raises
+# secops.violation.memory_pii (with pattern_category only — never the
+# offending content). See research.md §PII Scrubber Catalog.
+
+memory_scrubber:
+  version: 1
+  layers:
+    - name: unicode_normalize
+      enabled: true
+    - name: encoding_decode
+      enabled: true
+      decoders: [base64, rot13, hex]
+    - name: customer_email
+      enabled: true
+      allowlist: []  # operator-confirmed business emails go here
+    - name: credit_card
+      enabled: true
+      require_context_word: true  # demand "card", "payment", or "cc" near the digits
+    - name: anthropic_credential
+      enabled: true
+    - name: conversation_transcript
+      enabled: true
+      speaker_labels: [Customer, Tenant, User, Client]
+    - name: high_entropy
+      enabled: true
+      threshold_bits_per_char: 4.5
+      min_length: 64

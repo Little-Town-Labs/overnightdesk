@@ -1,0 +1,287 @@
+$schema: "https://json-schema.org/draft/2020-12/schema"
+$id: "https://overnightdesk.com/schemas/feature-50/daemon-health-contracts.yaml"
+title: "Tenet-0 Daemon Health & Observability Contracts"
+version: "1.0.0"
+description: |
+  Health endpoint and Prometheus metrics contracts for the four Go daemons
+  introduced by Feature 50. Each daemon ships as its own container per OQ-4
+  recommendation.
+
+  All daemons MUST expose:
+    - GET /healthz on a stable port (per-daemon, see ports below)
+    - GET /metrics on the same port (Prometheus exposition format)
+  Both endpoints are bound to the internal docker network only; not exposed
+  to the public internet.
+
+  Health states are coarse: ok | degraded | unhealthy. `degraded` means the
+  daemon is running and partially functional (e.g., bus reachable but
+  comm-module down for bus-watcher). `unhealthy` means the daemon should be
+  restarted (e.g., Postgres unreachable for >threshold).
+
+# ---------------------------------------------------------------------------
+# Shared /healthz response shape
+# ---------------------------------------------------------------------------
+
+$defs:
+  HealthResponse:
+    type: object
+    required: [status, version, uptime_seconds, dependencies]
+    additionalProperties: false
+    properties:
+      status:
+        type: string
+        enum: [ok, degraded, unhealthy]
+      version:
+        type: string
+        description: "Daemon binary version (semver + git SHA suffix)."
+      uptime_seconds:
+        type: integer
+        minimum: 0
+      last_activity_at:
+        type: string
+        format: date-time
+        description: "Timestamp of last meaningful work; absence means daemon has not yet processed anything since startup."
+      dependencies:
+        type: object
+        description: "Per-dependency status; keys are dependency names."
+        additionalProperties:
+          type: string
+          enum: [ok, degraded, unhealthy, unknown]
+
+  MetricDef:
+    type: object
+    required: [name, type, description]
+    additionalProperties: false
+    properties:
+      name:        { type: string, pattern: "^tenet0_[a-z][a-z0-9_]*$" }
+      type:        { type: string, enum: [counter, gauge, histogram] }
+      description: { type: string }
+      labels:
+        type: array
+        items: { type: string }
+        default: []
+      buckets:
+        type: array
+        items: { type: number }
+        description: "Histogram buckets in seconds (or units appropriate to the metric)."
+
+# ===========================================================================
+# Daemon: tenet0-bus-watcher
+# ===========================================================================
+
+daemons:
+
+  tenet0-bus-watcher:
+    description: |
+      Subscribes to Feature 49 LISTEN/NOTIFY; routes new events to Zero via
+      comm-module Telegram bridge (CL-1 default) or polling fallback (CL-1
+      fallback). Implements OQ-1 file-system watcher with debounce for
+      Director markdown changes.
+    port: 9201
+    healthz:
+      response: { $ref: "#/$defs/HealthResponse" }
+      dependencies_checked:
+        - postgres            # bus storage
+        - bus_listen_channel  # LISTEN/NOTIFY active subscription
+        - comm_module         # outbound notification bridge (CL-1 primary)
+        - filesystem_watch    # ~/.claude-agent-zero/agents/ inotify
+      degraded_examples:
+        - "comm_module unreachable; polling fallback active"
+        - "filesystem_watch failed; lifecycle events delayed"
+      unhealthy_examples:
+        - "postgres unreachable >30s"
+        - "bus_listen_channel disconnected and reconnect failed >5 times"
+    metrics:
+      - name: tenet0_bus_watcher_events_routed_total
+        type: counter
+        description: "Bus events routed into Zero's session by this daemon."
+        labels: [outcome]    # outcome: delivered, fallback_polled, dropped
+      - name: tenet0_bus_watcher_routing_latency_seconds
+        type: histogram
+        description: "Time from bus NOTIFY arrival to acknowledged delivery to Zero. Owns NFR-1 p95<5s."
+        labels: [channel]    # channel: comm_module, polling
+        buckets: [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 30]
+      - name: tenet0_bus_watcher_filesystem_events_total
+        type: counter
+        description: "Director markdown file-system events observed."
+        labels: [event]      # event: created, modified, deleted, debounced
+      - name: tenet0_bus_watcher_comm_module_failures_total
+        type: counter
+        description: "comm-module call failures driving fallback activation."
+        labels: [reason]
+      - name: tenet0_bus_watcher_active_channel
+        type: gauge
+        description: "1 = comm_module primary, 0 = polling fallback."
+
+  # =========================================================================
+  # Daemon: tenet0-healthcheck-poller
+  # =========================================================================
+
+  tenet0-healthcheck-poller:
+    description: |
+      Polls every registered Director's declared MCP servers on a configurable
+      interval (default 60s, FR-18). Publishes *.lifecycle.degraded and
+      *.lifecycle.recovered transitions. Reactive detection (FR-19) lives in
+      Zero, not in this daemon.
+    port: 9202
+    healthz:
+      response: { $ref: "#/$defs/HealthResponse" }
+      dependencies_checked:
+        - postgres
+        - bus_publish        # ability to publish lifecycle events
+        - mcp_catalog        # ability to enumerate registered Directors
+      degraded_examples:
+        - "one or more MCP probes timing out"
+      unhealthy_examples:
+        - "postgres unreachable"
+        - "cannot publish to bus"
+    metrics:
+      - name: tenet0_healthcheck_poll_total
+        type: counter
+        description: "MCP liveness probes executed."
+        labels: [director, mcp, outcome]   # outcome: ok, timeout, error
+      - name: tenet0_healthcheck_probe_latency_seconds
+        type: histogram
+        description: "MCP liveness probe round-trip latency."
+        labels: [director, mcp]
+        buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 5]
+      - name: tenet0_healthcheck_lifecycle_transitions_total
+        type: counter
+        description: "Published *.lifecycle.degraded / *.lifecycle.recovered events."
+        labels: [director, transition]      # transition: degraded, recovered
+      - name: tenet0_healthcheck_directors_degraded
+        type: gauge
+        description: "Currently-degraded Director count."
+      - name: tenet0_healthcheck_poll_cycle_seconds
+        type: histogram
+        description: "Wall-clock per full poll cycle."
+        buckets: [1, 5, 10, 30, 60, 120, 300]
+
+  # =========================================================================
+  # Daemon: tenet0-deadline-sweeper
+  # =========================================================================
+
+  tenet0-deadline-sweeper:
+    description: |
+      Every minute, scans pending_approvals for awaiting_operator rows whose
+      operator_deadline has passed (FR-20). Calls
+      tenet0-pending-mcp.expire_overdue then publishes one
+      president.rejected event per expired row with
+      reason='expired awaiting operator input'. Detects sustained operator
+      unavailability and publishes president.operator.unavailable.
+    port: 9203
+    healthz:
+      response: { $ref: "#/$defs/HealthResponse" }
+      dependencies_checked:
+        - postgres
+        - bus_publish
+        - tenet0_pending_mcp
+      degraded_examples:
+        - "expire_overdue calls returning errors but daemon retrying"
+      unhealthy_examples:
+        - "postgres unreachable"
+        - "consecutive expire_overdue failures > threshold"
+    metrics:
+      - name: tenet0_deadline_sweeper_expirations_total
+        type: counter
+        description: "Pending approvals expired by this daemon (per FR-20)."
+      - name: tenet0_deadline_sweeper_sweep_duration_seconds
+        type: histogram
+        description: "Per-sweep wall-clock."
+        buckets: [0.01, 0.05, 0.1, 0.5, 1, 5]
+      - name: tenet0_deadline_sweeper_publish_failures_total
+        type: counter
+        description: "Outcome event publish failures during sweep."
+        labels: [reason]
+      - name: tenet0_pending_approvals
+        type: gauge
+        description: "Current pending approval rows by status (read by sweeper, exported here for convenience)."
+        labels: [status]    # status: pending, awaiting_llm, awaiting_operator, decided, expired
+      - name: tenet0_deadline_sweeper_operator_unavailable_emitted_total
+        type: counter
+        description: "president.operator.unavailable events emitted (sustained-unavailability heuristic)."
+
+  # =========================================================================
+  # Daemon: tenet0-audit-self-checker
+  # =========================================================================
+
+  tenet0-audit-self-checker:
+    description: |
+      Every 15 minutes (FR-21): verifies (a) every president.* event in the
+      past 24h has a matching decision_log row; (b) every approval request in
+      past 24h has exactly one outcome; (c) random 1,000-row sample of
+      decision_log hash chain validates. Nightly: full chain validation.
+      Violations raise the appropriate secops.violation.* event.
+    port: 9204
+    healthz:
+      response: { $ref: "#/$defs/HealthResponse" }
+      dependencies_checked:
+        - postgres
+        - bus_publish
+        - tenet0_audit_mcp
+      degraded_examples:
+        - "last cycle elapsed > 30 minutes ago"
+      unhealthy_examples:
+        - "hash chain validation has failed in last cycle"
+        - "postgres unreachable"
+    metrics:
+      - name: tenet0_audit_self_check_cycles_total
+        type: counter
+        description: "Self-check cycles executed."
+        labels: [kind]      # kind: periodic_15min, nightly_full
+      - name: tenet0_audit_self_check_gaps_total
+        type: counter
+        description: "Audit gaps detected per FR-21."
+        labels: [gap_type]  # gap_type: missing_decision_log_row, missing_outcome, multiple_outcomes
+      - name: tenet0_audit_self_check_chain_validation_total
+        type: counter
+        description: "Hash-chain validation outcomes."
+        labels: [outcome, kind]   # outcome: valid, invalid; kind: random_sample, nightly_full
+      - name: tenet0_audit_self_check_cycle_duration_seconds
+        type: histogram
+        description: "Wall-clock per cycle."
+        labels: [kind]
+        buckets: [1, 5, 10, 30, 60, 300, 900, 1800, 3600]
+      - name: tenet0_audit_self_check_namespace_impersonations_total
+        type: counter
+        description: "secops.violation.namespace_impersonation events emitted."
+
+# ---------------------------------------------------------------------------
+# Cross-daemon (recorded by MCP servers, surfaced here for catalog completeness)
+# ---------------------------------------------------------------------------
+
+mcp_emitted_metrics:
+  description: |
+    These metrics are emitted by the MCP servers (not the four daemons), but
+    are catalogued here so all Feature 50 observability lives in one file.
+    Each MCP server exposes /metrics on its own port (TBD in plan.md).
+  metrics:
+    - name: tenet0_director_memory_writes_total
+      type: counter
+      description: "Successful memory writes per Director per type."
+      labels: [director, type]   # type: charter, decision, pattern, state, reference
+    - name: tenet0_director_memory_scrubber_rejections_total
+      type: counter
+      description: "Pre-write scrubber rejections (FR-15). Pattern category labelled; content NEVER labelled."
+      labels: [director, pattern_category]
+    - name: tenet0_director_memory_access_denials_total
+      type: counter
+      description: "Cross-namespace access denials (FR-14)."
+      labels: [offending_director, target_namespace, attempted_operation]
+    - name: tenet0_director_memory_entries
+      type: gauge
+      description: "Current memory entry count per Director (for cap monitoring per CL-3)."
+      labels: [director]
+    - name: tenet0_subagent_spawn_duration_seconds
+      type: histogram
+      description: "Subagent spawn wall-clock recorded by tenet0-governor-mcp.record_spawn_telemetry (OQ-5)."
+      labels: [director, outcome]    # outcome: success, spawn_failure, first_call_failure, timeout
+      buckets: [0.5, 1, 2, 3, 5, 10, 15, 30, 60, 120]
+    - name: tenet0_pending_claim_conflicts_total
+      type: counter
+      description: "claim_for_decision attempts that lost the race (PENDING_ALREADY_CLAIMED)."
+      labels: [requesting_department]
+    - name: tenet0_decision_log_writes_total
+      type: counter
+      description: "Decision log inserts (FR-9)."
+      labels: [outcome, decision_mode]   # outcome: approve|reject|defer; decision_mode: rule|llm
