@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
+import { convertToModelMessages } from "@ai-sdk/react";
 import { auth } from "@/lib/auth";
 import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 
@@ -30,7 +31,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { messages } = await request.json();
+  const { messages: uiMessages } = await request.json();
+
+  // convertToModelMessages converts UIMessage[] (parts format from useChat)
+  // to ModelMessage[] (content format expected by streamText) — AI SDK v6
+  const messages = convertToModelMessages(uiMessages);
 
   const hermes = createOpenAI({
     baseURL: `https://${inst.subdomain}/v1`,
