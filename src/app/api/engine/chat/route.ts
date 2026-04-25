@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
   // convertToModelMessages converts UIMessage[] (parts format from useChat)
   // to ModelMessage[] (content format expected by streamText) — AI SDK v6
-  const messages = convertToModelMessages(uiMessages);
+  const messages = await convertToModelMessages(uiMessages);
 
   const hermes = createOpenAI({
     baseURL: `https://${inst.subdomain}/v1`,
