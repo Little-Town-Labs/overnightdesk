@@ -7,7 +7,6 @@ const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
-  axes: ["opsz"],
   weight: ["200", "400", "700", "800"],
 });
 
