@@ -17,6 +17,27 @@ services:
       - overnightdesk
     expose:
       - "5432"
+    cap_drop:
+      - ALL
+    # postgres:16-alpine entrypoint runs chown/chmod on data dir and
+    # /var/run/postgresql at every startup (even existing data). These
+    # five caps are the documented minimum for hardened postgres containers.
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.50"
+        reservations:
+          memory: 128m
+          cpus: "0.05"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U orchestrator -d platform_orchestrator"]
       interval: 10s
@@ -124,6 +145,19 @@ services:
       - overnightdesk
     expose:
       - "8080"
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "0.50"
+        reservations:
+          memory: 128m
+          cpus: "0.05"
 
   nginx:
     image: nginx:1.27-alpine
@@ -145,6 +179,22 @@ services:
     # probe that works under distroless (planned follow-up).
     depends_on:
       - platform-orchestrator
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          cpus: "0.25"
+        reservations:
+          memory: 32m
+          cpus: "0.05"
 
   certbot:
     image: certbot/certbot
@@ -152,6 +202,64 @@ services:
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
+
+  email-fetch:
+    build:
+      context: /home/ubuntu/email-fetch
+      dockerfile: Dockerfile
+    container_name: overnightdesk-email-fetch
+    profiles:
+      - email-fetch
+    restart: "no"
+    environment:
+      - DATABASE_URL
+      - EMAIL_ACCOUNTS
+      - EMAIL_ADDRESS
+      - EMAIL_PASSWORD
+      - IMAP_HOST
+      - BAT_EMAIL_ADDRESS
+      - BAT_EMAIL_PASSWORD
+      - BAT_IMAP_HOST
+      - TELEGRAM_BOT_TOKEN
+      - TELEGRAM_CHAT_ID
+      - SERVICE_NAME
+    networks:
+      - overnightdesk
+
+  overnightdesk-ops:
+    build:
+      context: /home/ubuntu/overnightdesk-ops
+      dockerfile: Dockerfile
+    container_name: overnightdesk-ops
+    env_file:
+      - path: /opt/overnightdesk/overnightdesk-ops.env
+        required: false
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    environment:
+      - KNOWLEDGE_DIR=/app/knowledge
+      - MCP_PORT=3000
+      - WEB_PORT=3001
+    networks:
+      - overnightdesk
+    expose:
+      - "3000"
+      - "3001"
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.25"
+        reservations:
+          memory: 64m
+          cpus: "0.05"
 
 volumes:
   platform-orchestrator-db-data:
