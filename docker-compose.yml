@@ -255,6 +255,7 @@ services:
       - KNOWLEDGE_DIR=/app/knowledge
       - MCP_PORT=3000
       - WEB_PORT=3001
+      # ORCHESTRATOR_DATABASE_URL comes from env_file (overnightdesk-ops.env), not Phase
     networks:
       - overnightdesk
     expose:
