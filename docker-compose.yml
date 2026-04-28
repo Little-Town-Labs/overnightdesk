@@ -181,6 +181,14 @@ services:
       - platform-orchestrator
     cap_drop:
       - ALL
+    # nginx entrypoint chowns /var/cache/nginx (tmpfs, fresh each boot) to
+    # UID 101 and binds ports 80/443. These four caps are the minimum required.
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
     tmpfs:
