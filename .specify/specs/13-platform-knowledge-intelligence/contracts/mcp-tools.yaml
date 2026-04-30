@@ -1,0 +1,392 @@
+# MCP Tool Contracts — Feature 13: Platform Knowledge Intelligence
+# overnightdesk-ops / Hermes platform ops agent
+#
+# Format: each entry is a tool definition consumable by the MCP SDK.
+#   name         — tool identifier, snake_case
+#   description  — one sentence; Hermes reads this to decide which tool to call
+#   inputSchema  — JSON Schema object (MCP convention)
+#   responseShape — structured description of the returned content object
+#
+# Backward-compatible changes to existing tools are marked [UPDATED].
+# New tools are marked [NEW].
+
+tools:
+
+  # ---------------------------------------------------------------------------
+  # [NEW] get_health_summary
+  # ---------------------------------------------------------------------------
+  - name: get_health_summary
+    description: >
+      Returns a single structured digest of platform health: container counts,
+      stale/high-confidence fact counts, open findings by severity, most recent
+      incident, last collection run, and an overall posture assessment.
+    inputSchema:
+      type: object
+      properties: {}
+      additionalProperties: false
+    responseShape:
+      type: object
+      description: >
+        Structured health digest. All counts are integers. Timestamps are ISO 8601
+        strings. posture is a single-word assessment Hermes should surface first.
+      properties:
+        containers:
+          type: object
+          properties:
+            running:
+              type: integer
+              description: Number of containers currently in running state.
+            stopped:
+              type: integer
+              description: Number of containers in exited or stopped state.
+        facts:
+          type: object
+          properties:
+            stale_count:
+              type: integer
+              description: Facts not confirmed in the most recent collection cycle.
+            high_confidence_count:
+              type: integer
+              description: Facts with confidence level "high".
+        open_findings:
+          type: object
+          description: Count of open or acknowledged findings, broken down by severity.
+          properties:
+            critical:
+              type: integer
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        most_recent_incident:
+          type: object
+          nullable: true
+          description: Null when no incidents have been recorded.
+          properties:
+            service:
+              type: string
+            occurred_at:
+              type: string
+              format: date
+        last_collection_run:
+          type: object
+          nullable: true
+          description: Null when no collection cycle has completed yet.
+          properties:
+            trigger:
+              type: string
+              enum: [scheduled, manual]
+            started_at:
+              type: string
+              format: date-time
+            completed_at:
+              type: string
+              format: date-time
+              nullable: true
+            facts_updated:
+              type: integer
+        posture:
+          type: string
+          enum: [healthy, degraded, stale]
+          description: >
+            healthy — all facts current, no critical/high findings.
+            degraded — critical or high findings open, or collection errors present.
+            stale — last collection cycle has not completed within the expected interval.
+
+  # ---------------------------------------------------------------------------
+  # [NEW] find_similar_incidents
+  # ---------------------------------------------------------------------------
+  - name: find_similar_incidents
+    description: >
+      Full-text searches past incidents in platform_incidents by symptom, root_cause,
+      and learning fields and returns ranked results most relevant to the given symptom
+      description.
+    inputSchema:
+      type: object
+      properties:
+        symptom:
+          type: string
+          description: >
+            Free-text description of what Hermes is currently observing
+            (e.g. "container exits immediately after restart").
+          minLength: 3
+          maxLength: 500
+      required:
+        - symptom
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        results:
+          type: array
+          description: >
+            Ordered from most to least relevant. Empty array when no incidents match.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                description: Primary key of the platform_incidents row.
+              service:
+                type: string
+                description: Service or component where the incident occurred.
+              severity:
+                type: string
+                enum: [critical, high, medium, low]
+              occurred_at:
+                type: string
+                format: date
+              symptom:
+                type: string
+                description: Recorded symptom text from the incident.
+              root_cause:
+                type: string
+                nullable: true
+              fix_applied:
+                type: string
+                nullable: true
+              learning:
+                type: string
+                nullable: true
+              relevance_rank:
+                type: number
+                description: >
+                  Postgres ts_rank score. Higher is more relevant. For Hermes
+                  guidance only — do not expose raw score to end users.
+
+  # ---------------------------------------------------------------------------
+  # [NEW] trigger_collection
+  # ---------------------------------------------------------------------------
+  - name: trigger_collection
+    description: >
+      Starts an immediate manual fact-collection cycle and returns the run record;
+      if a cycle is already in progress returns its existing run_id and status
+      "already_running" without starting a second cycle.
+    inputSchema:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: >
+            Optional free-text reason Hermes records for the manual trigger
+            (e.g. "post-deploy verification").
+          maxLength: 255
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        run_id:
+          type: integer
+          description: Identifier of the collection run record.
+        trigger:
+          type: string
+          enum: [manual]
+        status:
+          type: string
+          enum: [started, already_running]
+          description: >
+            "started" — a new cycle was queued.
+            "already_running" — an existing cycle is in progress; run_id is that cycle's id.
+        started_at:
+          type: string
+          format: date-time
+
+  # ---------------------------------------------------------------------------
+  # [NEW] get_collection_status
+  # ---------------------------------------------------------------------------
+  - name: get_collection_status
+    description: >
+      Returns the most recent collection run records, each showing timing, fact
+      change counts, and any sources that failed or produced errors.
+    inputSchema:
+      type: object
+      properties:
+        limit:
+          type: integer
+          description: Number of recent runs to return. Defaults to 5, maximum 20.
+          minimum: 1
+          maximum: 20
+          default: 5
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        runs:
+          type: array
+          description: >
+            Ordered most-recent-first. Empty array when no runs have been recorded.
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              trigger:
+                type: string
+                enum: [scheduled, manual]
+              status:
+                type: string
+                enum: [running, completed, partial, failed]
+                description: >
+                  running — cycle in progress.
+                  completed — all sources collected without error.
+                  partial — at least one source failed; others succeeded.
+                  failed — cycle aborted; no facts were updated.
+              started_at:
+                type: string
+                format: date-time
+              completed_at:
+                type: string
+                format: date-time
+                nullable: true
+                description: Null when status is "running".
+              facts_created:
+                type: integer
+                description: Net-new facts written this cycle.
+              facts_updated:
+                type: integer
+                description: Existing facts refreshed (value unchanged, last_confirmed bumped).
+              facts_staled:
+                type: integer
+                description: Facts not seen this cycle and now marked stale.
+              facts_changed:
+                type: integer
+                description: Existing facts whose value changed this cycle.
+              sources_failed:
+                type: array
+                description: >
+                  Names of collection sources that returned an error this cycle.
+                  Empty array on a clean run.
+                items:
+                  type: string
+                  enum: [docker, postgres, nginx, audit-db]
+              errors:
+                type: array
+                description: >
+                  Human-readable error messages from failed sources. Parallel to
+                  sources_failed; same index corresponds to the same source.
+                items:
+                  type: string
+
+  # ---------------------------------------------------------------------------
+  # [UPDATED] search
+  # Backward-compatible: existing callers that omit "confidence" receive the
+  # same fields they always did, plus the new "confidence" and "source" fields.
+  # ---------------------------------------------------------------------------
+  - name: search
+    description: >
+      Full-text searches all platform knowledge (fact store + YAML seed data)
+      and returns ranked, confidence-annotated results with their originating source.
+    inputSchema:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Free-text search query.
+          minLength: 1
+        confidence:
+          type: string
+          enum: [high, medium, low, stale]
+          description: >
+            Optional. When set, returns only results whose fact confidence matches.
+            Omit to return results at all confidence levels.
+      required:
+        - query
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        results:
+          type: array
+          description: >
+            Ordered by relevance. Empty array when no results match.
+          items:
+            type: object
+            description: >
+              Existing callers: "file" and "matches" are always present (unchanged).
+              New fields "confidence" and "source" are added to every result.
+            properties:
+              file:
+                type: string
+                description: Knowledge domain or filename the match came from (existing field).
+              matches:
+                type: array
+                description: Matching text lines or fact values (existing field).
+                items:
+                  type: string
+              confidence:
+                type: string
+                enum: [high, medium, low, stale]
+                description: >
+                  Trust level of the underlying fact.
+                  "stale" means the fact was not confirmed in the most recent collection cycle.
+              source:
+                type: string
+                enum: [docker, postgres, nginx, audit-db, yaml-seed]
+                description: >
+                  Infrastructure source that produced this fact.
+                  "yaml-seed" for facts originating from hand-edited YAML knowledge files.
+
+  # ---------------------------------------------------------------------------
+  # [UPDATED] get_service
+  # Backward-compatible: include_confidence defaults to false; existing
+  # callers receive identical responses when the parameter is omitted.
+  # ---------------------------------------------------------------------------
+  - name: get_service
+    description: >
+      Returns full details for a named service; when include_confidence is true,
+      augments the response with fact-store lineage (confidence, observation count,
+      last confirmed timestamp, and originating source).
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Partial or full service name (case-insensitive match).
+        include_confidence:
+          type: boolean
+          description: >
+            When true, attach confidence metadata to the response.
+            Defaults to false to preserve backward compatibility.
+          default: false
+      required:
+        - name
+      additionalProperties: false
+    responseShape:
+      type: object
+      description: >
+        Base shape is unchanged from v1 (all existing service fields are present).
+        Confidence block is appended only when include_confidence is true.
+      properties:
+        # --- existing fields (pass-through, not exhaustively enumerated) ---
+        name:
+          type: string
+        role:
+          type: string
+        # ... all other existing service YAML fields are forwarded as-is ...
+
+        # --- new fields, present only when include_confidence: true ---
+        confidence:
+          type: string
+          enum: [high, medium, low, stale]
+          description: >
+            Only present when include_confidence is true.
+            Trust level of the most recently confirmed fact for this service.
+        observation_count:
+          type: integer
+          description: >
+            Only present when include_confidence is true.
+            Number of collection cycles in which this service was observed.
+        last_confirmed_at:
+          type: string
+          format: date-time
+          description: >
+            Only present when include_confidence is true.
+            Timestamp of the most recent collection cycle that confirmed this service.
+        source:
+          type: string
+          enum: [docker, postgres, nginx, audit-db, yaml-seed]
+          description: >
+            Only present when include_confidence is true.
+            Infrastructure source that most recently confirmed this service fact.
