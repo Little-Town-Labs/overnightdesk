@@ -390,3 +390,48 @@ tools:
           description: >
             Only present when include_confidence is true.
             Infrastructure source that most recently confirmed this service fact.
+
+  # ---------------------------------------------------------------------------
+  # [UPDATED] get_database — adds optional include_confidence input
+  # ---------------------------------------------------------------------------
+  - name: get_database
+    description: >
+      Returns full details for a database (partial name match); when
+      include_confidence is true, each field includes trust metadata.
+    inputSchema:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Partial or full database container name (e.g. "commmodule").
+        include_confidence:
+          type: boolean
+          default: false
+          description: >
+            When true, augments each fact with confidence, observation_count,
+            last_confirmed_at, and source fields.
+      required: [name]
+      additionalProperties: false
+    responseShape:
+      type: object
+      description: >
+        Existing database YAML fields forwarded as-is. New confidence fields
+        present only when include_confidence is true. Backward-compatible.
+      properties:
+        # ... all existing database YAML fields forwarded as-is ...
+
+        confidence:
+          type: string
+          enum: [high, medium, low, stale]
+          description: Only present when include_confidence is true.
+        observation_count:
+          type: integer
+          description: Only present when include_confidence is true.
+        last_confirmed_at:
+          type: string
+          format: date-time
+          description: Only present when include_confidence is true.
+        source:
+          type: string
+          enum: [docker, postgres, nginx, audit-db, yaml-seed]
+          description: Only present when include_confidence is true.

@@ -208,3 +208,13 @@ warrant autonomous action. `stale` is binary and takes precedence over all other
 **New database migration (orchestrator DB):**
 - Add `search_vector tsvector` column + GIN index + trigger to `platform_incidents`
 - New migration file: `010_platform_incidents_fts.sql`
+
+**Environment variables introduced by this feature:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FACTS_DB_PATH` | `/data/facts.db` | SQLite file location on the named volume |
+| `COLLECTION_CRON` | `*/10 * * * *` | node-cron schedule expression |
+| `DOCKER_PROXY_URL` | `http://overnightdesk-docker-socket-proxy:2375` | Docker socket proxy endpoint |
+| `NGINX_CONF_PATH` | `/etc/nginx/conf.d/default.conf` | Mounted nginx config file path |
+| `POSTGRES_TABLE_LIMIT` | `200` | Max tables collected per Postgres instance per cycle |

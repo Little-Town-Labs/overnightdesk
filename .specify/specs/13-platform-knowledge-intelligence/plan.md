@@ -306,6 +306,12 @@ LIMIT 50
 - When `include_confidence=true`: include `confidence`, `observation_count`,
   `last_confirmed_at`, `source` per fact
 
+> **Note — `get_dependencies` not migrated to fact store:** The `getDependencies()` function
+> reads service-to-service topology from `network.yaml`. This graph (gRPC, internal RPC,
+> platform job dispatch) is not auto-discoverable by any collector. `get_dependencies` continues
+> reading from YAML unchanged. This is an intentional exception to FR-1 under FR-11's
+> "where applicable" clause — manually-curated topology data has no live collection source.
+
 #### 3.3 — Add `get_health_summary` tool
 
 ```sql

@@ -547,6 +547,7 @@ Write the goose migration file for `platform_incidents` full-text search column.
 - [ ] Migration tested against a local Postgres 16 instance: up and down apply without error
 - [ ] Existing rows get `search_vector` populated by Postgres on column add (GENERATED ALWAYS
       does this automatically)
+- [ ] File committed to `overnightdesk-engine` repo: `git commit -m "feat: add FTS index to platform_incidents (migration 010)"`
 
 ---
 
