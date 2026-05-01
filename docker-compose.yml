@@ -276,10 +276,13 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp
+    volumes:
+      - /opt/overnightdesk/ops-data:/data
     environment:
       - KNOWLEDGE_DIR=/app/knowledge
       - MCP_PORT=3000
       - WEB_PORT=3001
+      - FACTS_DB_PATH=/data/facts.db
       # ORCHESTRATOR_DATABASE_URL comes from env_file (overnightdesk-ops.env), not Phase
     networks:
       - overnightdesk
