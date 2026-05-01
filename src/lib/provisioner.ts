@@ -40,7 +40,42 @@ function getConfig() {
   };
 }
 
+function isConfigured() {
+  const { url, secret } = getConfig();
+  return Boolean(url && secret);
+}
+
 export const provisionerClient = {
+  async provisionInfra(params: ProvisionParams): Promise<ProvisionerResult> {
+    if (!isConfigured()) {
+      return { success: false, error: "Provisioner not configured" };
+    }
+    const { url, secret } = getConfig();
+
+    try {
+      const response = await fetch(`${url}/provision-infra`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify(params),
+        signal: AbortSignal.timeout(120_000),
+      });
+
+      if (!response.ok) {
+        return { success: false, error: `Provisioner returned ${response.status}` };
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+
   async provision(params: ProvisionParams): Promise<ProvisionerResult> {
     const { url, secret } = getConfig();
 

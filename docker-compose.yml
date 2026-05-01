@@ -126,13 +126,13 @@ services:
       - JWT_SEAL_KEY
       - AUDIT_CHAIN_KEY
       - SERVICE_TOKEN_ROUTE_LOOKUP
-      # Tenant provisioning. TENANT_NETWORK is set in the deploy env
-      # (see deploy/orchestrator.env.example) so the value is not
-      # duplicated between compose and env docs.
-      - TENANT_IMAGE_REF
-      - TENANT_NETWORK
-      - TENANT_MEMORY_BYTES
-      - TENANT_PIDS_LIMIT
+      # Tenant provisioning — non-secret config hardcoded here.
+      # TENANT_IMAGE_REF must be digest-pinned (@sha256:...) — the provisioner
+      # rejects tags. Update this when hermes-agent is upgraded.
+      - TENANT_IMAGE_REF=nousresearch/hermes-agent@sha256:491501bf9c242e6a3a5a72bd937725702d66b3d042469be45d605961cf08d48f
+      - TENANT_NETWORK=overnightdesk_overnightdesk
+      - TENANT_MEMORY_BYTES=1073741824
+      - TENANT_PIDS_LIMIT=100
       # JWT broker settings.
       - JWT_ISSUER
       - JWT_AUDIENCE
@@ -233,6 +233,31 @@ services:
       - SERVICE_NAME
     networks:
       - overnightdesk
+
+  # Shared anti-detection browser service. Hermes tenants connect via
+  # CAMOFOX_URL=http://camofox-browser:9377 instead of spawning locally.
+  # Built from ~/camofox-browser (jo-inc/camofox-browser repo) — image must
+  # be built on the server before first deploy: `make build-arm64` in that dir.
+  camofox-browser:
+    image: camofox-browser:latest
+    container_name: camofox-browser
+    restart: unless-stopped
+    environment:
+      CAMOFOX_PORT: "9377"
+      CAMOFOX_API_KEY: "${CAMOFOX_API_KEY}"
+      CAMOFOX_IDLE_TIMEOUT_MS: "1800000"
+    networks:
+      - overnightdesk
+    expose:
+      - "9377"
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+          cpus: "1.0"
+        reservations:
+          memory: 256m
+          cpus: "0.10"
 
   overnightdesk-ops:
     build:
