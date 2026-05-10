@@ -6,15 +6,24 @@ MCP server exposing Ace's long-term memory (`ace_memory` schema in tenet0-postgr
 
 Every entry is labeled with a provenance value:
 
-| Provenance  | Meaning                                                       | Trust tier  |
-| ----------- | ------------------------------------------------------------- | ----------- |
-| `observed`  | Captured directly from a source (log, tool output, message)   | instruction |
-| `confirmed` | A human explicitly confirmed it                               | instruction |
-| `inferred`  | A model derived this from other context                       | evidence    |
-| `generated` | Agent-produced during work (review note, summary)             | evidence    |
-| `imported`  | Migrated from an older system / transcript                    | evidence    |
+| Provenance  | Meaning                                                       | Trust tier  | Settable on save? |
+| ----------- | ------------------------------------------------------------- | ----------- | ----------------- |
+| `observed`  | Captured directly from a source (log, tool output, message)   | instruction | yes |
+| `confirmed` | A human (or platform-trusted caller) explicitly endorsed it   | instruction | **no — `confirm_thought(id)` only** |
+| `inferred`  | A model derived this from other context                       | evidence    | yes |
+| `generated` | Agent-produced during work (review note, summary)             | evidence    | yes (default) |
+| `imported`  | Migrated from an older system / transcript                    | evidence    | yes |
 
 Consumers should default to instruction-grade (`['confirmed','observed']`) when recalling for action, and widen to evidence when exploring.
+
+**Provenance integrity rule:** `save_thought` and `supersede_thought` reject `provenance='confirmed'` — workers cannot self-elevate their own writes to instruction-grade. The only way to set `confirmed` is `confirm_thought(id)`, which models a deliberate endorsement.
+
+## Trust-layer guard on writes
+
+Every `save_thought` / `supersede_thought` call passes through a guard before embedding or storage:
+
+1. **Rate limit** — token-bucket per identity (default `100/min`, `1000/hour`; tunable via `WRITE_RATE_PER_MIN` / `WRITE_RATE_PER_HOUR`). Prevents runaway workers from poisoning memory or burning embedding $$$.
+2. **Securityteam pre-flight** — when `SECURITYTEAM_URL` is set, content is POSTed to the securityteam container's `/check-outbound` endpoint **before** the OpenRouter embed call. Findings (PII, secrets, financial-channel violations) reject the write. Securityteam outage or 5xx is **fail-closed** — refused write rather than unscanned passthrough. With `SECURITYTEAM_URL` unset (local dev) the check is bypassed with a one-time WARNING log.
 
 ## Workflow (recall → work → write-back)
 
@@ -58,6 +67,9 @@ Migrations live under `migrations/`. Apply with `psql` against tenet0-postgres a
 | `MCP_ACCESS_KEY` | Phase `/ob1/MCP_ACCESS_KEY` (bearer for hermes) |
 | `EMBEDDING_MODEL` | optional, default `openai/text-embedding-3-small` |
 | `PORT` | optional, default `3000` |
+| `SECURITYTEAM_URL` | optional, e.g. `http://overnightdesk-securityteam:4700`; unset = guard bypass with WARNING |
+| `WRITE_RATE_PER_MIN` | optional, default `100` (per-identity sliding window) |
+| `WRITE_RATE_PER_HOUR` | optional, default `1000` |
 
 ## Auth
 

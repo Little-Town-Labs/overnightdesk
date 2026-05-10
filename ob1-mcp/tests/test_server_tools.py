@@ -17,6 +17,7 @@ from typing import Any
 import pytest
 
 from src.config import Config
+from src.guard import GuardRejection
 from src.server import build
 
 
@@ -142,6 +143,33 @@ class FakeEmbed:
         return [0.1, 0.2, 0.3]
 
 
+class FakeGuard:
+    """Drop-in for Guard. Records calls; configurable rejection."""
+
+    def __init__(
+        self,
+        *,
+        reject_quota: bool = False,
+        reject_content: bool = False,
+        reason: str = "blocked by FakeGuard",
+    ):
+        self.quota_calls: list[str] = []
+        self.content_calls: list[str] = []
+        self._reject_quota = reject_quota
+        self._reject_content = reject_content
+        self._reason = reason
+
+    def check_quota(self, identity: str = "default") -> None:
+        self.quota_calls.append(identity)
+        if self._reject_quota:
+            raise GuardRejection(self._reason)
+
+    async def check_content(self, content: str) -> None:
+        self.content_calls.append(content)
+        if self._reject_content:
+            raise GuardRejection(self._reason)
+
+
 def _cfg() -> Config:
     return Config(
         database_url="postgresql://example",
@@ -167,14 +195,14 @@ async def _call(mcp, name, **kwargs):
 @pytest.mark.asyncio
 async def test_save_thought_passes_provenance_fields():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(
         mcp,
         "save_thought",
         content="we use Postgres",
         category="decision",
         tags=["arch"],
-        provenance="confirmed",
+        provenance="observed",
         source="meeting",
         runtime="hermes-agent",
         reasoning_model="anthropic/claude-opus-4.7",
@@ -185,21 +213,21 @@ async def test_save_thought_passes_provenance_fields():
     assert embed.calls == ["we use Postgres"]
     assert len(store.inserted) == 1
     saved = store.inserted[0]
-    assert saved["provenance"] == "confirmed"
+    assert saved["provenance"] == "observed"
     assert saved["source"] == "meeting"
     assert saved["runtime"] == "hermes-agent"
     assert saved["reasoning_model"] == "anthropic/claude-opus-4.7"
     assert saved["channel"] == "cli"
     assert saved["task_id"] == "task-42"
     assert saved["confidence"] == 0.95
-    assert out["provenance"] == "confirmed"
+    assert out["provenance"] == "observed"
     assert out["task_id"] == "task-42"
 
 
 @pytest.mark.asyncio
 async def test_save_thought_defaults_to_generated():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     await _call(mcp, "save_thought", content="x", category="env")
     assert store.inserted[0]["provenance"] == "generated"
 
@@ -207,7 +235,7 @@ async def test_save_thought_defaults_to_generated():
 @pytest.mark.asyncio
 async def test_search_thoughts_forwards_filters():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(
         mcp,
         "search_thoughts",
@@ -226,7 +254,7 @@ async def test_search_thoughts_forwards_filters():
 @pytest.mark.asyncio
 async def test_list_thoughts_forwards_filters():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     await _call(
         mcp,
         "list_thoughts",
@@ -245,7 +273,7 @@ async def test_list_thoughts_forwards_filters():
 @pytest.mark.asyncio
 async def test_confirm_thought_promotes():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(mcp, "confirm_thought", id=7)
     assert store.confirmed_ids == [7]
     assert out["confirmed"] is True
@@ -256,7 +284,7 @@ async def test_confirm_thought_promotes():
 @pytest.mark.asyncio
 async def test_confirm_thought_missing():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(mcp, "confirm_thought", id=-1)
     assert out["confirmed"] is False
 
@@ -264,13 +292,13 @@ async def test_confirm_thought_missing():
 @pytest.mark.asyncio
 async def test_supersede_thought_replaces():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(
         mcp,
         "supersede_thought",
         old_id=5,
         new_content="we use Neon now",
-        provenance="confirmed",
+        provenance="observed",
         runtime="hermes-agent",
         task_id="task-99",
     )
@@ -278,13 +306,13 @@ async def test_supersede_thought_replaces():
     assert out["superseded"] is True
     assert out["replaced_id"] == 5
     assert out["supersedes_id"] == 5
-    assert out["provenance"] == "confirmed"
+    assert out["provenance"] == "observed"
 
 
 @pytest.mark.asyncio
 async def test_supersede_thought_missing():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(mcp, "supersede_thought", old_id=-1, new_content="x")
     assert out["superseded"] is False
     assert "does not exist" in out["reason"]
@@ -293,7 +321,7 @@ async def test_supersede_thought_missing():
 @pytest.mark.asyncio
 async def test_forget_thought_routes_hard_flag():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     await _call(mcp, "forget_thought", id=3, hard=True)
     assert store.forgotten == [(3, True)]
 
@@ -301,7 +329,7 @@ async def test_forget_thought_routes_hard_flag():
 @pytest.mark.asyncio
 async def test_memory_stats_includes_breakdown():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(mcp, "memory_stats")
     assert out["by_provenance"] == {"confirmed": 2, "inferred": 2}
     assert out["total"] == 5
@@ -310,6 +338,82 @@ async def test_memory_stats_includes_breakdown():
 @pytest.mark.asyncio
 async def test_list_provenance_values():
     store, embed = FakeStore(), FakeEmbed()
-    mcp = build(_cfg(), store, embed)
+    mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(mcp, "list_provenance_values")
     assert out == ["confirmed", "generated", "imported", "inferred", "observed"]
+
+
+# --- Trust-layer enforcement on memory writes ---------------------------------
+
+
+@pytest.mark.asyncio
+async def test_save_thought_rejects_confirmed_provenance():
+    store, embed, guard = FakeStore(), FakeEmbed(), FakeGuard()
+    mcp = build(_cfg(), store, embed, guard)
+    with pytest.raises(Exception) as exc_info:
+        await _call(mcp, "save_thought", content="x", category="env", provenance="confirmed")
+    assert "confirmed" in str(exc_info.value).lower()
+    # Nothing should have been embedded, guard-checked, or stored.
+    assert embed.calls == []
+    assert guard.content_calls == []
+    assert store.inserted == []
+
+
+@pytest.mark.asyncio
+async def test_supersede_thought_rejects_confirmed_provenance():
+    store, embed, guard = FakeStore(), FakeEmbed(), FakeGuard()
+    mcp = build(_cfg(), store, embed, guard)
+    with pytest.raises(Exception) as exc_info:
+        await _call(
+            mcp, "supersede_thought", old_id=1, new_content="y", provenance="confirmed"
+        )
+    assert "confirmed" in str(exc_info.value).lower()
+    assert embed.calls == []
+    assert store.superseded == []
+
+
+@pytest.mark.asyncio
+async def test_save_thought_calls_guard_before_embed():
+    store, embed, guard = FakeStore(), FakeEmbed(), FakeGuard()
+    mcp = build(_cfg(), store, embed, guard)
+    await _call(mcp, "save_thought", content="hello world", category="env")
+    assert guard.quota_calls == ["default"]
+    assert guard.content_calls == ["hello world"]
+    assert embed.calls == ["hello world"]
+    assert len(store.inserted) == 1
+
+
+@pytest.mark.asyncio
+async def test_save_thought_blocked_by_guard_content_check():
+    store, embed = FakeStore(), FakeEmbed()
+    guard = FakeGuard(reject_content=True, reason="Secret: openrouter_key")
+    mcp = build(_cfg(), store, embed, guard)
+    with pytest.raises(Exception) as exc_info:
+        await _call(mcp, "save_thought", content="my key is sk-or-v1-...", category="env")
+    assert "openrouter_key" in str(exc_info.value)
+    # Embed must NOT have been called — the secret must not leave to OpenRouter.
+    assert embed.calls == []
+    assert store.inserted == []
+
+
+@pytest.mark.asyncio
+async def test_save_thought_blocked_by_quota():
+    store, embed = FakeStore(), FakeEmbed()
+    guard = FakeGuard(reject_quota=True, reason="100/min")
+    mcp = build(_cfg(), store, embed, guard)
+    with pytest.raises(Exception) as exc_info:
+        await _call(mcp, "save_thought", content="x", category="env")
+    assert "100/min" in str(exc_info.value)
+    assert guard.content_calls == []  # quota check fires before content check
+    assert embed.calls == []
+    assert store.inserted == []
+
+
+@pytest.mark.asyncio
+async def test_supersede_thought_calls_guard():
+    store, embed, guard = FakeStore(), FakeEmbed(), FakeGuard()
+    mcp = build(_cfg(), store, embed, guard)
+    await _call(mcp, "supersede_thought", old_id=5, new_content="new fact")
+    assert guard.quota_calls == ["default"]
+    assert guard.content_calls == ["new fact"]
+    assert embed.calls == ["new fact"]

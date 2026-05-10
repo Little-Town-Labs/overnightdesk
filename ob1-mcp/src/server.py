@@ -7,6 +7,13 @@ from pydantic import Field
 from .config import Config
 from .db import PROVENANCE_VALUES, Store
 from .embeddings import OpenRouterClient
+from .guard import Guard, GuardRejection
+
+
+# Provenance values a worker may self-report on save_thought / supersede_thought.
+# 'confirmed' is reserved for confirm_thought(id) — workers cannot self-elevate
+# their own writes to instruction-grade.
+SAVEABLE_PROVENANCE = PROVENANCE_VALUES - {"confirmed"}
 
 
 INSTRUCTIONS = (
@@ -20,13 +27,17 @@ INSTRUCTIONS = (
     "  generated = agent-produced during work (reviews, summaries)\n\n"
     "Treat 'confirmed' and 'observed' as instruction-grade. Treat the rest as "
     "evidence-grade unless you intentionally widen the filter.\n\n"
+    "PROVENANCE INTEGRITY: save_thought / supersede_thought refuse "
+    "provenance='confirmed'. Instruction-grade is set ONLY by confirm_thought(id), "
+    "which models a deliberate human (or platform-trusted) endorsement.\n\n"
     "WORKFLOW:\n"
     "  1. RECALL: search_thoughts(..., min_provenance=['confirmed','observed'])\n"
     "     before doing meaningful work.\n"
     "  2. WORK: do the thing, carrying task_id / channel / runtime context.\n"
     "  3. WRITE-BACK: save_thought(..., provenance, source, runtime, "
     "reasoning_model, channel, task_id, confidence) so the next agent can "
-    "build on it.\n"
+    "build on it. Writes pass through a trust-layer guard (rate limit + "
+    "PII / secret check) before embedding.\n"
     "  4. PROMOTE: when the user confirms an inferred entry, call "
     "confirm_thought(id) to elevate it to instruction-grade.\n"
     "  5. SUPERSEDE: when a fact changes, call supersede_thought(old_id, "
@@ -34,7 +45,7 @@ INSTRUCTIONS = (
 )
 
 
-def build(cfg: Config, store: Store, embed: OpenRouterClient) -> FastMCP:
+def build(cfg: Config, store: Store, embed: OpenRouterClient, guard: Guard) -> FastMCP:
     mcp = FastMCP(
         name="open-brain",
         instructions=INSTRUCTIONS,
@@ -89,6 +100,17 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient) -> FastMCP:
         ),
     ) -> dict[str, Any]:
         """Embed and store a new thought with provenance metadata."""
+        if provenance not in SAVEABLE_PROVENANCE:
+            raise ValueError(
+                f"provenance={provenance!r} not allowed on save_thought; "
+                f"allowed: {sorted(SAVEABLE_PROVENANCE)}. "
+                "'confirmed' is set only via confirm_thought(id)."
+            )
+        try:
+            guard.check_quota()
+            await guard.check_content(content)
+        except GuardRejection as e:
+            raise ValueError(str(e)) from e
         vec = await embed.embed(content)
         row = await store.insert_entry(
             category=category,
@@ -200,6 +222,17 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient) -> FastMCP:
         confidence: float | None = Field(default=None, ge=0.0, le=1.0),
     ) -> dict[str, Any]:
         """Atomically replace an entry: insert new (linked via supersedes_id), soft-delete old."""
+        if provenance not in SAVEABLE_PROVENANCE:
+            raise ValueError(
+                f"provenance={provenance!r} not allowed on supersede_thought; "
+                f"allowed: {sorted(SAVEABLE_PROVENANCE)}. "
+                "'confirmed' is set only via confirm_thought(id)."
+            )
+        try:
+            guard.check_quota()
+            await guard.check_content(new_content)
+        except GuardRejection as e:
+            raise ValueError(str(e)) from e
         vec = await embed.embed(new_content)
         try:
             row = await store.supersede(
