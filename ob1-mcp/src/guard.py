@@ -61,10 +61,12 @@ class Guard:
         securityteam_url: str | None,
         per_minute: int,
         per_hour: int,
+        securityteam_token: str | None = None,
         client: httpx.AsyncClient | None = None,
         timeout: float = 5.0,
     ) -> None:
         self._url = securityteam_url.rstrip("/") if securityteam_url else None
+        self._token = securityteam_token or None
         self._per_minute = per_minute
         self._per_hour = per_hour
         self._buckets: dict[str, tuple[_Bucket, _Bucket]] = {}
@@ -73,6 +75,7 @@ class Guard:
         self._client = client or httpx.AsyncClient(timeout=timeout)
         self._owns_client = client is None
         self._warned_no_url = False
+        self._warned_no_token = False
 
     async def aclose(self) -> None:
         if self._owns_client:
@@ -111,6 +114,14 @@ class Guard:
                 )
                 self._warned_no_url = True
             return
+        if self._token is None and not self._warned_no_token:
+            log.warning(
+                "SECURITYTEAM_TOKEN unset — securityteam will reject the request "
+                "with 401 and the guard will fail-closed. Set SECURITYTEAM_TOKEN "
+                "to the value of securityteam's SECURITY_SERVICE_TOKEN."
+            )
+            self._warned_no_token = True
+        headers = {"Authorization": f"Bearer {self._token}"} if self._token else {}
         try:
             r = await self._client.post(
                 f"{self._url}/check-outbound",
@@ -119,6 +130,7 @@ class Guard:
                     "channel": "webhook",
                     "content": content,
                 },
+                headers=headers,
                 timeout=self._timeout,
             )
         except httpx.HTTPError as e:

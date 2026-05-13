@@ -26,6 +26,7 @@ async def _run() -> None:
     embed = OpenRouterClient(cfg)
     guard = Guard(
         securityteam_url=cfg.securityteam_url,
+        securityteam_token=cfg.securityteam_token,
         per_minute=cfg.write_rate_per_min,
         per_hour=cfg.write_rate_per_hour,
     )

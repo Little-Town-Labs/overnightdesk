@@ -112,6 +112,44 @@ async def test_securityteam_transport_error_fails_closed():
 
 
 @pytest.mark.asyncio
+async def test_securityteam_sends_bearer_token_when_configured():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["auth"] = request.headers.get("authorization")
+        return httpx.Response(200, json={"allowed": True})
+
+    client = httpx.AsyncClient(transport=_mock_transport(handler))
+    g = Guard(
+        securityteam_url="http://test",
+        securityteam_token="tok-abc123",
+        per_minute=10,
+        per_hour=100,
+        client=client,
+    )
+    await g.check_content("hello")
+    assert captured["auth"] == "Bearer tok-abc123"
+    await g.aclose()
+
+
+@pytest.mark.asyncio
+async def test_securityteam_omits_auth_header_when_token_unset():
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["auth"] = request.headers.get("authorization")
+        return httpx.Response(200, json={"allowed": True})
+
+    client = httpx.AsyncClient(transport=_mock_transport(handler))
+    g = Guard(
+        securityteam_url="http://test", per_minute=10, per_hour=100, client=client
+    )
+    await g.check_content("hello")
+    assert captured["auth"] is None
+    await g.aclose()
+
+
+@pytest.mark.asyncio
 async def test_securityteam_request_payload_shape():
     captured: dict = {}
 
