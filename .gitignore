@@ -41,3 +41,6 @@ drizzle/meta/
 # local artifacts
 .docs/
 .herenow/
+
+# sibling/nested standards repository; commit inside its own repo
+overnightdesk-platform-standard/
