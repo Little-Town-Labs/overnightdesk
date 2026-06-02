@@ -4,7 +4,7 @@ MCP server exposing Ace's long-term memory (`ace_memory` schema in tenet0-postgr
 
 ## Trust model (provenance)
 
-Every entry is labeled with a provenance value:
+Every entry is labeled with a provenance value and an explicit use policy.
 
 | Provenance  | Meaning                                                       | Trust tier  | Settable on save? |
 | ----------- | ------------------------------------------------------------- | ----------- | ----------------- |
@@ -18,6 +18,15 @@ Consumers should default to instruction-grade (`['confirmed','observed']`) when 
 
 **Provenance integrity rule:** `save_thought` and `supersede_thought` reject `provenance='confirmed'` — workers cannot self-elevate their own writes to instruction-grade. The only way to set `confirmed` is `confirm_thought(id)`, which models a deliberate endorsement.
 
+Implementation note: the Judge Extender guide uses `user_confirmed`; this service keeps the existing runtime value `confirmed` for the same concept.
+
+| Use policy | Meaning |
+| --- | --- |
+| `can_use_as_instruction` | Safe to inject into future action/judge prompts as an instruction. |
+| `can_use_as_evidence` | Safe as evidence/background, not as a standing instruction. |
+| `requires_confirmation` | Needs human review before future instruction use. Default for `inferred` and `generated`. |
+| `do_not_inject_automatically` | Sensitive, disputed, stale, or otherwise restricted. |
+
 ## Trust-layer guard on writes
 
 Every `save_thought` / `supersede_thought` call passes through a guard before embedding or storage:
@@ -28,7 +37,7 @@ Every `save_thought` / `supersede_thought` call passes through a guard before em
 ## Workflow (recall → work → write-back)
 
 ```
-1. RECALL    search_thoughts(query, min_provenance=['confirmed','observed'], task_id?)
+1. RECALL    search_thoughts(query, allowed_use_policies=['can_use_as_instruction'], task_id?)
 2. WORK      do the thing, carrying task_id / channel / runtime context
 3. WRITE     save_thought(content, category, provenance, source, runtime,
                           reasoning_model, channel, task_id, confidence)
@@ -48,13 +57,19 @@ Every `save_thought` / `supersede_thought` call passes through a guard before em
 | `forget_thought` | Soft (default) or hard delete. |
 | `memory_stats` | Counts incl. `by_provenance` breakdown. |
 | `list_provenance_values` | Returns the allowed provenance enum values. |
+| `list_use_policy_values` | Returns the allowed memory use-policy enum values. |
+| `save_action_proposal` | Stores an OpenBrain Judge action proposal envelope idempotently. |
+| `record_judge_decision` | Stores an OpenBrain Judge decision envelope idempotently. |
+| `get_judge_decision` | Reads back one judge decision by `decision_id`. |
 
 ## Schema
 
 Live schema: `ace_memory` in tenet0-postgres.
 
-- `entries(id, category, content, tags, is_active, provenance, source, runtime, reasoning_model, channel, task_id, confidence, user_confirmed_at, supersedes_id, created_at, updated_at)`
+- `entries(id, category, content, tags, is_active, provenance, use_policy, source, runtime, reasoning_model, channel, task_id, confidence, user_confirmed_at, supersedes_id, created_at, updated_at)`
 - `embeddings(entry_id, embedding vector, model)`
+- `action_proposals(...)` stores compact Judge V1 action proposal envelopes.
+- `judge_decisions(...)` stores allow/block/revise/escalate decision write-back records.
 
 Migrations live under `migrations/`. Apply with `psql` against tenet0-postgres after `pg_dump -n ace_memory`. Numbered, idempotent (`IF NOT EXISTS` everywhere) — safe to re-run.
 

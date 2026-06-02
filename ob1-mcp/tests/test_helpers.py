@@ -5,7 +5,10 @@ import pytest
 from src.db import (
     INSTRUCTION_GRADE,
     PROVENANCE_VALUES,
+    USE_POLICY_VALUES,
+    _default_use_policy,
     _validate_provenance,
+    _validate_use_policy,
     _vector_literal,
     _ensure_utc,
 )
@@ -24,6 +27,15 @@ def test_provenance_values_complete():
     assert INSTRUCTION_GRADE.issubset(PROVENANCE_VALUES)
 
 
+def test_use_policy_values_complete():
+    assert USE_POLICY_VALUES == {
+        "can_use_as_instruction",
+        "can_use_as_evidence",
+        "requires_confirmation",
+        "do_not_inject_automatically",
+    }
+
+
 @pytest.mark.parametrize("value", sorted(PROVENANCE_VALUES))
 def test_validate_provenance_accepts_known(value):
     _validate_provenance(value)
@@ -32,6 +44,30 @@ def test_validate_provenance_accepts_known(value):
 def test_validate_provenance_rejects_unknown():
     with pytest.raises(ValueError, match="invalid provenance"):
         _validate_provenance("trustworthy")
+
+
+@pytest.mark.parametrize("value", sorted(USE_POLICY_VALUES))
+def test_validate_use_policy_accepts_known(value):
+    _validate_use_policy(value)
+
+
+def test_validate_use_policy_rejects_unknown():
+    with pytest.raises(ValueError, match="invalid use_policy"):
+        _validate_use_policy("can_use_whenever")
+
+
+@pytest.mark.parametrize(
+    ("provenance", "expected"),
+    [
+        ("observed", "can_use_as_instruction"),
+        ("confirmed", "can_use_as_instruction"),
+        ("imported", "can_use_as_evidence"),
+        ("inferred", "requires_confirmation"),
+        ("generated", "requires_confirmation"),
+    ],
+)
+def test_default_use_policy(provenance, expected):
+    assert _default_use_policy(provenance) == expected
 
 
 def test_vector_literal_format():
@@ -77,6 +113,7 @@ def test_row_to_payload_full_round_trip():
         "channel": "cli",
         "task_id": "task-42",
         "confidence": 0.9,
+        "use_policy": "can_use_as_instruction",
         "user_confirmed_at": datetime(2026, 5, 9, 18, 0, 0, tzinfo=timezone.utc),
         "supersedes_id": None,
         "created_at": datetime(2026, 5, 9, 18, 0, 0, tzinfo=timezone.utc),
@@ -88,6 +125,7 @@ def test_row_to_payload_full_round_trip():
     assert payload["provenance"] == "confirmed"
     assert payload["task_id"] == "task-42"
     assert payload["confidence"] == 0.9
+    assert payload["use_policy"] == "can_use_as_instruction"
     assert payload["similarity"] == 0.8765
     assert payload["user_confirmed_at"].endswith("+00:00")
 

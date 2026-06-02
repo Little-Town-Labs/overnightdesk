@@ -40,6 +40,7 @@ class FakeStore:
             "updated_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
             "user_confirmed_at": None,
             "supersedes_id": kwargs.get("supersedes_id"),
+            "use_policy": kwargs.get("use_policy"),
             **{k: v for k, v in kwargs.items() if k not in ("embedding", "embedding_model")},
         }
         self.inserted.append(row)
@@ -61,6 +62,7 @@ class FakeStore:
                 "channel": None,
                 "task_id": kwargs.get("task_id"),
                 "confidence": None,
+                "use_policy": "can_use_as_instruction",
                 "user_confirmed_at": None,
                 "supersedes_id": None,
                 "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
@@ -90,6 +92,7 @@ class FakeStore:
             "channel": None,
             "task_id": None,
             "confidence": None,
+            "use_policy": "can_use_as_instruction",
             "user_confirmed_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
             "supersedes_id": None,
             "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
@@ -114,6 +117,7 @@ class FakeStore:
             "channel": kwargs.get("channel"),
             "task_id": kwargs.get("task_id"),
             "confidence": kwargs.get("confidence"),
+            "use_policy": kwargs.get("use_policy"),
             "user_confirmed_at": None,
             "supersedes_id": kwargs["old_id"],
             "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
@@ -131,6 +135,74 @@ class FakeStore:
             "embeddings": 5,
             "categories": 2,
             "by_provenance": {"confirmed": 2, "inferred": 2},
+        }
+
+    async def insert_action_proposal(self, proposal):
+        action = proposal.get("action") or {}
+        tool = proposal.get("tool") or {}
+        return {
+            "id": 1,
+            "proposal_id": proposal.get("proposal_id") or proposal["action_id"],
+            "schema_version": proposal["schema_version"],
+            "workspace_id": proposal["workspace_id"],
+            "project_id": proposal.get("project_id"),
+            "task_id": proposal.get("task_id"),
+            "flow_id": proposal.get("flow_id"),
+            "action_id": proposal["action_id"],
+            "idempotency_key": proposal["idempotency_key"],
+            "risk_class": action.get("risk_class") or proposal.get("risk_class"),
+            "tool_name": tool.get("name") or proposal.get("tool_name"),
+            "target_system": tool.get("target_system") or proposal.get("target_system"),
+            "proposal": proposal,
+            "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
+        }
+
+    async def insert_judge_decision(self, decision_doc):
+        judge = decision_doc.get("judge") or {}
+        provenance = decision_doc.get("provenance") or {}
+        return {
+            "id": 2,
+            "decision_id": decision_doc["decision_id"],
+            "schema_version": decision_doc["schema_version"],
+            "workspace_id": decision_doc["workspace_id"],
+            "project_id": decision_doc.get("project_id"),
+            "task_id": decision_doc.get("task_id"),
+            "flow_id": decision_doc.get("flow_id"),
+            "action_id": decision_doc["action_id"],
+            "proposal_id": decision_doc.get("proposal_id"),
+            "idempotency_key": decision_doc["idempotency_key"],
+            "decision": decision_doc["decision"],
+            "confidence": decision_doc.get("confidence"),
+            "judge_kind": judge.get("kind"),
+            "decision_doc": decision_doc,
+            "memory_used": decision_doc.get("memory_used") or [],
+            "memory_to_write": decision_doc.get("memory_to_write") or {},
+            "requires_review": provenance.get("requires_review", True),
+            "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
+        }
+
+    async def get_judge_decision(self, decision_id):
+        if decision_id == "missing":
+            return None
+        return {
+            "id": 2,
+            "decision_id": decision_id,
+            "schema_version": "openbrain.judge.decision.v1",
+            "workspace_id": "ws",
+            "project_id": None,
+            "task_id": None,
+            "flow_id": None,
+            "action_id": "act-1",
+            "proposal_id": None,
+            "idempotency_key": "idem-decision",
+            "decision": "allow",
+            "confidence": "high",
+            "judge_kind": "rule",
+            "decision_doc": {"decision_id": decision_id},
+            "memory_used": [],
+            "memory_to_write": {},
+            "requires_review": False,
+            "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
         }
 
 
@@ -209,6 +281,7 @@ async def test_save_thought_passes_provenance_fields():
         channel="cli",
         task_id="task-42",
         confidence=0.95,
+        use_policy="can_use_as_evidence",
     )
     assert embed.calls == ["we use Postgres"]
     assert len(store.inserted) == 1
@@ -220,8 +293,10 @@ async def test_save_thought_passes_provenance_fields():
     assert saved["channel"] == "cli"
     assert saved["task_id"] == "task-42"
     assert saved["confidence"] == 0.95
+    assert saved["use_policy"] == "can_use_as_evidence"
     assert out["provenance"] == "observed"
     assert out["task_id"] == "task-42"
+    assert out["use_policy"] == "can_use_as_evidence"
 
 
 @pytest.mark.asyncio
@@ -242,9 +317,11 @@ async def test_search_thoughts_forwards_filters():
         query="postgres choice",
         top_k=3,
         min_provenance=["confirmed", "observed"],
+        allowed_use_policies=["can_use_as_instruction"],
         task_id="task-42",
     )
     assert store.search_calls[0]["min_provenance"] == ["confirmed", "observed"]
+    assert store.search_calls[0]["allowed_use_policies"] == ["can_use_as_instruction"]
     assert store.search_calls[0]["task_id"] == "task-42"
     assert store.search_calls[0]["top_k"] == 3
     assert out[0]["similarity"] == 0.42
@@ -261,12 +338,14 @@ async def test_list_thoughts_forwards_filters():
         category="decision",
         limit=10,
         min_provenance=["confirmed"],
+        allowed_use_policies=["can_use_as_instruction"],
         task_id="task-7",
     )
     call = store.list_calls[0]
     assert call["category"] == "decision"
     assert call["limit"] == 10
     assert call["min_provenance"] == ["confirmed"]
+    assert call["allowed_use_policies"] == ["can_use_as_instruction"]
     assert call["task_id"] == "task-7"
 
 
@@ -341,6 +420,72 @@ async def test_list_provenance_values():
     mcp = build(_cfg(), store, embed, FakeGuard())
     out = await _call(mcp, "list_provenance_values")
     assert out == ["confirmed", "generated", "imported", "inferred", "observed"]
+
+
+@pytest.mark.asyncio
+async def test_list_use_policy_values():
+    store, embed = FakeStore(), FakeEmbed()
+    mcp = build(_cfg(), store, embed, FakeGuard())
+    out = await _call(mcp, "list_use_policy_values")
+    assert out == [
+        "can_use_as_evidence",
+        "can_use_as_instruction",
+        "do_not_inject_automatically",
+        "requires_confirmation",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_save_action_proposal_records_envelope():
+    store, embed = FakeStore(), FakeEmbed()
+    mcp = build(_cfg(), store, embed, FakeGuard())
+    out = await _call(
+        mcp,
+        "save_action_proposal",
+        proposal={
+            "schema_version": "openbrain.judge.action_proposal.v1",
+            "workspace_id": "ws",
+            "action_id": "act-1",
+            "idempotency_key": "idem-proposal",
+            "action": {"risk_class": "external_side_effect"},
+            "tool": {"name": "gmail.send", "target_system": "gmail"},
+        },
+    )
+    assert out["proposal_id"] == "act-1"
+    assert out["risk_class"] == "external_side_effect"
+    assert out["tool_name"] == "gmail.send"
+
+
+@pytest.mark.asyncio
+async def test_record_and_get_judge_decision():
+    store, embed = FakeStore(), FakeEmbed()
+    mcp = build(_cfg(), store, embed, FakeGuard())
+    out = await _call(
+        mcp,
+        "record_judge_decision",
+        decision={
+            "schema_version": "openbrain.judge.decision.v1",
+            "workspace_id": "ws",
+            "action_id": "act-1",
+            "decision_id": "dec-1",
+            "idempotency_key": "idem-decision",
+            "decision": "allow",
+            "confidence": "high",
+            "judge": {"kind": "rule"},
+            "provenance": {"requires_review": False},
+        },
+    )
+    assert out["decision_id"] == "dec-1"
+    assert out["decision"] == "allow"
+    assert out["judge_kind"] == "rule"
+    assert out["requires_review"] is False
+
+    fetched = await _call(mcp, "get_judge_decision", decision_id="dec-1")
+    assert fetched["found"] is True
+    assert fetched["decision_id"] == "dec-1"
+
+    missing = await _call(mcp, "get_judge_decision", decision_id="missing")
+    assert missing == {"decision_id": "missing", "found": False}
 
 
 # --- Trust-layer enforcement on memory writes ---------------------------------
