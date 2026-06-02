@@ -44,3 +44,5 @@ drizzle/meta/
 
 # sibling/nested standards repository; commit inside its own repo
 overnightdesk-platform-standard/
+overnightdesk-operations-audit/
+overnightdesk-ops/
