@@ -74,8 +74,10 @@ Created: 2026-06-11
 
 ## P3 - Optional Improvements
 
-- [ ] Add a top-level `README.md` or `AGENTS.md` in
+- [x] Add a top-level `README.md` or `AGENTS.md` in
   `/home/frosted639/src/overnightdesk-suite/` describing the multi-repo layout.
+  - Added suite-level `AGENTS.md` on 2026-06-11 with repo ownership,
+    workflow rules, deploy-log location, and archive retention notes.
 
 - [ ] Add a small verification script for the suite.
   - Suggested checks: repo status, expected branches/remotes, `npm ci` and
