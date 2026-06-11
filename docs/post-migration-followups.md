@@ -79,9 +79,13 @@ Created: 2026-06-11
   - Added suite-level `AGENTS.md` on 2026-06-11 with repo ownership,
     workflow rules, deploy-log location, and archive retention notes.
 
-- [ ] Add a small verification script for the suite.
+- [x] Add a small verification script for the suite.
   - Suggested checks: repo status, expected branches/remotes, `npm ci` and
     research tests for ops, targeted Go tests for audit and engine.
+  - Added `scripts/verify-suite.sh` on 2026-06-11. It checks the WSL-native
+    sibling Git checkouts, origin remotes, dirty status, deploy-log presence,
+    and archive presence. It intentionally does not install dependencies or run
+    broad test suites.
 
 - [ ] Review `overnightdesk-ops` dependency audit findings.
   - `npm ci` reported 8 audit findings: 6 moderate, 2 high.
