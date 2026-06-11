@@ -62,10 +62,15 @@ Created: 2026-06-11
   - Keep the stub for now; do not wire it into deploy or health-check workflows
     unless scheduled-job observability becomes an active feature.
 
-- [ ] Confirm whether archived `/mnt/f/_archive/overnightdesk*` checkouts should
+- [x] Confirm whether archived `/mnt/f/_archive/overnightdesk*` checkouts should
   be retained long-term or deleted after a cooling-off period.
   - They contain the old untracked parent docs/context/spikes and any ignored
     local state intentionally left behind.
+  - Retention decision on 2026-06-11: keep for a 30-day cooling-off period,
+    then delete after one final confirmation if no missing state has surfaced.
+  - Target review/delete date: 2026-07-11.
+  - Current footprint is about 2.2 GB total, mostly
+    `/mnt/f/_archive/overnightdesk` at about 1.9 GB.
 
 ## P3 - Optional Improvements
 
