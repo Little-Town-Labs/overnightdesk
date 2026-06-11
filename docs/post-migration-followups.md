@@ -4,13 +4,14 @@ Created: 2026-06-11
 
 ## P0 - Time-Sensitive Operations
 
-- [ ] Fix or confirm TLS renewal for `aegis-prod.overnightdesk.com`.
-  - Health check showed the served certificate expires on 2026-06-19.
-  - Host `certbot.timer` exits successfully, but `sudo certbot certificates`
-    reports no host-managed certs while nginx uses certs under
-    `/opt/overnightdesk/certbot/conf`.
-  - Determine whether renewal should run through the Docker certbot volume path
-    or host certbot, then test renewal and nginx reload.
+- [x] Fix or confirm TLS renewal for `aegis-prod.overnightdesk.com`.
+  - Renewed the Docker-managed certificate on 2026-06-11.
+  - Nginx now serves cert serial `05D55E6666888B25618B5E2CAC9F01F5A503`,
+    valid until 2026-09-09.
+  - Installed and verified `overnightdesk-certbot-renew.timer`, which runs
+    Docker certbot from `/opt/overnightdesk` and reloads `overnightdesk-nginx`.
+  - Pre-renewal backup:
+    `/home/ubuntu/certbot-backups/certbot-conf-20260611T145247Z.tgz`.
 
 ## P1 - Production Hygiene
 
