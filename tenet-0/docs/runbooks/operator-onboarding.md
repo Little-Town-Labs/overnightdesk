@@ -94,7 +94,7 @@ Mirrors Feature 49 EC-1b grace-window pattern.
 
 If Ed25519 onboarding cannot be completed for any reason, ship MVP with `OPERATOR_AUTH=comm-module-signed` env flag set on bus-watcher. This downgrades trust to "comm-module signs decisions on operator's behalf" — **comm-module compromise becomes a forgery risk** (security T4 unmitigated).
 
-This fallback is **explicitly inferior** and should be removed within 30 days of first deploy. Document it in `/mnt/f/deploys.log` if invoked.
+This fallback is **explicitly inferior** and should be removed within 30 days of first deploy. Document it in `/home/frosted639/src/overnightdesk-suite/deploys.log` if invoked.
 
 ## References
 

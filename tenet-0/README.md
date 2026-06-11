@@ -213,9 +213,9 @@ ssh -i ~/.ssh/ssh-key-2026-03-15 ubuntu@147.224.183.55 \
 ssh -i ~/.ssh/ssh-key-2026-03-15 ubuntu@147.224.183.55 \
   "cd /opt/overnightdesk/tenet-0 && docker compose up -d && bash deploy/smoke-test.sh"
 
-# 4. Append to /mnt/f/deploys.log
+# 4. Append to the suite deploy log
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | overnightdesk | tenet0-postgres | $(git log --oneline -1 | cut -d' ' -f1) | success | <notes>" \
-  >> /mnt/f/deploys.log
+  >> /home/frosted639/src/overnightdesk-suite/deploys.log
 ```
 
 ## What is NOT in this repo

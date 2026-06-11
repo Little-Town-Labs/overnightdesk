@@ -44,12 +44,13 @@ Created: 2026-06-11
 
 ## P2 - Documentation and Workflow Cleanup
 
-- [ ] Decide the permanent deployment log location after moving active work off
+- [x] Decide the permanent deployment log location after moving active work off
   `/mnt/f`.
-  - Current Aegis skill still says production deployments append to
-    `/mnt/f/deploys.log`.
-  - If the new standard should be WSL-native or cloud-backed, update the skill
-    and platform-standard docs together.
+  - New canonical local audit trail:
+    `/home/frosted639/src/overnightdesk-suite/deploys.log`.
+  - Existing `/mnt/f/deploys.log` history was copied to the new WSL-native
+    path on 2026-06-11.
+  - Updated the Aegis skill and platform-standard deployment docs together.
 
 - [ ] Decide what to do with `overnightdesk-job-observatory`.
   - The WSL clone is local-only with no remote and only `PRD.md`.
