@@ -87,7 +87,14 @@ Created: 2026-06-11
     and archive presence. It intentionally does not install dependencies or run
     broad test suites.
 
-- [ ] Review `overnightdesk-ops` dependency audit findings.
-  - `npm ci` reported 8 audit findings: 6 moderate, 2 high.
+- [x] Review `overnightdesk-ops` dependency audit findings.
+  - Earlier `npm ci` reported 8 audit findings; a fresh `npm audit --json`
+    on 2026-06-11 found 9 findings: 6 moderate, 3 high.
   - Do this separately from migration because `npm audit fix` may broaden the
     dependency changes.
+  - Resolved on 2026-06-11 in `overnightdesk-ops` commit `57f9ed6`.
+  - Final `npm audit --json`: 0 vulnerabilities.
+  - Validation after clean `npm ci`: `npm test` passed 15 files / 125 tests;
+    `npm run build` passed.
+  - Deployed to Aegis by pulling `57f9ed6`, rebuilding `overnightdesk-ops`, and
+    verifying both web and MCP `/health` endpoints.
