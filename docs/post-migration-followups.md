@@ -52,10 +52,15 @@ Created: 2026-06-11
     path on 2026-06-11.
   - Updated the Aegis skill and platform-standard deployment docs together.
 
-- [ ] Decide what to do with `overnightdesk-job-observatory`.
+- [x] Decide what to do with `overnightdesk-job-observatory`.
   - The WSL clone is local-only with no remote and only `PRD.md`.
-  - It appears to be a planning stub; Flight Recorder may have absorbed the
-    useful functionality.
+  - Classified on 2026-06-11 as a parked planning stub, not an active
+    operational repo.
+  - Flight Recorder is not the same scope: it captures engine/runtime events
+    and snapshots, while Job Observatory describes scheduled-job heartbeat,
+    gap detection, and daily summary alerting.
+  - Keep the stub for now; do not wire it into deploy or health-check workflows
+    unless scheduled-job observability becomes an active feature.
 
 - [ ] Confirm whether archived `/mnt/f/_archive/overnightdesk*` checkouts should
   be retained long-term or deleted after a cooling-off period.
