@@ -15,10 +15,16 @@ Created: 2026-06-11
 
 ## P1 - Production Hygiene
 
-- [ ] Decide whether to prune Docker images on `aegis-prod`.
-  - `docker system df` showed about 13.3 GB reclaimable images.
-  - Before pruning, confirm no one-shot operational image such as
-    `overnightdesk-operations-audit:latest` would be lost without a rebuild path.
+- [x] Decide whether to prune Docker images on `aegis-prod`.
+  - Performed targeted cleanup on 2026-06-11 instead of broad
+    `docker image prune -a`.
+  - Removed temporary `curlimages/curl:latest` image created by health checks.
+  - Pruned reclaimable build-cache entries.
+  - Preserved `overnightdesk-operations-audit:latest`; it is a required
+    one-shot operational image and has a rebuild path at
+    `~/overnightdesk-operations-audit` plus `/opt/overnightdesk/run-audit.sh`.
+  - Remaining large image footprint is mostly active runtime images, especially
+    Hermes and Camofox, so no broader prune was performed.
 
 - [x] Reconcile dirty Aegis source checkouts.
   - Cleaned `~/overnightdesk-ops`, `~/overnightdesk-platform-standard`, and
