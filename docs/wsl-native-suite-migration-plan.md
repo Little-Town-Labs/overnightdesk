@@ -19,17 +19,17 @@ from `/mnt/f`, especially `.env`, `.vercel`, `.next`, `node_modules`, `.venv`,
 
 | Repo | Source path | Branch | HEAD | Origin | State |
 |---|---|---:|---|---|---|
-| overnightdesk | `/mnt/f/overnightdesk` | `feat/ob1-mcp` | `1ada549a59fe8f4ec8bd10df25a0c3ff9d5654e7` | `https://github.com/Little-Town-Labs/overnightdesk.git` | untracked docs/context/spikes |
+| overnightdesk | `/home/frosted639/src/overnightdesk-suite/overnightdesk` | `feat/ob1-mcp` | `3ff957a7240b33592da9576a1f0569cec2bf26e0` | `https://github.com/Little-Town-Labs/overnightdesk.git` | WSL clone clean, pushed |
 | overnightdesk-ops | `/mnt/f/overnightdesk/overnightdesk-ops` | `main` | `fe9d1a9130006dbc91cc95a8667bb80d48c80041` | `https://github.com/Little-Town-Labs/overnightdesk-ops.git` | WSL clone clean, pushed |
-| overnightdesk-platform-standard | `/mnt/f/overnightdesk/overnightdesk-platform-standard` | `main` | `c69302d4589fe7ecbb04c3c2eb97b2e4a36bbbb1` | `https://github.com/Little-Town-Labs/overnightdesk-platform-standard.git` | source clean, ahead 1 |
-| overnightdesk-operations-audit | `/mnt/f/overnightdesk/overnightdesk-operations-audit` | `main` | `389caf8bafbe47754a087754371d07b79f00afd1` | `https://github.com/Little-Town-Labs/overnightdesk-operations-audit.git` | source clean, ahead 1 |
-| overnightdesk-communicationmodule | `/mnt/f/overnightdesk-communicationmodule` | `main` | `3be4c7ab4466a7423cd9d80a6579cab40d64dc67` | `https://github.com/Little-Town-Labs/overnightdesk-communicationmodule.git` | clean |
-| overnightdesk-engine | `/mnt/f/overnightdesk-engine` | `11-orchestrator-fr-instrumentation` | `1fe10fc68466fb20a60c6ae942abfd8aab3a8095` | `https://github.com/Little-Town-Labs/overnightdesk-engine` | source clean, generated binaries untracked |
-| overnightdesk-flightrecorder | `/mnt/f/overnightdesk-flightrecorder` | `main` | `70ccf9ee52eebd4986ac2a6ce296659d5f5583d6` | `https://github.com/Little-Town-Labs/overnightdesk-flightrecorder.git` | WSL clone clean, stale local branch removed |
-| overnightdesk-job-observatory | `/mnt/f/overnightdesk-job-observatory` | `master` | `a60a736529096948467437cec636c1b540f89c30` | none configured | clean, local-only unless remote is added |
-| overnightdesk-newsletter-curator | `/mnt/f/overnightdesk-newsletter-curator` | `master` | `016794bc1d518366ab24f49ec5a4039da83cce46` | `https://github.com/Little-Town-Labs/newsletter-curator.git` | clean |
-| overnightdesk-SecurityCouncil | `/mnt/f/overnightdesk-SecurityCouncil` | `main` | `5284d94b4cc2fe7ddef6b163b062d545c566b0fd` | `https://github.com/Little-Town-Labs/overnightdesk-SecurityCouncil.git` | clean |
-| overnightdesk-securityteam | `/mnt/f/overnightdesk-securityteam` | `main` | `dee7d8989df9ee79e3d73c8dbe700cd43335b855` | `https://github.com/Little-Town-Labs/overnightdesk-securityteam` | clean |
+| overnightdesk-platform-standard | `/home/frosted639/src/overnightdesk-suite/overnightdesk-platform-standard` | `main` | `c69302d4589fe7ecbb04c3c2eb97b2e4a36bbbb1` | `https://github.com/Little-Town-Labs/overnightdesk-platform-standard.git` | WSL clone clean, pushed |
+| overnightdesk-operations-audit | `/home/frosted639/src/overnightdesk-suite/overnightdesk-operations-audit` | `main` | `389caf8bafbe47754a087754371d07b79f00afd1` | `https://github.com/Little-Town-Labs/overnightdesk-operations-audit.git` | WSL clone clean, pushed |
+| overnightdesk-communicationmodule | `/home/frosted639/src/overnightdesk-suite/overnightdesk-communicationmodule` | `main` | `3be4c7ab4466a7423cd9d80a6579cab40d64dc67` | `https://github.com/Little-Town-Labs/overnightdesk-communicationmodule.git` | WSL clone clean |
+| overnightdesk-engine | `/home/frosted639/src/overnightdesk-suite/overnightdesk-engine` | `11-orchestrator-fr-instrumentation` | `1fe10fc68466fb20a60c6ae942abfd8aab3a8095` | `https://github.com/Little-Town-Labs/overnightdesk-engine` | WSL clone clean, pushed |
+| overnightdesk-flightrecorder | `/home/frosted639/src/overnightdesk-suite/overnightdesk-flightrecorder` | `main` | `70ccf9ee52eebd4986ac2a6ce296659d5f5583d6` | `https://github.com/Little-Town-Labs/overnightdesk-flightrecorder.git` | WSL clone clean, stale local branch removed |
+| overnightdesk-job-observatory | `/home/frosted639/src/overnightdesk-suite/overnightdesk-job-observatory` | `master` | `a60a736529096948467437cec636c1b540f89c30` | none configured | WSL clone clean, local-only unless remote is added |
+| overnightdesk-newsletter-curator | `/home/frosted639/src/overnightdesk-suite/overnightdesk-newsletter-curator` | `master` | `016794bc1d518366ab24f49ec5a4039da83cce46` | `https://github.com/Little-Town-Labs/newsletter-curator.git` | WSL clone clean |
+| overnightdesk-SecurityCouncil | `/home/frosted639/src/overnightdesk-suite/overnightdesk-SecurityCouncil` | `main` | `5284d94b4cc2fe7ddef6b163b062d545c566b0fd` | `https://github.com/Little-Town-Labs/overnightdesk-SecurityCouncil.git` | WSL clone clean |
+| overnightdesk-securityteam | `/home/frosted639/src/overnightdesk-suite/overnightdesk-securityteam` | `main` | `dee7d8989df9ee79e3d73c8dbe700cd43335b855` | `https://github.com/Little-Town-Labs/overnightdesk-securityteam` | WSL clone clean |
 
 ## Dirty Work Classification
 
@@ -91,14 +91,15 @@ from `/mnt/f`, especially `.env`, `.vercel`, `.next`, `node_modules`, `.venv`,
    - Record skipped checks and why.
    - Only after validation should new Codex sessions use `~/src/overnightdesk-suite/` as the active workspace.
 
-## Migration Blockers
+## Remaining Notes
 
-- Unclassified parent context/spike files in `/mnt/f/overnightdesk`.
-- Missing `origin` remote for `overnightdesk-job-observatory`.
-- Generated binaries in `overnightdesk-engine` that should not be copied into the new workspace.
 - Local commits in `overnightdesk`, `overnightdesk-ops`,
   `overnightdesk-platform-standard`, `overnightdesk-operations-audit`, and
   `overnightdesk-engine` have been pushed to their GitHub remotes.
+- `overnightdesk-job-observatory` has no `origin` remote and appears to be a
+  local planning stub with `PRD.md`.
+- Historical untracked parent context/spike files were retained only inside the
+  archived old checkout.
 
 ## WSL-Native Clone Status
 
@@ -122,3 +123,22 @@ Notable final status:
   the upstream branch.
 - Generated `overnightdesk-engine` binaries were not copied into the WSL clone
   and were removed from the old `/mnt/f/overnightdesk-engine` checkout.
+
+## Archived Source Checkouts
+
+The original `/mnt/f` source directories were archived on 2026-06-11 after the
+WSL-native suite was verified and pushed:
+
+```text
+/mnt/f/_archive/overnightdesk
+/mnt/f/_archive/overnightdesk-communicationmodule
+/mnt/f/_archive/overnightdesk-engine
+/mnt/f/_archive/overnightdesk-flightrecorder
+/mnt/f/_archive/overnightdesk-job-observatory
+/mnt/f/_archive/overnightdesk-newsletter-curator
+/mnt/f/_archive/overnightdesk-SecurityCouncil
+/mnt/f/_archive/overnightdesk-securityteam
+```
+
+The old original paths under `/mnt/f/` are gone; use the WSL-native suite for
+all new OvernightDesk work.
