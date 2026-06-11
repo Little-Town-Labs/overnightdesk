@@ -34,10 +34,13 @@ Created: 2026-06-11
     diffs, untracked tarballs, and a separate copy of `~/overnightdesk-engine/.env`.
   - Final state: all three checkouts are clean against `origin/main`.
 
-- [ ] Monitor Hermes Telegram timeout traces.
+- [x] Monitor Hermes Telegram timeout traces.
   - Health-check tail showed Telegram `TimedOut` exceptions for both tenants.
-  - A follow-up 30-minute log scan found no repeated timeout/error lines, so
-    this looks transient unless it recurs.
+  - Follow-up log scan on 2026-06-11 found one recent Telegram
+    `Bad Gateway`/`TimedOut` incident per tenant and zero matching
+    timeout/error lines in the latest two-hour window.
+  - Classified as transient upstream Telegram/network behavior; no runtime
+    change made unless it recurs.
 
 ## P2 - Documentation and Workflow Cleanup
 
