@@ -20,7 +20,7 @@ from `/mnt/f`, especially `.env`, `.vercel`, `.next`, `node_modules`, `.venv`,
 | Repo | Source path | Branch | HEAD | Origin | State |
 |---|---|---:|---|---|---|
 | overnightdesk | `/mnt/f/overnightdesk` | `feat/ob1-mcp` | `1ada549a59fe8f4ec8bd10df25a0c3ff9d5654e7` | `https://github.com/Little-Town-Labs/overnightdesk.git` | untracked docs/context/spikes |
-| overnightdesk-ops | `/mnt/f/overnightdesk/overnightdesk-ops` | `main` | `b8ceb27dedf5d71d8533f9dd79ec7ef2eb848daa` | `https://github.com/Little-Town-Labs/overnightdesk-ops.git` | source clean, ahead 1 |
+| overnightdesk-ops | `/mnt/f/overnightdesk/overnightdesk-ops` | `main` | `fe9d1a9130006dbc91cc95a8667bb80d48c80041` | `https://github.com/Little-Town-Labs/overnightdesk-ops.git` | WSL clone clean, ahead 2 |
 | overnightdesk-platform-standard | `/mnt/f/overnightdesk/overnightdesk-platform-standard` | `main` | `c69302d4589fe7ecbb04c3c2eb97b2e4a36bbbb1` | `https://github.com/Little-Town-Labs/overnightdesk-platform-standard.git` | source clean, ahead 1 |
 | overnightdesk-operations-audit | `/mnt/f/overnightdesk/overnightdesk-operations-audit` | `main` | `389caf8bafbe47754a087754371d07b79f00afd1` | `https://github.com/Little-Town-Labs/overnightdesk-operations-audit.git` | source clean, ahead 1 |
 | overnightdesk-communicationmodule | `/mnt/f/overnightdesk-communicationmodule` | `main` | `3be4c7ab4466a7423cd9d80a6579cab40d64dc67` | `https://github.com/Little-Town-Labs/overnightdesk-communicationmodule.git` | clean |
@@ -36,7 +36,7 @@ from `/mnt/f`, especially `.env`, `.vercel`, `.next`, `node_modules`, `.venv`,
 | Repo | Change set | Recommended disposition |
 |---|---|---|
 | overnightdesk | untracked `docs/`, `overnightdesk-ops-context.md`, `tenet-0/spikes/` | Review as parent-context material. Commit only if still useful; otherwise archive outside Git or leave behind. |
-| overnightdesk-ops | Grykk-47 research pipeline: `src/research/`, `docs/grykk-47-research.md`, `README.md`, `mongodb` dependency, research npm scripts, runtime OpenRouter env lookup | Committed as `b8ceb27`. Leave ignored `dist/` and `node_modules/` behind. |
+| overnightdesk-ops | Grykk-47 research pipeline: `src/research/`, `docs/grykk-47-research.md`, `README.md`, `mongodb` dependency, research npm scripts, runtime OpenRouter env lookup | Committed as `b8ceb27`; WSL clone adds `fe9d1a9` to sync `package-lock.json` so `npm ci` passes. Leave ignored `dist/` and `node_modules/` behind. |
 | overnightdesk-platform-standard | `WHAT/secrets.yaml`, `WHAT/services.yaml`, new `WHAT/background-research-pipelines.yaml` | Committed as `c69302d`. No ignored state found. |
 | overnightdesk-operations-audit | database-scope fixes and tests across audit engine plus `standards/network-requirements.yaml` | Committed as `389caf8`. Leave ignored `coverage.out` behind. |
 | overnightdesk-engine | Hermes `/sessions` route in `internal/hermes/handlers.go`, source helper in `internal/hermes/sessions.go`, untracked built binaries | Source committed as `1fe10fc`. Do not commit or migrate `hermes-provisioner` or `hermes-provisioner-arm64`; rebuild them from source if needed. |
@@ -46,6 +46,7 @@ from `/mnt/f`, especially `.env`, `.vercel`, `.next`, `node_modules`, `.venv`,
 | Repo | Commit | Validation |
 |---|---|---|
 | overnightdesk-ops | `b8ceb27` Add Grykk-47 research pipeline | `npm test -- src/research`; `npm run build` |
+| overnightdesk-ops | `fe9d1a9` Sync ops package lock | WSL clone: `npm ci`; `npm test -- src/research`; `npm run build` |
 | overnightdesk-platform-standard | `c69302d` Document Grykk-47 research pipeline standard | `git diff --check`; YAML parse check for changed files |
 | overnightdesk-operations-audit | `389caf8` Scope database audit to target database | `go test ./...` passed outside sandbox after sandbox blocked local `httptest` listeners |
 | overnightdesk-engine | `1fe10fc` Add Hermes session listing support | `go test ./internal/hermes`; `go test ./...` passed outside sandbox after sandbox blocked local `httptest` listeners |
@@ -98,3 +99,25 @@ from `/mnt/f`, especially `.env`, `.vercel`, `.next`, `node_modules`, `.venv`,
 - Local commits in `overnightdesk-ops`, `overnightdesk-platform-standard`,
   `overnightdesk-operations-audit`, and `overnightdesk-engine` need to be
   pushed or intentionally kept local before cloning from GitHub.
+
+## WSL-Native Clone Status
+
+Workspace created:
+
+```text
+/home/frosted639/src/overnightdesk-suite/
+```
+
+All repositories were cloned as siblings using local `git clone --no-local`.
+GitHub remotes were restored for all repos that had a verified `origin`; the
+local-only `overnightdesk-job-observatory` clone has no `origin`.
+
+Notable final status:
+
+- `overnightdesk` is ahead 1 with this migration plan.
+- `overnightdesk-ops` is ahead 2 with the research pipeline and lockfile sync.
+- `overnightdesk-platform-standard`, `overnightdesk-operations-audit`, and
+  `overnightdesk-engine` are each ahead 1 with the preservation commits.
+- `overnightdesk-flightrecorder` remains on local branch `12-ops-integration`,
+  whose upstream branch is gone on GitHub after `git fetch --prune origin`.
+- Generated `overnightdesk-engine` binaries were not copied into the WSL clone.
