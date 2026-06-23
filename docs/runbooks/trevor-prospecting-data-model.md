@@ -61,27 +61,23 @@ memory
 prospects
 ```
 
-Verify the migration metadata schema and table. Migration
-`051_trevor_prospecting.sql` will create these metadata objects if they are
-missing, but this check makes the current production state explicit before
-deployment:
+Verify the migration metadata table. Production currently uses
+`public.schema_migrations(filename, applied_at)`. Migration
+`051_trevor_prospecting.sql` records to the existing migration ledger shape
+instead of creating a new ledger schema.
 
 ```bash
 ssh -i ~/.ssh/ssh-key-2026-03-15 ubuntu@147.224.183.55 \
   "docker exec tenet0-postgres psql -U tenet0_admin -d tenet0 -Atc \
-  \"select to_regclass('tenet0.schema_migrations');\""
+  \"select column_name || ':' || data_type from information_schema.columns where table_schema='public' and table_name='schema_migrations' order by ordinal_position;\""
 ```
 
-Expected result after deployment, or before deployment if another migration has
-already bootstrapped the table:
+Expected current production result:
 
 ```text
-tenet0.schema_migrations
+filename:text
+applied_at:timestamp with time zone
 ```
-
-An empty result before deployment is acceptable for this migration because the
-migration bootstraps the schema and table before recording version
-`051_trevor_prospecting`.
 
 ## Backup
 
