@@ -1,0 +1,411 @@
+# Hermes Mitchel Prospecting System Roadmap
+
+**Source:** `docs/hermes-mitchel-prospecting-prd.md`
+**Parent Platform Roadmap:** `.specify/roadmap-v2.md`
+**Generated:** 2026-06-23
+**Scope:** Tenant-specific sales support system for `hermes-mitchel`
+
+---
+
+## Executive Summary
+
+The Mitchel prospecting system turns the existing `hermes-mitchel` tenant,
+`trevor` Postgres schema, and Agiled CRM tools into a daily sales-support
+operating loop. The first useful product is not a dashboard. It is a reliable
+assistant workflow that tells Mitchel who to call, why to call them, what to say
+before the call, and what follow-up to send afterward.
+
+**Total Features:** 6
+**Phases:** 4
+**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler
+
+---
+
+## What Already Exists
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| Mitchel Hermes tenant | `hermes-mitchel` on aegis-prod | Live |
+| Tenant data volume | `hermes-mitchel-data:/opt/data` | Live |
+| Trevor Postgres schema | `tenet0-postgres.trevor` | Live |
+| Prospect table | `trevor.prospects` | Live, populated |
+| Interaction table | `trevor.interactions` | Live, empty |
+| Memory table | `trevor.memory` | Live, minimal |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live |
+| Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
+| Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
+| Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
+| Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
+
+---
+
+## Feature Inventory
+
+### Feature 1: Trevor Prospecting Data Model
+
+**Source:** PRD "Proposed Data Model Changes"
+**Description:** Make the `trevor` schema reproducible and cadence-ready. Add
+next-action fields to prospects, introduce a call-task table, introduce
+follow-up draft storage, and document backup/rollback for production schema
+deployment.
+
+**Complexity:** Medium
+**Priority:** P0
+**Dependencies:** Existing `tenet0-postgres` access and current `trevor` schema
+**Blocks:** Features 2, 3, 4, 5, 6
+
+**Completion Gate:**
+
+- [ ] Schema migration exists in repo-controlled form.
+- [ ] Migration can be applied idempotently or with a documented safe check.
+- [ ] Backup command for `trevor` schema is documented.
+- [ ] Rollback strategy is documented.
+- [ ] Platform database docs updated after deployment.
+
+---
+
+### Feature 2: Daily Call Queue
+
+**Source:** PRD "Daily Call Queue" and "Call Queue Generation"
+**Description:** Generate a ranked list of prospects Mitchel should call today,
+including reason, objective, buyer context, and suggested opener. Suppress
+do-not-contact records and promote overdue next actions, stale deals, and
+inventory matches when available.
+
+**Complexity:** Medium
+**Priority:** P0
+**Dependencies:** Feature 1
+**Blocks:** Feature 3 and Feature 5
+
+**Completion Gate:**
+
+- [ ] Mitchel can ask "who should I call today?" and get a ranked list.
+- [ ] Each recommendation includes a clear reason and call objective.
+- [ ] Queue excludes do-not-contact prospects.
+- [ ] Queue can run on demand through `hermes-mitchel`.
+- [ ] Results are stable enough to be written into `trevor.call_tasks`.
+
+---
+
+### Feature 3: Pre-Call Brief
+
+**Source:** PRD "Pre-Call Brief"
+**Description:** Given a prospect or call-task, produce a concise call brief:
+identity, company, last touch, current status, open Agiled context, buyer
+preferences, likely objection, suggested ask, and follow-up fallback.
+
+**Complexity:** Small
+**Priority:** P0
+**Dependencies:** Feature 1 and Feature 2
+**Blocks:** Feature 4
+
+**Completion Gate:**
+
+- [ ] Mitchel can request a brief by prospect name, company, or task.
+- [ ] Brief pulls from Trevor Postgres and Agiled when linked.
+- [ ] Brief clearly states missing data instead of inventing it.
+- [ ] Brief is short enough for use immediately before a phone call.
+
+---
+
+### Feature 4: Post-Call Capture
+
+**Source:** PRD "Call Capture" and "Post-Call Capture"
+**Description:** After a call, Trevor captures structured outcome data, updates
+the prospect, writes an interaction, creates an Agiled note when possible, and
+sets the next action.
+
+**Complexity:** Medium
+**Priority:** P0
+**Dependencies:** Feature 1 and Feature 3
+**Blocks:** Feature 5 and Feature 6
+
+**Completion Gate:**
+
+- [ ] Mitchel can report a call outcome in natural language.
+- [ ] Trevor asks only for missing required fields.
+- [ ] `trevor.interactions` receives a durable record.
+- [ ] `trevor.prospects` receives last-contact, last-outcome, and next-action updates.
+- [ ] Agiled receives a note when an Agiled contact or deal is linked.
+- [ ] The workflow never sends outbound follow-up automatically.
+
+---
+
+### Feature 5: Follow-Up Drafting
+
+**Source:** PRD "Follow-Up Composer"
+**Description:** Generate channel-specific follow-up drafts from call outcomes
+and buyer profiles. Store drafts for approval before external sending. Initial
+delivery can be copy-ready text; direct channel send is deferred until approval,
+audit, and opt-out handling are proven.
+
+**Complexity:** Medium
+**Priority:** P1
+**Dependencies:** Feature 1 and Feature 4
+**Blocks:** Feature 6
+
+**Completion Gate:**
+
+- [ ] Trevor can draft email, Telegram, SMS-copy, and social-copy follow-ups.
+- [ ] Drafts are stored in `trevor.followup_drafts`.
+- [ ] Draft status tracks draft, approved, sent, or discarded.
+- [ ] Explicit Mitchel approval is required before any send-capable integration.
+- [ ] Approved follow-up can be logged back to `trevor.interactions`.
+
+---
+
+### Feature 6: Cadence Scheduler and Digest
+
+**Source:** PRD "Cadence Engine" and "Deployment Plan"
+**Description:** Activate the operating loop with scheduled or on-demand
+digests: morning prospecting queue, stale-deal scan, follow-up reminder, and
+optional dormant-buyer reactivation.
+
+**Complexity:** Medium
+**Priority:** P1
+**Dependencies:** Features 2, 4, and 5
+**Blocks:** Future dashboard and analytics work
+
+**Completion Gate:**
+
+- [ ] Morning digest can run on demand.
+- [ ] Scheduled execution path is documented and enabled after manual validation.
+- [ ] Stale prospects and follow-up drafts appear in the digest.
+- [ ] Scheduler output avoids exposing secrets or unnecessary prospect details in logs.
+- [ ] Operator runbook covers validation and disabling jobs.
+
+---
+
+## Deferred Features
+
+### Inventory Matching
+
+**Reason Deferred:** It is the highest domain-specific leverage point, but it
+depends on a durable inventory source. First version can accept pasted
+inventory inside the call queue or brief workflow.
+
+**Future Work:**
+
+- Define inventory source: Google Sheet, Agiled, Postgres, or dedicated service.
+- Add buyer-to-stone matching.
+- Add stone-to-buyer recommendations.
+- Add weekly availability workflow integration.
+
+### Dashboard and Analytics
+
+**Reason Deferred:** A text-first assistant workflow should prove the operating
+loop before UI investment.
+
+**Future Work:**
+
+- Calls queued/completed dashboard.
+- Follow-up approval queue UI.
+- Stale prospect report.
+- Won/lost reason tracking.
+
+### Direct Channel Sends
+
+**Reason Deferred:** Automated outbound messaging has trust, compliance, and
+channel-policy risk.
+
+**Future Work:**
+
+- Email draft/send integration.
+- Telegram send with approval.
+- Browser-assisted social messaging.
+- Opt-out and audit enforcement.
+
+### Public Website / Landing Page
+
+**Reason Deferred:** `mitchelbrown.com` is a useful acquisition and credibility
+surface, but it can come later after the internal prospecting loop is reliable.
+It should not block the data model, call queue, call capture, or follow-up
+drafting work.
+
+**Future Work:**
+
+- Define the site audience and positioning.
+- Build a focused landing page for buyer inquiries and credibility.
+- Add a buyer-intake form that routes to Agiled and `trevor.prospects`.
+- Track source attribution as `mitchelbrown.com`.
+- Decide whether to host it under OvernightDesk-managed infrastructure or as a
+  separate marketing deployment.
+
+---
+
+## Dependency Graph
+
+```text
+Feature 1 (Trevor Prospecting Data Model)
+    |
+    +--> Feature 2 (Daily Call Queue)
+    |         |
+    |         +--> Feature 3 (Pre-Call Brief)
+    |                   |
+    |                   +--> Feature 4 (Post-Call Capture)
+    |                             |
+    |                             +--> Feature 5 (Follow-Up Drafting)
+    |                                       |
+    |                                       +--> Feature 6 (Cadence Scheduler and Digest)
+    |
+    +--> Future: Inventory Matching
+    +--> Future: Dashboard and Analytics
+    +--> Future: Public Website / Landing Page
+```
+
+**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6
+
+---
+
+## Implementation Phases
+
+### Phase 1: Data Foundation
+
+**Goal:** The production `trevor` schema can safely support prospecting cadence.
+
+**Features:**
+
+- Feature 1: Trevor Prospecting Data Model
+
+**Completion Gate:**
+
+- [ ] Production backup captured before schema change.
+- [ ] Migration applied and verified.
+- [ ] `trevor_app` grants verified.
+- [ ] Platform standard docs updated with final schema.
+
+---
+
+### Phase 2: Human-in-the-Loop Call Workflow
+
+**Goal:** Mitchel can use Trevor before and after real phone calls.
+
+**Features:**
+
+- Feature 2: Daily Call Queue
+- Feature 3: Pre-Call Brief
+- Feature 4: Post-Call Capture
+
+**Completion Gate:**
+
+- [ ] On-demand call queue works.
+- [ ] Prospect brief works.
+- [ ] Post-call capture writes Postgres and Agiled notes.
+- [ ] No outbound message is sent automatically.
+
+---
+
+### Phase 3: Follow-Up Control Loop
+
+**Goal:** Every meaningful call can produce an approval-controlled follow-up.
+
+**Features:**
+
+- Feature 5: Follow-Up Drafting
+
+**Completion Gate:**
+
+- [ ] Follow-up draft can be generated from a captured call outcome.
+- [ ] Draft is stored and linked to prospect/interaction.
+- [ ] Approval status is explicit.
+- [ ] Approved or manually sent follow-up can be logged.
+
+---
+
+### Phase 4: Cadence Automation
+
+**Goal:** The sales-support workflow becomes a daily operating loop.
+
+**Features:**
+
+- Feature 6: Cadence Scheduler and Digest
+
+**Completion Gate:**
+
+- [ ] Morning digest is validated manually.
+- [ ] Scheduler is enabled only after on-demand output is trusted.
+- [ ] Stale-deal and follow-up reminders appear.
+- [ ] Disable/rollback instructions are documented.
+
+---
+
+## Execution Checklist
+
+### Phase 1
+
+- [ ] **Feature 1: Trevor Prospecting Data Model**
+  - [x] `$speckit-specify` for `trevor-prospecting-data-model`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [x] `$speckit-implement`
+  - [ ] Production backup and deployment record
+
+### Phase 2
+
+- [ ] **Feature 2: Daily Call Queue**
+  - [ ] `$speckit-specify` for `daily-call-queue`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+
+- [ ] **Feature 3: Pre-Call Brief**
+  - [ ] `$speckit-specify` for `pre-call-brief`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+
+- [ ] **Feature 4: Post-Call Capture**
+  - [ ] `$speckit-specify` for `post-call-capture`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+
+### Phase 3
+
+- [ ] **Feature 5: Follow-Up Drafting**
+  - [ ] `$speckit-specify` for `follow-up-drafting`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+
+### Phase 4
+
+- [ ] **Feature 6: Cadence Scheduler and Digest**
+  - [ ] `$speckit-specify` for `cadence-scheduler-digest`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+
+---
+
+## Risk Assessment
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| Raw SQL MCP access mutates unintended records | High | Prefer purpose-built MCP tools for call queue, capture, and drafts after schema lands |
+| Agiled and Postgres drift | Medium | Define sync events and write Agiled note IDs back to interactions |
+| Prompt-created follow-up sends too early | High | Draft-only default; explicit approval required for send-capable integrations |
+| Prospect data leaks into logs or markdown | High | Keep source of truth in Postgres/Agiled; avoid exporting client records |
+| Scheduler produces noisy recommendations | Medium | Validate on-demand before enabling cron |
+| Inventory matching overfits bad or stale inventory | Medium | Defer durable matching until inventory source is clear |
+
+---
+
+## Open Questions
+
+1. Should Agiled contacts or `trevor.prospects` be primary when the same field
+   differs?
+2. Which channel should be first for approval-controlled sends: email,
+   Telegram, or copy-only social follow-up?
+3. What is the long-term inventory source?
+4. What follow-up cadence does Mitchel actually want for dormant buyers?
+5. Should call transcripts/audio be accepted later, or should this remain
+   manual call capture?
+
+---
+
+## Next Recommended Spec
+
+Start with **Feature 1: Trevor Prospecting Data Model**. It is the smallest
+foundational slice that unlocks the operating loop while keeping production risk
+bounded to a schema migration plus documentation.
