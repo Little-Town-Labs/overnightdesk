@@ -32,6 +32,8 @@ BEGIN
 END;
 $$;
 
+CREATE SCHEMA IF NOT EXISTS tenet0;
+
 CREATE TABLE IF NOT EXISTS tenet0.schema_migrations (
   version text PRIMARY KEY,
   applied_at timestamptz NOT NULL DEFAULT now()
