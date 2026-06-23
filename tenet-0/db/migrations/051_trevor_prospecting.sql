@@ -32,6 +32,11 @@ BEGIN
 END;
 $$;
 
+CREATE TABLE IF NOT EXISTS tenet0.schema_migrations (
+  version text PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
 ALTER TABLE trevor.prospects
   ADD COLUMN IF NOT EXISTS lead_source text,
   ADD COLUMN IF NOT EXISTS preferred_channel text,
