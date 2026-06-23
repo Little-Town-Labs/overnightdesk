@@ -61,9 +61,10 @@ memory
 prospects
 ```
 
-Verify the migration metadata table. Migration `051_trevor_prospecting.sql`
-will create this table if it is missing, but this check makes the current
-production state explicit before deployment:
+Verify the migration metadata schema and table. Migration
+`051_trevor_prospecting.sql` will create these metadata objects if they are
+missing, but this check makes the current production state explicit before
+deployment:
 
 ```bash
 ssh -i ~/.ssh/ssh-key-2026-03-15 ubuntu@147.224.183.55 \
@@ -79,7 +80,7 @@ tenet0.schema_migrations
 ```
 
 An empty result before deployment is acceptable for this migration because the
-migration bootstraps the table before recording version
+migration bootstraps the schema and table before recording version
 `051_trevor_prospecting`.
 
 ## Backup
