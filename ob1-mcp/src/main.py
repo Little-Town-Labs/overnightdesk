@@ -11,6 +11,7 @@ from .auth import BearerAuthMiddleware
 from .config import load
 from .db import Store
 from .embeddings import OpenRouterClient
+from .guard import Guard
 from .server import build
 
 log = logging.getLogger("ob1-mcp")
@@ -23,9 +24,15 @@ async def _run() -> None:
     cfg = load()
     store = Store(cfg)
     embed = OpenRouterClient(cfg)
+    guard = Guard(
+        securityteam_url=cfg.securityteam_url,
+        securityteam_token=cfg.securityteam_token,
+        per_minute=cfg.write_rate_per_min,
+        per_hour=cfg.write_rate_per_hour,
+    )
     await store.open()
 
-    mcp = build(cfg, store, embed)
+    mcp = build(cfg, store, embed, guard)
     mcp_app = mcp.streamable_http_app()
 
     async def healthz(_request):
@@ -60,6 +67,7 @@ async def _run() -> None:
         await server.serve()
     finally:
         await embed.aclose()
+        await guard.aclose()
         await store.close()
 
 

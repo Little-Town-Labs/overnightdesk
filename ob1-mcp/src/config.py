@@ -12,6 +12,10 @@ class Config:
     host: str = "0.0.0.0"
     port: int = 3000
     openrouter_base: str = "https://openrouter.ai/api/v1"
+    securityteam_url: str | None = None
+    securityteam_token: str | None = None
+    write_rate_per_min: int = 100
+    write_rate_per_hour: int = 1000
 
 
 def load() -> Config:
@@ -38,6 +42,10 @@ def load() -> Config:
         embedding_model=os.environ.get("EMBEDDING_MODEL", "openai/text-embedding-3-small"),
         host=os.environ.get("HOST", "0.0.0.0"),
         port=int(os.environ.get("PORT", "3000")),
+        securityteam_url=os.environ.get("SECURITYTEAM_URL") or None,
+        securityteam_token=os.environ.get("SECURITYTEAM_TOKEN") or None,
+        write_rate_per_min=int(os.environ.get("WRITE_RATE_PER_MIN", "100")),
+        write_rate_per_hour=int(os.environ.get("WRITE_RATE_PER_HOUR", "1000")),
     )
 
 

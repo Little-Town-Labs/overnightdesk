@@ -15,6 +15,15 @@ mkdir -p "$HERMES_HOME"/{cron,sessions,logs,hooks,memories,skills,skins,plans,wo
 [ ! -f "$HERMES_HOME/config.yaml" ] && cp /opt/hermes/cli-config.yaml.example "$HERMES_HOME/config.yaml" 2>/dev/null || true
 [ ! -f "$HERMES_HOME/SOUL.md" ]     && cp /opt/hermes/docker/SOUL.md "$HERMES_HOME/SOUL.md" 2>/dev/null || true
 
+# Idempotent git identity (only writes .gitconfig if missing AND env vars set)
+if [ ! -f "$HERMES_HOME/.gitconfig" ] && [ -n "$HERMES_GIT_USER_NAME" ] && [ -n "$HERMES_GIT_USER_EMAIL" ]; then
+    cat > "$HERMES_HOME/.gitconfig" <<GITCFG
+[user]
+    name = $HERMES_GIT_USER_NAME
+    email = $HERMES_GIT_USER_EMAIL
+GITCFG
+fi
+
 # Sync bundled skills
 python3 /opt/hermes/tools/skills_sync.py 2>/dev/null || true
 
