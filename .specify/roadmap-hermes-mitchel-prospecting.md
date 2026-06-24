@@ -33,8 +33,8 @@ before the call, and what follow-up to send afterward.
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 6 Status:** Local implementation complete on branch `006-cadence-scheduler-digest`; quality gate and Aegis comparison passed; PR pending
-**Next Work:** Commit, push, and open the Feature 6 PR.
+**Feature 6 Status:** PR #12 open from branch `006-cadence-scheduler-digest`; quality gate and Aegis comparison passed
+**Next Work:** Review and merge Feature 6 PR #12, then deploy to `aegis-prod/hermes-mitchel`.
 
 ### Production Deployment Record
 
