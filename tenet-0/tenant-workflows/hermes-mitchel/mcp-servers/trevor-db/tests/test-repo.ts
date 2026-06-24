@@ -2,6 +2,8 @@ import type {
   CallTaskStatus,
   ExistingCallTask,
   PreCallBriefLookup,
+  PostCallCaptureWrite,
+  PostCallCaptureWriteResult,
   ProspectCandidate,
   ProspectInteraction,
   QueueRepository
@@ -11,6 +13,7 @@ export class FakeQueueRepository implements QueueRepository {
   public tasks: ExistingCallTask[] = [];
   public interactions: ProspectInteraction[] = [];
   public created = 0;
+  public captured = 0;
 
   constructor(public candidates: ProspectCandidate[]) {}
 
@@ -129,5 +132,54 @@ export class FakeQueueRepository implements QueueRepository {
       };
     }
     return { status: "not_found" as const, prospect: null, task: null, matches: [] };
+  }
+
+  async capturePostCall(input: PostCallCaptureWrite): Promise<PostCallCaptureWriteResult> {
+    this.captured += 1;
+    const interactionId = this.captured;
+    this.interactions.push({
+      id: interactionId,
+      prospectId: input.prospectId,
+      channel: "phone",
+      direction: "outbound",
+      summary: input.summary,
+      occurredAt: new Date("2026-06-24T17:00:00Z")
+    });
+
+    const prospect = this.candidates.find((candidate) => candidate.id === input.prospectId);
+    const updates: string[] = [];
+    if (prospect) {
+      prospect.lastOutcome = input.outcome;
+      updates.push("last_outcome");
+      prospect.nextActionType = input.nextActionType;
+      updates.push("next_action_type");
+      prospect.nextActionAt = input.nextActionAt;
+      updates.push("next_action_at");
+      if (input.outcome === "do_not_contact") {
+        prospect.doNotContact = true;
+        prospect.status = "do_not_contact";
+        updates.push("do_not_contact", "status");
+      } else if (input.outcome === "wrong_number") {
+        prospect.status = "needs_contact_update";
+        updates.push("status");
+      }
+    }
+
+    let taskStatus = null;
+    if (input.taskId) {
+      const task = this.tasks.find((item) => item.id === input.taskId);
+      if (task) {
+        task.status = "completed";
+        taskStatus = task.status;
+      }
+    }
+
+    return {
+      interactionId,
+      prospectId: input.prospectId,
+      taskId: input.taskId,
+      taskStatus,
+      prospectUpdates: updates
+    };
   }
 }

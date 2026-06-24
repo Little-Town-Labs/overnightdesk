@@ -33,11 +33,71 @@ export interface CallTaskRecord extends ExistingCallTask {
 }
 
 export interface ProspectInteraction {
+  id?: number;
   prospectId: number;
   channel: string | null;
   direction: string | null;
   summary: string | null;
   occurredAt: Date;
+}
+
+export type PostCallOutcome =
+  | "no_answer"
+  | "left_voicemail"
+  | "interested"
+  | "quoted"
+  | "follow_up_later"
+  | "not_interested"
+  | "sold"
+  | "wrong_number"
+  | "do_not_contact";
+
+export type CaptureStatus = "captured" | "needs_input" | "duplicate" | "not_found";
+export type AgiledNoteStatus = "created" | "skipped" | "failed" | "not_requested";
+
+export interface PostCallCaptureInput {
+  taskId?: number;
+  prospectId?: number;
+  outcome?: PostCallOutcome;
+  summary?: string;
+  nextActionType?: string;
+  nextActionAt?: string;
+  agiledNote?: boolean;
+  agiledNoteStatus?: AgiledNoteStatus;
+}
+
+export interface PostCallCaptureWrite {
+  prospectId: number;
+  taskId: number | null;
+  outcome: PostCallOutcome;
+  summary: string;
+  nextActionType: string | null;
+  nextActionAt: Date | null;
+}
+
+export interface PostCallCaptureWriteResult {
+  interactionId: number;
+  prospectId: number;
+  taskId: number | null;
+  taskStatus: CallTaskStatus | null;
+  prospectUpdates: string[];
+}
+
+export interface PostCallCaptureResult {
+  status: CaptureStatus;
+  missingFields: string[];
+  interactionId: number | null;
+  prospectId: number | null;
+  taskId: number | null;
+  prospectUpdates: string[];
+  taskStatus: CallTaskStatus | null;
+  agiledNote: {
+    status: AgiledNoteStatus;
+    reference: string | null;
+    message: string | null;
+  };
+  warnings: string[];
+  outboundSent: false;
 }
 
 export type Readiness = "call_ready" | "review_needed";
@@ -182,4 +242,5 @@ export interface QueueRepository {
   searchProspects(query: string, limit: number): Promise<ProspectCandidate[]>;
   findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null>;
   resolvePreCallBriefLookup(lookup: PreCallBriefLookup): Promise<BriefLookupResult>;
+  capturePostCall(input: PostCallCaptureWrite): Promise<PostCallCaptureWriteResult>;
 }

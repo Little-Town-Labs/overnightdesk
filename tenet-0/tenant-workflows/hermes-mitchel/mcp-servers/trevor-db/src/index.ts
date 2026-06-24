@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { generatePreCallBrief, preCallBriefToMcp } from "./brief.js";
+import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
 import { createPool, PgQueueRepository } from "./db.js";
 import {
   callTasksToMcp,
@@ -31,7 +32,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.2.0"
+  version: "1.3.0"
 });
 
 server.registerTool("db_query", {
@@ -151,6 +152,44 @@ server.registerTool("generate_pre_call_brief", {
     return { content: [{ type: "text", text: JSON.stringify(preCallBriefToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Brief error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("capture_post_call", {
+  description: "Capture a Mitchel prospecting call outcome. Writes a local interaction and prospect state only; never sends outbound follow-up.",
+  inputSchema: {
+    task_id: z.number().int().positive().optional(),
+    prospect_id: z.number().int().positive().optional(),
+    outcome: z.enum([
+      "no_answer",
+      "left_voicemail",
+      "interested",
+      "quoted",
+      "follow_up_later",
+      "not_interested",
+      "sold",
+      "wrong_number",
+      "do_not_contact"
+    ]).optional(),
+    summary: z.string().trim().max(2000).optional(),
+    next_action_type: z.string().trim().max(80).optional(),
+    next_action_at: z.string().trim().max(80).optional(),
+    agiled_note: z.boolean().optional()
+  }
+}, async (input) => {
+  try {
+    const result = await capturePostCall(repo, {
+      taskId: input.task_id,
+      prospectId: input.prospect_id,
+      outcome: input.outcome,
+      summary: input.summary,
+      nextActionType: input.next_action_type,
+      nextActionAt: input.next_action_at,
+      agiledNote: input.agiled_note
+    });
+    return { content: [{ type: "text", text: JSON.stringify(postCallCaptureToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Capture error: ${sanitizeError(err)}` }] };
   }
 });
 

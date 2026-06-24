@@ -24,14 +24,15 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `12be55a`
+**Active Branch:** `004-post-call-capture`
+**Latest Merged OvernightDesk SHA:** `f5267ff`
 **Latest Deployed OvernightDesk Source SHA:** `12be55a`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Start Feature 4, `post-call-capture`, with Spec Kit.
+**Feature 4 Status:** Local tenant workflow source implemented in `tenet-0/tenant-workflows/hermes-mitchel`; quality gate, PR, and production sync pending
+**Next Work:** Run final quality gate and Aegis comparison for Feature 4, then open the PR.
 
 ### Production Deployment Record
 
@@ -105,7 +106,9 @@ Deployment facts:
   merged into `main`.
 - `overnightdesk` PR #9 delivered Feature 3, `pre-call-brief`, and has been
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
-- Feature 4, `post-call-capture`, is the next critical-path slice.
+- Feature 4, `post-call-capture`, has entered Spec Kit on branch
+  `004-post-call-capture` and is implemented locally. Review, PR, and
+  production sync are pending.
 
 ---
 
@@ -453,9 +456,9 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] Production sync and no-write validation
 
 - [ ] **Feature 4: Post-Call Capture**
-  - [ ] `$speckit-specify` for `post-call-capture`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
+  - [x] `$speckit-specify` for `post-call-capture`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
   - [ ] `$speckit-implement`
 
 ### Phase 3
