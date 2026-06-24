@@ -24,14 +24,14 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `003-pre-call-brief`
-**Latest Merged OvernightDesk SHA:** `4afaef8`
-**Latest Deployed OvernightDesk Source SHA:** `7c26530`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `12be55a`
+**Latest Deployed OvernightDesk Source SHA:** `12be55a`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 3 Status:** Local tenant workflow source implemented in `tenet-0/tenant-workflows/hermes-mitchel`; production sync/tenant validation pending approval
-**Next Work:** Review/PR Feature 3, then decide whether to sync the built Trevor MCP server and pre-call-brief skill to `hermes-mitchel`.
+**Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
+**Next Work:** Start Feature 4, `post-call-capture`, with Spec Kit.
 
 ### Production Deployment Record
 
@@ -74,6 +74,25 @@ Deployment facts:
 - Production side-effect check remained clean:
   `call_tasks=0`, `interactions=0`, `dnc=0`.
 
+Feature 3 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-24. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #9 merged into `main` at merge commit `12be55a`.
+- Deployed source commit: `12be55a`.
+- Synced repo-controlled Trevor DB MCP runtime to:
+  `/opt/data/mcp-servers/trevor-db`
+- Synced pre-call brief skill to:
+  `/opt/data/skills/pre-call-brief`
+- Restarted only `hermes-mitchel`.
+- Verified `trevor-db` v1.2.0, `generate_daily_call_queue`,
+  `generate_pre_call_brief`, `brief.js`, and readable skill file.
+- Direct MCP entrypoint check connected to `tenet0-postgres` and reported
+  ready.
+- Production side-effect check remained clean:
+  `call_tasks=0`, `interactions=0`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -84,10 +103,9 @@ Deployment facts:
   deployment and has been merged into `main`.
 - `overnightdesk` PR #8 delivered Feature 2, `daily-call-queue`, and has been
   merged into `main`.
-- Feature 3, `pre-call-brief`, has entered Spec Kit on branch
-  `003-pre-call-brief` and is implemented locally. Aegis comparison confirms
-  production still has Feature 2 only: `trevor-db` v1.1.0, no `brief.js`, and no
-  `/opt/data/skills/pre-call-brief`.
+- `overnightdesk` PR #9 delivered Feature 3, `pre-call-brief`, and has been
+  merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- Feature 4, `post-call-capture`, is the next critical-path slice.
 
 ---
 
@@ -103,10 +121,11 @@ Deployment facts:
 | Memory table | `trevor.memory` | Live, minimal |
 | Call task table | `trevor.call_tasks` | Live, empty |
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue tools |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue and pre-call brief tools |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
+| Pre-call brief skill | `/opt/data/skills/pre-call-brief` | Live |
 | Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
 | Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
 | Feature 1 migration | `tenet-0/db/migrations/051_trevor_prospecting.sql` | Deployed |
@@ -176,10 +195,11 @@ preferences, likely objection, suggested ask, and follow-up fallback.
 
 **Completion Gate:**
 
-- [ ] Mitchel can request a brief by prospect name, company, or task.
-- [ ] Brief pulls from Trevor Postgres and Agiled when linked.
-- [ ] Brief clearly states missing data instead of inventing it.
-- [ ] Brief is short enough for use immediately before a phone call.
+- [x] Mitchel can request a brief by prospect name, company, or task.
+- [x] Brief pulls from Trevor Postgres and clearly marks unavailable linked
+  Agiled context.
+- [x] Brief clearly states missing data instead of inventing it.
+- [x] Brief is short enough for use immediately before a phone call.
 
 ---
 
@@ -364,7 +384,7 @@ Feature 1 (Trevor Prospecting Data Model)
 **Completion Gate:**
 
 - [x] On-demand call queue works.
-- [ ] Prospect brief works.
+- [x] Prospect brief works.
 - [ ] Post-call capture writes Postgres and Agiled notes.
 - [ ] No outbound message is sent automatically.
 
@@ -425,11 +445,12 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] `$speckit-implement`
   - [x] Production sync and no-write validation
 
-- [ ] **Feature 3: Pre-Call Brief**
+- [x] **Feature 3: Pre-Call Brief**
   - [x] `$speckit-specify` for `pre-call-brief`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
-  - [x] `$speckit-implement` locally; production sync pending
+  - [x] `$speckit-implement`
+  - [x] Production sync and no-write validation
 
 - [ ] **Feature 4: Post-Call Capture**
   - [ ] `$speckit-specify` for `post-call-capture`
