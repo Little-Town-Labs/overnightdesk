@@ -24,9 +24,9 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `007-follow-up-sent-logging`
-**Latest Merged OvernightDesk SHA:** `efb46e1`
-**Latest Deployed OvernightDesk Source SHA:** `fcad184`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `f3089cd`
+**Latest Deployed OvernightDesk Source SHA:** `f3089cd`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
@@ -34,8 +34,8 @@ before the call, and what follow-up to send afterward.
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 7 Status:** Implementation complete locally on `007-follow-up-sent-logging`; quality gate and Aegis comparison passed; not committed, merged, or deployed
-**Next Work:** Commit, push, and open the Feature 7 implementation PR.
+**Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
+**Next Work:** Review the roadmap for the next Mitchel/prospecting slice after Feature 7.
 
 ### Production Deployment Record
 
@@ -159,6 +159,31 @@ Deployment facts:
 - Production side-effect check remained clean:
   `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
 
+Feature 7 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-24. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #14 merged into `main` at merge commit `f3089cd`.
+- Deployed source commit: `f3089cd`.
+- Backup captured:
+  `/opt/overnightdesk/backups/trevor/trevor-schema-20260624T174713Z.dump`
+- Runtime backup captured:
+  `/opt/data/mcp-servers/trevor-db/dist.pre-feature7-20260624T174828Z`
+- Migration applied and ledgered:
+  `tenet-0/db/migrations/052_trevor_followup_sent_logging.sql`
+- Synced repo-controlled Trevor DB MCP runtime to:
+  `/opt/data/mcp-servers/trevor-db`
+- Synced follow-up drafting skill to:
+  `/opt/data/skills/follow-up-drafting`
+- Restarted only `hermes-mitchel`.
+- Verified `trevor-db` v1.6.0, `list_follow_ups_awaiting_send`,
+  `log_manual_follow_up_sent`, and readable skill file.
+- Direct MCP stdio smoke listed 12 tools and returned an empty bounded send
+  queue with `awaiting_send=0` and `review_only=0`.
+- Production side-effect check remained clean:
+  `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -178,8 +203,9 @@ Deployment facts:
 - `overnightdesk` PR #12 delivered Feature 6, `cadence-scheduler-digest`, and
   has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #13 delivered Feature 7 Spec Kit artifacts for the
-  follow-up sent logging workflow and has been merged into `main`; local
-  implementation is in progress on `007-follow-up-sent-logging`.
+  follow-up sent logging workflow and has been merged into `main`.
+- `overnightdesk` PR #14 delivered Feature 7 implementation and has been
+  merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 
 ---
 
@@ -195,7 +221,7 @@ Deployment facts:
 | Memory table | `trevor.memory` | Live, minimal |
 | Call task table | `trevor.call_tasks` | Live, empty |
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, and cadence digest tools |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, and follow-up sent logging tools |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
@@ -207,6 +233,7 @@ Deployment facts:
 | Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
 | Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
 | Feature 1 migration | `tenet-0/db/migrations/051_trevor_prospecting.sql` | Deployed |
+| Feature 7 migration | `tenet-0/db/migrations/052_trevor_followup_sent_logging.sql` | Deployed |
 | Platform standard update | `overnightdesk-platform-standard` PR #1 | Merged and deployed to standards consumer |
 
 ---
@@ -605,13 +632,13 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ### Phase 5
 
-- [ ] **Feature 7: Follow-Up Sent Logging**
+- [x] **Feature 7: Follow-Up Sent Logging**
   - [x] `$speckit-specify` for `follow-up-sent-logging`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [x] `$speckit-implement`
   - [x] Quality/Aegis validation
-  - [ ] Merge and deployment
+  - [x] Merge and deployment
 
 ---
 
@@ -643,5 +670,6 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ## Next Recommended Work
 
-Commit, push, and open the **Feature 7: Follow-Up Sent Logging**
-implementation PR. Deployment remains a separate step after merge.
+Review the roadmap for the next Mitchel/prospecting slice now that the
+Feature 7 follow-up loop is deployed. Direct channel sends remain deferred
+behind explicit approval, audit, opt-out, and channel-policy work.
