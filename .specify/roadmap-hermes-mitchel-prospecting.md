@@ -24,10 +24,12 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
+**Active Branch:** `002-daily-call-queue`
 **Latest Deployed OvernightDesk SHA:** `42c42b4`
-**Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR pending
-**Next Work:** Finish platform-standard PR, then start Feature 2 Spec Kit flow
+**Latest Deployed Platform Standard SHA:** `0833e6b`
+**Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
+**Feature 2 Status:** Local tenant workflow source implemented in `tenet-0/tenant-workflows/hermes-mitchel`; production sync/tenant validation pending approval
+**Next Work:** Review local implementation, then decide whether to sync the built Trevor MCP server and daily-call-queue skill to `hermes-mitchel`.
 
 ### Production Deployment Record
 
@@ -55,13 +57,14 @@ Deployment facts:
 
 ### Open Follow-Ups
 
-- `overnightdesk-platform-standard` PR #1 documents the new Trevor tables and
-  prospect cadence fields. Merge it, then pull/restart standards consumers per
-  the platform-standard README.
+- `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
+  prospect cadence fields. It was merged on 2026-06-24, then
+  `~/overnightdesk-platform-standard` was pulled on aegis-prod and
+  `overnightdesk-ops` was restarted.
 - `overnightdesk` PR #7 fixed the migration runner issue found during
   deployment and has been merged into `main`.
-- Clean restart point after platform-standard PR #1: begin Feature 2,
-  `daily-call-queue`, with `$speckit-specify`.
+- Feature 2, `daily-call-queue`, has entered `$speckit-specify` on branch
+  `002-daily-call-queue`.
 
 ---
 
@@ -108,7 +111,7 @@ deployment.
 - [x] Migration can be applied idempotently or with a documented safe check.
 - [x] Backup command for `trevor` schema is documented.
 - [x] Rollback strategy is documented.
-- [ ] Platform database docs updated after deployment.
+- [x] Platform database docs updated after deployment.
 
 ---
 
@@ -320,7 +323,7 @@ Feature 1 (Trevor Prospecting Data Model)
 - [x] Production backup captured before schema change.
 - [x] Migration applied and verified.
 - [x] `trevor_app` grants verified.
-- [ ] Platform standard docs updated with final schema.
+- [x] Platform standard docs updated with final schema.
 
 ---
 
@@ -381,21 +384,21 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ### Phase 1
 
-- [ ] **Feature 1: Trevor Prospecting Data Model**
+- [x] **Feature 1: Trevor Prospecting Data Model**
   - [x] `$speckit-specify` for `trevor-prospecting-data-model`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [x] `$speckit-implement`
   - [x] Production backup and deployment record
-  - [ ] Merge platform-standard schema inventory PR
+  - [x] Merge platform-standard schema inventory PR
 
 ### Phase 2
 
 - [ ] **Feature 2: Daily Call Queue**
-  - [ ] `$speckit-specify` for `daily-call-queue`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
-  - [ ] `$speckit-implement`
+  - [x] `$speckit-specify` for `daily-call-queue`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [x] `$speckit-implement` locally; production sync pending
 
 - [ ] **Feature 3: Pre-Call Brief**
   - [ ] `$speckit-specify` for `pre-call-brief`
