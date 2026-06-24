@@ -1,0 +1,215 @@
+# MCP Tool Contracts: Daily Call Queue
+
+tools:
+  - name: generate_daily_call_queue
+    status: new
+    owner: trevor-db
+    description: >
+      Generate Mitchel's on-demand daily call queue from trevor.prospects and
+      trevor.call_tasks, suppressing do-not-contact prospects and optionally
+      persisting stable open call tasks.
+    inputSchema:
+      type: object
+      properties:
+        sales_day:
+          type: string
+          format: date
+          description: Local sales day to generate. Defaults to current date in America/Chicago.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 25
+          default: 10
+        persist:
+          type: boolean
+          default: true
+          description: When true, create or reuse open trevor.call_tasks for returned callable recommendations.
+        include_review_needed:
+          type: boolean
+          default: true
+          description: Include non-call-ready prospects in a separate review_needed section.
+        inventory_context:
+          type: string
+          maxLength: 4000
+          description: Optional pasted inventory or availability context. Tool may summarize it but must not store it.
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        sales_day:
+          type: string
+          format: date
+        persisted:
+          type: boolean
+        counts:
+          type: object
+          properties:
+            recommendations:
+              type: integer
+            review_needed:
+              type: integer
+            suppressed:
+              type: integer
+            created_tasks:
+              type: integer
+            reused_tasks:
+              type: integer
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              rank:
+                type: integer
+              prospect_id:
+                type: integer
+              task_id:
+                type: integer
+                nullable: true
+              display_name:
+                type: string
+              reason:
+                type: string
+              call_objective:
+                type: string
+              buyer_context:
+                type: string
+              suggested_opener:
+                type: string
+              ranking_drivers:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - overdue_next_action
+                    - due_today
+                    - high_priority
+                    - stale_relationship
+                    - hot_status
+                    - inventory_context_available
+              missing_context:
+                type: array
+                items:
+                  type: string
+              readiness:
+                type: string
+                enum: [call_ready]
+        review_needed:
+          type: array
+          description: Prospects worth review but not presented as call-ready.
+          items:
+            type: object
+            properties:
+              prospect_id:
+                type: integer
+              display_name:
+                type: string
+              reason:
+                type: string
+              missing_context:
+                type: array
+                items:
+                  type: string
+        warnings:
+          type: array
+          items:
+            type: string
+    safety:
+      - Must not return do-not-contact prospects in recommendations.
+      - Must not send messages, place calls, or update external channels.
+      - Must not log full notes, secrets, credentials, or generated message bodies.
+      - Must use parameterized SQL for all writes.
+
+  - name: list_call_tasks
+    status: new
+    owner: trevor-db
+    description: List open or recent Trevor call tasks for Mitchel's prospecting workflow.
+    inputSchema:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [open, completed, snoozed, discarded]
+          default: open
+        sales_day:
+          type: string
+          format: date
+          description: Optional day filter based on due_at.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 20
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              task_id:
+                type: integer
+              prospect_id:
+                type: integer
+              display_name:
+                type: string
+              status:
+                type: string
+              priority:
+                type: integer
+              reason:
+                type: string
+              call_objective:
+                type: string
+              due_at:
+                type: string
+                format: date-time
+                nullable: true
+              completed_at:
+                type: string
+                format: date-time
+                nullable: true
+
+  - name: mark_call_task_status
+    status: new
+    owner: trevor-db
+    description: Mark a Trevor call task completed, snoozed, discarded, or reopened without creating an interaction.
+    inputSchema:
+      type: object
+      properties:
+        task_id:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [open, completed, snoozed, discarded]
+        reason:
+          type: string
+          maxLength: 500
+          description: Optional operator-visible reason; not stored in this slice unless implementation adds safe audit metadata.
+      required:
+        - task_id
+        - status
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        task_id:
+          type: integer
+        status:
+          type: string
+        updated:
+          type: boolean
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+    safety:
+      - Must not create trevor.interactions.
+      - Must not send or draft follow-up.
+      - Must reject task updates when the linked prospect is do-not-contact and status would make the task callable.
