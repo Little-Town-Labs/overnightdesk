@@ -54,6 +54,12 @@ export interface FollowUpDraftRecord {
   status: FollowUpDraftStatus;
   approvedBy: string | null;
   approvedAt: Date | null;
+  sentAt: Date | null;
+  sentBy: string | null;
+  sentVia: string | null;
+  externalMessageId: string | null;
+  auditOnlyReason: string | null;
+  sentInteractionId: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -95,6 +101,64 @@ export interface FollowUpDraftResult {
   body: string | null;
   warnings: string[];
   outboundSent: false;
+}
+
+export interface ListFollowUpsAwaitingSendInput {
+  limit?: number;
+  includeDoNotContact?: boolean;
+}
+
+export interface FollowUpSendQueueItem {
+  draftId: number;
+  prospectId: number;
+  displayName: string;
+  channel: FollowUpChannel;
+  subject: string | null;
+  approvedAt: Date | null;
+  ageDays: number;
+  reviewOnly: boolean;
+  summary: string;
+}
+
+export interface FollowUpSendQueueResult {
+  status: "ok";
+  items: FollowUpSendQueueItem[];
+  counts: {
+    awaitingSend: number;
+    reviewOnly: number;
+  };
+  warnings: string[];
+}
+
+export interface LogManualFollowUpSentInput {
+  draftId: number;
+  sentAt: string;
+  confirmedBy: string;
+  sentVia?: string;
+  externalMessageId?: string;
+  auditOnlyReason?: string;
+}
+
+export interface ManualFollowUpSentResult {
+  status: "logged" | "blocked" | "needs_input" | "not_found";
+  draftId: number;
+  prospectId: number | null;
+  interactionId: number | null;
+  draftStatus: FollowUpDraftStatus | null;
+  channel: FollowUpChannel | null;
+  sentAt: Date | null;
+  auditOnly: boolean;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface ManualFollowUpSentWrite {
+  draftId: number;
+  sentAt: Date;
+  confirmedBy: string;
+  sentVia: string;
+  externalMessageId: string | null;
+  auditOnlyReason: string | null;
 }
 
 export interface CadenceDigestInput {
@@ -367,5 +431,7 @@ export interface QueueRepository {
   findFollowUpDraftById(draftId: number): Promise<FollowUpDraftRecord | null>;
   markFollowUpDraft(draftId: number, status: "approved" | "discarded", approvedBy?: string): Promise<FollowUpDraftRecord | null>;
   listPendingFollowUpDrafts(limit: number): Promise<FollowUpDraftRecord[]>;
+  listApprovedFollowUpDraftsAwaitingSend(limit: number, options?: { includeDoNotContact?: boolean }): Promise<Array<{ draft: FollowUpDraftRecord; prospect: ProspectCandidate | null }>>;
+  logManualFollowUpSent(input: ManualFollowUpSentWrite): Promise<{ draft: FollowUpDraftRecord; prospect: ProspectCandidate | null; interactionId: number | null; blockedReason: string | null } | null>;
   listStaleProspectCandidates(salesDay: string, limit: number, options?: { includeDormant?: boolean }): Promise<ProspectCandidate[]>;
 }

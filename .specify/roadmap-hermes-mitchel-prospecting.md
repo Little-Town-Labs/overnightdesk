@@ -24,7 +24,7 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
+**Active Branch:** `007-follow-up-sent-logging`
 **Latest Merged OvernightDesk SHA:** `efb46e1`
 **Latest Deployed OvernightDesk Source SHA:** `fcad184`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
@@ -34,8 +34,8 @@ before the call, and what follow-up to send afterward.
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 7 Status:** Spec Kit artifacts merged via PR #13; implementation pending
-**Next Work:** Implement Feature 7, `follow-up-sent-logging`, to close the approved/manual follow-up loop before direct channel sends.
+**Feature 7 Status:** Implementation complete locally on `007-follow-up-sent-logging`; quality gate and Aegis comparison passed; not committed, merged, or deployed
+**Next Work:** Commit, push, and open the Feature 7 implementation PR.
 
 ### Production Deployment Record
 
@@ -178,8 +178,8 @@ Deployment facts:
 - `overnightdesk` PR #12 delivered Feature 6, `cadence-scheduler-digest`, and
   has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #13 delivered Feature 7 Spec Kit artifacts for the
-  follow-up sent logging workflow and has been merged into `main`;
-  implementation is pending.
+  follow-up sent logging workflow and has been merged into `main`; local
+  implementation is in progress on `007-follow-up-sent-logging`.
 
 ---
 
@@ -366,12 +366,12 @@ capture channel, timestamp, operator, and optional external reference.
 
 **Completion Gate:**
 
-- [ ] Approved follow-up drafts awaiting send confirmation can be listed.
-- [ ] An approved draft can be explicitly logged as manually sent.
-- [ ] Successful manual sent logging creates exactly one interaction row.
-- [ ] Invalid or duplicate sent confirmations create no interaction rows.
-- [ ] Do-not-contact confirmations require an explicit audit-only reason.
-- [ ] The workflow never sends outbound messages.
+- [x] Approved follow-up drafts awaiting send confirmation can be listed.
+- [x] An approved draft can be explicitly logged as manually sent.
+- [x] Successful manual sent logging creates exactly one interaction row.
+- [x] Invalid or duplicate sent confirmations create no interaction rows.
+- [x] Do-not-contact confirmations require an explicit audit-only reason.
+- [x] The workflow never sends outbound messages.
 
 ---
 
@@ -609,7 +609,9 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] `$speckit-specify` for `follow-up-sent-logging`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
-  - [ ] `$speckit-implement`
+  - [x] `$speckit-implement`
+  - [x] Quality/Aegis validation
+  - [ ] Merge and deployment
 
 ---
 
@@ -641,6 +643,5 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ## Next Recommended Work
 
-Implement **Feature 7: Follow-Up Sent Logging**. It closes the remaining
-approval-to-history gap from Feature 5 while keeping direct outbound sending
-deferred behind explicit approval, audit, opt-out, and channel-policy work.
+Commit, push, and open the **Feature 7: Follow-Up Sent Logging**
+implementation PR. Deployment remains a separate step after merge.

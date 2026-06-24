@@ -7,7 +7,15 @@ import { generatePreCallBrief, preCallBriefToMcp } from "./brief.js";
 import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
 import { createPool, PgQueueRepository } from "./db.js";
 import { cadenceDigestToMcp, generateCadenceDigest } from "./digest.js";
-import { followUpDraftToMcp, generateFollowUpDraft, markFollowUpDraft } from "./followup.js";
+import {
+  followUpDraftToMcp,
+  followUpSendQueueToMcp,
+  generateFollowUpDraft,
+  listFollowUpsAwaitingSend,
+  logManualFollowUpSent,
+  manualFollowUpSentToMcp,
+  markFollowUpDraft
+} from "./followup.js";
 import {
   callTasksToMcp,
   generateDailyCallQueue,
@@ -34,7 +42,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.5.0"
+  version: "1.6.0"
 });
 
 server.registerTool("db_query", {
@@ -234,6 +242,50 @@ server.registerTool("mark_follow_up_draft", {
     return { content: [{ type: "text", text: JSON.stringify(followUpDraftToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Follow-up draft mark error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("list_follow_ups_awaiting_send", {
+  description: "List approved Trevor follow-up drafts awaiting human send confirmation. Omits draft bodies and never sends outbound messages.",
+  inputSchema: {
+    limit: z.number().int().min(1).max(25).optional(),
+    include_do_not_contact: z.boolean().optional()
+  }
+}, async (input) => {
+  try {
+    const result = await listFollowUpsAwaitingSend(repo, {
+      limit: input.limit,
+      includeDoNotContact: input.include_do_not_contact
+    });
+    return { content: [{ type: "text", text: JSON.stringify(followUpSendQueueToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Follow-up send queue error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("log_manual_follow_up_sent", {
+  description: "Confirm an approved Trevor follow-up draft was manually sent by a human. Writes one local interaction record; never sends outbound messages.",
+  inputSchema: {
+    draft_id: z.number().int().positive(),
+    sent_at: z.string().trim().max(80),
+    confirmed_by: z.string().trim().min(1).max(120),
+    sent_via: z.string().trim().min(1).max(80).optional(),
+    external_message_id: z.string().trim().max(240).optional(),
+    audit_only_reason: z.string().trim().max(1000).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await logManualFollowUpSent(repo, {
+      draftId: input.draft_id,
+      sentAt: input.sent_at,
+      confirmedBy: input.confirmed_by,
+      sentVia: input.sent_via,
+      externalMessageId: input.external_message_id,
+      auditOnlyReason: input.audit_only_reason
+    });
+    return { content: [{ type: "text", text: JSON.stringify(manualFollowUpSentToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Follow-up sent log error: ${sanitizeError(err)}` }] };
   }
 });
 

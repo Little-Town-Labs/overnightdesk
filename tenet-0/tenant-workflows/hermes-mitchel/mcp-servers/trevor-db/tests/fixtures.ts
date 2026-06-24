@@ -55,6 +55,12 @@ export function draft(overrides: Partial<FollowUpDraftRecord>): FollowUpDraftRec
     status: "draft",
     approvedBy: null,
     approvedAt: null,
+    sentAt: null,
+    sentBy: null,
+    sentVia: null,
+    externalMessageId: null,
+    auditOnlyReason: null,
+    sentInteractionId: null,
     createdAt: new Date("2026-06-24T18:00:00Z"),
     updatedAt: new Date("2026-06-24T18:00:00Z"),
     ...overrides

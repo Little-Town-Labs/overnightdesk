@@ -8,6 +8,7 @@ import type {
   FollowUpContext,
   FollowUpDraftRecord,
   FollowUpDraftWrite,
+  ManualFollowUpSentWrite,
   PreCallBriefLookup,
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
@@ -17,6 +18,25 @@ import type {
 } from "./types.js";
 
 const { Pool } = pg;
+const FOLLOW_UP_DRAFT_COLUMNS = `
+  id,
+  prospect_id,
+  interaction_id,
+  channel,
+  subject,
+  body,
+  status,
+  approved_by,
+  approved_at,
+  sent_at,
+  sent_by,
+  sent_via,
+  external_message_id,
+  audit_only_reason,
+  sent_interaction_id,
+  created_at,
+  updated_at
+`;
 
 export function createPool(): pg.Pool {
   const dbUrl = process.env.TREVOR_DB_URL;
@@ -87,6 +107,12 @@ function toFollowUpDraft(row: Record<string, unknown>): FollowUpDraftRecord {
     status: row.status as FollowUpDraftRecord["status"],
     approvedBy: row.approved_by as string | null,
     approvedAt: row.approved_at ? new Date(row.approved_at as string) : null,
+    sentAt: row.sent_at ? new Date(row.sent_at as string) : null,
+    sentBy: row.sent_by as string | null,
+    sentVia: row.sent_via as string | null,
+    externalMessageId: row.external_message_id as string | null,
+    auditOnlyReason: row.audit_only_reason as string | null,
+    sentInteractionId: row.sent_interaction_id !== undefined && row.sent_interaction_id !== null ? Number(row.sent_interaction_id) : null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string)
   };
@@ -454,7 +480,7 @@ export class PgQueueRepository implements QueueRepository {
   async findActiveFollowUpDraft(interactionId: number, channel: FollowUpChannel): Promise<FollowUpDraftRecord | null> {
     const result = await this.pool.query(
       `
-      select id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      select ${FOLLOW_UP_DRAFT_COLUMNS}
       from trevor.followup_drafts
       where interaction_id = $1
         and channel = $2
@@ -472,7 +498,7 @@ export class PgQueueRepository implements QueueRepository {
       `
       insert into trevor.followup_drafts (prospect_id, interaction_id, channel, subject, body, status)
       values ($1, $2, $3, $4, $5, 'draft')
-      returning id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      returning ${FOLLOW_UP_DRAFT_COLUMNS}
       `,
       [input.prospectId, input.interactionId, input.channel, input.subject, input.body]
     );
@@ -482,7 +508,7 @@ export class PgQueueRepository implements QueueRepository {
   async findFollowUpDraftById(draftId: number): Promise<FollowUpDraftRecord | null> {
     const result = await this.pool.query(
       `
-      select id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      select ${FOLLOW_UP_DRAFT_COLUMNS}
       from trevor.followup_drafts
       where id = $1
       limit 1
@@ -502,7 +528,7 @@ export class PgQueueRepository implements QueueRepository {
           updated_at = now()
       where id = $1
         and status in ('draft', 'approved', 'discarded')
-      returning id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      returning ${FOLLOW_UP_DRAFT_COLUMNS}
       `,
       [draftId, status, approvedBy ?? null]
     );
@@ -513,7 +539,7 @@ export class PgQueueRepository implements QueueRepository {
     const normalizedLimit = Math.max(1, Math.min(25, Math.trunc(limit)));
     const result = await this.pool.query(
       `
-      select id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      select ${FOLLOW_UP_DRAFT_COLUMNS}
       from trevor.followup_drafts
       where status = 'draft'
       order by created_at asc, id asc
@@ -522,6 +548,211 @@ export class PgQueueRepository implements QueueRepository {
       [normalizedLimit]
     );
     return result.rows.map(toFollowUpDraft);
+  }
+
+  async listApprovedFollowUpDraftsAwaitingSend(
+    limit: number,
+    options: { includeDoNotContact?: boolean } = {}
+  ): Promise<Array<{ draft: FollowUpDraftRecord; prospect: ProspectCandidate | null }>> {
+    const normalizedLimit = Math.max(1, Math.min(25, Math.trunc(limit)));
+    const dncFilter = options.includeDoNotContact === false
+      ? "and coalesce(p.do_not_contact, false) = false"
+      : "";
+    const result = await this.pool.query(
+      `
+      select
+        d.id as draft_id,
+        d.prospect_id as draft_prospect_id,
+        d.interaction_id as draft_interaction_id,
+        d.channel as draft_channel,
+        d.subject as draft_subject,
+        d.body as draft_body,
+        d.status as draft_status,
+        d.approved_by as draft_approved_by,
+        d.approved_at as draft_approved_at,
+        d.sent_at as draft_sent_at,
+        d.sent_by as draft_sent_by,
+        d.sent_via as draft_sent_via,
+        d.external_message_id as draft_external_message_id,
+        d.audit_only_reason as draft_audit_only_reason,
+        d.sent_interaction_id as draft_sent_interaction_id,
+        d.created_at as draft_created_at,
+        d.updated_at as draft_updated_at,
+        p.*,
+        max(i.occurred_at) as last_interaction_at
+      from trevor.followup_drafts d
+      left join trevor.prospects p on p.id = d.prospect_id
+      left join trevor.interactions i on i.prospect_id = p.id
+      where d.status = 'approved'
+        and d.sent_interaction_id is null
+        ${dncFilter}
+      group by d.id, p.id
+      order by d.approved_at asc nulls last, d.updated_at asc, d.id asc
+      limit $1
+      `,
+      [normalizedLimit]
+    );
+    return result.rows.map((row) => ({
+      draft: toFollowUpDraft({
+        id: row.draft_id,
+        prospect_id: row.draft_prospect_id,
+        interaction_id: row.draft_interaction_id,
+        channel: row.draft_channel,
+        subject: row.draft_subject,
+        body: row.draft_body,
+        status: row.draft_status,
+        approved_by: row.draft_approved_by,
+        approved_at: row.draft_approved_at,
+        sent_at: row.draft_sent_at,
+        sent_by: row.draft_sent_by,
+        sent_via: row.draft_sent_via,
+        external_message_id: row.draft_external_message_id,
+        audit_only_reason: row.draft_audit_only_reason,
+        sent_interaction_id: row.draft_sent_interaction_id,
+        created_at: row.draft_created_at,
+        updated_at: row.draft_updated_at
+      }),
+      prospect: row.id ? toCandidate(row) : null
+    }));
+  }
+
+  async logManualFollowUpSent(input: ManualFollowUpSentWrite): Promise<{
+    draft: FollowUpDraftRecord;
+    prospect: ProspectCandidate | null;
+    interactionId: number | null;
+    blockedReason: string | null;
+  } | null> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+
+      const found = await client.query(
+        `
+        select
+          d.id as draft_id,
+          d.prospect_id as draft_prospect_id,
+          d.interaction_id as draft_interaction_id,
+          d.channel as draft_channel,
+          d.subject as draft_subject,
+          d.body as draft_body,
+          d.status as draft_status,
+          d.approved_by as draft_approved_by,
+          d.approved_at as draft_approved_at,
+          d.sent_at as draft_sent_at,
+          d.sent_by as draft_sent_by,
+          d.sent_via as draft_sent_via,
+          d.external_message_id as draft_external_message_id,
+          d.audit_only_reason as draft_audit_only_reason,
+          d.sent_interaction_id as draft_sent_interaction_id,
+          d.created_at as draft_created_at,
+          d.updated_at as draft_updated_at,
+          p.*,
+          recent.last_interaction_at
+        from trevor.followup_drafts d
+        left join trevor.prospects p on p.id = d.prospect_id
+        left join lateral (
+          select max(i.occurred_at) as last_interaction_at
+          from trevor.interactions i
+          where i.prospect_id = p.id
+        ) recent on true
+        where d.id = $1
+        for update of d
+        `,
+        [input.draftId]
+      );
+      const row = found.rows[0];
+      if (!row) {
+        await client.query("commit");
+        return null;
+      }
+
+      const draft = toFollowUpDraft({
+        id: row.draft_id,
+        prospect_id: row.draft_prospect_id,
+        interaction_id: row.draft_interaction_id,
+        channel: row.draft_channel,
+        subject: row.draft_subject,
+        body: row.draft_body,
+        status: row.draft_status,
+        approved_by: row.draft_approved_by,
+        approved_at: row.draft_approved_at,
+        sent_at: row.draft_sent_at,
+        sent_by: row.draft_sent_by,
+        sent_via: row.draft_sent_via,
+        external_message_id: row.draft_external_message_id,
+        audit_only_reason: row.draft_audit_only_reason,
+        sent_interaction_id: row.draft_sent_interaction_id,
+        created_at: row.draft_created_at,
+        updated_at: row.draft_updated_at
+      });
+      const prospect = row.id ? toCandidate(row) : null;
+
+      if ((draft.status === "manual_sent" || draft.status === "sent") && draft.sentInteractionId !== null) {
+        await client.query("commit");
+        return { draft, prospect, interactionId: draft.sentInteractionId, blockedReason: null };
+      }
+
+      if (draft.status !== "approved") {
+        await client.query("commit");
+        return { draft, prospect, interactionId: draft.sentInteractionId, blockedReason: `Draft status is ${draft.status}; only approved drafts can be logged as sent.` };
+      }
+
+      if (prospect?.doNotContact && !input.auditOnlyReason) {
+        await client.query("commit");
+        return { draft, prospect, interactionId: null, blockedReason: "audit_only_reason is required for do-not-contact prospects." };
+      }
+
+      const auditOnly = Boolean(prospect?.doNotContact);
+      const summary = [
+        auditOnly ? "Audit-only manual follow-up sent record." : "Manual follow-up sent.",
+        `Draft ${draft.id} confirmed by ${input.confirmedBy}.`,
+        `Channel: ${input.sentVia}.`,
+        input.externalMessageId ? "External reference recorded." : null,
+        input.auditOnlyReason ? `Reason: ${input.auditOnlyReason}` : null
+      ].filter(Boolean).join(" ");
+      const inserted = await client.query(
+        `
+        insert into trevor.interactions (prospect_id, channel, direction, summary, occurred_at)
+        values ($1, $2, 'outbound', $3, $4)
+        returning id
+        `,
+        [draft.prospectId, input.sentVia, summary, input.sentAt]
+      );
+      const interactionId = Number(inserted.rows[0].id);
+
+      const updated = await client.query(
+        `
+        update trevor.followup_drafts
+        set status = 'manual_sent',
+            sent_at = $2,
+            sent_by = $3,
+            sent_via = $4,
+            external_message_id = $5,
+            audit_only_reason = $6,
+            sent_interaction_id = $7,
+            updated_at = now()
+        where id = $1
+        returning ${FOLLOW_UP_DRAFT_COLUMNS}
+        `,
+        [
+          input.draftId,
+          input.sentAt,
+          input.confirmedBy,
+          input.sentVia,
+          input.externalMessageId,
+          input.auditOnlyReason,
+          interactionId
+        ]
+      );
+
+      await client.query("commit");
+      return { draft: toFollowUpDraft(updated.rows[0]), prospect, interactionId, blockedReason: null };
+    } catch (err) {
+      await client.query("rollback");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async listStaleProspectCandidates(
