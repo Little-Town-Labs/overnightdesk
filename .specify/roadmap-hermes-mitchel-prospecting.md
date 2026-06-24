@@ -24,9 +24,9 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `008-prospect-sourcing-pipeline`
-**Latest Merged OvernightDesk SHA:** `899aa12`
-**Latest Deployed OvernightDesk Source SHA:** `f3089cd`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `b374f72`
+**Latest Deployed OvernightDesk Source SHA:** `b374f72`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
@@ -35,8 +35,8 @@ before the call, and what follow-up to send afterward.
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 8 Status:** Spec Kit artifacts started on branch `008-prospect-sourcing-pipeline`
-**Next Work:** Implement Feature 8, `prospect-sourcing-pipeline`, from the existing Aegis BrowserAct-first and CamoFox-enrichment prospect discovery workflow.
+**Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`
+**Next Work:** Run the first bounded BrowserAct-first, CamoFox-enrichment sourcing pass through the new staged candidate review workflow.
 
 ### Production Deployment Record
 
@@ -184,6 +184,33 @@ Deployment facts:
   queue with `awaiting_send=0` and `review_only=0`.
 - Production side-effect check remained clean:
   `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
+
+Feature 8 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-24. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #15 merged into `main` at merge commit `b374f72`.
+- Deployed source commit: `b374f72`.
+- Backup captured:
+  `/opt/overnightdesk/backups/trevor/trevor-schema-20260624T193103Z.dump`
+- Runtime backup captured:
+  `/opt/data/mcp-servers/trevor-db/dist.pre-feature8-20260624T193103Z`
+- Migration applied and ledgered:
+  `tenet-0/db/migrations/053_trevor_prospect_sourcing.sql`
+- Synced repo-controlled Trevor DB MCP runtime to:
+  `/opt/data/mcp-servers/trevor-db`
+- Synced prospect sourcing, BrowserAct, and CamoFox skills plus the prospect
+  sourcing runbook to the Hermes Mitchel data volume.
+- Restarted only `hermes-mitchel`.
+- Verified `trevor-db` v1.7.0, `stage_prospect_candidates`,
+  `review_prospect_candidates`, `promote_prospect_candidate`,
+  `db-sourcing.js`, `sourcing.js`, and readable skill/runbook files.
+- Direct MCP stdio smoke listed 15 tools and returned an empty bounded
+  candidate review queue with `outbound_sent=false`.
+- Production side-effect check remained clean:
+  `call_tasks=0`, `interactions=0`, `followup_drafts=0`,
+  `sourcing_runs=0`, `prospect_candidates=0`.
 
 ### Open Follow-Ups
 
@@ -428,16 +455,16 @@ future website-intake attribution loop
 
 **Completion Gate:**
 
-- [ ] BrowserAct and CamoFox prospect-sourcing skills are source-controlled
+- [x] BrowserAct and CamoFox prospect-sourcing skills are source-controlled
   without live credentials.
-- [ ] Sourced candidates can be staged before becoming active prospects.
-- [ ] Candidate review separates recommended, needs-review, duplicate, and
+- [x] Sourced candidates can be staged before becoming active prospects.
+- [x] Candidate review separates recommended, needs-review, duplicate, and
   rejected records.
-- [ ] Duplicate and chain-store candidates create no active prospects or call
+- [x] Duplicate and chain-store candidates create no active prospects or call
   tasks.
-- [ ] Approved candidates preserve `lead_source` when promoted.
-- [ ] Approved candidates can create exactly one initial outreach call task.
-- [ ] The workflow never sends outbound messages.
+- [x] Approved candidates preserve `lead_source` when promoted.
+- [x] Approved candidates can create exactly one initial outreach call task.
+- [x] The workflow never sends outbound messages.
 
 ---
 
@@ -708,9 +735,9 @@ approved records into the existing call loop.
   - [x] `$speckit-specify` for `prospect-sourcing-pipeline`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
-  - [ ] `$speckit-implement`
-  - [ ] Quality/Aegis validation
-  - [ ] Merge and deployment
+  - [x] `$speckit-implement`
+  - [x] Quality/Aegis validation
+  - [x] Merge and deployment
 
 ---
 
@@ -745,10 +772,8 @@ approved records into the existing call loop.
 
 ## Next Recommended Work
 
-Implement Feature 8, `prospect-sourcing-pipeline`, using the Spec Kit artifacts
-in `specs/008-prospect-sourcing-pipeline`. Start with source-controlled,
-secret-safe BrowserAct/CamoFox skill docs and candidate staging before any
-active prospect or call-task writes. BrowserAct is the first-pass discovery
-tool; CamoFox enriches and verifies BrowserAct candidates. Direct channel sends
-remain deferred behind explicit approval, audit, opt-out, and channel-policy
-work.
+Run the first bounded production sourcing pass through Feature 8: use BrowserAct
+for first-pass discovery, CamoFox for enrichment/verification, stage candidates,
+and review with Mitchel before promoting any approved records into Trevor's call
+queue. Direct channel sends remain deferred behind explicit approval, audit,
+opt-out, and channel-policy work.
