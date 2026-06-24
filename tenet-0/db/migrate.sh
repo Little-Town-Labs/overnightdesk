@@ -183,21 +183,23 @@ EOF
     for f in "${pending[@]}"; do
       version=$(basename "$f" .sql)
       base=$(basename "$f")
+      if [[ ! "$base" =~ ^[0-9][0-9A-Za-z_.-]*\.sql$ ]]; then
+        echo "migrate.sh apply-pending: unsafe migration filename: $base" >&2
+        exit 1
+      fi
       echo "migrate.sh apply-pending: applying $version"
       case "$ledger_kind" in
         tenet0_version)
-          ledger_insert="INSERT INTO tenet0.schema_migrations (version) VALUES (:'migration_version') ON CONFLICT DO NOTHING;"
+          ledger_insert="INSERT INTO tenet0.schema_migrations (version) VALUES ('$version') ON CONFLICT DO NOTHING;"
           ;;
         public_filename)
-          ledger_insert="INSERT INTO public.schema_migrations (filename) VALUES (:'migration_filename') ON CONFLICT DO NOTHING;"
+          ledger_insert="INSERT INTO public.schema_migrations (filename) VALUES ('$base') ON CONFLICT DO NOTHING;"
           ;;
         public_version)
-          ledger_insert="INSERT INTO public.schema_migrations (version) VALUES (:'migration_version') ON CONFLICT DO NOTHING;"
+          ledger_insert="INSERT INTO public.schema_migrations (version) VALUES ('$version') ON CONFLICT DO NOTHING;"
           ;;
       esac
       psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc -v ON_ERROR_STOP=1 \
-        -v "migration_filename=$base" \
-        -v "migration_version=$version" \
         --single-transaction \
         --file "$f" \
         --command "$ledger_insert"
