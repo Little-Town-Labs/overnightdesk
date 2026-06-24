@@ -1,4 +1,12 @@
-import type { ExistingCallTask, FollowUpDraftRecord, ProspectCandidate, ProspectInteraction } from "../src/types.js";
+import type {
+  ExistingCallTask,
+  FollowUpDraftRecord,
+  ProspectCandidate,
+  ProspectInteraction,
+  ProspectSourceCandidateInput,
+  ProspectSourceCandidateRecord,
+  ProspectSourcingRunRecord
+} from "../src/types.js";
 
 export function prospect(overrides: Partial<ProspectCandidate>): ProspectCandidate {
   return {
@@ -63,6 +71,71 @@ export function draft(overrides: Partial<FollowUpDraftRecord>): FollowUpDraftRec
     sentInteractionId: null,
     createdAt: new Date("2026-06-24T18:00:00Z"),
     updatedAt: new Date("2026-06-24T18:00:00Z"),
+    ...overrides
+  };
+}
+
+export function sourceCandidate(overrides: Partial<ProspectSourceCandidateInput>): ProspectSourceCandidateInput {
+  return {
+    businessName: "Independent Jewelers",
+    company: "Independent Jewelers",
+    phone: "555-0199",
+    email: null,
+    website: "https://independent.example",
+    sourceUrl: "https://maps.example/independent",
+    enrichmentUrl: "https://independent.example/contact",
+    rating: 4.8,
+    reviewCount: 120,
+    notes: "Independent retail jeweler with bridal inventory.",
+    ...overrides
+  };
+}
+
+export function sourcingRun(overrides: Partial<ProspectSourcingRunRecord>): ProspectSourcingRunRecord {
+  return {
+    id: 1,
+    source: "browseract_google_maps",
+    enrichmentSource: "camofox_contact_enrichment",
+    area: "Tysons Corner, Virginia",
+    keyword: "jewelry stores diamond dealers",
+    status: "staged",
+    requestedBy: "Mitchel",
+    candidateCount: 1,
+    recommendedCount: 1,
+    warnings: [],
+    createdAt: new Date("2026-06-24T20:00:00Z"),
+    updatedAt: new Date("2026-06-24T20:00:00Z"),
+    ...overrides
+  };
+}
+
+export function stagedCandidate(overrides: Partial<ProspectSourceCandidateRecord>): ProspectSourceCandidateRecord {
+  return {
+    id: 1,
+    sourcingRunId: 1,
+    businessName: "Independent Jewelers",
+    company: "Independent Jewelers",
+    area: "Tysons Corner, Virginia",
+    phone: "555-0199",
+    email: null,
+    website: "https://independent.example",
+    sourceUrl: "https://maps.example/independent",
+    enrichmentUrl: "https://independent.example/contact",
+    rating: 4.8,
+    reviewCount: 120,
+    buyerType: "retail_jeweler",
+    leadSource: "browseract_google_maps",
+    enrichmentSource: "camofox_contact_enrichment",
+    qualityScore: 90,
+    reviewStatus: "recommended",
+    dedupeStatus: "unique",
+    dedupeReason: null,
+    reviewNotes: "Independent retail jeweler with bridal inventory.",
+    approvedBy: null,
+    approvedAt: null,
+    promotedProspectId: null,
+    createdAt: new Date("2026-06-24T20:00:00Z"),
+    updatedAt: new Date("2026-06-24T20:00:00Z"),
     ...overrides
   };
 }

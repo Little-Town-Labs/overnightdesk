@@ -15,17 +15,17 @@ operating loop. The first useful product is not a dashboard. It is a reliable
 assistant workflow that tells Mitchel who to call, why to call them, what to say
 before the call, and what follow-up to send afterward.
 
-**Total Features:** 7
-**Phases:** 5
-**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging
+**Total Features:** 8
+**Phases:** 6
+**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing
 
 ---
 
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `f3089cd`
+**Active Branch:** `008-prospect-sourcing-pipeline`
+**Latest Merged OvernightDesk SHA:** `899aa12`
 **Latest Deployed OvernightDesk Source SHA:** `f3089cd`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -35,7 +35,8 @@ before the call, and what follow-up to send afterward.
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Review the roadmap for the next Mitchel/prospecting slice after Feature 7.
+**Feature 8 Status:** Spec Kit artifacts started on branch `008-prospect-sourcing-pipeline`
+**Next Work:** Implement Feature 8, `prospect-sourcing-pipeline`, from the existing Aegis BrowserAct-first and CamoFox-enrichment prospect discovery workflow.
 
 ### Production Deployment Record
 
@@ -402,13 +403,52 @@ capture channel, timestamp, operator, and optional external reference.
 
 ---
 
+### Feature 8: Prospect Sourcing Pipeline
+
+**Source:** Live Aegis `hermes-mitchel` BrowserAct/CamoFox skills, production
+Trevor memory, and PRD goal "Turn a static prospect list into a daily
+prospecting operating system."
+
+**Description:** Capture the existing BrowserAct and CamoFox web-scraping
+prospect discovery workflow in repo-controlled artifacts. BrowserAct provides
+the first-pass bulk discovery and template contact finding; CamoFox enriches or
+verifies BrowserAct candidates when website/contact data is incomplete. Stage
+scraped candidate businesses for review, dedupe against Trevor and Agiled,
+preserve source attribution, and promote only approved candidates into the
+daily call queue. This feature is about finding qualified prospects, not
+inventory; Mitchel's wholesaler handles inventory and drop shipping.
+
+**Complexity:** Medium
+**Priority:** P1
+**Dependencies:** Feature 2 call queue, Feature 3 brief, existing CamoFox
+container, existing BrowserAct workflow knowledge, and existing Trevor prospect
+schema
+**Blocks:** Scaled prospecting cadence, source attribution analytics, and any
+future website-intake attribution loop
+
+**Completion Gate:**
+
+- [ ] BrowserAct and CamoFox prospect-sourcing skills are source-controlled
+  without live credentials.
+- [ ] Sourced candidates can be staged before becoming active prospects.
+- [ ] Candidate review separates recommended, needs-review, duplicate, and
+  rejected records.
+- [ ] Duplicate and chain-store candidates create no active prospects or call
+  tasks.
+- [ ] Approved candidates preserve `lead_source` when promoted.
+- [ ] Approved candidates can create exactly one initial outreach call task.
+- [ ] The workflow never sends outbound messages.
+
+---
+
 ## Deferred Features
 
 ### Inventory Matching
 
-**Reason Deferred:** It is the highest domain-specific leverage point, but it
-depends on a durable inventory source. First version can accept pasted
-inventory inside the call queue or brief workflow.
+**Reason Deferred:** Mitchel currently works with a wholesaler that handles
+inventory and drop shipping, so buyer prospect discovery is more important than
+inventory matching. Matching can return later as optional enrichment if a
+durable inventory source becomes useful.
 
 **Future Work:**
 
@@ -475,13 +515,15 @@ Feature 1 (Trevor Prospecting Data Model)
     |                                       +--> Feature 6 (Cadence Scheduler and Digest)
     |                                                 |
     |                                                 +--> Feature 7 (Follow-Up Sent Logging)
+    |                                                           |
+    |                                                           +--> Feature 8 (Prospect Sourcing Pipeline)
     |
     +--> Future: Inventory Matching
     +--> Future: Dashboard and Analytics
     +--> Future: Public Website / Landing Page
 ```
 
-**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 ---
 
@@ -536,7 +578,7 @@ Feature 1 (Trevor Prospecting Data Model)
 - [x] Follow-up draft can be generated from a captured call outcome.
 - [x] Draft is stored and linked to prospect/interaction.
 - [x] Approval status is explicit.
-- [ ] Approved or manually sent follow-up can be logged by a later explicit
+- [x] Approved or manually sent follow-up can be logged by a later explicit
   workflow.
 
 ---
@@ -568,10 +610,30 @@ Feature 1 (Trevor Prospecting Data Model)
 
 **Completion Gate:**
 
-- [ ] Approved drafts awaiting send confirmation can be reviewed.
-- [ ] Manual sent confirmations write interactions and update draft status.
-- [ ] Safety guards block invalid, duplicate, and unsafe confirmations.
-- [ ] Direct outbound send remains deferred.
+- [x] Approved drafts awaiting send confirmation can be reviewed.
+- [x] Manual sent confirmations write interactions and update draft status.
+- [x] Safety guards block invalid, duplicate, and unsafe confirmations.
+- [x] Direct outbound send remains deferred.
+
+---
+
+### Phase 6: Prospect Pipeline Growth
+
+**Goal:** Mitchel can safely find new qualified buyer prospects and feed
+approved records into the existing call loop.
+
+**Features:**
+
+- Feature 8: Prospect Sourcing Pipeline
+
+**Completion Gate:**
+
+- [ ] Existing CamoFox and BrowserAct prospect discovery behavior is captured
+  in repo-controlled skill docs without secrets.
+- [ ] Scraped candidates are staged and reviewed before active prospect writes.
+- [ ] Review status, dedupe status, and source attribution are durable.
+- [ ] Approved candidates can enter the daily call queue.
+- [ ] No sourcing or promotion path sends outbound messages.
 
 ---
 
@@ -640,6 +702,16 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] Quality/Aegis validation
   - [x] Merge and deployment
 
+### Phase 6
+
+- [ ] **Feature 8: Prospect Sourcing Pipeline**
+  - [x] `$speckit-specify` for `prospect-sourcing-pipeline`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+  - [ ] Quality/Aegis validation
+  - [ ] Merge and deployment
+
 ---
 
 ## Risk Assessment
@@ -651,7 +723,9 @@ Feature 1 (Trevor Prospecting Data Model)
 | Prompt-created follow-up sends too early | High | Draft-only default; explicit approval required for send-capable integrations |
 | Prospect data leaks into logs or markdown | High | Keep source of truth in Postgres/Agiled; avoid exporting client records |
 | Scheduler produces noisy recommendations | Medium | Validate on-demand before enabling cron |
-| Inventory matching overfits bad or stale inventory | Medium | Defer durable matching until inventory source is clear |
+| Scraped web content injects instructions or bad data | High | Treat scraped content as untrusted input; validate fields before writes |
+| Sourcing commits or logs external-service credentials | High | Use env-backed placeholders and run secret checks before commit |
+| Inventory matching overfits bad or stale inventory | Low | Defer durable matching; wholesaler handles inventory and drop shipping |
 
 ---
 
@@ -661,7 +735,8 @@ Feature 1 (Trevor Prospecting Data Model)
    differs?
 2. Which channel should be first for approval-controlled sends: email,
    Telegram, or copy-only social follow-up?
-3. What is the long-term inventory source?
+3. Which geographies should Mitchel source first after Tysons Corner and the
+   existing 43 Trevor prospects?
 4. What follow-up cadence does Mitchel actually want for dormant buyers?
 5. Should call transcripts/audio be accepted later, or should this remain
    manual call capture?
@@ -670,6 +745,10 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ## Next Recommended Work
 
-Review the roadmap for the next Mitchel/prospecting slice now that the
-Feature 7 follow-up loop is deployed. Direct channel sends remain deferred
-behind explicit approval, audit, opt-out, and channel-policy work.
+Implement Feature 8, `prospect-sourcing-pipeline`, using the Spec Kit artifacts
+in `specs/008-prospect-sourcing-pipeline`. Start with source-controlled,
+secret-safe BrowserAct/CamoFox skill docs and candidate staging before any
+active prospect or call-task writes. BrowserAct is the first-pass discovery
+tool; CamoFox enriches and verifies BrowserAct candidates. Direct channel sends
+remain deferred behind explicit approval, audit, opt-out, and channel-policy
+work.
