@@ -524,13 +524,20 @@ manual data entry after live conversations
 ### Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form
 
 **Source:** PRD Phase 6 public website concept plus user direction that the
-public form can be separate later if the internal intake workflow comes first.
+public form can be separate later if the internal intake workflow comes first,
+and that current website/book content should move under
+`mitchelbrown.com/books`.
 
 **Description:** Build a focused `mitchelbrown.com` landing page for buyer
 credibility and inbound inquiry capture. The page should route buyer inquiries
 through the Feature 9 intake contract, preserve `mitchelbrown.com` source
 attribution, dedupe against existing Trevor/Agiled records, and avoid creating
-active sales work until the inquiry is reviewed or safely staged.
+active sales work until the inquiry is reviewed or safely staged. Existing
+website/book content should remain available under `/books` so the root domain
+can become the buyer-focused landing page without losing the current content.
+Initial positioning direction: "Mitchel Brown: Diamonds, Jewelry, and More" or
+a similar brand-forward headline that can support diamonds, jewelry, books, and
+future buyer relationships without feeling like only a form page.
 
 **Complexity:** Medium
 **Priority:** P2
@@ -541,11 +548,14 @@ and future public buyer self-service flows
 
 **Completion Gate:**
 
-- [ ] Audience, positioning, and primary call to action are defined.
+- [ ] Audience, positioning, and primary call to action are defined, starting
+  from the "Mitchel Brown: Diamonds, Jewelry, and More" direction.
 - [ ] Landing page has a buyer inquiry path with spam/abuse controls.
 - [ ] Inquiry submissions route through the Feature 9 intake contract.
 - [ ] Submissions preserve source attribution as `mitchelbrown.com`.
 - [ ] Duplicate prospects are staged or linked instead of blindly created.
+- [ ] Existing website/book content is preserved or redirected under
+  `mitchelbrown.com/books`.
 - [ ] Hosting ownership is decided: OvernightDesk-managed infrastructure or a
   separate marketing deployment.
 - [ ] No public form stores secrets, exposes internal IDs unnecessarily, or
@@ -768,6 +778,7 @@ same reviewed intake path used internally.
 
 - [ ] Public page positioning and audience are defined.
 - [ ] Buyer inquiry form routes through the Feature 9 intake contract.
+- [ ] Existing website/book content is preserved under `/books`.
 - [ ] Spam/abuse, duplicate handling, and source attribution are in place.
 - [ ] Hosting and operational ownership are documented.
 

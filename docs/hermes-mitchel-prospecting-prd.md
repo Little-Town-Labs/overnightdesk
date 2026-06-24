@@ -393,8 +393,14 @@ Rules:
 
 - Define the audience for `mitchelbrown.com`: wholesale diamond buyers, retail
   jewelers, brokers, collectors, referral partners, or some narrower segment.
+- Explore brand-forward positioning such as "Mitchel Brown: Diamonds, Jewelry,
+  and More" so the root site can support diamonds, jewelry, books, and buyer
+  relationships rather than feeling like only an inquiry form.
 - Build a focused landing page with credibility signals, buyer-intake path,
   current availability request, and a clear contact flow.
+- Preserve or redirect the current website/book content under
+  `mitchelbrown.com/books` so the root domain can become the buyer-focused
+  landing page without losing existing content.
 - Route website inquiries into Agiled and `trevor.prospects` without creating
   duplicate prospect records.
 - Track source attribution as `mitchelbrown.com`.
