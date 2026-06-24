@@ -17,8 +17,11 @@ Fields used by this feature:
 - `status`: must transition from `approved` to `manual_sent`; invalid from `draft`, `discarded`, `manual_sent`, or `sent`.
 - `approved_by`, `approved_at`: approval metadata from Feature 5.
 - `sent_at`: timestamp of the human-confirmed send.
+- `sent_by`: operator who confirmed the manual send.
 - `sent_via`: channel/provider label for the human-confirmed send.
 - `external_message_id`: optional external reference supplied by the operator.
+- `audit_only_reason`: required explanation for do-not-contact audit-only logs.
+- `sent_interaction_id`: interaction row created by the manual sent confirmation.
 - `updated_at`: transition timestamp.
 
 Validation rules:
@@ -26,6 +29,7 @@ Validation rules:
 - Confirmation requires `status = 'approved'`.
 - Confirmation must be idempotent by draft ID; a completed draft cannot create a second interaction.
 - Queue output includes approved drafts only and must bound body/detail exposure.
+- Sent metadata is stored on the draft so retries can return the original interaction without duplicating history.
 
 ### `trevor.interactions`
 
@@ -39,6 +43,8 @@ Fields used by this feature:
 - `summary`: bounded summary that a manual follow-up was sent.
 - `occurred_at`: sent timestamp.
 - Optional metadata fields if available in the existing schema should capture source draft ID, confirming operator, external reference, and audit-only reason.
+  The current implementation stores those details in `trevor.followup_drafts`
+  and uses a bounded interaction summary.
 
 Validation rules:
 
@@ -74,7 +80,7 @@ Validation rules:
 
 ### Send Confirmation Result
 
-- `status`: `logged`, `blocked`, or `needs_input`.
+- `status`: `logged`, `blocked`, `needs_input`, or `not_found`.
 - `draftId`: draft identifier.
 - `prospectId`: prospect identifier.
 - `interactionId`: created interaction identifier when logged.

@@ -5,6 +5,7 @@ import type {
   FollowUpContext,
   FollowUpDraftRecord,
   FollowUpDraftWrite,
+  ManualFollowUpSentWrite,
   PreCallBriefLookup,
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
@@ -216,6 +217,12 @@ export class FakeQueueRepository implements QueueRepository {
       status: "draft",
       approvedBy: null,
       approvedAt: null,
+      sentAt: null,
+      sentBy: null,
+      sentVia: null,
+      externalMessageId: null,
+      auditOnlyReason: null,
+      sentInteractionId: null,
       createdAt: now,
       updatedAt: now
     };
@@ -242,6 +249,72 @@ export class FakeQueueRepository implements QueueRepository {
       .filter((item) => item.status === "draft")
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id - b.id)
       .slice(0, limit);
+  }
+
+  async listApprovedFollowUpDraftsAwaitingSend(limit: number, options: { includeDoNotContact?: boolean } = {}) {
+    return this.drafts
+      .filter((draft) => draft.status === "approved" && draft.sentInteractionId === null)
+      .map((draft) => ({
+        draft,
+        prospect: this.candidates.find((candidate) => candidate.id === draft.prospectId) ?? null
+      }))
+      .filter((item) => options.includeDoNotContact !== false || !item.prospect?.doNotContact)
+      .sort((a, b) => {
+        const aApproved = a.draft.approvedAt?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bApproved = b.draft.approvedAt?.getTime() ?? Number.POSITIVE_INFINITY;
+        return aApproved - bApproved || a.draft.updatedAt.getTime() - b.draft.updatedAt.getTime() || a.draft.id - b.draft.id;
+      })
+      .slice(0, limit);
+  }
+
+  async logManualFollowUpSent(input: ManualFollowUpSentWrite) {
+    const draft = this.drafts.find((item) => item.id === input.draftId);
+    if (!draft) return null;
+    const prospect = this.candidates.find((candidate) => candidate.id === draft.prospectId) ?? null;
+
+    if ((draft.status === "manual_sent" || draft.status === "sent") && draft.sentInteractionId !== null) {
+      return { draft, prospect, interactionId: draft.sentInteractionId, blockedReason: null };
+    }
+
+    if (draft.status !== "approved") {
+      return {
+        draft,
+        prospect,
+        interactionId: draft.sentInteractionId,
+        blockedReason: `Draft status is ${draft.status}; only approved drafts can be logged as sent.`
+      };
+    }
+
+    if (prospect?.doNotContact && !input.auditOnlyReason) {
+      return { draft, prospect, interactionId: null, blockedReason: "audit_only_reason is required for do-not-contact prospects." };
+    }
+
+    this.captured += 1;
+    const interactionId = this.captured;
+    const auditOnly = Boolean(prospect?.doNotContact);
+    this.interactions.push({
+      id: interactionId,
+      prospectId: draft.prospectId,
+      channel: input.sentVia,
+      direction: "outbound",
+      summary: [
+        auditOnly ? "Audit-only manual follow-up sent record." : "Manual follow-up sent.",
+        `Draft ${draft.id} confirmed by ${input.confirmedBy}.`,
+        input.externalMessageId ? "External reference recorded." : null,
+        input.auditOnlyReason ? `Reason: ${input.auditOnlyReason}` : null
+      ].filter(Boolean).join(" "),
+      occurredAt: input.sentAt
+    });
+
+    draft.status = "manual_sent";
+    draft.sentAt = input.sentAt;
+    draft.sentBy = input.confirmedBy;
+    draft.sentVia = input.sentVia;
+    draft.externalMessageId = input.externalMessageId;
+    draft.auditOnlyReason = input.auditOnlyReason;
+    draft.sentInteractionId = interactionId;
+    draft.updatedAt = new Date("2026-06-24T19:00:00Z");
+    return { draft, prospect, interactionId, blockedReason: null };
   }
 
   async listStaleProspectCandidates(salesDay: string, limit: number, options: { includeDormant?: boolean } = {}): Promise<ProspectCandidate[]> {

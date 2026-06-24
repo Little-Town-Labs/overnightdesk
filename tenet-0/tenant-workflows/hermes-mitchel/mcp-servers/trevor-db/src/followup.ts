@@ -4,7 +4,11 @@ import type {
   FollowUpDraftRecord,
   FollowUpDraftResult,
   FollowUpDraftStatus,
+  FollowUpSendQueueResult,
   GenerateFollowUpDraftInput,
+  ListFollowUpsAwaitingSendInput,
+  LogManualFollowUpSentInput,
+  ManualFollowUpSentResult,
   MarkFollowUpDraftInput,
   ProspectCandidate,
   ProspectInteraction,
@@ -12,6 +16,9 @@ import type {
 } from "./types.js";
 
 const VALID_CHANNELS = new Set<string>(["email", "telegram", "sms", "linkedin", "instagram"]);
+const MAX_OPERATOR_LENGTH = 120;
+const MAX_EXTERNAL_REF_LENGTH = 240;
+const MAX_AUDIT_REASON_LENGTH = 1000;
 
 function emptyResult(
   status: FollowUpDraftResult["status"],
@@ -47,11 +54,39 @@ function draftResult(status: FollowUpDraftResult["status"], draft: FollowUpDraft
   };
 }
 
+function manualSentResult(
+  status: ManualFollowUpSentResult["status"],
+  draft: FollowUpDraftRecord | null,
+  input: Pick<LogManualFollowUpSentInput, "draftId">,
+  interactionId: number | null,
+  warnings: string[] = [],
+  prospect: ProspectCandidate | null = null
+): ManualFollowUpSentResult {
+  return {
+    status,
+    draftId: draft?.id ?? input.draftId,
+    prospectId: draft?.prospectId ?? prospect?.id ?? null,
+    interactionId,
+    draftStatus: draft?.status ?? null,
+    channel: draft?.channel ?? null,
+    sentAt: draft?.sentAt ?? null,
+    auditOnly: Boolean(prospect?.doNotContact || draft?.auditOnlyReason),
+    warnings,
+    outboundSent: false
+  };
+}
+
 function displayName(prospect: ProspectCandidate): string {
   const name = prospect.name?.trim();
   const company = prospect.company?.trim();
   if (name) return name.split(/\s+/)[0] ?? name;
   return company || `Prospect ${prospect.id}`;
+}
+
+function displayFullName(prospect: ProspectCandidate | null, draft: FollowUpDraftRecord): string {
+  const name = prospect?.name?.trim();
+  const company = prospect?.company?.trim();
+  return name || company || `Prospect ${draft.prospectId}`;
 }
 
 function clean(value: string | null | undefined, fallback: string): string {
@@ -107,6 +142,26 @@ function draftBody(channel: FollowUpChannel, prospect: ProspectCandidate, intera
 
 function validateChannel(channel: FollowUpChannel): channel is FollowUpChannel {
   return VALID_CHANNELS.has(channel);
+}
+
+function normalizedLimit(limit: number | undefined): number {
+  return Math.max(1, Math.min(25, Math.trunc(limit ?? 10)));
+}
+
+function ageDays(from: Date | null, now = new Date()): number {
+  if (!from) return 0;
+  return Math.max(0, Math.floor((now.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)));
+}
+
+function trimBounded(value: string | undefined, max: number): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, max);
+}
+
+function parseSentAt(value: string): Date | null {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export async function generateFollowUpDraft(
@@ -178,6 +233,78 @@ export async function markFollowUpDraft(repo: QueueRepository, input: MarkFollow
   return draftResult(input.action === "approve" ? "approved" : "discarded", updated);
 }
 
+export async function listFollowUpsAwaitingSend(
+  repo: QueueRepository,
+  input: ListFollowUpsAwaitingSendInput = {}
+): Promise<FollowUpSendQueueResult> {
+  const items = await repo.listApprovedFollowUpDraftsAwaitingSend(normalizedLimit(input.limit), {
+    includeDoNotContact: input.includeDoNotContact
+  });
+  const queueItems = items.map(({ draft, prospect }) => {
+    const reviewOnly = Boolean(prospect?.doNotContact);
+    const summary = [
+      reviewOnly ? "Review-only approved follow-up; prospect is marked do-not-contact." : "Approved follow-up awaiting manual send confirmation.",
+      `Channel: ${channelLabel(draft.channel)}.`,
+      draft.subject ? `Subject: ${noteSummary(draft.subject)}.` : null,
+      draft.approvedBy ? `Approved by ${noteSummary(draft.approvedBy)}.` : null
+    ].filter(Boolean).join(" ");
+    return {
+      draftId: draft.id,
+      prospectId: draft.prospectId,
+      displayName: displayFullName(prospect, draft),
+      channel: draft.channel,
+      subject: draft.subject,
+      approvedAt: draft.approvedAt,
+      ageDays: ageDays(draft.approvedAt),
+      reviewOnly,
+      summary
+    };
+  });
+  return {
+    status: "ok",
+    items: queueItems,
+    counts: {
+      awaitingSend: queueItems.length,
+      reviewOnly: queueItems.filter((item) => item.reviewOnly).length
+    },
+    warnings: []
+  };
+}
+
+export async function logManualFollowUpSent(
+  repo: QueueRepository,
+  input: LogManualFollowUpSentInput
+): Promise<ManualFollowUpSentResult> {
+  const existing = await repo.findFollowUpDraftById(input.draftId);
+  if (!existing) return manualSentResult("not_found", null, input, null, ["Follow-up draft was not found."]);
+
+  const confirmedBy = trimBounded(input.confirmedBy, MAX_OPERATOR_LENGTH);
+  if (!confirmedBy) {
+    return manualSentResult("needs_input", existing, input, existing.sentInteractionId, ["confirmed_by is required."]);
+  }
+
+  const sentAt = parseSentAt(input.sentAt);
+  if (!sentAt) {
+    return manualSentResult("needs_input", existing, input, existing.sentInteractionId, ["sent_at must be a valid date or timestamp."]);
+  }
+
+  const sentVia = trimBounded(input.sentVia, 80) ?? existing.channel;
+  const result = await repo.logManualFollowUpSent({
+    draftId: existing.id,
+    sentAt,
+    confirmedBy,
+    sentVia,
+    externalMessageId: trimBounded(input.externalMessageId, MAX_EXTERNAL_REF_LENGTH),
+    auditOnlyReason: trimBounded(input.auditOnlyReason, MAX_AUDIT_REASON_LENGTH)
+  });
+
+  if (!result) return manualSentResult("not_found", null, input, null, ["Follow-up draft was not found."]);
+  if (result.blockedReason) {
+    return manualSentResult("blocked", result.draft, input, result.interactionId, [result.blockedReason], result.prospect);
+  }
+  return manualSentResult("logged", result.draft, input, result.interactionId, [], result.prospect);
+}
+
 export function followUpDraftToMcp(result: FollowUpDraftResult) {
   return {
     status: result.status,
@@ -188,6 +315,43 @@ export function followUpDraftToMcp(result: FollowUpDraftResult) {
     draft_status: result.draftStatus,
     subject: result.subject,
     body: result.body,
+    warnings: result.warnings,
+    outbound_sent: result.outboundSent
+  };
+}
+
+export function followUpSendQueueToMcp(result: FollowUpSendQueueResult) {
+  return {
+    status: result.status,
+    items: result.items.map((item) => ({
+      draft_id: item.draftId,
+      prospect_id: item.prospectId,
+      display_name: item.displayName,
+      channel: item.channel,
+      subject: item.subject,
+      approved_at: item.approvedAt?.toISOString() ?? null,
+      age_days: item.ageDays,
+      review_only: item.reviewOnly,
+      summary: item.summary
+    })),
+    counts: {
+      awaiting_send: result.counts.awaitingSend,
+      review_only: result.counts.reviewOnly
+    },
+    warnings: result.warnings
+  };
+}
+
+export function manualFollowUpSentToMcp(result: ManualFollowUpSentResult) {
+  return {
+    status: result.status,
+    draft_id: result.draftId,
+    prospect_id: result.prospectId,
+    interaction_id: result.interactionId,
+    draft_status: result.draftStatus,
+    channel: result.channel,
+    sent_at: result.sentAt?.toISOString() ?? null,
+    audit_only: result.auditOnly,
     warnings: result.warnings,
     outbound_sent: result.outboundSent
   };
