@@ -24,8 +24,8 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `007-follow-up-sent-logging`
-**Latest Merged OvernightDesk SHA:** `89dc509`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `efb46e1`
 **Latest Deployed OvernightDesk Source SHA:** `fcad184`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -34,7 +34,7 @@ before the call, and what follow-up to send afterward.
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 7 Status:** Spec Kit artifacts drafted on branch `007-follow-up-sent-logging`; implementation pending
+**Feature 7 Status:** Spec Kit artifacts merged via PR #13; implementation pending
 **Next Work:** Implement Feature 7, `follow-up-sent-logging`, to close the approved/manual follow-up loop before direct channel sends.
 
 ### Production Deployment Record
@@ -177,9 +177,9 @@ Deployment facts:
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #12 delivered Feature 6, `cadence-scheduler-digest`, and
   has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
-- `overnightdesk` branch `007-follow-up-sent-logging` has Spec Kit artifacts
-  drafted for the follow-up sent logging workflow; implementation and PR are
-  pending.
+- `overnightdesk` PR #13 delivered Feature 7 Spec Kit artifacts for the
+  follow-up sent logging workflow and has been merged into `main`;
+  implementation is pending.
 
 ---
 
