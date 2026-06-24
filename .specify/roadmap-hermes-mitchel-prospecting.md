@@ -24,16 +24,16 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `005-follow-up-drafting`
-**Latest Merged OvernightDesk SHA:** `cb6c3e5`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `aafbd1c`
 **Latest Deployed OvernightDesk Source SHA:** `cb6c3e5`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 5 Status:** PR #11 open from branch `005-follow-up-drafting`; quality gate and Aegis comparison passed
-**Next Work:** Review and merge Feature 5 PR #11, then deploy to `aegis-prod/hermes-mitchel`.
+**Feature 5 Status:** Merged via PR #11; deployment to `aegis-prod/hermes-mitchel` pending
+**Next Work:** Deploy Feature 5 to `aegis-prod/hermes-mitchel`.
 
 ### Production Deployment Record
 
@@ -129,10 +129,9 @@ Deployment facts:
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #10 delivered Feature 4, `post-call-capture`, and has
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
-- Feature 5, `follow-up-drafting`, has entered Spec Kit on branch
-  `005-follow-up-drafting`; local implementation now adds draft generation,
-  approval/discard state, and a tenant skill. PR #11 is open; it is not merged
-  or deployed yet.
+- `overnightdesk` PR #11 delivered Feature 5, `follow-up-drafting`, and has
+  been merged into `main`; deployment to `aegis-prod/hermes-mitchel` is
+  pending.
 
 ---
 
