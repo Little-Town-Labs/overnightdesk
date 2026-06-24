@@ -32,8 +32,8 @@ before the call, and what follow-up to send afterward.
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 5 Status:** Local implementation complete on branch `005-follow-up-drafting`; quality gate and Aegis comparison passed; commit and PR pending
-**Next Work:** Commit, push, and open the Feature 5 PR.
+**Feature 5 Status:** PR #11 open from branch `005-follow-up-drafting`; quality gate and Aegis comparison passed
+**Next Work:** Review and merge Feature 5 PR #11, then deploy to `aegis-prod/hermes-mitchel`.
 
 ### Production Deployment Record
 
@@ -131,7 +131,8 @@ Deployment facts:
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - Feature 5, `follow-up-drafting`, has entered Spec Kit on branch
   `005-follow-up-drafting`; local implementation now adds draft generation,
-  approval/discard state, and a tenant skill. It is not merged or deployed yet.
+  approval/discard state, and a tenant skill. PR #11 is open; it is not merged
+  or deployed yet.
 
 ---
 
@@ -495,7 +496,8 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [x] `$speckit-implement`
-  - [ ] Quality gate, Aegis comparison, PR, and deployment
+  - [x] Quality gate, Aegis comparison, and PR
+  - [ ] Merge and deployment
 
 ### Phase 4
 
