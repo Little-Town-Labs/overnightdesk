@@ -97,6 +97,68 @@ export interface FollowUpDraftResult {
   outboundSent: false;
 }
 
+export interface CadenceDigestInput {
+  salesDay?: string;
+  limit?: number;
+  persistCallTasks?: boolean;
+  includeReviewNeeded?: boolean;
+  includeDormant?: boolean;
+  scheduled?: boolean;
+  inventoryContext?: string;
+}
+
+export interface StaleWorkItem {
+  prospectId: number;
+  displayName: string;
+  status: string | null;
+  reason: string;
+  nextActionType: string | null;
+  nextActionAt: Date | null;
+  lastInteractionAt: Date | null;
+  daysStale: number | null;
+  reviewOnly: boolean;
+  suggestedNextStep: string;
+}
+
+export interface FollowUpApprovalItem {
+  draftId: number;
+  prospectId: number;
+  displayName: string;
+  channel: FollowUpChannel;
+  status: "draft";
+  subject: string | null;
+  createdAt: Date;
+  ageDays: number;
+  reviewOnly: boolean;
+}
+
+export interface CadenceDigestResult {
+  status: "generated" | "needs_input";
+  generatedAt: string;
+  salesDay: string;
+  scheduled: boolean;
+  persistedCallTasks: boolean;
+  counts: {
+    callRecommendations: number;
+    reviewNeeded: number;
+    staleItems: number;
+    followUpDrafts: number;
+    suppressed: number;
+    createdTasks: number;
+    reusedTasks: number;
+  };
+  callQueue: CallRecommendation[];
+  reviewNeeded: QueueRunResult["reviewNeeded"];
+  staleWork: StaleWorkItem[];
+  followUpApprovals: FollowUpApprovalItem[];
+  warnings: string[];
+  sideEffects: {
+    outboundSent: false;
+    interactionsCreated: number;
+    followUpDraftsCreated: number;
+  };
+}
+
 export type PostCallOutcome =
   | "no_answer"
   | "left_voicemail"
@@ -304,4 +366,6 @@ export interface QueueRepository {
   createFollowUpDraft(input: FollowUpDraftWrite): Promise<FollowUpDraftRecord>;
   findFollowUpDraftById(draftId: number): Promise<FollowUpDraftRecord | null>;
   markFollowUpDraft(draftId: number, status: "approved" | "discarded", approvedBy?: string): Promise<FollowUpDraftRecord | null>;
+  listPendingFollowUpDrafts(limit: number): Promise<FollowUpDraftRecord[]>;
+  listStaleProspectCandidates(salesDay: string, limit: number, options?: { includeDormant?: boolean }): Promise<ProspectCandidate[]>;
 }

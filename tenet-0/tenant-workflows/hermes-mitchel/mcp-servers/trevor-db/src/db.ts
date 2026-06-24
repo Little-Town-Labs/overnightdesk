@@ -508,4 +508,55 @@ export class PgQueueRepository implements QueueRepository {
     );
     return result.rows[0] ? toFollowUpDraft(result.rows[0]) : null;
   }
+
+  async listPendingFollowUpDrafts(limit: number): Promise<FollowUpDraftRecord[]> {
+    const normalizedLimit = Math.max(1, Math.min(25, Math.trunc(limit)));
+    const result = await this.pool.query(
+      `
+      select id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      from trevor.followup_drafts
+      where status = 'draft'
+      order by created_at asc, id asc
+      limit $1
+      `,
+      [normalizedLimit]
+    );
+    return result.rows.map(toFollowUpDraft);
+  }
+
+  async listStaleProspectCandidates(
+    salesDay: string,
+    limit: number,
+    options: { includeDormant?: boolean } = {}
+  ): Promise<ProspectCandidate[]> {
+    const normalizedLimit = Math.max(1, Math.min(25, Math.trunc(limit)));
+    const dormantFilter = options.includeDormant === false
+      ? "and p.next_action_at is not null"
+      : "";
+    const result = await this.pool.query(
+      `
+      select
+        p.*,
+        max(i.occurred_at) as last_interaction_at
+      from trevor.prospects p
+      left join trevor.interactions i on i.prospect_id = p.id
+      where coalesce(p.status, 'active') <> 'archived'
+        ${dormantFilter}
+      group by p.id
+      having
+        (p.next_action_at is not null and p.next_action_at::date < $1::date)
+        or max(i.occurred_at) is null
+        or max(i.occurred_at)::date <= ($1::date - interval '30 days')
+      order by
+        case when p.next_action_at is not null and p.next_action_at::date < $1::date then 0 else 1 end asc,
+        p.next_action_at asc nulls last,
+        max(i.occurred_at) asc nulls first,
+        p.priority desc,
+        p.id asc
+      limit $2
+      `,
+      [salesDay, normalizedLimit]
+    );
+    return result.rows.map(toCandidate);
+  }
 }
