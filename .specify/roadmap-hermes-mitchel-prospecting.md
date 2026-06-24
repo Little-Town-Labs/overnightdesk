@@ -25,7 +25,7 @@ before the call, and what follow-up to send afterward.
 
 **Last Updated:** 2026-06-24
 **Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `b374f72`
+**Latest Merged OvernightDesk SHA:** `6970ce6`
 **Latest Deployed OvernightDesk Source SHA:** `b374f72`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -234,6 +234,10 @@ Deployment facts:
   follow-up sent logging workflow and has been merged into `main`.
 - `overnightdesk` PR #14 delivered Feature 7 implementation and has been
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- `overnightdesk` PR #15 delivered Feature 8, `prospect-sourcing-pipeline`,
+  and has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- `overnightdesk` commit `6970ce6` records the Feature 8 production deployment
+  state in this roadmap.
 
 ---
 
@@ -249,7 +253,9 @@ Deployment facts:
 | Memory table | `trevor.memory` | Live, minimal |
 | Call task table | `trevor.call_tasks` | Live, empty |
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, and follow-up sent logging tools |
+| Prospect sourcing run table | `trevor.prospect_sourcing_runs` | Live, empty |
+| Prospect candidate table | `trevor.prospect_candidates` | Live, empty |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, follow-up sent logging, and prospect sourcing tools |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
@@ -258,10 +264,15 @@ Deployment facts:
 | Follow-up drafting skill | `/opt/data/skills/follow-up-drafting` | Live |
 | Cadence digest skill | `/opt/data/skills/cadence-digest` | Live |
 | Cadence scheduler runbook | `/opt/data/runbooks/cadence-scheduler.md` | Live |
+| Prospect sourcing skill | `/opt/data/skills/prospect-sourcing` | Live |
+| BrowserAct prospect sourcing skill | `/opt/data/skills/web/browseract` | Live |
+| CamoFox enrichment skill | `/opt/data/skills/web/camofox-browser` | Live |
+| Prospect sourcing runbook | `/opt/data/runbooks/prospect-sourcing.md` | Live |
 | Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
 | Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
 | Feature 1 migration | `tenet-0/db/migrations/051_trevor_prospecting.sql` | Deployed |
 | Feature 7 migration | `tenet-0/db/migrations/052_trevor_followup_sent_logging.sql` | Deployed |
+| Feature 8 migration | `tenet-0/db/migrations/053_trevor_prospect_sourcing.sql` | Deployed |
 | Platform standard update | `overnightdesk-platform-standard` PR #1 | Merged and deployed to standards consumer |
 
 ---
@@ -655,12 +666,12 @@ approved records into the existing call loop.
 
 **Completion Gate:**
 
-- [ ] Existing CamoFox and BrowserAct prospect discovery behavior is captured
+- [x] Existing CamoFox and BrowserAct prospect discovery behavior is captured
   in repo-controlled skill docs without secrets.
-- [ ] Scraped candidates are staged and reviewed before active prospect writes.
-- [ ] Review status, dedupe status, and source attribution are durable.
-- [ ] Approved candidates can enter the daily call queue.
-- [ ] No sourcing or promotion path sends outbound messages.
+- [x] Scraped candidates are staged and reviewed before active prospect writes.
+- [x] Review status, dedupe status, and source attribution are durable.
+- [x] Approved candidates can enter the daily call queue.
+- [x] No sourcing or promotion path sends outbound messages.
 
 ---
 
@@ -731,7 +742,7 @@ approved records into the existing call loop.
 
 ### Phase 6
 
-- [ ] **Feature 8: Prospect Sourcing Pipeline**
+- [x] **Feature 8: Prospect Sourcing Pipeline**
   - [x] `$speckit-specify` for `prospect-sourcing-pipeline`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
