@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { generatePreCallBrief, preCallBriefToMcp } from "./brief.js";
 import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
+import { enrichProspectUrlWithCamoFox, trevorCamoFoxEnrichmentToMcp } from "./camofox.js";
 import { createPool, PgQueueRepository } from "./db.js";
 import { cadenceDigestToMcp, generateCadenceDigest } from "./digest.js";
 import {
@@ -50,7 +51,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.7.0"
+  version: "1.8.0"
 });
 
 server.registerTool("db_query", {
@@ -379,6 +380,24 @@ server.registerTool("stage_prospect_candidates", {
     return { content: [{ type: "text", text: JSON.stringify(stageProspectCandidatesToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Prospect sourcing stage error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("trevor_camofox_enrich_url", {
+  description: "Use the production CamoFox service to inspect one public prospect website/contact page for Trevor prospect enrichment. Read-only; never sends outbound messages.",
+  inputSchema: {
+    url: z.string().trim().url().max(500),
+    include_links: z.boolean().optional()
+  }
+}, async (input) => {
+  try {
+    const result = await enrichProspectUrlWithCamoFox({
+      url: input.url,
+      includeLinks: input.include_links
+    });
+    return { content: [{ type: "text", text: JSON.stringify(trevorCamoFoxEnrichmentToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Trevor CamoFox enrichment error: ${sanitizeError(err)}` }] };
   }
 });
 

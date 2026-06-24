@@ -58,6 +58,11 @@ inspection:
 - Inspect public pages that BrowserAct could not extract cleanly.
 - Summarize only bounded business-relevant facts.
 
+For Trevor, call the MCP tool `trevor_camofox_enrich_url` with one public
+website or contact-page URL at a time. Do not use the `camofox-browser` CLI on
+`aegis-prod`; it targets localhost and is not wired to the production
+multi-container service.
+
 ### Step 4 - Filter And Stage
 
 Filter or flag:
