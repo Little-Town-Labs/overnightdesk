@@ -21,6 +21,50 @@ before the call, and what follow-up to send afterward.
 
 ---
 
+## Current Status
+
+**Last Updated:** 2026-06-24
+**Active Branch:** `main`
+**Latest Deployed OvernightDesk SHA:** `42c42b4`
+**Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR pending
+**Next Work:** Finish platform-standard PR, then start Feature 2 Spec Kit flow
+
+### Production Deployment Record
+
+Feature 1 was deployed to `aegis-prod/tenet0-postgres/trevor` on
+2026-06-24. The deployment record is in:
+
+```text
+/home/frosted639/src/overnightdesk-suite/deploys.log
+```
+
+Deployment facts:
+
+- Backup captured:
+  `/opt/overnightdesk/backups/trevor/trevor-schema-20260624T105145Z.dump`
+- Migration applied: `tenet-0/db/migrations/051_trevor_prospecting.sql`
+- Migration ledger: `public.schema_migrations(filename, applied_at)`
+- Existing row counts after deployment:
+  `prospects=43`, `interactions=0`, `memory=1`
+- New table counts after deployment:
+  `call_tasks=0`, `followup_drafts=0`
+- Verification contract passed:
+  `specs/001-trevor-prospecting-data-model/contracts/schema-verification.sql`
+- `hermes-mitchel`, `trevor-db`, `agiled`, and `tenet0-postgres` were healthy
+  after deployment.
+
+### Open Follow-Ups
+
+- `overnightdesk-platform-standard` PR #1 documents the new Trevor tables and
+  prospect cadence fields. Merge it, then pull/restart standards consumers per
+  the platform-standard README.
+- `overnightdesk` PR #7 fixed the migration runner issue found during
+  deployment and has been merged into `main`.
+- Clean restart point after platform-standard PR #1: begin Feature 2,
+  `daily-call-queue`, with `$speckit-specify`.
+
+---
+
 ## What Already Exists
 
 | Component | Location | Status |
@@ -31,11 +75,15 @@ before the call, and what follow-up to send afterward.
 | Prospect table | `trevor.prospects` | Live, populated |
 | Interaction table | `trevor.interactions` | Live, empty |
 | Memory table | `trevor.memory` | Live, minimal |
+| Call task table | `trevor.call_tasks` | Live, empty |
+| Follow-up draft table | `trevor.followup_drafts` | Live, empty |
 | Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
 | Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
+| Feature 1 migration | `tenet-0/db/migrations/051_trevor_prospecting.sql` | Deployed |
+| Platform standard update | `overnightdesk-platform-standard` PR #1 | Pending merge |
 
 ---
 
@@ -56,10 +104,10 @@ deployment.
 
 **Completion Gate:**
 
-- [ ] Schema migration exists in repo-controlled form.
-- [ ] Migration can be applied idempotently or with a documented safe check.
-- [ ] Backup command for `trevor` schema is documented.
-- [ ] Rollback strategy is documented.
+- [x] Schema migration exists in repo-controlled form.
+- [x] Migration can be applied idempotently or with a documented safe check.
+- [x] Backup command for `trevor` schema is documented.
+- [x] Rollback strategy is documented.
 - [ ] Platform database docs updated after deployment.
 
 ---
@@ -269,9 +317,9 @@ Feature 1 (Trevor Prospecting Data Model)
 
 **Completion Gate:**
 
-- [ ] Production backup captured before schema change.
-- [ ] Migration applied and verified.
-- [ ] `trevor_app` grants verified.
+- [x] Production backup captured before schema change.
+- [x] Migration applied and verified.
+- [x] `trevor_app` grants verified.
 - [ ] Platform standard docs updated with final schema.
 
 ---
@@ -338,7 +386,8 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [x] `$speckit-implement`
-  - [ ] Production backup and deployment record
+  - [x] Production backup and deployment record
+  - [ ] Merge platform-standard schema inventory PR
 
 ### Phase 2
 
