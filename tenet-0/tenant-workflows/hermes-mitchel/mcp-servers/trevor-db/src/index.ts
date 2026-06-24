@@ -25,6 +25,14 @@ import {
   taskStatusToMcp
 } from "./queue.js";
 import { sanitizeError } from "./safety.js";
+import {
+  promoteProspectCandidate,
+  promoteProspectCandidateToMcp,
+  reviewProspectCandidates,
+  reviewProspectCandidatesToMcp,
+  stageProspectCandidates,
+  stageProspectCandidatesToMcp
+} from "./sourcing.js";
 import type { CallTaskStatus } from "./types.js";
 
 const pool = createPool();
@@ -42,7 +50,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.6.0"
+  version: "1.7.0"
 });
 
 server.registerTool("db_query", {
@@ -314,6 +322,105 @@ server.registerTool("generate_cadence_digest", {
     return { content: [{ type: "text", text: JSON.stringify(cadenceDigestToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Cadence digest error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("stage_prospect_candidates", {
+  description: "Stage BrowserAct-discovered prospect candidates, optionally enriched by CamoFox, for review before creating Trevor prospects. Never sends outbound messages.",
+  inputSchema: {
+    source: z.enum([
+      "browseract_google_maps",
+      "browseract_contact_finder",
+      "browseract_industry_radar",
+      "manual_import"
+    ]),
+    enrichment_source: z.enum([
+      "camofox_website_recon",
+      "camofox_contact_enrichment",
+      "browseract_website_data_scrape"
+    ]).optional(),
+    area: z.string().trim().min(1).max(120),
+    keyword: z.string().trim().max(160).optional(),
+    requested_by: z.string().trim().max(120).optional(),
+    candidates: z.array(z.object({
+      business_name: z.string().trim().min(1).max(200),
+      company: z.string().trim().max(200).optional(),
+      phone: z.string().trim().max(80).optional(),
+      email: z.string().trim().max(200).optional(),
+      website: z.string().trim().max(500).optional(),
+      source_url: z.string().trim().max(500).optional(),
+      enrichment_url: z.string().trim().max(500).optional(),
+      rating: z.number().min(0).max(5).optional(),
+      review_count: z.number().int().min(0).optional(),
+      notes: z.string().trim().max(1000).optional()
+    })).min(1).max(50)
+  }
+}, async (input) => {
+  try {
+    const result = await stageProspectCandidates(repo, {
+      source: input.source,
+      enrichmentSource: input.enrichment_source,
+      area: input.area,
+      keyword: input.keyword,
+      requestedBy: input.requested_by,
+      candidates: input.candidates.map((candidate) => ({
+        businessName: candidate.business_name,
+        company: candidate.company,
+        phone: candidate.phone,
+        email: candidate.email,
+        website: candidate.website,
+        sourceUrl: candidate.source_url,
+        enrichmentUrl: candidate.enrichment_url,
+        rating: candidate.rating,
+        reviewCount: candidate.review_count,
+        notes: candidate.notes
+      }))
+    });
+    return { content: [{ type: "text", text: JSON.stringify(stageProspectCandidatesToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect sourcing stage error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("review_prospect_candidates", {
+  description: "List staged prospect candidates for review, grouped by recommended, needs-review, duplicate, rejected, and approved states.",
+  inputSchema: {
+    sourcing_run_id: z.number().int().positive().optional(),
+    status: z.enum(["recommended", "needs_review", "duplicate", "rejected", "approved"]).optional(),
+    limit: z.number().int().min(1).max(50).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await reviewProspectCandidates(repo, {
+      sourcingRunId: input.sourcing_run_id,
+      status: input.status,
+      limit: input.limit
+    });
+    return { content: [{ type: "text", text: JSON.stringify(reviewProspectCandidatesToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect sourcing review error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("promote_prospect_candidate", {
+  description: "Promote an explicitly approved staged candidate into Trevor prospects and optionally queue initial outreach. Never sends outbound messages.",
+  inputSchema: {
+    candidate_id: z.number().int().positive(),
+    approved_by: z.string().trim().min(1).max(120),
+    create_call_task: z.boolean().optional(),
+    approval_note: z.string().trim().max(500).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await promoteProspectCandidate(repo, {
+      candidateId: input.candidate_id,
+      approvedBy: input.approved_by,
+      createCallTask: input.create_call_task,
+      approvalNote: input.approval_note
+    });
+    return { content: [{ type: "text", text: JSON.stringify(promoteProspectCandidateToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect sourcing promote error: ${sanitizeError(err)}` }] };
   }
 });
 

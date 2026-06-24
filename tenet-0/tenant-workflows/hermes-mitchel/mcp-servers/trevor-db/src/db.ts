@@ -1,4 +1,10 @@
 import pg from "pg";
+import {
+  findProspectSourceCandidateByIdInDb,
+  promoteProspectCandidateInDb,
+  reviewProspectCandidatesInDb,
+  stageProspectCandidatesInDb
+} from "./db-sourcing.js";
 import type {
   BriefLookupResult,
   CallTaskRecord,
@@ -14,7 +20,12 @@ import type {
   PostCallCaptureWriteResult,
   ProspectCandidate,
   ProspectInteraction,
-  QueueRepository
+  ProspectSourceCandidateRecord,
+  ProspectSourcingRunRecord,
+  QueueRepository,
+  ReviewProspectCandidatesInput,
+  ReviewProspectCandidatesResult,
+  StageProspectCandidatesWrite
 } from "./types.js";
 
 const { Pool } = pg;
@@ -789,5 +800,21 @@ export class PgQueueRepository implements QueueRepository {
       [salesDay, normalizedLimit]
     );
     return result.rows.map(toCandidate);
+  }
+
+  async stageProspectCandidates(input: StageProspectCandidatesWrite): Promise<{ run: ProspectSourcingRunRecord; candidates: ProspectSourceCandidateRecord[] }> {
+    return stageProspectCandidatesInDb(this.pool, input);
+  }
+
+  async reviewProspectCandidates(input: ReviewProspectCandidatesInput): Promise<ReviewProspectCandidatesResult> {
+    return reviewProspectCandidatesInDb(this.pool, input);
+  }
+
+  async findProspectSourceCandidateById(candidateId: number): Promise<ProspectSourceCandidateRecord | null> {
+    return findProspectSourceCandidateByIdInDb(this.pool, candidateId);
+  }
+
+  async promoteProspectCandidate(input: Parameters<typeof promoteProspectCandidateInDb>[1]) {
+    return promoteProspectCandidateInDb(this.pool, input);
   }
 }

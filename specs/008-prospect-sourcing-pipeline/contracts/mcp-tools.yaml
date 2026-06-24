@@ -1,0 +1,148 @@
+tools:
+  - name: stage_prospect_candidates
+    description: Stage candidate businesses from a bounded scraping or research run for review before promotion.
+    input:
+      type: object
+      required: [source, area, candidates]
+      properties:
+        source:
+          type: string
+          enum:
+            - browseract_google_maps
+            - browseract_contact_finder
+            - browseract_industry_radar
+            - manual_import
+        enrichment_source:
+          type: string
+          enum:
+            - camofox_website_recon
+            - camofox_contact_enrichment
+            - browseract_website_data_scrape
+        area:
+          type: string
+          minLength: 1
+          maxLength: 120
+        keyword:
+          type: string
+          maxLength: 160
+        requested_by:
+          type: string
+          maxLength: 120
+        candidates:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items:
+            type: object
+            required: [business_name]
+            properties:
+              business_name: { type: string, minLength: 1, maxLength: 200 }
+              company: { type: string, maxLength: 200 }
+              phone: { type: string, maxLength: 80 }
+              email: { type: string, maxLength: 200 }
+              website: { type: string, maxLength: 500 }
+              source_url: { type: string, maxLength: 500 }
+              enrichment_url: { type: string, maxLength: 500 }
+              rating: { type: number, minimum: 0, maximum: 5 }
+              review_count: { type: integer, minimum: 0 }
+              notes: { type: string, maxLength: 1000 }
+    output:
+      type: object
+      required: [status, sourcing_run_id, staged_count, candidates, warnings]
+      properties:
+        status: { type: string, enum: [staged, rejected] }
+        sourcing_run_id: { type: integer }
+        staged_count: { type: integer }
+        candidates:
+          type: array
+          items:
+            type: object
+            required: [candidate_id, business_name, review_status, dedupe_status, lead_source]
+            properties:
+              candidate_id: { type: integer }
+              business_name: { type: string }
+              review_status: { type: string }
+              dedupe_status: { type: string }
+              lead_source: { type: string }
+              quality_score: { type: integer }
+              warnings:
+                type: array
+                items: { type: string }
+        warnings:
+          type: array
+          items: { type: string }
+
+  - name: review_prospect_candidates
+    description: Return a bounded candidate review list grouped by recommended, needs-review, duplicate, and rejected.
+    input:
+      type: object
+      properties:
+        sourcing_run_id: { type: integer }
+        status:
+          type: string
+          enum: [recommended, needs_review, duplicate, rejected, approved]
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 15
+    output:
+      type: object
+      required: [status, items, counts, warnings]
+      properties:
+        status: { type: string, enum: [ok] }
+        items:
+          type: array
+          items:
+            type: object
+            required: [candidate_id, business_name, review_status, dedupe_status, lead_source]
+            properties:
+              candidate_id: { type: integer }
+              business_name: { type: string }
+              area: { type: string }
+              phone: { type: [string, "null"] }
+              website: { type: [string, "null"] }
+              review_status: { type: string }
+              dedupe_status: { type: string }
+              dedupe_reason: { type: [string, "null"] }
+              lead_source: { type: string }
+              quality_score: { type: integer }
+        counts:
+          type: object
+          properties:
+            recommended: { type: integer }
+            needs_review: { type: integer }
+            duplicate: { type: integer }
+            rejected: { type: integer }
+            approved: { type: integer }
+        warnings:
+          type: array
+          items: { type: string }
+
+  - name: promote_prospect_candidate
+    description: Promote an explicitly approved candidate into Trevor prospects and optionally queue initial outreach.
+    input:
+      type: object
+      required: [candidate_id, approved_by]
+      properties:
+        candidate_id: { type: integer }
+        approved_by: { type: string, minLength: 1, maxLength: 120 }
+        create_call_task:
+          type: boolean
+          default: true
+        approval_note:
+          type: string
+          maxLength: 500
+    output:
+      type: object
+      required: [status, candidate_id, prospect_id, call_task_id, warnings]
+      properties:
+        status:
+          type: string
+          enum: [promoted, duplicate, rejected, needs_review, not_found]
+        candidate_id: { type: integer }
+        prospect_id: { type: [integer, "null"] }
+        call_task_id: { type: [integer, "null"] }
+        warnings:
+          type: array
+          items: { type: string }

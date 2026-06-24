@@ -9,15 +9,23 @@ import type {
   PreCallBriefLookup,
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
+  PromoteProspectCandidateWrite,
   ProspectCandidate,
   ProspectInteraction,
-  QueueRepository
+  ProspectSourceCandidateRecord,
+  ProspectSourcingRunRecord,
+  QueueRepository,
+  ReviewProspectCandidatesInput,
+  ReviewProspectCandidatesResult,
+  StageProspectCandidatesWrite
 } from "../src/types.js";
 
 export class FakeQueueRepository implements QueueRepository {
   public tasks: ExistingCallTask[] = [];
   public interactions: ProspectInteraction[] = [];
   public drafts: FollowUpDraftRecord[] = [];
+  public sourcingRuns: ProspectSourcingRunRecord[] = [];
+  public sourcingCandidates: ProspectSourceCandidateRecord[] = [];
   public created = 0;
   public captured = 0;
 
@@ -336,5 +344,152 @@ export class FakeQueueRepository implements QueueRepository {
         return aDue - bDue || aLast - bLast || b.priority - a.priority || a.id - b.id;
       })
       .slice(0, limit);
+  }
+
+  async stageProspectCandidates(input: StageProspectCandidatesWrite) {
+    const now = new Date("2026-06-24T20:00:00Z");
+    const runId = this.sourcingRuns.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    const run: ProspectSourcingRunRecord = {
+      id: runId,
+      source: input.source,
+      enrichmentSource: input.enrichmentSource,
+      area: input.area,
+      keyword: input.keyword,
+      status: "staged",
+      requestedBy: input.requestedBy,
+      candidateCount: input.candidates.length,
+      recommendedCount: input.candidates.filter((candidate) => candidate.reviewStatus === "recommended").length,
+      warnings: input.warnings,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.sourcingRuns.push(run);
+
+    const candidates = input.candidates.map((candidate, index): ProspectSourceCandidateRecord => ({
+      id: this.sourcingCandidates.reduce((max, item) => Math.max(max, item.id), 0) + index + 1,
+      sourcingRunId: runId,
+      businessName: candidate.businessName,
+      company: candidate.company,
+      area: candidate.area,
+      phone: candidate.phone,
+      email: candidate.email,
+      website: candidate.website,
+      sourceUrl: candidate.sourceUrl,
+      enrichmentUrl: candidate.enrichmentUrl,
+      rating: candidate.rating,
+      reviewCount: candidate.reviewCount,
+      buyerType: candidate.buyerType,
+      leadSource: candidate.leadSource,
+      enrichmentSource: candidate.enrichmentSource,
+      qualityScore: candidate.qualityScore,
+      reviewStatus: candidate.reviewStatus,
+      dedupeStatus: candidate.dedupeStatus,
+      dedupeReason: candidate.dedupeReason,
+      reviewNotes: candidate.reviewNotes,
+      approvedBy: null,
+      approvedAt: null,
+      promotedProspectId: null,
+      createdAt: now,
+      updatedAt: now
+    }));
+    this.sourcingCandidates.push(...candidates);
+    return { run, candidates };
+  }
+
+  async reviewProspectCandidates(input: ReviewProspectCandidatesInput): Promise<ReviewProspectCandidatesResult> {
+    const filtered = this.sourcingCandidates
+      .filter((candidate) => input.sourcingRunId === undefined || candidate.sourcingRunId === input.sourcingRunId)
+      .filter((candidate) => input.status === undefined || candidate.reviewStatus === input.status);
+    const countsBase = this.sourcingCandidates.filter((candidate) => input.sourcingRunId === undefined || candidate.sourcingRunId === input.sourcingRunId);
+    return {
+      status: "ok",
+      items: filtered.slice(0, input.limit ?? 15),
+      counts: {
+        recommended: countsBase.filter((candidate) => candidate.reviewStatus === "recommended").length,
+        needsReview: countsBase.filter((candidate) => candidate.reviewStatus === "needs_review").length,
+        duplicate: countsBase.filter((candidate) => candidate.reviewStatus === "duplicate").length,
+        rejected: countsBase.filter((candidate) => candidate.reviewStatus === "rejected").length,
+        approved: countsBase.filter((candidate) => candidate.reviewStatus === "approved").length
+      },
+      warnings: [],
+      outboundSent: false
+    };
+  }
+
+  async findProspectSourceCandidateById(candidateId: number): Promise<ProspectSourceCandidateRecord | null> {
+    return this.sourcingCandidates.find((candidate) => candidate.id === candidateId) ?? null;
+  }
+
+  async promoteProspectCandidate(input: PromoteProspectCandidateWrite) {
+    const candidate = this.sourcingCandidates.find((item) => item.id === input.candidateId);
+    if (!candidate) {
+      return {
+        status: "not_found" as const,
+        candidateId: input.candidateId,
+        prospectId: null,
+        callTaskId: null,
+        warnings: ["candidate not found."],
+        outboundSent: false as const
+      };
+    }
+
+    let prospectId = candidate.promotedProspectId;
+    if (!prospectId) {
+      prospectId = this.candidates.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+      this.candidates.push({
+        id: prospectId,
+        name: candidate.businessName,
+        company: candidate.company,
+        email: candidate.email,
+        phone: candidate.phone,
+        status: "active",
+        notes: [
+          `Sourced via ${candidate.leadSource}.`,
+          candidate.enrichmentSource ? `Enriched via ${candidate.enrichmentSource}.` : null,
+          candidate.reviewNotes
+        ].filter(Boolean).join(" "),
+        agiledContactId: null,
+        preferredChannel: "phone",
+        doNotContact: false,
+        lastOutcome: null,
+        nextActionType: "initial_outreach",
+        nextActionAt: null,
+        priority: 1,
+        updatedAt: new Date("2026-06-24T20:00:00Z"),
+        lastInteractionAt: null
+      });
+      candidate.promotedProspectId = prospectId;
+    }
+
+    candidate.reviewStatus = "approved";
+    candidate.approvedBy = input.approvedBy;
+    candidate.approvedAt = new Date("2026-06-24T20:30:00Z");
+    candidate.updatedAt = candidate.approvedAt;
+
+    let callTaskId: number | null = null;
+    if (input.createCallTask) {
+      const existing = this.tasks.find((task) => task.prospectId === prospectId && task.status === "open");
+      if (existing) {
+        callTaskId = existing.id;
+      } else {
+        const created = await this.createCallTask({
+          prospectId,
+          priority: 1,
+          reason: `New sourced prospect from ${candidate.leadSource}.`,
+          callObjective: "Initial outreach to qualify buying interest.",
+          dueAt: "2026-06-24T20:00:00Z"
+        });
+        callTaskId = created.id;
+      }
+    }
+
+    return {
+      status: "promoted" as const,
+      candidateId: input.candidateId,
+      prospectId,
+      callTaskId,
+      warnings: [],
+      outboundSent: false as const
+    };
   }
 }

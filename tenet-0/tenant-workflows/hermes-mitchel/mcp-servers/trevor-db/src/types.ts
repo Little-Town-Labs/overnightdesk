@@ -161,6 +161,168 @@ export interface ManualFollowUpSentWrite {
   auditOnlyReason: string | null;
 }
 
+export type ProspectSource =
+  | "browseract_google_maps"
+  | "browseract_contact_finder"
+  | "browseract_industry_radar"
+  | "manual_import";
+
+export type ProspectEnrichmentSource =
+  | "camofox_website_recon"
+  | "camofox_contact_enrichment"
+  | "browseract_website_data_scrape";
+
+export type ProspectCandidateReviewStatus = "recommended" | "needs_review" | "duplicate" | "rejected" | "approved";
+export type ProspectCandidateDedupeStatus = "unique" | "possible_duplicate" | "duplicate";
+
+export interface ProspectSourceCandidateInput {
+  businessName: string;
+  company?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  sourceUrl?: string | null;
+  enrichmentUrl?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  notes?: string | null;
+}
+
+export interface ProspectSourcingRunRecord {
+  id: number;
+  source: ProspectSource;
+  enrichmentSource: ProspectEnrichmentSource | null;
+  area: string;
+  keyword: string | null;
+  status: "staged" | "reviewed" | "promoted" | "failed" | "canceled";
+  requestedBy: string | null;
+  candidateCount: number;
+  recommendedCount: number;
+  warnings: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProspectSourceCandidateRecord {
+  id: number;
+  sourcingRunId: number;
+  businessName: string;
+  company: string | null;
+  area: string;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  sourceUrl: string | null;
+  enrichmentUrl: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  buyerType: "retail_jeweler" | "wholesale_dealer" | "private_collector" | "broker";
+  leadSource: ProspectSource;
+  enrichmentSource: ProspectEnrichmentSource | null;
+  qualityScore: number;
+  reviewStatus: ProspectCandidateReviewStatus;
+  dedupeStatus: ProspectCandidateDedupeStatus;
+  dedupeReason: string | null;
+  reviewNotes: string | null;
+  approvedBy: string | null;
+  approvedAt: Date | null;
+  promotedProspectId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface StageProspectCandidatesInput {
+  source: ProspectSource;
+  enrichmentSource?: ProspectEnrichmentSource;
+  area: string;
+  keyword?: string;
+  requestedBy?: string;
+  candidates: ProspectSourceCandidateInput[];
+}
+
+export interface StageProspectCandidateWrite {
+  businessName: string;
+  company: string | null;
+  area: string;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  sourceUrl: string | null;
+  enrichmentUrl: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  buyerType: "retail_jeweler";
+  leadSource: ProspectSource;
+  enrichmentSource: ProspectEnrichmentSource | null;
+  qualityScore: number;
+  reviewStatus: ProspectCandidateReviewStatus;
+  dedupeStatus: ProspectCandidateDedupeStatus;
+  dedupeReason: string | null;
+  reviewNotes: string | null;
+}
+
+export interface StageProspectCandidatesWrite {
+  source: ProspectSource;
+  enrichmentSource: ProspectEnrichmentSource | null;
+  area: string;
+  keyword: string | null;
+  requestedBy: string | null;
+  warnings: string[];
+  candidates: StageProspectCandidateWrite[];
+}
+
+export interface StageProspectCandidatesResult {
+  status: "staged" | "rejected";
+  sourcingRunId: number | null;
+  stagedCount: number;
+  candidates: ProspectSourceCandidateRecord[];
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface ReviewProspectCandidatesInput {
+  sourcingRunId?: number;
+  status?: ProspectCandidateReviewStatus;
+  limit?: number;
+}
+
+export interface ReviewProspectCandidatesResult {
+  status: "ok";
+  items: ProspectSourceCandidateRecord[];
+  counts: {
+    recommended: number;
+    needsReview: number;
+    duplicate: number;
+    rejected: number;
+    approved: number;
+  };
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface PromoteProspectCandidateInput {
+  candidateId: number;
+  approvedBy: string;
+  createCallTask?: boolean;
+  approvalNote?: string;
+}
+
+export interface PromoteProspectCandidateResult {
+  status: "promoted" | "duplicate" | "rejected" | "needs_review" | "not_found";
+  candidateId: number;
+  prospectId: number | null;
+  callTaskId: number | null;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface PromoteProspectCandidateWrite {
+  candidateId: number;
+  approvedBy: string;
+  createCallTask: boolean;
+  approvalNote: string | null;
+}
+
 export interface CadenceDigestInput {
   salesDay?: string;
   limit?: number;
@@ -434,4 +596,8 @@ export interface QueueRepository {
   listApprovedFollowUpDraftsAwaitingSend(limit: number, options?: { includeDoNotContact?: boolean }): Promise<Array<{ draft: FollowUpDraftRecord; prospect: ProspectCandidate | null }>>;
   logManualFollowUpSent(input: ManualFollowUpSentWrite): Promise<{ draft: FollowUpDraftRecord; prospect: ProspectCandidate | null; interactionId: number | null; blockedReason: string | null } | null>;
   listStaleProspectCandidates(salesDay: string, limit: number, options?: { includeDormant?: boolean }): Promise<ProspectCandidate[]>;
+  stageProspectCandidates(input: StageProspectCandidatesWrite): Promise<{ run: ProspectSourcingRunRecord; candidates: ProspectSourceCandidateRecord[] }>;
+  reviewProspectCandidates(input: ReviewProspectCandidatesInput): Promise<ReviewProspectCandidatesResult>;
+  findProspectSourceCandidateById(candidateId: number): Promise<ProspectSourceCandidateRecord | null>;
+  promoteProspectCandidate(input: PromoteProspectCandidateWrite): Promise<PromoteProspectCandidateResult>;
 }
