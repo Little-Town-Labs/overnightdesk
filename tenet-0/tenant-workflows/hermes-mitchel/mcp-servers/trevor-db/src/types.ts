@@ -26,6 +26,20 @@ export interface ExistingCallTask {
   dueAt: Date | null;
 }
 
+export interface CallTaskRecord extends ExistingCallTask {
+  priority: number;
+  reason: string | null;
+  callObjective: string | null;
+}
+
+export interface ProspectInteraction {
+  prospectId: number;
+  channel: string | null;
+  direction: string | null;
+  summary: string | null;
+  occurredAt: Date;
+}
+
 export type Readiness = "call_ready" | "review_needed";
 
 export interface CallRecommendation {
@@ -88,6 +102,69 @@ export interface GenerateQueueOptions {
   inventoryContext?: string;
 }
 
+export interface PreCallBriefLookup {
+  taskId?: number;
+  prospectId?: number;
+  query?: string;
+  inventoryContext?: string;
+}
+
+export type BriefLookupStatus = "found" | "not_found" | "ambiguous";
+
+export interface BriefLookupResult {
+  status: BriefLookupStatus;
+  prospect: ProspectCandidate | null;
+  task: CallTaskRecord | ExistingCallTask | null;
+  matches: ProspectCandidate[];
+}
+
+export interface PreCallBriefResult {
+  generatedAt: string;
+  lookup: {
+    taskId: number | null;
+    prospectId: number | null;
+    query: string | null;
+    status: BriefLookupStatus;
+  };
+  prospect: {
+    prospectId: number;
+    displayName: string;
+    company: string | null;
+    status: string | null;
+    phone: string | null;
+    preferredChannel: string | null;
+    agiledContactId: string | null;
+  } | null;
+  task: {
+    taskId: number;
+    status: CallTaskStatus;
+    dueAt: Date | null;
+    reason: string | null;
+    callObjective: string | null;
+  } | null;
+  lastTouch: {
+    occurredAt: Date;
+    channel: string | null;
+    direction: string | null;
+    summary: string;
+  } | null;
+  brief: {
+    recommendedAsk: string;
+    suggestedOpener: string;
+    buyerContext: string;
+    followUpFallback: string;
+    readiness: "call_ready" | "review_needed" | "do_not_contact";
+  } | null;
+  missingContext: string[];
+  warnings: string[];
+  disambiguation: Array<{
+    prospectId: number;
+    displayName: string;
+    company: string | null;
+    status: string | null;
+  }>;
+}
+
 export interface QueueRepository {
   listProspectCandidates(salesDay: string, limit: number, options?: { callableOnly?: boolean }): Promise<ProspectCandidate[]>;
   findOpenCallTask(prospectId: number, salesDay: string): Promise<ExistingCallTask | null>;
@@ -100,4 +177,9 @@ export interface QueueRepository {
   }): Promise<ExistingCallTask>;
   listCallTasks(status: CallTaskStatus, salesDay: string | undefined, limit: number): Promise<CallTaskListResult["tasks"]>;
   markCallTaskStatus(taskId: number, status: CallTaskStatus): Promise<CallTaskStatusResult>;
+  findCallTaskById(taskId: number): Promise<CallTaskRecord | ExistingCallTask | null>;
+  findProspectById(prospectId: number): Promise<ProspectCandidate | null>;
+  searchProspects(query: string, limit: number): Promise<ProspectCandidate[]>;
+  findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null>;
+  resolvePreCallBriefLookup(lookup: PreCallBriefLookup): Promise<BriefLookupResult>;
 }

@@ -24,13 +24,14 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
+**Active Branch:** `003-pre-call-brief`
 **Latest Merged OvernightDesk SHA:** `4afaef8`
 **Latest Deployed OvernightDesk Source SHA:** `7c26530`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Start Feature 3, `pre-call-brief`, with Spec Kit on a new feature branch.
+**Feature 3 Status:** Local tenant workflow source implemented in `tenet-0/tenant-workflows/hermes-mitchel`; production sync/tenant validation pending approval
+**Next Work:** Review/PR Feature 3, then decide whether to sync the built Trevor MCP server and pre-call-brief skill to `hermes-mitchel`.
 
 ### Production Deployment Record
 
@@ -83,7 +84,10 @@ Deployment facts:
   deployment and has been merged into `main`.
 - `overnightdesk` PR #8 delivered Feature 2, `daily-call-queue`, and has been
   merged into `main`.
-- Feature 3, `pre-call-brief`, is the next P0 slice.
+- Feature 3, `pre-call-brief`, has entered Spec Kit on branch
+  `003-pre-call-brief` and is implemented locally. Aegis comparison confirms
+  production still has Feature 2 only: `trevor-db` v1.1.0, no `brief.js`, and no
+  `/opt/data/skills/pre-call-brief`.
 
 ---
 
@@ -422,10 +426,10 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] Production sync and no-write validation
 
 - [ ] **Feature 3: Pre-Call Brief**
-  - [ ] `$speckit-specify` for `pre-call-brief`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
-  - [ ] `$speckit-implement`
+  - [x] `$speckit-specify` for `pre-call-brief`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [x] `$speckit-implement` locally; production sync pending
 
 - [ ] **Feature 4: Post-Call Capture**
   - [ ] `$speckit-specify` for `post-call-capture`

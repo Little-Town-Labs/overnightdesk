@@ -3,6 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { generatePreCallBrief, preCallBriefToMcp } from "./brief.js";
 import { createPool, PgQueueRepository } from "./db.js";
 import {
   callTasksToMcp,
@@ -30,7 +31,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.1.0"
+  version: "1.2.0"
 });
 
 server.registerTool("db_query", {
@@ -123,6 +124,33 @@ server.registerTool("mark_call_task_status", {
     return { content: [{ type: "text", text: JSON.stringify(taskStatusToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Mark task error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("generate_pre_call_brief", {
+  description: "Generate a read-only Trevor pre-call brief by task, prospect, or bounded name/company query.",
+  inputSchema: {
+    task_id: z.number().int().positive().optional(),
+    prospect_id: z.number().int().positive().optional(),
+    query: z.string().trim().min(2).max(120).optional(),
+    inventory_context: z.string().max(4000).optional()
+  }
+}, async (input) => {
+  const lookupCount = [input.task_id, input.prospect_id, input.query].filter((value) => value !== undefined && value !== "").length;
+  if (lookupCount !== 1) {
+    return { content: [{ type: "text", text: "Brief error: provide exactly one of task_id, prospect_id, or query." }] };
+  }
+
+  try {
+    const result = await generatePreCallBrief(repo, {
+      taskId: input.task_id,
+      prospectId: input.prospect_id,
+      query: input.query,
+      inventoryContext: input.inventory_context
+    });
+    return { content: [{ type: "text", text: JSON.stringify(preCallBriefToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Brief error: ${sanitizeError(err)}` }] };
   }
 });
 
