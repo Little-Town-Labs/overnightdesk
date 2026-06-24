@@ -24,7 +24,7 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
+**Active Branch:** `005-follow-up-drafting`
 **Latest Merged OvernightDesk SHA:** `cb6c3e5`
 **Latest Deployed OvernightDesk Source SHA:** `cb6c3e5`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
@@ -32,7 +32,8 @@ before the call, and what follow-up to send afterward.
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Start Feature 5, `follow-up-drafting`, with Spec Kit.
+**Feature 5 Status:** Spec Kit artifacts created on branch `005-follow-up-drafting`; implementation pending
+**Next Work:** Implement Feature 5 tasks in `specs/005-follow-up-drafting/tasks.md`.
 
 ### Production Deployment Record
 
@@ -128,7 +129,8 @@ Deployment facts:
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #10 delivered Feature 4, `post-call-capture`, and has
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
-- Feature 5, `follow-up-drafting`, is the next critical-path slice.
+- Feature 5, `follow-up-drafting`, has entered Spec Kit on branch
+  `005-follow-up-drafting`.
 
 ---
 
@@ -485,9 +487,9 @@ Feature 1 (Trevor Prospecting Data Model)
 ### Phase 3
 
 - [ ] **Feature 5: Follow-Up Drafting**
-  - [ ] `$speckit-specify` for `follow-up-drafting`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
+  - [x] `$speckit-specify` for `follow-up-drafting`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
   - [ ] `$speckit-implement`
 
 ### Phase 4

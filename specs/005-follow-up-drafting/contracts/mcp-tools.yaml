@@ -1,0 +1,103 @@
+openapi: 3.1.0
+info:
+  title: Trevor DB MCP Follow-Up Drafting Contract
+  version: 0.1.0
+paths:
+  /mcp/generate_follow_up_draft:
+    post:
+      summary: Generate or retrieve a draft follow-up for a captured call
+      operationId: generate_follow_up_draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [interaction_id, channel]
+              properties:
+                interaction_id:
+                  type: integer
+                  minimum: 1
+                channel:
+                  type: string
+                  enum: [email, telegram, sms, linkedin, instagram]
+                tone:
+                  type: string
+                  maxLength: 120
+                regenerate:
+                  type: boolean
+      responses:
+        "200":
+          description: Draft result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowUpDraftResult"
+  /mcp/mark_follow_up_draft:
+    post:
+      summary: Approve or discard a stored follow-up draft without sending it
+      operationId: mark_follow_up_draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [draft_id, action]
+              properties:
+                draft_id:
+                  type: integer
+                  minimum: 1
+                action:
+                  type: string
+                  enum: [approve, discard]
+                approved_by:
+                  type: string
+                  maxLength: 120
+      responses:
+        "200":
+          description: Draft status result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowUpDraftResult"
+components:
+  schemas:
+    FollowUpDraftResult:
+      type: object
+      required:
+        - status
+        - warnings
+        - outbound_sent
+      properties:
+        status:
+          type: string
+          enum: [drafted, existing, approved, discarded, not_found, invalid]
+        draft_id:
+          type: integer
+          nullable: true
+        prospect_id:
+          type: integer
+          nullable: true
+        interaction_id:
+          type: integer
+          nullable: true
+        channel:
+          type: string
+          nullable: true
+        draft_status:
+          type: string
+          nullable: true
+          enum: [draft, approved, discarded]
+        subject:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        warnings:
+          type: array
+          items:
+            type: string
+        outbound_sent:
+          type: boolean
