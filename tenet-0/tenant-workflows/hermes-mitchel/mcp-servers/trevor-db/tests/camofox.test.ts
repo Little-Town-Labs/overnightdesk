@@ -46,17 +46,17 @@ test("uses remote CamoFox URL and closes the opened tab", async () => {
       assert.match(String(init?.body), /https:\/\/jeweler\.example\/contact/);
       return jsonResponse({ tabId: "tab-1" });
     }
-    if (url.endsWith("/tabs/tab-1/snapshot")) {
+    if (url.endsWith("/tabs/tab-1/snapshot?userId=trevor-prospecting")) {
       return jsonResponse({
         title: "Independent Jeweler Contact",
         url: "https://jeweler.example/contact",
         text: "Call 555-0101 or email buyer@example.test for appointments."
       });
     }
-    if (url.endsWith("/tabs/tab-1/links")) {
+    if (url.endsWith("/tabs/tab-1/links?userId=trevor-prospecting")) {
       return jsonResponse([{ text: "Contact", href: "https://jeweler.example/contact" }]);
     }
-    if (url.endsWith("/tabs/tab-1")) {
+    if (url.endsWith("/tabs/tab-1?userId=trevor-prospecting")) {
       return jsonResponse({ ok: true });
     }
     throw new Error(`unexpected URL ${url}`);
@@ -78,9 +78,9 @@ test("uses remote CamoFox URL and closes the opened tab", async () => {
   assert.equal(result.links[0]?.href, "https://jeweler.example/contact");
   assert.deepEqual(calls.map((call) => call.url), [
     "http://camofox-browser:9377/tabs/open",
-    "http://camofox-browser:9377/tabs/tab-1/snapshot",
-    "http://camofox-browser:9377/tabs/tab-1/links",
-    "http://camofox-browser:9377/tabs/tab-1"
+    "http://camofox-browser:9377/tabs/tab-1/snapshot?userId=trevor-prospecting",
+    "http://camofox-browser:9377/tabs/tab-1/links?userId=trevor-prospecting",
+    "http://camofox-browser:9377/tabs/tab-1?userId=trevor-prospecting"
   ]);
 
   const mcp = trevorCamoFoxEnrichmentToMcp(result);
