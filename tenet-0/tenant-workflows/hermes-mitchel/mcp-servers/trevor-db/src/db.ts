@@ -4,6 +4,10 @@ import type {
   CallTaskRecord,
   CallTaskStatus,
   ExistingCallTask,
+  FollowUpChannel,
+  FollowUpContext,
+  FollowUpDraftRecord,
+  FollowUpDraftWrite,
   PreCallBriefLookup,
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
@@ -63,11 +67,28 @@ function toTaskRecord(row: Record<string, unknown>): CallTaskRecord {
 
 function toInteraction(row: Record<string, unknown>): ProspectInteraction {
   return {
+    ...(row.id !== undefined && row.id !== null ? { id: Number(row.id) } : {}),
     prospectId: Number(row.prospect_id),
     channel: row.channel as string | null,
     direction: row.direction as string | null,
     summary: row.summary as string | null,
     occurredAt: new Date(row.occurred_at as string)
+  };
+}
+
+function toFollowUpDraft(row: Record<string, unknown>): FollowUpDraftRecord {
+  return {
+    id: Number(row.id),
+    prospectId: Number(row.prospect_id),
+    interactionId: Number(row.interaction_id),
+    channel: row.channel as FollowUpChannel,
+    subject: row.subject as string | null,
+    body: row.body as string,
+    status: row.status as FollowUpDraftRecord["status"],
+    approvedBy: row.approved_by as string | null,
+    approvedAt: row.approved_at ? new Date(row.approved_at as string) : null,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string)
   };
 }
 
@@ -277,7 +298,7 @@ export class PgQueueRepository implements QueueRepository {
   async findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null> {
     const result = await this.pool.query(
       `
-      select prospect_id, channel, direction, summary, occurred_at
+      select id, prospect_id, channel, direction, summary, occurred_at
       from trevor.interactions
       where prospect_id = $1
       order by occurred_at desc, id desc
@@ -392,5 +413,99 @@ export class PgQueueRepository implements QueueRepository {
     } finally {
       client.release();
     }
+  }
+
+  async findFollowUpContext(interactionId: number): Promise<FollowUpContext | null> {
+    const result = await this.pool.query(
+      `
+      select
+        p.*,
+        max(recent.occurred_at) as last_interaction_at,
+        i.id as interaction_id,
+        i.prospect_id as interaction_prospect_id,
+        i.channel as interaction_channel,
+        i.direction as interaction_direction,
+        i.summary as interaction_summary,
+        i.occurred_at as interaction_occurred_at
+      from trevor.interactions i
+      join trevor.prospects p on p.id = i.prospect_id
+      left join trevor.interactions recent on recent.prospect_id = p.id
+      where i.id = $1
+      group by p.id, i.id
+      limit 1
+      `,
+      [interactionId]
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    return {
+      prospect: toCandidate(row),
+      interaction: {
+        id: Number(row.interaction_id),
+        prospectId: Number(row.interaction_prospect_id),
+        channel: row.interaction_channel as string | null,
+        direction: row.interaction_direction as string | null,
+        summary: row.interaction_summary as string | null,
+        occurredAt: new Date(row.interaction_occurred_at)
+      }
+    };
+  }
+
+  async findActiveFollowUpDraft(interactionId: number, channel: FollowUpChannel): Promise<FollowUpDraftRecord | null> {
+    const result = await this.pool.query(
+      `
+      select id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      from trevor.followup_drafts
+      where interaction_id = $1
+        and channel = $2
+        and status in ('draft', 'approved')
+      order by updated_at desc, id asc
+      limit 1
+      `,
+      [interactionId, channel]
+    );
+    return result.rows[0] ? toFollowUpDraft(result.rows[0]) : null;
+  }
+
+  async createFollowUpDraft(input: FollowUpDraftWrite): Promise<FollowUpDraftRecord> {
+    const result = await this.pool.query(
+      `
+      insert into trevor.followup_drafts (prospect_id, interaction_id, channel, subject, body, status)
+      values ($1, $2, $3, $4, $5, 'draft')
+      returning id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      `,
+      [input.prospectId, input.interactionId, input.channel, input.subject, input.body]
+    );
+    return toFollowUpDraft(result.rows[0]);
+  }
+
+  async findFollowUpDraftById(draftId: number): Promise<FollowUpDraftRecord | null> {
+    const result = await this.pool.query(
+      `
+      select id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      from trevor.followup_drafts
+      where id = $1
+      limit 1
+      `,
+      [draftId]
+    );
+    return result.rows[0] ? toFollowUpDraft(result.rows[0]) : null;
+  }
+
+  async markFollowUpDraft(draftId: number, status: "approved" | "discarded", approvedBy?: string): Promise<FollowUpDraftRecord | null> {
+    const result = await this.pool.query(
+      `
+      update trevor.followup_drafts
+      set status = $2,
+          approved_by = case when $2 = 'approved' then $3 else approved_by end,
+          approved_at = case when $2 = 'approved' then now() else approved_at end,
+          updated_at = now()
+      where id = $1
+        and status in ('draft', 'approved', 'discarded')
+      returning id, prospect_id, interaction_id, channel, subject, body, status, approved_by, approved_at, created_at, updated_at
+      `,
+      [draftId, status, approvedBy ?? null]
+    );
+    return result.rows[0] ? toFollowUpDraft(result.rows[0]) : null;
   }
 }

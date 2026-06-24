@@ -32,8 +32,8 @@ before the call, and what follow-up to send afterward.
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 5 Status:** Spec Kit artifacts created on branch `005-follow-up-drafting`; implementation pending
-**Next Work:** Implement Feature 5 tasks in `specs/005-follow-up-drafting/tasks.md`.
+**Feature 5 Status:** Local implementation complete on branch `005-follow-up-drafting`; quality gate and Aegis comparison passed; commit and PR pending
+**Next Work:** Commit, push, and open the Feature 5 PR.
 
 ### Production Deployment Record
 
@@ -130,7 +130,8 @@ Deployment facts:
 - `overnightdesk` PR #10 delivered Feature 4, `post-call-capture`, and has
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - Feature 5, `follow-up-drafting`, has entered Spec Kit on branch
-  `005-follow-up-drafting`.
+  `005-follow-up-drafting`; local implementation now adds draft generation,
+  approval/discard state, and a tenant skill. It is not merged or deployed yet.
 
 ---
 
@@ -268,9 +269,11 @@ audit, and opt-out handling are proven.
 
 - [ ] Trevor can draft email, Telegram, SMS-copy, and social-copy follow-ups.
 - [ ] Drafts are stored in `trevor.followup_drafts`.
-- [ ] Draft status tracks draft, approved, sent, or discarded.
+- [ ] Draft status tracks draft, approved, or discarded. `sent` and
+  `manual_sent` remain reserved for later send/log workflows.
 - [ ] Explicit Mitchel approval is required before any send-capable integration.
-- [ ] Approved follow-up can be logged back to `trevor.interactions`.
+- [ ] Approved or manually sent follow-up can be logged back to
+  `trevor.interactions` in a later explicit workflow.
 
 ---
 
@@ -428,7 +431,8 @@ Feature 1 (Trevor Prospecting Data Model)
 - [ ] Follow-up draft can be generated from a captured call outcome.
 - [ ] Draft is stored and linked to prospect/interaction.
 - [ ] Approval status is explicit.
-- [ ] Approved or manually sent follow-up can be logged.
+- [ ] Approved or manually sent follow-up can be logged by a later explicit
+  workflow.
 
 ---
 
@@ -490,7 +494,8 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] `$speckit-specify` for `follow-up-drafting`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
-  - [ ] `$speckit-implement`
+  - [x] `$speckit-implement`
+  - [ ] Quality gate, Aegis comparison, PR, and deployment
 
 ### Phase 4
 

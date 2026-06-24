@@ -41,6 +41,62 @@ export interface ProspectInteraction {
   occurredAt: Date;
 }
 
+export type FollowUpChannel = "email" | "telegram" | "sms" | "linkedin" | "instagram";
+export type FollowUpDraftStatus = "draft" | "approved" | "discarded" | "sent" | "manual_sent";
+
+export interface FollowUpDraftRecord {
+  id: number;
+  prospectId: number;
+  interactionId: number;
+  channel: FollowUpChannel;
+  subject: string | null;
+  body: string;
+  status: FollowUpDraftStatus;
+  approvedBy: string | null;
+  approvedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FollowUpContext {
+  prospect: ProspectCandidate;
+  interaction: ProspectInteraction & { id: number };
+}
+
+export interface GenerateFollowUpDraftInput {
+  interactionId: number;
+  channel: FollowUpChannel;
+  tone?: string;
+  regenerate?: boolean;
+}
+
+export interface MarkFollowUpDraftInput {
+  draftId: number;
+  action: "approve" | "discard";
+  approvedBy?: string;
+}
+
+export interface FollowUpDraftWrite {
+  prospectId: number;
+  interactionId: number;
+  channel: FollowUpChannel;
+  subject: string | null;
+  body: string;
+}
+
+export interface FollowUpDraftResult {
+  status: "drafted" | "existing" | "approved" | "discarded" | "not_found" | "invalid";
+  draftId: number | null;
+  prospectId: number | null;
+  interactionId: number | null;
+  channel: FollowUpChannel | null;
+  draftStatus: FollowUpDraftStatus | null;
+  subject: string | null;
+  body: string | null;
+  warnings: string[];
+  outboundSent: false;
+}
+
 export type PostCallOutcome =
   | "no_answer"
   | "left_voicemail"
@@ -243,4 +299,9 @@ export interface QueueRepository {
   findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null>;
   resolvePreCallBriefLookup(lookup: PreCallBriefLookup): Promise<BriefLookupResult>;
   capturePostCall(input: PostCallCaptureWrite): Promise<PostCallCaptureWriteResult>;
+  findFollowUpContext(interactionId: number): Promise<FollowUpContext | null>;
+  findActiveFollowUpDraft(interactionId: number, channel: FollowUpChannel): Promise<FollowUpDraftRecord | null>;
+  createFollowUpDraft(input: FollowUpDraftWrite): Promise<FollowUpDraftRecord>;
+  findFollowUpDraftById(draftId: number): Promise<FollowUpDraftRecord | null>;
+  markFollowUpDraft(draftId: number, status: "approved" | "discarded", approvedBy?: string): Promise<FollowUpDraftRecord | null>;
 }

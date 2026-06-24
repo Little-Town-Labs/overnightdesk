@@ -6,6 +6,7 @@ import { z } from "zod";
 import { generatePreCallBrief, preCallBriefToMcp } from "./brief.js";
 import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
 import { createPool, PgQueueRepository } from "./db.js";
+import { followUpDraftToMcp, generateFollowUpDraft, markFollowUpDraft } from "./followup.js";
 import {
   callTasksToMcp,
   generateDailyCallQueue,
@@ -32,7 +33,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.3.0"
+  version: "1.4.0"
 });
 
 server.registerTool("db_query", {
@@ -190,6 +191,48 @@ server.registerTool("capture_post_call", {
     return { content: [{ type: "text", text: JSON.stringify(postCallCaptureToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Capture error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("generate_follow_up_draft", {
+  description: "Generate and store a human-reviewable Mitchel follow-up draft from a captured Trevor interaction. Draft-only; never sends outbound messages.",
+  inputSchema: {
+    interaction_id: z.number().int().positive(),
+    channel: z.enum(["email", "telegram", "sms", "linkedin", "instagram"]),
+    tone: z.string().trim().max(120).optional(),
+    regenerate: z.boolean().optional()
+  }
+}, async (input) => {
+  try {
+    const result = await generateFollowUpDraft(repo, {
+      interactionId: input.interaction_id,
+      channel: input.channel,
+      tone: input.tone,
+      regenerate: input.regenerate
+    });
+    return { content: [{ type: "text", text: JSON.stringify(followUpDraftToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Follow-up draft error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("mark_follow_up_draft", {
+  description: "Mark a Trevor follow-up draft approved or discarded. Approval does not send the draft.",
+  inputSchema: {
+    draft_id: z.number().int().positive(),
+    action: z.enum(["approve", "discard"]),
+    approved_by: z.string().trim().max(120).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await markFollowUpDraft(repo, {
+      draftId: input.draft_id,
+      action: input.action,
+      approvedBy: input.approved_by
+    });
+    return { content: [{ type: "text", text: JSON.stringify(followUpDraftToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Follow-up draft mark error: ${sanitizeError(err)}` }] };
   }
 });
 

@@ -1,6 +1,10 @@
 import type {
   CallTaskStatus,
   ExistingCallTask,
+  FollowUpChannel,
+  FollowUpContext,
+  FollowUpDraftRecord,
+  FollowUpDraftWrite,
   PreCallBriefLookup,
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
@@ -12,6 +16,7 @@ import type {
 export class FakeQueueRepository implements QueueRepository {
   public tasks: ExistingCallTask[] = [];
   public interactions: ProspectInteraction[] = [];
+  public drafts: FollowUpDraftRecord[] = [];
   public created = 0;
   public captured = 0;
 
@@ -181,5 +186,54 @@ export class FakeQueueRepository implements QueueRepository {
       taskStatus,
       prospectUpdates: updates
     };
+  }
+
+  async findFollowUpContext(interactionId: number): Promise<FollowUpContext | null> {
+    const interaction = this.interactions.find((item) => item.id === interactionId);
+    if (!interaction?.id) return null;
+    const prospect = await this.findProspectById(interaction.prospectId);
+    return prospect ? { prospect, interaction: { ...interaction, id: interaction.id } } : null;
+  }
+
+  async findActiveFollowUpDraft(interactionId: number, channel: FollowUpChannel): Promise<FollowUpDraftRecord | null> {
+    return this.drafts.find((item) =>
+      item.interactionId === interactionId &&
+      item.channel === channel &&
+      (item.status === "draft" || item.status === "approved")
+    ) ?? null;
+  }
+
+  async createFollowUpDraft(input: FollowUpDraftWrite): Promise<FollowUpDraftRecord> {
+    const now = new Date("2026-06-24T18:00:00Z");
+    const nextId = this.drafts.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    const created: FollowUpDraftRecord = {
+      id: nextId,
+      prospectId: input.prospectId,
+      interactionId: input.interactionId,
+      channel: input.channel,
+      subject: input.subject,
+      body: input.body,
+      status: "draft",
+      approvedBy: null,
+      approvedAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.drafts.push(created);
+    return created;
+  }
+
+  async findFollowUpDraftById(draftId: number): Promise<FollowUpDraftRecord | null> {
+    return this.drafts.find((item) => item.id === draftId) ?? null;
+  }
+
+  async markFollowUpDraft(draftId: number, status: "approved" | "discarded", approvedBy?: string): Promise<FollowUpDraftRecord | null> {
+    const draft = this.drafts.find((item) => item.id === draftId);
+    if (!draft) return null;
+    draft.status = status;
+    draft.approvedBy = status === "approved" ? approvedBy ?? null : draft.approvedBy;
+    draft.approvedAt = status === "approved" ? new Date("2026-06-24T18:30:00Z") : draft.approvedAt;
+    draft.updatedAt = new Date("2026-06-24T18:30:00Z");
+    return draft;
   }
 }

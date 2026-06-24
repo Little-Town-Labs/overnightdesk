@@ -12,9 +12,9 @@
 
 **Purpose**: Prepare the existing Trevor DB MCP package for draft workflow work.
 
-- [ ] T001 Review current capture behavior in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
-- [ ] T002 [P] Add draft fixtures in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts`
-- [ ] T003 [P] Extend the in-memory test repository shape for follow-up drafts in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
+- [x] T001 Review current capture behavior in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T002 [P] Add draft fixtures in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts`
+- [x] T003 [P] Extend the in-memory test repository shape for follow-up drafts in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
 
 ---
 
@@ -22,9 +22,9 @@
 
 **Purpose**: Define shared draft contracts and repository boundaries before user-story implementation.
 
-- [ ] T004 Add follow-up draft input/result types and channel/status enums in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [ ] T005 Define repository methods for interaction lookup, draft creation/reuse, and draft status transitions in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [ ] T006 Implement parameterized Postgres repository methods for follow-up drafts in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
+- [x] T004 Add follow-up draft input/result types and channel/status enums in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T005 Define repository methods for interaction lookup, draft creation/reuse, and draft status transitions in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T006 Implement parameterized Postgres repository methods for follow-up drafts in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
 
 ---
 
@@ -36,15 +36,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add failing email draft generation test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-draft.test.ts`
-- [ ] T008 [P] [US1] Add failing duplicate active draft reuse test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-draft.test.ts`
+- [x] T007 [P] [US1] Add failing email draft generation test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-draft.test.ts`
+- [x] T008 [P] [US1] Add failing duplicate active draft reuse test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-draft.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement core draft orchestration in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
-- [ ] T010 [US1] Map draft result to snake_case MCP output in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
-- [ ] T011 [US1] Register `generate_follow_up_draft` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [ ] T012 [US1] Add follow-up drafting tenant skill in `tenet-0/tenant-workflows/hermes-mitchel/skills/follow-up-drafting/SKILL.md`
+- [x] T009 [US1] Implement core draft orchestration in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
+- [x] T010 [US1] Map draft result to snake_case MCP output in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
+- [x] T011 [US1] Register `generate_follow_up_draft` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T012 [US1] Add follow-up drafting tenant skill in `tenet-0/tenant-workflows/hermes-mitchel/skills/follow-up-drafting/SKILL.md`
 
 ---
 
@@ -56,13 +56,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add failing copy-ready channel tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-channels.test.ts`
-- [ ] T014 [P] [US2] Add failing unsupported channel no-write test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-channels.test.ts`
+- [x] T013 [P] [US2] Add failing copy-ready channel tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-channels.test.ts`
+- [x] T014 [P] [US2] Add failing unsupported channel no-write test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-channels.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement channel-specific subject/body templates in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
-- [ ] T016 [US2] Enforce unsupported channel rejection before writes in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
+- [x] T015 [US2] Implement channel-specific subject/body templates in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
+- [x] T016 [US2] Enforce unsupported channel rejection before writes in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
 
 ---
 
@@ -74,14 +74,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Add failing approve/discard tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-status.test.ts`
-- [ ] T018 [P] [US3] Add failing discarded draft cannot be approved test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-status.test.ts`
+- [x] T017 [P] [US3] Add failing approve/discard tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-status.test.ts`
+- [x] T018 [P] [US3] Add failing discarded draft cannot be approved test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/followup-status.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Implement draft status transition logic in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
-- [ ] T020 [US3] Register `mark_follow_up_draft` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [ ] T021 [US3] Document approval/discard workflow in `tenet-0/tenant-workflows/hermes-mitchel/skills/follow-up-drafting/SKILL.md`
+- [x] T019 [US3] Implement draft status transition logic in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
+- [x] T020 [US3] Register `mark_follow_up_draft` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T021 [US3] Document approval/discard workflow in `tenet-0/tenant-workflows/hermes-mitchel/skills/follow-up-drafting/SKILL.md`
 
 ---
 
@@ -89,12 +89,12 @@
 
 **Purpose**: Verify production readiness and keep docs synchronized.
 
-- [ ] T022 Bump Trevor DB MCP server version in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [ ] T023 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
-- [ ] T024 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
-- [ ] T025 Run `$code-review-and-quality`
-- [ ] T026 Compare deployment expectations with `aegis-prod` using `$aegis-ssh`
-- [ ] T027 Update `.specify/roadmap-hermes-mitchel-prospecting.md` with Feature 5 local implementation status
+- [x] T022 Bump Trevor DB MCP server version in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T023 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T024 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+- [x] T025 Run `$code-review-and-quality`
+- [x] T026 Compare deployment expectations with `aegis-prod` using `$aegis-ssh`
+- [x] T027 Update `.specify/roadmap-hermes-mitchel-prospecting.md` with Feature 5 local implementation status
 - [ ] T028 Commit Feature 5 implementation and open PR
 
 ---

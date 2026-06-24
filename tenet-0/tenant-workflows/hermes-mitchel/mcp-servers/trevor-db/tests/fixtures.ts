@@ -1,4 +1,4 @@
-import type { ExistingCallTask, ProspectCandidate, ProspectInteraction } from "../src/types.js";
+import type { ExistingCallTask, FollowUpDraftRecord, ProspectCandidate, ProspectInteraction } from "../src/types.js";
 
 export function prospect(overrides: Partial<ProspectCandidate>): ProspectCandidate {
   return {
@@ -34,11 +34,29 @@ export function task(overrides: Partial<ExistingCallTask>): ExistingCallTask {
 
 export function interaction(overrides: Partial<ProspectInteraction>): ProspectInteraction {
   return {
+    id: 1,
     prospectId: 1,
     channel: "phone",
     direction: "outbound",
     summary: "Discussed ideal GIA round stone and asked to follow up next week.",
     occurredAt: new Date("2026-06-20T16:00:00Z"),
+    ...overrides
+  };
+}
+
+export function draft(overrides: Partial<FollowUpDraftRecord>): FollowUpDraftRecord {
+  return {
+    id: 1,
+    prospectId: 1,
+    interactionId: 1,
+    channel: "email",
+    subject: "Following up from our call",
+    body: "Thanks for taking the time to speak today.",
+    status: "draft",
+    approvedBy: null,
+    approvedAt: null,
+    createdAt: new Date("2026-06-24T18:00:00Z"),
+    updatedAt: new Date("2026-06-24T18:00:00Z"),
     ...overrides
   };
 }
