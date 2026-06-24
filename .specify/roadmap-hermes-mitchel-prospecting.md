@@ -24,8 +24,8 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `006-cadence-scheduler-digest`
-**Latest Merged OvernightDesk SHA:** `2adcf33`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `c0b0cd6`
 **Latest Deployed OvernightDesk Source SHA:** `a5c330e`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -33,8 +33,8 @@ before the call, and what follow-up to send afterward.
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 6 Status:** PR #12 open from branch `006-cadence-scheduler-digest`; quality gate and Aegis comparison passed
-**Next Work:** Review and merge Feature 6 PR #12, then deploy to `aegis-prod/hermes-mitchel`.
+**Feature 6 Status:** Merged via PR #12; deployment to `aegis-prod/hermes-mitchel` pending
+**Next Work:** Deploy Feature 6 to `aegis-prod/hermes-mitchel`.
 
 ### Production Deployment Record
 
@@ -152,6 +152,8 @@ Deployment facts:
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #11 delivered Feature 5, `follow-up-drafting`, and has
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- `overnightdesk` PR #12 delivered Feature 6, `cadence-scheduler-digest`, and
+  has been merged into `main`; production deployment is pending.
 
 ---
 
