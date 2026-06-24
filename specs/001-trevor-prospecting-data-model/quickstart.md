@@ -17,7 +17,8 @@ sed -n '1,260p' tenet-0/db/migrations/051_trevor_prospecting.sql
 Use a non-production database URL with the existing Tenet-0/Trevor baseline:
 
 ```bash
-TENET0_ADMIN_URL='<staging-admin-url>' tenet-0/db/migrate.sh apply-pending --dry-run
+TENET0_ADMIN_URL='<staging-admin-url>' \
+  tenet-0/db/migrate.sh apply-pending --only 051_trevor_prospecting.sql --dry-run
 ```
 
 Expected result:
@@ -32,7 +33,8 @@ live production database as the first dry-run target.
 ## 3. Apply to Staging or Copied Database
 
 ```bash
-TENET0_ADMIN_URL='<staging-admin-url>' tenet-0/db/migrate.sh apply-pending
+TENET0_ADMIN_URL='<staging-admin-url>' \
+  tenet-0/db/migrate.sh apply-pending --only 051_trevor_prospecting.sql
 ```
 
 ## 4. Verify Schema

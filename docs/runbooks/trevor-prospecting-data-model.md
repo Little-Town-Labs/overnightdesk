@@ -102,7 +102,8 @@ non-production database is not available, do not invent one during the
 production deployment window.
 
 ```bash
-TENET0_ADMIN_URL='<staging-admin-url>' tenet-0/db/migrate.sh apply-pending --dry-run
+TENET0_ADMIN_URL='<staging-admin-url>' \
+  tenet-0/db/migrate.sh apply-pending --only 051_trevor_prospecting.sql --dry-run
 ```
 
 Expected:
@@ -134,7 +135,8 @@ ssh -i ~/.ssh/ssh-key-2026-03-15 ubuntu@147.224.183.55 \
 If running from a checked-out repo with `TENET0_ADMIN_URL`:
 
 ```bash
-TENET0_ADMIN_URL='<admin-url>' tenet-0/db/migrate.sh apply-pending
+TENET0_ADMIN_URL='<admin-url>' \
+  tenet-0/db/migrate.sh apply-pending --only 051_trevor_prospecting.sql
 ```
 
 Do not run both paths. Use one deployment path and record which was used.
@@ -192,7 +194,7 @@ ALTER TABLE trevor.prospects
   DROP COLUMN IF EXISTS next_action_type,
   DROP COLUMN IF EXISTS next_action_at,
   DROP COLUMN IF EXISTS priority;
-DELETE FROM tenet0.schema_migrations WHERE version = '051_trevor_prospecting';
+DELETE FROM public.schema_migrations WHERE filename = '051_trevor_prospecting.sql';
 ```
 
 Do not run this rollback if any call tasks, follow-up drafts, or prospect
