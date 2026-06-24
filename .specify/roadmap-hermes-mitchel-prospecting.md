@@ -25,8 +25,8 @@ before the call, and what follow-up to send afterward.
 
 **Last Updated:** 2026-06-24
 **Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `6970ce6`
-**Latest Deployed OvernightDesk Source SHA:** `b374f72`
+**Latest Merged OvernightDesk SHA:** `802e48d`
+**Latest Deployed OvernightDesk Source SHA:** `802e48d`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
@@ -35,10 +35,10 @@ before the call, and what follow-up to send afterward.
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 9 Status:** Planned: Internal Buyer Intake and Conversation Capture
+**Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`; first bounded BrowserAct-first/CamoFox-enriched sourcing pass completed and verified; Trevor-only CamoFox enrichment tool deployed via PR #16 + PR #17
+**Feature 9 Status:** Next: Internal Buyer Intake and Conversation Capture with Spec Kit
 **Feature 10 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
-**Next Work:** Run the first bounded BrowserAct-first, CamoFox-enrichment sourcing pass, then start Feature 9 with Spec Kit.
+**Next Work:** Start Feature 9 with Spec Kit as `internal-buyer-intake`.
 
 ### Production Deployment Record
 
@@ -214,6 +214,28 @@ Deployment facts:
   `call_tasks=0`, `interactions=0`, `followup_drafts=0`,
   `sourcing_runs=0`, `prospect_candidates=0`.
 
+The first bounded Feature 8 production sourcing pass completed on 2026-06-24:
+
+- Trevor used BrowserAct first for Arlington/Northern Virginia discovery, then
+  staged 10 candidates in sourcing run `1`.
+- No prospects were promoted and no call tasks, interactions, follow-up drafts,
+  or outbound messages were created.
+- The initial CamoFox path exposed a production mismatch: the CLI assumed
+  localhost and tab follow-up calls required `userId`.
+- PR #16 added a Trevor-only `trevor_camofox_enrich_url` MCP tool that calls
+  the remote `camofox-browser:9377` service.
+- PR #17 fixed the CamoFox tab `userId` contract found during production smoke
+  testing.
+- PR #16 + PR #17 were deployed to `aegis-prod/hermes-mitchel/trevor-db` at
+  merge commit `802e48d`; `trevor-db` now reports v1.8.0 and the CamoFox smoke
+  returns `status=ok` with `outbound_sent=false`.
+- The CamoFox retry verified 9 staged candidates with
+  `enrichment_source=camofox_website_recon`; 1 candidate, Arons Elegant, remains
+  `needs_review` without CamoFox attribution.
+- Current verified counts after the retry:
+  `sourcing_runs=1`, `prospect_candidates=10`, `prospects=43`,
+  `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -238,8 +260,10 @@ Deployment facts:
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #15 delivered Feature 8, `prospect-sourcing-pipeline`,
   and has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
-- `overnightdesk` commit `6970ce6` records the Feature 8 production deployment
-  state in this roadmap.
+- `overnightdesk` PR #16 delivered the Trevor-only CamoFox enrichment tool.
+- `overnightdesk` PR #17 fixed the production CamoFox `userId` tab contract.
+- `overnightdesk` commit `802e48d` records the latest deployed
+  `hermes-mitchel` Trevor DB MCP source state.
 
 ---
 
@@ -255,9 +279,9 @@ Deployment facts:
 | Memory table | `trevor.memory` | Live, minimal |
 | Call task table | `trevor.call_tasks` | Live, empty |
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
-| Prospect sourcing run table | `trevor.prospect_sourcing_runs` | Live, empty |
-| Prospect candidate table | `trevor.prospect_candidates` | Live, empty |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, follow-up sent logging, and prospect sourcing tools |
+| Prospect sourcing run table | `trevor.prospect_sourcing_runs` | Live, 1 bounded Arlington/Northern Virginia run staged |
+| Prospect candidate table | `trevor.prospect_candidates` | Live, 10 staged candidates; 9 recommended and CamoFox-verified, 1 needs review |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live v1.8.0 with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, follow-up sent logging, prospect sourcing tools, and Trevor-only CamoFox enrichment |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
@@ -478,6 +502,10 @@ future website-intake attribution loop
 - [x] Approved candidates preserve `lead_source` when promoted.
 - [x] Approved candidates can create exactly one initial outreach call task.
 - [x] The workflow never sends outbound messages.
+- [x] First bounded production sourcing pass completed: 10 staged candidates, 9
+  CamoFox-verified recommended candidates, 1 needs-review candidate, and no
+  unintended prospect, call-task, interaction, follow-up, or outbound side
+  effects.
 
 ---
 
@@ -918,10 +946,11 @@ same reviewed intake path used internally.
 
 ## Next Recommended Work
 
-Run the first bounded production sourcing pass through Feature 8: use BrowserAct
-for first-pass discovery, CamoFox for enrichment/verification, stage candidates,
-and review with Mitchel before promoting any approved records into Trevor's call
-queue. After that, start Feature 9 with Spec Kit so Mitchel can capture buyer
-and conversation data from the existing OvernightDesk/Hermes experience. Direct
-channel sends remain deferred behind explicit approval, audit, opt-out, and
-channel-policy work.
+Start Feature 9 with Spec Kit as `internal-buyer-intake`. The first slice should
+define and implement the reusable internal intake contract that lets Mitchel
+capture buyer/prospect details and conversation notes from the existing
+OvernightDesk/Hermes experience. It should dedupe against Trevor and Agiled,
+write bounded `trevor.prospects` and `trevor.interactions` records, preserve
+source attribution, and optionally create a next call task or follow-up draft
+without sending outbound messages. Feature 10's public buyer inquiry form should
+reuse this Feature 9 contract later.
