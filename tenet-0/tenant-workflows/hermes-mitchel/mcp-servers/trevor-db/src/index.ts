@@ -6,6 +6,7 @@ import { z } from "zod";
 import { generatePreCallBrief, preCallBriefToMcp } from "./brief.js";
 import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
 import { createPool, PgQueueRepository } from "./db.js";
+import { cadenceDigestToMcp, generateCadenceDigest } from "./digest.js";
 import { followUpDraftToMcp, generateFollowUpDraft, markFollowUpDraft } from "./followup.js";
 import {
   callTasksToMcp,
@@ -33,7 +34,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.4.0"
+  version: "1.5.0"
 });
 
 server.registerTool("db_query", {
@@ -233,6 +234,34 @@ server.registerTool("mark_follow_up_draft", {
     return { content: [{ type: "text", text: JSON.stringify(followUpDraftToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Follow-up draft mark error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("generate_cadence_digest", {
+  description: "Generate Mitchel's daily cadence digest from Trevor call queue, stale work, and follow-up approvals. Defaults to read-only and never sends outbound messages.",
+  inputSchema: {
+    sales_day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    limit: z.number().int().min(1).max(25).optional(),
+    persist_call_tasks: z.boolean().optional(),
+    include_review_needed: z.boolean().optional(),
+    include_dormant: z.boolean().optional(),
+    scheduled: z.boolean().optional(),
+    inventory_context: z.string().max(4000).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await generateCadenceDigest(repo, {
+      salesDay: input.sales_day,
+      limit: input.limit,
+      persistCallTasks: input.persist_call_tasks,
+      includeReviewNeeded: input.include_review_needed,
+      includeDormant: input.include_dormant,
+      scheduled: input.scheduled,
+      inventoryContext: input.inventory_context
+    });
+    return { content: [{ type: "text", text: JSON.stringify(cadenceDigestToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Cadence digest error: ${sanitizeError(err)}` }] };
   }
 });
 

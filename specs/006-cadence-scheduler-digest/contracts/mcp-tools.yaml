@@ -1,0 +1,192 @@
+openapi: 3.1.0
+info:
+  title: Trevor Cadence Digest MCP Contract
+  version: 0.1.0
+paths:
+  /mcp/generate_cadence_digest:
+    post:
+      summary: Generate Mitchel's daily cadence digest
+      operationId: generate_cadence_digest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                sales_day:
+                  type: string
+                  pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 25
+                persist_call_tasks:
+                  type: boolean
+                  default: false
+                include_review_needed:
+                  type: boolean
+                  default: true
+                include_dormant:
+                  type: boolean
+                  default: true
+                scheduled:
+                  type: boolean
+                  default: false
+                inventory_context:
+                  type: string
+                  maxLength: 4000
+      responses:
+        "200":
+          description: Digest generated or validation issue returned
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - generated_at
+                  - sales_day
+                  - scheduled
+                  - persisted_call_tasks
+                  - counts
+                  - call_queue
+                  - stale_work
+                  - follow_up_approvals
+                  - warnings
+                  - side_effects
+                properties:
+                  status:
+                    type: string
+                    enum: [generated, needs_input]
+                  generated_at:
+                    type: string
+                    format: date-time
+                  sales_day:
+                    type: string
+                  scheduled:
+                    type: boolean
+                  persisted_call_tasks:
+                    type: boolean
+                  counts:
+                    type: object
+                    required:
+                      - call_recommendations
+                      - review_needed
+                      - stale_items
+                      - follow_up_drafts
+                      - suppressed
+                      - created_tasks
+                      - reused_tasks
+                    properties:
+                      call_recommendations:
+                        type: integer
+                      review_needed:
+                        type: integer
+                      stale_items:
+                        type: integer
+                      follow_up_drafts:
+                        type: integer
+                      suppressed:
+                        type: integer
+                      created_tasks:
+                        type: integer
+                      reused_tasks:
+                        type: integer
+                  call_queue:
+                    type: array
+                    items:
+                      type: object
+                  review_needed:
+                    type: array
+                    items:
+                      type: object
+                  stale_work:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - prospect_id
+                        - display_name
+                        - reason
+                        - review_only
+                        - suggested_next_step
+                      properties:
+                        prospect_id:
+                          type: integer
+                        display_name:
+                          type: string
+                        status:
+                          type: [string, "null"]
+                        reason:
+                          type: string
+                        next_action_type:
+                          type: [string, "null"]
+                        next_action_at:
+                          type: [string, "null"]
+                        last_interaction_at:
+                          type: [string, "null"]
+                        days_stale:
+                          type: [integer, "null"]
+                        review_only:
+                          type: boolean
+                        suggested_next_step:
+                          type: string
+                  follow_up_approvals:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - draft_id
+                        - prospect_id
+                        - display_name
+                        - channel
+                        - status
+                        - created_at
+                        - age_days
+                        - review_only
+                      properties:
+                        draft_id:
+                          type: integer
+                        prospect_id:
+                          type: integer
+                        display_name:
+                          type: string
+                        channel:
+                          type: string
+                        status:
+                          type: string
+                          enum: [draft]
+                        subject:
+                          type: [string, "null"]
+                        created_at:
+                          type: string
+                          format: date-time
+                        age_days:
+                          type: integer
+                        review_only:
+                          type: boolean
+                  warnings:
+                    type: array
+                    items:
+                      type: string
+                  side_effects:
+                    type: object
+                    required:
+                      - outbound_sent
+                      - interactions_created
+                      - follow_up_drafts_created
+                    properties:
+                      outbound_sent:
+                        const: false
+                      interactions_created:
+                        type: integer
+                      follow_up_drafts_created:
+                        type: integer
+      x-safety:
+        - Must not send outbound messages.
+        - Must not create follow-up drafts.
+        - Must not approve, discard, send, or mark sent follow-up drafts.
+        - Must not enable scheduler jobs.
+        - Must omit full prospect notes and full follow-up draft bodies.

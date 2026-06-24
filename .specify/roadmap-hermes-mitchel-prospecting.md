@@ -24,8 +24,8 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `aafbd1c`
+**Active Branch:** `006-cadence-scheduler-digest`
+**Latest Merged OvernightDesk SHA:** `2adcf33`
 **Latest Deployed OvernightDesk Source SHA:** `a5c330e`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -33,7 +33,8 @@ before the call, and what follow-up to send afterward.
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Start Feature 6, `cadence-scheduler-digest`, with Spec Kit.
+**Feature 6 Status:** PR #12 open from branch `006-cadence-scheduler-digest`; quality gate and Aegis comparison passed
+**Next Work:** Review and merge Feature 6 PR #12, then deploy to `aegis-prod/hermes-mitchel`.
 
 ### Production Deployment Record
 
@@ -522,9 +523,9 @@ Feature 1 (Trevor Prospecting Data Model)
 ### Phase 4
 
 - [ ] **Feature 6: Cadence Scheduler and Digest**
-  - [ ] `$speckit-specify` for `cadence-scheduler-digest`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
+  - [x] `$speckit-specify` for `cadence-scheduler-digest`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
   - [ ] `$speckit-implement`
 
 ---

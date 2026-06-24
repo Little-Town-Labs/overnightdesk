@@ -236,4 +236,32 @@ export class FakeQueueRepository implements QueueRepository {
     draft.updatedAt = new Date("2026-06-24T18:30:00Z");
     return draft;
   }
+
+  async listPendingFollowUpDrafts(limit: number): Promise<FollowUpDraftRecord[]> {
+    return this.drafts
+      .filter((item) => item.status === "draft")
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime() || a.id - b.id)
+      .slice(0, limit);
+  }
+
+  async listStaleProspectCandidates(salesDay: string, limit: number, options: { includeDormant?: boolean } = {}): Promise<ProspectCandidate[]> {
+    const salesTime = Date.parse(`${salesDay}T00:00:00.000Z`);
+    return this.candidates
+      .filter((candidate) => {
+        const overdue = candidate.nextActionAt ? candidate.nextActionAt.toISOString().slice(0, 10) < salesDay : false;
+        const stale = candidate.lastInteractionAt
+          ? salesTime - candidate.lastInteractionAt.getTime() >= 30 * 24 * 60 * 60 * 1000
+          : options.includeDormant !== false;
+        const dormant = options.includeDormant !== false && !candidate.nextActionAt && stale;
+        return overdue || stale || dormant;
+      })
+      .sort((a, b) => {
+        const aDue = a.nextActionAt?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bDue = b.nextActionAt?.getTime() ?? Number.POSITIVE_INFINITY;
+        const aLast = a.lastInteractionAt?.getTime() ?? 0;
+        const bLast = b.lastInteractionAt?.getTime() ?? 0;
+        return aDue - bDue || aLast - bLast || b.priority - a.priority || a.id - b.id;
+      })
+      .slice(0, limit);
+  }
 }
