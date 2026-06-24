@@ -24,15 +24,15 @@ before the call, and what follow-up to send afterward.
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `004-post-call-capture`
-**Latest Merged OvernightDesk SHA:** `f5267ff`
-**Latest Deployed OvernightDesk Source SHA:** `12be55a`
+**Active Branch:** `main`
+**Latest Merged OvernightDesk SHA:** `cb6c3e5`
+**Latest Deployed OvernightDesk Source SHA:** `cb6c3e5`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 4 Status:** Local tenant workflow source implemented in `tenet-0/tenant-workflows/hermes-mitchel`; quality gate, PR, and production sync pending
-**Next Work:** Run final quality gate and Aegis comparison for Feature 4, then open the PR.
+**Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
+**Next Work:** Start Feature 5, `follow-up-drafting`, with Spec Kit.
 
 ### Production Deployment Record
 
@@ -94,6 +94,26 @@ Deployment facts:
 - Production side-effect check remained clean:
   `call_tasks=0`, `interactions=0`.
 
+Feature 4 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-24. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #10 merged into `main` at merge commit `cb6c3e5`.
+- Deployed source commit: `cb6c3e5`.
+- Synced repo-controlled Trevor DB MCP runtime to:
+  `/opt/data/mcp-servers/trevor-db`
+- Synced post-call capture skill to:
+  `/opt/data/skills/post-call-capture`
+- Restarted only `hermes-mitchel`.
+- Verified `trevor-db` v1.3.0, `generate_daily_call_queue`,
+  `generate_pre_call_brief`, `capture_post_call`, `capture.js`, and readable
+  skill file.
+- Direct MCP entrypoint check connected to `tenet0-postgres` and reported
+  ready.
+- Production side-effect check remained clean:
+  `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -106,9 +126,9 @@ Deployment facts:
   merged into `main`.
 - `overnightdesk` PR #9 delivered Feature 3, `pre-call-brief`, and has been
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
-- Feature 4, `post-call-capture`, has entered Spec Kit on branch
-  `004-post-call-capture` and is implemented locally. Review, PR, and
-  production sync are pending.
+- `overnightdesk` PR #10 delivered Feature 4, `post-call-capture`, and has
+  been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- Feature 5, `follow-up-drafting`, is the next critical-path slice.
 
 ---
 
@@ -210,7 +230,7 @@ preferences, likely objection, suggested ask, and follow-up fallback.
 
 **Source:** PRD "Call Capture" and "Post-Call Capture"
 **Description:** After a call, Trevor captures structured outcome data, updates
-the prospect, writes an interaction, creates an Agiled note when possible, and
+the prospect, writes an interaction, reports Agiled note status when linked, and
 sets the next action.
 
 **Complexity:** Medium
@@ -220,12 +240,12 @@ sets the next action.
 
 **Completion Gate:**
 
-- [ ] Mitchel can report a call outcome in natural language.
-- [ ] Trevor asks only for missing required fields.
-- [ ] `trevor.interactions` receives a durable record.
-- [ ] `trevor.prospects` receives last-contact, last-outcome, and next-action updates.
-- [ ] Agiled receives a note when an Agiled contact or deal is linked.
-- [ ] The workflow never sends outbound follow-up automatically.
+- [x] Mitchel can report a call outcome through the purpose-built capture tool.
+- [x] Trevor asks only for missing required fields.
+- [x] `trevor.interactions` receives a durable record.
+- [x] `trevor.prospects` receives last-contact, last-outcome, and next-action updates.
+- [x] Agiled note status is reported as created, skipped, failed, or not requested.
+- [x] The workflow never sends outbound follow-up automatically.
 
 ---
 
@@ -388,8 +408,8 @@ Feature 1 (Trevor Prospecting Data Model)
 
 - [x] On-demand call queue works.
 - [x] Prospect brief works.
-- [ ] Post-call capture writes Postgres and Agiled notes.
-- [ ] No outbound message is sent automatically.
+- [x] Post-call capture writes Postgres records and reports Agiled note status.
+- [x] No outbound message is sent automatically.
 
 ---
 
@@ -455,11 +475,12 @@ Feature 1 (Trevor Prospecting Data Model)
   - [x] `$speckit-implement`
   - [x] Production sync and no-write validation
 
-- [ ] **Feature 4: Post-Call Capture**
+- [x] **Feature 4: Post-Call Capture**
   - [x] `$speckit-specify` for `post-call-capture`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
-  - [ ] `$speckit-implement`
+  - [x] `$speckit-implement`
+  - [x] Production sync and no-write validation
 
 ### Phase 3
 
