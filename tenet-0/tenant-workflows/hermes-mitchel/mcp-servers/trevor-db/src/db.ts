@@ -5,6 +5,8 @@ import type {
   CallTaskStatus,
   ExistingCallTask,
   PreCallBriefLookup,
+  PostCallCaptureWrite,
+  PostCallCaptureWriteResult,
   ProspectCandidate,
   ProspectInteraction,
   QueueRepository
@@ -316,5 +318,79 @@ export class PgQueueRepository implements QueueRepository {
     }
 
     return { status: "not_found", prospect: null, task: null, matches: [] };
+  }
+
+  async capturePostCall(input: PostCallCaptureWrite): Promise<PostCallCaptureWriteResult> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+
+      const interaction = await client.query(
+        `
+        insert into trevor.interactions (prospect_id, channel, direction, summary, occurred_at)
+        values ($1, 'phone', 'outbound', $2, now())
+        returning id
+        `,
+        [input.prospectId, input.summary]
+      );
+      const interactionId = Number(interaction.rows[0].id);
+
+      const doNotContact = input.outcome === "do_not_contact";
+      const status =
+        input.outcome === "do_not_contact" ? "do_not_contact" :
+        input.outcome === "wrong_number" ? "needs_contact_update" :
+        null;
+
+      const prospectUpdates = ["last_contacted_at", "last_outcome", "next_action_type", "next_action_at"];
+      if (doNotContact) prospectUpdates.push("do_not_contact", "do_not_contact_reason", "status");
+      if (status && !doNotContact) prospectUpdates.push("status");
+
+      await client.query(
+        `
+        update trevor.prospects
+        set last_contacted_at = now(),
+            last_outcome = $2,
+            next_action_type = $3,
+            next_action_at = $4,
+            do_not_contact = case when $5 then true else do_not_contact end,
+            do_not_contact_reason = case when $5 then $6 else do_not_contact_reason end,
+            status = coalesce($7, status),
+            updated_at = now()
+        where id = $1
+        `,
+        [input.prospectId, input.outcome, input.nextActionType, input.nextActionAt, doNotContact, input.summary, status]
+      );
+
+      let taskStatus = null;
+      if (input.taskId) {
+        const task = await client.query(
+          `
+          update trevor.call_tasks
+          set status = 'completed',
+              completed_at = now(),
+              updated_at = now()
+          where id = $1
+            and task_type = 'call'
+          returning status
+          `,
+          [input.taskId]
+        );
+        taskStatus = task.rows[0]?.status ?? null;
+      }
+
+      await client.query("commit");
+      return {
+        interactionId,
+        prospectId: input.prospectId,
+        taskId: input.taskId,
+        taskStatus,
+        prospectUpdates
+      };
+    } catch (err) {
+      await client.query("rollback");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 }

@@ -3,7 +3,7 @@ info:
   title: Trevor DB MCP Post-Call Capture Contract
   version: 0.1.0
 paths:
-  /mcp/generate_post_call_capture:
+  /mcp/capture_post_call:
     post:
       summary: Capture a completed Mitchel prospecting call
       operationId: capture_post_call

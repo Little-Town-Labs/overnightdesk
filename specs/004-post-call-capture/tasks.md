@@ -12,9 +12,9 @@
 
 **Purpose**: Prepare the existing Trevor DB MCP package for capture workflow work.
 
-- [ ] T001 Review current queue and brief behavior in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts` and `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/brief.ts`
-- [ ] T002 [P] Add capture fixtures for outcomes and task states in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts`
-- [ ] T003 [P] Extend the in-memory test repository shape for interactions, prospect updates, and task completion in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
+- [x] T001 Review current queue and brief behavior in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts` and `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/brief.ts`
+- [x] T002 [P] Add capture fixtures for outcomes and task states in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts`
+- [x] T003 [P] Extend the in-memory test repository shape for interactions, prospect updates, and task completion in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
 
 ---
 
@@ -22,9 +22,9 @@
 
 **Purpose**: Define shared capture contracts and repository boundaries before user-story implementation.
 
-- [ ] T004 Add post-call capture input/result types and outcome enums in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [ ] T005 Define repository methods for capture lookup, transactional local capture, duplicate task detection, and prospect state updates in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [ ] T006 Implement parameterized Postgres repository methods for capture in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
+- [x] T004 Add post-call capture input/result types and outcome enums in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T005 Define repository methods for capture lookup, transactional local capture, duplicate task detection, and prospect state updates in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T006 Implement parameterized Postgres repository methods for capture in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
 
@@ -38,15 +38,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add failing task-anchored successful capture test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-task.test.ts`
-- [ ] T008 [P] [US1] Add failing no-outbound and no-follow-up-draft assertion test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-safety.test.ts`
+- [x] T007 [P] [US1] Add failing task-anchored successful capture test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-task.test.ts`
+- [x] T008 [P] [US1] Add failing no-outbound and no-follow-up-draft assertion test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-safety.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Implement core capture orchestration in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
-- [ ] T010 [US1] Map capture result to snake_case MCP output in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
-- [ ] T011 [US1] Register the capture MCP tool in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [ ] T012 [US1] Add post-call capture tenant skill in `tenet-0/tenant-workflows/hermes-mitchel/skills/post-call-capture/SKILL.md`
+- [x] T009 [US1] Implement core capture orchestration in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T010 [US1] Map capture result to snake_case MCP output in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T011 [US1] Register the capture MCP tool in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T012 [US1] Add post-call capture tenant skill in `tenet-0/tenant-workflows/hermes-mitchel/skills/post-call-capture/SKILL.md`
 
 **Checkpoint**: User Story 1 is independently deployable after tests pass.
 
@@ -60,13 +60,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add failing missing outcome test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-missing-fields.test.ts`
-- [ ] T014 [P] [US2] Add failing missing target and no-partial-write tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-missing-fields.test.ts`
+- [x] T013 [P] [US2] Add failing missing outcome test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-missing-fields.test.ts`
+- [x] T014 [P] [US2] Add failing missing target and no-partial-write tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-missing-fields.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement required-field evaluation in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
-- [ ] T016 [US2] Ensure missing-field results bypass repository write methods in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T015 [US2] Implement required-field evaluation in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T016 [US2] Ensure missing-field results bypass repository write methods in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
 
 **Checkpoint**: User Story 1 and User Story 2 both work independently.
 
@@ -80,14 +80,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T017 [P] [US3] Add failing unlinked prospect Agiled skipped test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-agiled.test.ts`
-- [ ] T018 [P] [US3] Add failing linked prospect Agiled created/failed status tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-agiled.test.ts`
+- [x] T017 [P] [US3] Add failing unlinked prospect Agiled skipped test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-agiled.test.ts`
+- [x] T018 [P] [US3] Add failing linked prospect Agiled created/failed status tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/capture-agiled.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add Agiled note status abstraction in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
-- [ ] T020 [US3] Keep Agiled failure non-fatal after local capture in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
-- [ ] T021 [US3] Document Agiled linked/unlinked behavior in `tenet-0/tenant-workflows/hermes-mitchel/skills/post-call-capture/SKILL.md`
+- [x] T019 [US3] Add Agiled note status abstraction in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T020 [US3] Keep Agiled failure non-fatal after local capture in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/capture.ts`
+- [x] T021 [US3] Document Agiled linked/unlinked behavior in `tenet-0/tenant-workflows/hermes-mitchel/skills/post-call-capture/SKILL.md`
 
 **Checkpoint**: All user stories should now be independently functional.
 
@@ -97,12 +97,12 @@
 
 **Purpose**: Verify production readiness and keep docs synchronized.
 
-- [ ] T022 Bump Trevor DB MCP server version in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [ ] T023 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
-- [ ] T024 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
-- [ ] T025 Run `$code-review-and-quality`
-- [ ] T026 Compare deployment expectations with `aegis-prod` using `$aegis-ssh`
-- [ ] T027 Update `.specify/roadmap-hermes-mitchel-prospecting.md` with Feature 4 local implementation status
+- [x] T022 Bump Trevor DB MCP server version in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T023 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T024 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+- [x] T025 Run `$code-review-and-quality`
+- [x] T026 Compare deployment expectations with `aegis-prod` using `$aegis-ssh`
+- [x] T027 Update `.specify/roadmap-hermes-mitchel-prospecting.md` with Feature 4 local implementation status
 - [ ] T028 Commit Feature 4 implementation and open PR
 
 ---

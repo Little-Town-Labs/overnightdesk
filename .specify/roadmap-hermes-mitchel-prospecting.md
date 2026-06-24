@@ -31,8 +31,8 @@ before the call, and what follow-up to send afterward.
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 4 Status:** Spec Kit artifacts created on branch `004-post-call-capture`; implementation pending
-**Next Work:** Implement Feature 4 tasks in `specs/004-post-call-capture/tasks.md`.
+**Feature 4 Status:** Local tenant workflow source implemented in `tenet-0/tenant-workflows/hermes-mitchel`; quality gate, PR, and production sync pending
+**Next Work:** Run final quality gate and Aegis comparison for Feature 4, then open the PR.
 
 ### Production Deployment Record
 
@@ -107,7 +107,8 @@ Deployment facts:
 - `overnightdesk` PR #9 delivered Feature 3, `pre-call-brief`, and has been
   merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - Feature 4, `post-call-capture`, has entered Spec Kit on branch
-  `004-post-call-capture`.
+  `004-post-call-capture` and is implemented locally. Review, PR, and
+  production sync are pending.
 
 ---
 
