@@ -26,14 +26,14 @@ before the call, and what follow-up to send afterward.
 **Last Updated:** 2026-06-24
 **Active Branch:** `main`
 **Latest Merged OvernightDesk SHA:** `aafbd1c`
-**Latest Deployed OvernightDesk Source SHA:** `cb6c3e5`
+**Latest Deployed OvernightDesk Source SHA:** `a5c330e`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 5 Status:** Merged via PR #11; deployment to `aegis-prod/hermes-mitchel` pending
-**Next Work:** Deploy Feature 5 to `aegis-prod/hermes-mitchel`.
+**Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
+**Next Work:** Start Feature 6, `cadence-scheduler-digest`, with Spec Kit.
 
 ### Production Deployment Record
 
@@ -115,6 +115,26 @@ Deployment facts:
 - Production side-effect check remained clean:
   `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
 
+Feature 5 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-24. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #11 merged into `main` at merge commit `aafbd1c`.
+- Deployed source commit: `a5c330e`.
+- Synced repo-controlled Trevor DB MCP runtime to:
+  `/opt/data/mcp-servers/trevor-db`
+- Synced follow-up drafting skill to:
+  `/opt/data/skills/follow-up-drafting`
+- Restarted only `hermes-mitchel`.
+- Verified `trevor-db` v1.4.0, `generate_daily_call_queue`,
+  `generate_pre_call_brief`, `capture_post_call`, `generate_follow_up_draft`,
+  `mark_follow_up_draft`, `followup.js`, and readable skill file.
+- Direct MCP entrypoint check connected to `tenet0-postgres` and reported
+  ready.
+- Production side-effect check remained clean:
+  `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -130,8 +150,7 @@ Deployment facts:
 - `overnightdesk` PR #10 delivered Feature 4, `post-call-capture`, and has
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #11 delivered Feature 5, `follow-up-drafting`, and has
-  been merged into `main`; deployment to `aegis-prod/hermes-mitchel` is
-  pending.
+  been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 
 ---
 
@@ -147,11 +166,13 @@ Deployment facts:
 | Memory table | `trevor.memory` | Live, minimal |
 | Call task table | `trevor.call_tasks` | Live, empty |
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue and pre-call brief tools |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, and follow-up drafting tools |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
 | Pre-call brief skill | `/opt/data/skills/pre-call-brief` | Live |
+| Post-call capture skill | `/opt/data/skills/post-call-capture` | Live |
+| Follow-up drafting skill | `/opt/data/skills/follow-up-drafting` | Live |
 | Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
 | Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
 | Feature 1 migration | `tenet-0/db/migrations/051_trevor_prospecting.sql` | Deployed |
@@ -267,11 +288,11 @@ audit, and opt-out handling are proven.
 
 **Completion Gate:**
 
-- [ ] Trevor can draft email, Telegram, SMS-copy, and social-copy follow-ups.
-- [ ] Drafts are stored in `trevor.followup_drafts`.
-- [ ] Draft status tracks draft, approved, or discarded. `sent` and
+- [x] Trevor can draft email, Telegram, SMS-copy, and social-copy follow-ups.
+- [x] Drafts are stored in `trevor.followup_drafts`.
+- [x] Draft status tracks draft, approved, or discarded. `sent` and
   `manual_sent` remain reserved for later send/log workflows.
-- [ ] Explicit Mitchel approval is required before any send-capable integration.
+- [x] Explicit Mitchel approval is required before any send-capable integration.
 - [ ] Approved or manually sent follow-up can be logged back to
   `trevor.interactions` in a later explicit workflow.
 
@@ -428,9 +449,9 @@ Feature 1 (Trevor Prospecting Data Model)
 
 **Completion Gate:**
 
-- [ ] Follow-up draft can be generated from a captured call outcome.
-- [ ] Draft is stored and linked to prospect/interaction.
-- [ ] Approval status is explicit.
+- [x] Follow-up draft can be generated from a captured call outcome.
+- [x] Draft is stored and linked to prospect/interaction.
+- [x] Approval status is explicit.
 - [ ] Approved or manually sent follow-up can be logged by a later explicit
   workflow.
 
@@ -490,13 +511,13 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ### Phase 3
 
-- [ ] **Feature 5: Follow-Up Drafting**
+- [x] **Feature 5: Follow-Up Drafting**
   - [x] `$speckit-specify` for `follow-up-drafting`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [x] `$speckit-implement`
   - [x] Quality gate, Aegis comparison, and PR
-  - [ ] Merge and deployment
+  - [x] Merge and deployment
 
 ### Phase 4
 
