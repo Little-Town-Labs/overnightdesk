@@ -148,6 +148,11 @@ function findTabId(value: unknown): string | null {
   return null;
 }
 
+function tabPath(tabId: string, suffix: string, userId: string): string {
+  const params = new URLSearchParams({ userId });
+  return `/tabs/${encodeURIComponent(tabId)}${suffix}?${params.toString()}`;
+}
+
 async function requestJson(
   fetchImpl: FetchLike,
   config: TrevorCamoFoxConfig,
@@ -219,12 +224,12 @@ export async function enrichProspectUrlWithCamoFox(
     tabId = findTabId(opened);
     if (!tabId) throw new Error("CamoFox did not return a tab id.");
 
-    const snapshot = await requestJson(fetchImpl, config, `/tabs/${encodeURIComponent(tabId)}/snapshot`, {
+    const snapshot = await requestJson(fetchImpl, config, tabPath(tabId, "/snapshot", userId), {
       method: "GET"
     });
     const links = input.includeLinks === false
       ? []
-      : collectLinks(await requestJson(fetchImpl, config, `/tabs/${encodeURIComponent(tabId)}/links`, { method: "GET" }));
+      : collectLinks(await requestJson(fetchImpl, config, tabPath(tabId, "/links", userId), { method: "GET" }));
     return {
       status: "ok",
       url: target.toString(),
@@ -250,7 +255,7 @@ export async function enrichProspectUrlWithCamoFox(
     };
   } finally {
     if (tabId) {
-      await requestJson(fetchImpl, config, `/tabs/${encodeURIComponent(tabId)}`, { method: "DELETE" }).catch(() => undefined);
+      await requestJson(fetchImpl, config, tabPath(tabId, "", userId), { method: "DELETE" }).catch(() => undefined);
     }
   }
 }
