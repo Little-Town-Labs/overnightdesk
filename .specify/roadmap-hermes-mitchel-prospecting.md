@@ -15,9 +15,9 @@ operating loop. The first useful product is not a dashboard. It is a reliable
 assistant workflow that tells Mitchel who to call, why to call them, what to say
 before the call, and what follow-up to send afterward.
 
-**Total Features:** 8
-**Phases:** 6
-**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing
+**Total Features:** 10
+**Phases:** 8
+**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing -> Internal Intake -> Public Landing Page
 
 ---
 
@@ -36,7 +36,9 @@ before the call, and what follow-up to send afterward.
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Run the first bounded BrowserAct-first, CamoFox-enrichment sourcing pass through the new staged candidate review workflow.
+**Feature 9 Status:** Planned: Internal Buyer Intake and Conversation Capture
+**Feature 10 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
+**Next Work:** Run the first bounded BrowserAct-first, CamoFox-enrichment sourcing pass, then start Feature 9 with Spec Kit.
 
 ### Production Deployment Record
 
@@ -479,6 +481,78 @@ future website-intake attribution loop
 
 ---
 
+### Feature 9: Internal Buyer Intake and Conversation Capture
+
+**Source:** User direction after Feature 8 deployment: Mitchel needs a fast way
+to enter buyer/prospect data when he talks to people, preferably inside the
+OvernightDesk/Hermes page he already uses.
+
+**Description:** Add an internal intake workflow to the existing
+OvernightDesk/Hermes interaction surface so Mitchel can capture a new buyer,
+update an existing prospect, and record conversation details without leaving
+the assistant. The workflow should accept structured fields and free-form notes,
+dedupe against Trevor and Agiled, update `trevor.prospects`, write a
+`trevor.interactions` record, preserve source attribution, and optionally create
+a next call task or follow-up draft. This is the reusable intake backend that a
+future public website form should use.
+
+**Complexity:** Medium
+**Priority:** P1
+**Dependencies:** Feature 1 schema, Feature 4 post-call capture, Feature 5
+follow-up drafting, Feature 7 sent logging, and Feature 8 candidate sourcing
+dedupe/source attribution patterns
+**Blocks:** Public buyer inquiry form, cleaner Agiled/Trevor sync, and faster
+manual data entry after live conversations
+
+**Completion Gate:**
+
+- [ ] Mitchel can enter or paste conversation notes from the existing
+  OvernightDesk/Hermes experience.
+- [ ] Intake can find or create a Trevor prospect without creating duplicates.
+- [ ] Intake can capture name, company, phone, email, source, buyer
+  preferences, budget/timing, and next action when provided.
+- [ ] Intake writes a bounded `trevor.interactions` record for the conversation.
+- [ ] Intake can optionally create a call task or follow-up draft without
+  sending outbound messages.
+- [ ] Agiled create/update behavior is explicit and reports created, updated,
+  skipped, or failed status without blocking Trevor writes.
+- [ ] The same backend contract can support a later public website inquiry
+  form.
+
+---
+
+### Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form
+
+**Source:** PRD Phase 6 public website concept plus user direction that the
+public form can be separate later if the internal intake workflow comes first.
+
+**Description:** Build a focused `mitchelbrown.com` landing page for buyer
+credibility and inbound inquiry capture. The page should route buyer inquiries
+through the Feature 9 intake contract, preserve `mitchelbrown.com` source
+attribution, dedupe against existing Trevor/Agiled records, and avoid creating
+active sales work until the inquiry is reviewed or safely staged.
+
+**Complexity:** Medium
+**Priority:** P2
+**Dependencies:** Feature 9 internal intake backend and source attribution
+contract
+**Blocks:** Public inbound acquisition, website source attribution analytics,
+and future public buyer self-service flows
+
+**Completion Gate:**
+
+- [ ] Audience, positioning, and primary call to action are defined.
+- [ ] Landing page has a buyer inquiry path with spam/abuse controls.
+- [ ] Inquiry submissions route through the Feature 9 intake contract.
+- [ ] Submissions preserve source attribution as `mitchelbrown.com`.
+- [ ] Duplicate prospects are staged or linked instead of blindly created.
+- [ ] Hosting ownership is decided: OvernightDesk-managed infrastructure or a
+  separate marketing deployment.
+- [ ] No public form stores secrets, exposes internal IDs unnecessarily, or
+  sends outbound messages automatically.
+
+---
+
 ## Deferred Features
 
 ### Inventory Matching
@@ -519,24 +593,6 @@ channel-policy risk.
 - Browser-assisted social messaging.
 - Opt-out and audit enforcement.
 
-### Public Website / Landing Page
-
-**Reason Deferred:** `mitchelbrown.com` is a useful acquisition and credibility
-surface, but it can come later after the internal prospecting loop is reliable.
-It should not block the data model, call queue, call capture, or follow-up
-drafting work.
-
-**Future Work:**
-
-- Define the site audience and positioning.
-- Build a focused landing page for buyer inquiries and credibility.
-- Add a buyer-intake form that routes to Agiled and `trevor.prospects`.
-- Track source attribution as `mitchelbrown.com`.
-- Decide whether to host it under OvernightDesk-managed infrastructure or as a
-  separate marketing deployment.
-
----
-
 ## Dependency Graph
 
 ```text
@@ -555,13 +611,16 @@ Feature 1 (Trevor Prospecting Data Model)
     |                                                 +--> Feature 7 (Follow-Up Sent Logging)
     |                                                           |
     |                                                           +--> Feature 8 (Prospect Sourcing Pipeline)
+    |                                                                     |
+    |                                                                     +--> Feature 9 (Internal Buyer Intake and Conversation Capture)
+    |                                                                               |
+    |                                                                               +--> Feature 10 (Mitchel Brown Landing Page and Buyer Inquiry Form)
     |
     +--> Future: Inventory Matching
     +--> Future: Dashboard and Analytics
-    +--> Future: Public Website / Landing Page
 ```
 
-**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
+**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 ---
 
@@ -675,6 +734,45 @@ approved records into the existing call loop.
 
 ---
 
+### Phase 7: Internal Intake and Conversation Capture
+
+**Goal:** Mitchel can quickly capture buyer/prospect details from live
+conversations inside the existing OvernightDesk/Hermes experience.
+
+**Features:**
+
+- Feature 9: Internal Buyer Intake and Conversation Capture
+
+**Completion Gate:**
+
+- [ ] Intake form/workflow is available from the existing Hermes interaction
+  surface.
+- [ ] Trevor and Agiled dedupe behavior is explicit.
+- [ ] Conversation notes become structured prospect updates and interaction
+  history.
+- [ ] Next action, call task, and follow-up draft creation remain
+  approval-controlled and no-send by default.
+
+---
+
+### Phase 8: Public Buyer Acquisition
+
+**Goal:** `mitchelbrown.com` can capture inbound buyer inquiries through the
+same reviewed intake path used internally.
+
+**Features:**
+
+- Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form
+
+**Completion Gate:**
+
+- [ ] Public page positioning and audience are defined.
+- [ ] Buyer inquiry form routes through the Feature 9 intake contract.
+- [ ] Spam/abuse, duplicate handling, and source attribution are in place.
+- [ ] Hosting and operational ownership are documented.
+
+---
+
 ## Execution Checklist
 
 ### Phase 1
@@ -750,6 +848,26 @@ approved records into the existing call loop.
   - [x] Quality/Aegis validation
   - [x] Merge and deployment
 
+### Phase 7
+
+- [ ] **Feature 9: Internal Buyer Intake and Conversation Capture**
+  - [ ] `$speckit-specify` for `internal-buyer-intake`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+  - [ ] Quality/Aegis validation
+  - [ ] Merge and deployment
+
+### Phase 8
+
+- [ ] **Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form**
+  - [ ] `$speckit-specify` for `mitchel-brown-landing-page`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+  - [ ] Quality/Aegis validation
+  - [ ] Merge and deployment
+
 ---
 
 ## Risk Assessment
@@ -763,6 +881,8 @@ approved records into the existing call loop.
 | Scheduler produces noisy recommendations | Medium | Validate on-demand before enabling cron |
 | Scraped web content injects instructions or bad data | High | Treat scraped content as untrusted input; validate fields before writes |
 | Sourcing commits or logs external-service credentials | High | Use env-backed placeholders and run secret checks before commit |
+| Internal intake creates duplicate prospects | Medium | Reuse Trevor/Agiled dedupe before create and prefer staged review for ambiguous matches |
+| Public website form attracts spam or abuse | High | Build public form only after the internal intake contract exists; add spam controls and bounded staged writes |
 | Inventory matching overfits bad or stale inventory | Low | Defer durable matching; wholesaler handles inventory and drop shipping |
 
 ---
@@ -778,6 +898,10 @@ approved records into the existing call loop.
 4. What follow-up cadence does Mitchel actually want for dormant buyers?
 5. Should call transcripts/audio be accepted later, or should this remain
    manual call capture?
+6. Should the internal intake UI be a structured form, a chat-guided form, or
+   both?
+7. Should public website inquiries create staged candidates first or active
+   Trevor prospects when confidence is high?
 
 ---
 
@@ -786,5 +910,7 @@ approved records into the existing call loop.
 Run the first bounded production sourcing pass through Feature 8: use BrowserAct
 for first-pass discovery, CamoFox for enrichment/verification, stage candidates,
 and review with Mitchel before promoting any approved records into Trevor's call
-queue. Direct channel sends remain deferred behind explicit approval, audit,
-opt-out, and channel-policy work.
+queue. After that, start Feature 9 with Spec Kit so Mitchel can capture buyer
+and conversation data from the existing OvernightDesk/Hermes experience. Direct
+channel sends remain deferred behind explicit approval, audit, opt-out, and
+channel-policy work.
