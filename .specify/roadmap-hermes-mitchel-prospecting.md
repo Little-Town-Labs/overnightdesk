@@ -26,15 +26,15 @@ before the call, and what follow-up to send afterward.
 **Last Updated:** 2026-06-24
 **Active Branch:** `main`
 **Latest Merged OvernightDesk SHA:** `c0b0cd6`
-**Latest Deployed OvernightDesk Source SHA:** `a5c330e`
+**Latest Deployed OvernightDesk Source SHA:** `fcad184`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
-**Feature 6 Status:** Merged via PR #12; deployment to `aegis-prod/hermes-mitchel` pending
-**Next Work:** Deploy Feature 6 to `aegis-prod/hermes-mitchel`.
+**Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
+**Next Work:** Prospecting MVP through Feature 6 is deployed. Monitor the disabled-by-default cadence digest workflow and decide whether to enable a scheduler.
 
 ### Production Deployment Record
 
@@ -136,6 +136,28 @@ Deployment facts:
 - Production side-effect check remained clean:
   `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
 
+Feature 6 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-24. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #12 merged into `main` at merge commit `c0b0cd6`.
+- Deployed source commit: `fcad184`.
+- Synced repo-controlled Trevor DB MCP runtime to:
+  `/opt/data/mcp-servers/trevor-db`
+- Synced cadence digest skill to:
+  `/opt/data/skills/cadence-digest`
+- Synced cadence scheduler runbook to:
+  `/opt/data/runbooks/cadence-scheduler.md`
+- Restarted only `hermes-mitchel`.
+- Verified `trevor-db` v1.5.0 marker, `generate_cadence_digest`,
+  `digest.js`, and readable skill/runbook files.
+- No-write production digest smoke returned `status=generated`,
+  `scheduled=false`, `persistedCallTasks=false`, `createdTasks=0`, and
+  outbound/interactions/follow-up side effects all false or zero.
+- Production side-effect check remained clean:
+  `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -153,7 +175,7 @@ Deployment facts:
 - `overnightdesk` PR #11 delivered Feature 5, `follow-up-drafting`, and has
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #12 delivered Feature 6, `cadence-scheduler-digest`, and
-  has been merged into `main`; production deployment is pending.
+  has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 
 ---
 
@@ -169,13 +191,15 @@ Deployment facts:
 | Memory table | `trevor.memory` | Live, minimal |
 | Call task table | `trevor.call_tasks` | Live, empty |
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, and follow-up drafting tools |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, and cadence digest tools |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
 | Pre-call brief skill | `/opt/data/skills/pre-call-brief` | Live |
 | Post-call capture skill | `/opt/data/skills/post-call-capture` | Live |
 | Follow-up drafting skill | `/opt/data/skills/follow-up-drafting` | Live |
+| Cadence digest skill | `/opt/data/skills/cadence-digest` | Live |
+| Cadence scheduler runbook | `/opt/data/runbooks/cadence-scheduler.md` | Live |
 | Agiled workflow skills | `/opt/data/skills/agiled/*` | Live |
 | Prospecting PRD | `docs/hermes-mitchel-prospecting-prd.md` | Drafted |
 | Feature 1 migration | `tenet-0/db/migrations/051_trevor_prospecting.sql` | Deployed |
