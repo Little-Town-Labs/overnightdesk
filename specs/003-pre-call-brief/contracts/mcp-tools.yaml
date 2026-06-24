@@ -1,0 +1,93 @@
+# MCP Tool Contracts: Pre-Call Brief
+
+tools:
+  - name: generate_pre_call_brief
+    status: new
+    owner: trevor-db
+    description: >
+      Generate an on-demand pre-call brief for a Trevor prospect or call task.
+      The tool is read-only and must not create interactions, follow-up drafts,
+      Agiled notes, calls, messages, or external channel updates.
+    inputSchema:
+      type: object
+      properties:
+        task_id:
+          type: integer
+          minimum: 1
+          description: Existing trevor.call_tasks ID for a call task.
+        prospect_id:
+          type: integer
+          minimum: 1
+          description: Existing trevor.prospects ID.
+        query:
+          type: string
+          minLength: 2
+          maxLength: 120
+          description: Prospect name or company search text.
+        inventory_context:
+          type: string
+          maxLength: 4000
+          description: Optional pasted inventory context; may shape wording but must not be stored.
+      additionalProperties: false
+    responseShape:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        lookup:
+          type: object
+          properties:
+            task_id:
+              type: integer
+              nullable: true
+            prospect_id:
+              type: integer
+              nullable: true
+            query:
+              type: string
+              nullable: true
+            status:
+              type: string
+              enum: [found, not_found, ambiguous]
+        prospect:
+          type: object
+          nullable: true
+        task:
+          type: object
+          nullable: true
+        last_touch:
+          type: object
+          nullable: true
+        brief:
+          type: object
+          nullable: true
+          properties:
+            recommended_ask:
+              type: string
+            suggested_opener:
+              type: string
+            buyer_context:
+              type: string
+            follow_up_fallback:
+              type: string
+            readiness:
+              type: string
+        missing_context:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        disambiguation:
+          type: array
+          items:
+            type: object
+    safety:
+      - Must not create trevor.interactions.
+      - Must not create trevor.followup_drafts.
+      - Must not send, draft, or place outbound outreach.
+      - Must warn for do-not-contact prospects.
+      - Must not log full notes, credentials, secrets, or generated message bodies.

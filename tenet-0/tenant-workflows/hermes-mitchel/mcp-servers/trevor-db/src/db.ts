@@ -1,5 +1,14 @@
 import pg from "pg";
-import type { CallTaskStatus, ExistingCallTask, ProspectCandidate, QueueRepository } from "./types.js";
+import type {
+  BriefLookupResult,
+  CallTaskRecord,
+  CallTaskStatus,
+  ExistingCallTask,
+  PreCallBriefLookup,
+  ProspectCandidate,
+  ProspectInteraction,
+  QueueRepository
+} from "./types.js";
 
 const { Pool } = pg;
 
@@ -38,6 +47,25 @@ function toTask(row: Record<string, unknown>): ExistingCallTask {
     prospectId: Number(row.prospect_id),
     status: row.status as CallTaskStatus,
     dueAt: row.due_at ? new Date(row.due_at as string) : null
+  };
+}
+
+function toTaskRecord(row: Record<string, unknown>): CallTaskRecord {
+  return {
+    ...toTask(row),
+    priority: Number(row.priority ?? 0),
+    reason: row.reason as string | null,
+    callObjective: row.call_objective as string | null
+  };
+}
+
+function toInteraction(row: Record<string, unknown>): ProspectInteraction {
+  return {
+    prospectId: Number(row.prospect_id),
+    channel: row.channel as string | null,
+    direction: row.direction as string | null,
+    summary: row.summary as string | null,
+    occurredAt: new Date(row.occurred_at as string)
   };
 }
 
@@ -188,5 +216,105 @@ export class PgQueueRepository implements QueueRepository {
       updated: Boolean(row),
       completedAt: row?.completed_at ? new Date(row.completed_at) : null
     };
+  }
+
+  async findCallTaskById(taskId: number): Promise<CallTaskRecord | null> {
+    const result = await this.pool.query(
+      `
+      select id, prospect_id, status, due_at, priority, reason, call_objective
+      from trevor.call_tasks
+      where id = $1
+        and task_type = 'call'
+      limit 1
+      `,
+      [taskId]
+    );
+    return result.rows[0] ? toTaskRecord(result.rows[0]) : null;
+  }
+
+  async findProspectById(prospectId: number): Promise<ProspectCandidate | null> {
+    const result = await this.pool.query(
+      `
+      select
+        p.*,
+        max(i.occurred_at) as last_interaction_at
+      from trevor.prospects p
+      left join trevor.interactions i on i.prospect_id = p.id
+      where p.id = $1
+      group by p.id
+      limit 1
+      `,
+      [prospectId]
+    );
+    return result.rows[0] ? toCandidate(result.rows[0]) : null;
+  }
+
+  async searchProspects(query: string, limit: number): Promise<ProspectCandidate[]> {
+    const normalizedLimit = Math.max(1, Math.min(10, Math.trunc(limit)));
+    const result = await this.pool.query(
+      `
+      select
+        p.*,
+        max(i.occurred_at) as last_interaction_at
+      from trevor.prospects p
+      left join trevor.interactions i on i.prospect_id = p.id
+      where coalesce(p.status, 'active') <> 'archived'
+        and (
+          p.name ilike '%' || $1 || '%'
+          or p.company ilike '%' || $1 || '%'
+        )
+      group by p.id
+      order by p.updated_at desc, p.id asc
+      limit $2
+      `,
+      [query.trim(), normalizedLimit]
+    );
+    return result.rows.map(toCandidate);
+  }
+
+  async findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null> {
+    const result = await this.pool.query(
+      `
+      select prospect_id, channel, direction, summary, occurred_at
+      from trevor.interactions
+      where prospect_id = $1
+      order by occurred_at desc, id desc
+      limit 1
+      `,
+      [prospectId]
+    );
+    return result.rows[0] ? toInteraction(result.rows[0]) : null;
+  }
+
+  async resolvePreCallBriefLookup(lookup: PreCallBriefLookup): Promise<BriefLookupResult> {
+    if (lookup.taskId) {
+      const task = await this.findCallTaskById(lookup.taskId);
+      if (!task) return { status: "not_found", prospect: null, task: null, matches: [] };
+      const prospect = await this.findProspectById(task.prospectId);
+      return prospect
+        ? { status: "found", prospect, task, matches: [] }
+        : { status: "not_found", prospect: null, task, matches: [] };
+    }
+
+    if (lookup.prospectId) {
+      const prospect = await this.findProspectById(lookup.prospectId);
+      return prospect
+        ? { status: "found", prospect, task: null, matches: [] }
+        : { status: "not_found", prospect: null, task: null, matches: [] };
+    }
+
+    const query = lookup.query?.trim();
+    if (query) {
+      const matches = await this.searchProspects(query, 5);
+      if (matches.length === 1) return { status: "found", prospect: matches[0], task: null, matches: [] };
+      return {
+        status: matches.length ? "ambiguous" : "not_found",
+        prospect: null,
+        task: null,
+        matches
+      };
+    }
+
+    return { status: "not_found", prospect: null, task: null, matches: [] };
   }
 }
