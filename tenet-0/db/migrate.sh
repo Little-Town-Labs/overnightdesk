@@ -28,34 +28,47 @@ case "$sub" in
 
   apply-pending)
     # Apply unapplied SQL migrations from MIGRATIONS_DIR in numerical order.
-    # Tracks applied migrations in tenet0.schema_migrations (created on first
-    # run). Idempotent — safe to re-invoke.
+    # Tracks applied migrations in the existing database ledger shape. Live
+    # Aegis uses public.schema_migrations(filename, applied_at); newer test
+    # databases may use tenet0.schema_migrations(version, applied_at).
+    # Idempotent — safe to re-invoke.
     #
     # Required env: TENET0_ADMIN_URL (psql connection string with DDL grants)
     # Optional flags:
-    #   --dry-run     Report what would apply; make no changes
+    #   --dry-run        Report what would apply; make no changes
+    #   --only FILE.sql  Only consider the named migration file
     #
     # Replaces the goose-based design from earlier plan drafts (see
     # research.md §RES-6). Matches Feature 49's existing tooling pattern:
     # bash + psql, no Go-side migration runner.
 
     dry_run=0
+    only_file=""
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --dry-run) dry_run=1; shift ;;
+        --only)
+          if [[ -z "${2:-}" ]]; then
+            echo "migrate.sh apply-pending: --only requires a migration filename" >&2
+            exit 1
+          fi
+          only_file="$(basename "$2")"
+          shift 2
+          ;;
         -h|--help)
           cat <<EOF
-Usage: migrate.sh apply-pending [--dry-run]
+Usage: migrate.sh apply-pending [--dry-run] [--only FILE.sql]
 
 Applies SQL files in numerical filename order from \$TENET0_MIGRATIONS_DIR
-(default: db/migrations/) that are not yet recorded in tenet0.schema_migrations.
+(default: db/migrations/) that are not yet recorded in the existing migration
+ledger. Live Aegis uses public.schema_migrations(filename, applied_at).
 
 Required env:
   TENET0_ADMIN_URL    Postgres URL with DDL grants (CREATE/ALTER permissions)
 
 Files must be named NNN_*.sql. The numeric prefix determines order.
-Each migration runs in a single transaction with the schema_migrations
-INSERT — partial application is impossible.
+Each migration runs in a single transaction with the migration-ledger INSERT.
+Use --only for a reviewed single-migration production deploy.
 EOF
           exit 0
           ;;
@@ -72,38 +85,82 @@ EOF
       exit 1
     fi
 
-    # Bootstrap: ensure schema_migrations table exists. Idempotent.
-    psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc -v ON_ERROR_STOP=1 -c "
-      CREATE TABLE IF NOT EXISTS tenet0.schema_migrations (
-        version    TEXT PRIMARY KEY,
-        applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
-      );
-    " >/dev/null 2>&1 || {
-      # The 'tenet0' schema may not exist yet on a fresh DB. The first
-      # migration is responsible for creating it; for the bootstrap table
-      # we fall back to the public schema until that migration runs.
+    ledger_kind=$(psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc --tuples-only --no-align -v ON_ERROR_STOP=1 -c "
+      WITH cols AS (
+        SELECT table_schema, table_name, column_name
+        FROM information_schema.columns
+        WHERE table_name = 'schema_migrations'
+          AND table_schema IN ('tenet0', 'public')
+      )
+      SELECT CASE
+        WHEN EXISTS (
+          SELECT 1 FROM cols
+          WHERE table_schema = 'tenet0' AND column_name = 'version'
+        ) THEN 'tenet0_version'
+        WHEN EXISTS (
+          SELECT 1 FROM cols
+          WHERE table_schema = 'public' AND column_name = 'filename'
+        ) THEN 'public_filename'
+        WHEN EXISTS (
+          SELECT 1 FROM cols
+          WHERE table_schema = 'public' AND column_name = 'version'
+        ) THEN 'public_version'
+        ELSE 'missing'
+      END;
+    ")
+
+    if [[ "$ledger_kind" == "missing" ]]; then
       psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc -v ON_ERROR_STOP=1 -c "
         CREATE TABLE IF NOT EXISTS public.schema_migrations (
-          version    TEXT PRIMARY KEY,
+          filename   TEXT PRIMARY KEY,
           applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
         );
       " >/dev/null
-    }
+      ledger_kind="public_filename"
+    fi
 
-    # Discover applied set. Try tenet0.schema_migrations first; fall back to public.
-    applied=$(psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc --tuples-only --no-align -c \
-      "SELECT version FROM tenet0.schema_migrations ORDER BY version;" 2>/dev/null \
-      || psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc --tuples-only --no-align -c \
-      "SELECT version FROM public.schema_migrations ORDER BY version;")
+    case "$ledger_kind" in
+      tenet0_version)
+        applied=$(psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc --tuples-only --no-align -v ON_ERROR_STOP=1 -c \
+          "SELECT version FROM tenet0.schema_migrations ORDER BY version;")
+        ;;
+      public_filename)
+        applied=$(psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc --tuples-only --no-align -v ON_ERROR_STOP=1 -c \
+          "SELECT filename FROM public.schema_migrations ORDER BY filename;")
+        ;;
+      public_version)
+        applied=$(psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc --tuples-only --no-align -v ON_ERROR_STOP=1 -c \
+          "SELECT version FROM public.schema_migrations ORDER BY version;")
+        ;;
+      *)
+        echo "migrate.sh apply-pending: unsupported migration ledger: $ledger_kind" >&2
+        exit 1
+        ;;
+    esac
+
+    echo "migrate.sh apply-pending: using migration ledger $ledger_kind"
 
     pending=()
     while IFS= read -r -d '' f; do
       base=$(basename "$f")
       version="${base%.sql}"
-      if ! grep -Fxq "$version" <<<"$applied"; then
+      if [[ -n "$only_file" && "$base" != "$only_file" ]]; then
+        continue
+      fi
+      if [[ "$ledger_kind" == "public_filename" ]]; then
+        applied_key="$base"
+      else
+        applied_key="$version"
+      fi
+      if ! grep -Fxq "$applied_key" <<<"$applied"; then
         pending+=("$f")
       fi
     done < <(find "$MIGRATIONS_DIR" -maxdepth 1 -name '[0-9]*_*.sql' -print0 | sort -z)
+
+    if [[ -n "$only_file" && ! -f "$MIGRATIONS_DIR/$only_file" ]]; then
+      echo "migrate.sh apply-pending: --only file not found in migrations dir: $only_file" >&2
+      exit 1
+    fi
 
     if [[ ${#pending[@]} -eq 0 ]]; then
       echo "migrate.sh apply-pending: nothing to apply (database is up to date)"
@@ -120,22 +177,30 @@ EOF
       exit 0
     fi
 
-    # Apply each in its own transaction. The schema_migrations INSERT lives
+    # Apply each in its own transaction. The migration-ledger INSERT lives
     # in the same TX as the migration body so partial application is
-    # impossible. We pick the table dynamically because the first migration
-    # may move it from public to tenet0.
+    # impossible.
     for f in "${pending[@]}"; do
       version=$(basename "$f" .sql)
+      base=$(basename "$f")
       echo "migrate.sh apply-pending: applying $version"
+      case "$ledger_kind" in
+        tenet0_version)
+          ledger_insert="INSERT INTO tenet0.schema_migrations (version) VALUES (:'migration_version') ON CONFLICT DO NOTHING;"
+          ;;
+        public_filename)
+          ledger_insert="INSERT INTO public.schema_migrations (filename) VALUES (:'migration_filename') ON CONFLICT DO NOTHING;"
+          ;;
+        public_version)
+          ledger_insert="INSERT INTO public.schema_migrations (version) VALUES (:'migration_version') ON CONFLICT DO NOTHING;"
+          ;;
+      esac
       psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc -v ON_ERROR_STOP=1 \
+        -v "migration_filename=$base" \
+        -v "migration_version=$version" \
         --single-transaction \
         --file "$f" \
-        --command "INSERT INTO tenet0.schema_migrations (version) VALUES ('$version') ON CONFLICT DO NOTHING;" \
-        2>/dev/null \
-      || psql "$TENET0_ADMIN_URL" --quiet --no-psqlrc -v ON_ERROR_STOP=1 \
-        --single-transaction \
-        --file "$f" \
-        --command "INSERT INTO public.schema_migrations (version) VALUES ('$version') ON CONFLICT DO NOTHING;"
+        --command "$ledger_insert"
       echo "migrate.sh apply-pending: applied $version"
     done
 
@@ -154,7 +219,7 @@ Subcommands:
   apply-pending [--dry-run]
                        Apply unapplied SQL migrations from db/migrations/.
                        Requires TENET0_ADMIN_URL env var.
-                       Tracks state in tenet0.schema_migrations table.
+                       Tracks state in the existing migration ledger.
 EOF
     [[ -z "$sub" ]] && exit 1 || exit 0
     ;;

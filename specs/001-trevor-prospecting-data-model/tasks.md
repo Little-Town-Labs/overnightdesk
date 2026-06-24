@@ -47,7 +47,7 @@
 - [x] T007 [US1] Add baseline assertions for `trevor.prospects`, `trevor.interactions`, and `trevor.memory` in `tenet-0/db/migrations/051_trevor_prospecting.sql`
 - [x] T008 [US1] Add idempotent schema changes for cadence fields, call tasks, and follow-up drafts in `tenet-0/db/migrations/051_trevor_prospecting.sql`
 - [x] T009 [US1] Add backup, dry-run, apply, verify, rollback, and deploy-log steps in `docs/runbooks/trevor-prospecting-data-model.md`
-- [x] T010 [US1] Run migration discovery with `TENET0_MIGRATIONS_DIR=tenet-0/db/migrations tenet-0/db/migrate.sh apply-pending --dry-run` when a safe non-production database URL is available, or document why it was not run in `specs/001-trevor-prospecting-data-model/quickstart.md`
+- [x] T010 [US1] Run migration discovery with `TENET0_MIGRATIONS_DIR=tenet-0/db/migrations tenet-0/db/migrate.sh apply-pending --only 051_trevor_prospecting.sql --dry-run` when a safe non-production database URL is available, or document why it was not run in `specs/001-trevor-prospecting-data-model/quickstart.md`
 
 **Checkpoint**: User Story 1 is ready when the migration is reviewable and the runbook gives a safe production path.
 
