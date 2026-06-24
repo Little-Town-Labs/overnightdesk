@@ -32,13 +32,6 @@ BEGIN
 END;
 $$;
 
-CREATE SCHEMA IF NOT EXISTS tenet0;
-
-CREATE TABLE IF NOT EXISTS tenet0.schema_migrations (
-  version text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
-);
-
 ALTER TABLE trevor.prospects
   ADD COLUMN IF NOT EXISTS lead_source text,
   ADD COLUMN IF NOT EXISTS preferred_channel text,
@@ -185,8 +178,43 @@ GRANT USAGE, SELECT ON SEQUENCE
   trevor.followup_drafts_id_seq
 TO trevor_app;
 
-INSERT INTO tenet0.schema_migrations (version)
-VALUES ('051_trevor_prospecting')
-ON CONFLICT DO NOTHING;
+DO $$
+BEGIN
+  IF to_regclass('tenet0.schema_migrations') IS NOT NULL THEN
+    INSERT INTO tenet0.schema_migrations (version)
+    VALUES ('051_trevor_prospecting')
+    ON CONFLICT DO NOTHING;
+  ELSIF to_regclass('public.schema_migrations') IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'schema_migrations'
+        AND column_name = 'filename'
+    ) THEN
+    INSERT INTO public.schema_migrations (filename)
+    VALUES ('051_trevor_prospecting.sql')
+    ON CONFLICT DO NOTHING;
+  ELSIF to_regclass('public.schema_migrations') IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'schema_migrations'
+        AND column_name = 'version'
+    ) THEN
+    INSERT INTO public.schema_migrations (version)
+    VALUES ('051_trevor_prospecting')
+    ON CONFLICT DO NOTHING;
+  ELSE
+    CREATE TABLE public.schema_migrations (
+      filename text PRIMARY KEY,
+      applied_at timestamptz NOT NULL DEFAULT now()
+    );
+    INSERT INTO public.schema_migrations (filename)
+    VALUES ('051_trevor_prospecting.sql')
+    ON CONFLICT DO NOTHING;
+  END IF;
+END$$;
 
 COMMIT;
