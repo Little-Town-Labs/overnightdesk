@@ -15,17 +15,17 @@ operating loop. The first useful product is not a dashboard. It is a reliable
 assistant workflow that tells Mitchel who to call, why to call them, what to say
 before the call, and what follow-up to send afterward.
 
-**Total Features:** 6
-**Phases:** 4
-**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler
+**Total Features:** 7
+**Phases:** 5
+**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging
 
 ---
 
 ## Current Status
 
 **Last Updated:** 2026-06-24
-**Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `c0b0cd6`
+**Active Branch:** `007-follow-up-sent-logging`
+**Latest Merged OvernightDesk SHA:** `89dc509`
 **Latest Deployed OvernightDesk Source SHA:** `fcad184`
 **Latest Deployed Platform Standard SHA:** `0833e6b`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -34,7 +34,8 @@ before the call, and what follow-up to send afterward.
 **Feature 4 Status:** Merged via PR #10 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 5 Status:** Merged via PR #11 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
-**Next Work:** Prospecting MVP through Feature 6 is deployed. Monitor the disabled-by-default cadence digest workflow and decide whether to enable a scheduler.
+**Feature 7 Status:** Spec Kit artifacts drafted on branch `007-follow-up-sent-logging`; implementation pending
+**Next Work:** Implement Feature 7, `follow-up-sent-logging`, to close the approved/manual follow-up loop before direct channel sends.
 
 ### Production Deployment Record
 
@@ -176,6 +177,9 @@ Deployment facts:
   been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #12 delivered Feature 6, `cadence-scheduler-digest`, and
   has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- `overnightdesk` branch `007-follow-up-sent-logging` has Spec Kit artifacts
+  drafted for the follow-up sent logging workflow; implementation and PR are
+  pending.
 
 ---
 
@@ -339,11 +343,35 @@ optional dormant-buyer reactivation.
 
 **Completion Gate:**
 
-- [ ] Morning digest can run on demand.
+- [x] Morning digest can run on demand.
 - [ ] Scheduled execution path is documented and enabled after manual validation.
-- [ ] Stale prospects and follow-up drafts appear in the digest.
-- [ ] Scheduler output avoids exposing secrets or unnecessary prospect details in logs.
-- [ ] Operator runbook covers validation and disabling jobs.
+- [x] Stale prospects and follow-up drafts appear in the digest.
+- [x] Scheduler output avoids exposing secrets or unnecessary prospect details in logs.
+- [x] Operator runbook covers validation and disabling jobs.
+
+---
+
+### Feature 7: Follow-Up Sent Logging
+
+**Source:** Feature 5 deferred send/log workflow and PRD "Follow-Up Composer"
+**Description:** Record approved or manually sent follow-up messages back to
+`trevor.interactions` without sending outbound messages. List approved drafts
+awaiting send confirmation, mark confirmed human sends as `manual_sent`, and
+capture channel, timestamp, operator, and optional external reference.
+
+**Complexity:** Small
+**Priority:** P1
+**Dependencies:** Feature 5 and Feature 6
+**Blocks:** Direct channel sends and reliable follow-up completion analytics
+
+**Completion Gate:**
+
+- [ ] Approved follow-up drafts awaiting send confirmation can be listed.
+- [ ] An approved draft can be explicitly logged as manually sent.
+- [ ] Successful manual sent logging creates exactly one interaction row.
+- [ ] Invalid or duplicate sent confirmations create no interaction rows.
+- [ ] Do-not-contact confirmations require an explicit audit-only reason.
+- [ ] The workflow never sends outbound messages.
 
 ---
 
@@ -418,13 +446,15 @@ Feature 1 (Trevor Prospecting Data Model)
     |                             +--> Feature 5 (Follow-Up Drafting)
     |                                       |
     |                                       +--> Feature 6 (Cadence Scheduler and Digest)
+    |                                                 |
+    |                                                 +--> Feature 7 (Follow-Up Sent Logging)
     |
     +--> Future: Inventory Matching
     +--> Future: Dashboard and Analytics
     +--> Future: Public Website / Landing Page
 ```
 
-**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6
+**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 ---
 
@@ -494,10 +524,27 @@ Feature 1 (Trevor Prospecting Data Model)
 
 **Completion Gate:**
 
-- [ ] Morning digest is validated manually.
+- [x] Morning digest is validated manually.
 - [ ] Scheduler is enabled only after on-demand output is trusted.
-- [ ] Stale-deal and follow-up reminders appear.
-- [ ] Disable/rollback instructions are documented.
+- [x] Stale-deal and follow-up reminders appear.
+- [x] Disable/rollback instructions are documented.
+
+---
+
+### Phase 5: Follow-Up Closure
+
+**Goal:** Approved or manually sent follow-ups become durable prospect history.
+
+**Features:**
+
+- Feature 7: Follow-Up Sent Logging
+
+**Completion Gate:**
+
+- [ ] Approved drafts awaiting send confirmation can be reviewed.
+- [ ] Manual sent confirmations write interactions and update draft status.
+- [ ] Safety guards block invalid, duplicate, and unsafe confirmations.
+- [ ] Direct outbound send remains deferred.
 
 ---
 
@@ -548,8 +595,18 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ### Phase 4
 
-- [ ] **Feature 6: Cadence Scheduler and Digest**
+- [x] **Feature 6: Cadence Scheduler and Digest**
   - [x] `$speckit-specify` for `cadence-scheduler-digest`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [x] `$speckit-implement`
+  - [x] Merge and deployment
+  - [ ] Scheduler enablement after sustained manual validation
+
+### Phase 5
+
+- [ ] **Feature 7: Follow-Up Sent Logging**
+  - [x] `$speckit-specify` for `follow-up-sent-logging`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [ ] `$speckit-implement`
@@ -582,8 +639,8 @@ Feature 1 (Trevor Prospecting Data Model)
 
 ---
 
-## Next Recommended Spec
+## Next Recommended Work
 
-Start with **Feature 1: Trevor Prospecting Data Model**. It is the smallest
-foundational slice that unlocks the operating loop while keeping production risk
-bounded to a schema migration plus documentation.
+Implement **Feature 7: Follow-Up Sent Logging**. It closes the remaining
+approval-to-history gap from Feature 5 while keeping direct outbound sending
+deferred behind explicit approval, audit, opt-out, and channel-policy work.

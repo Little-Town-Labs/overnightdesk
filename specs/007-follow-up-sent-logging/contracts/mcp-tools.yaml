@@ -1,0 +1,120 @@
+openapi: 3.1.0
+info:
+  title: Trevor DB Follow-Up Sent Logging MCP Contracts
+  version: 0.1.0
+  description: >
+    Contract documentation for MCP tools added by Feature 7. These tools record
+    human-confirmed follow-up sends and list approved drafts awaiting send
+    confirmation. They never send outbound messages.
+paths:
+  /mcp/list_follow_ups_awaiting_send:
+    post:
+      summary: List approved follow-up drafts awaiting manual send confirmation
+      operationId: list_follow_ups_awaiting_send
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                  minimum: 1
+                  maximum: 25
+                include_do_not_contact:
+                  type: boolean
+                  default: true
+      responses:
+        "200":
+          description: Bounded list of approved unsent drafts
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, items, counts, warnings]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      required: [draft_id, prospect_id, display_name, channel, approved_at, review_only]
+                      properties:
+                        draft_id: { type: integer }
+                        prospect_id: { type: integer }
+                        display_name: { type: string }
+                        channel: { type: string }
+                        subject: { type: [string, "null"] }
+                        approved_at: { type: [string, "null"], format: date-time }
+                        age_days: { type: integer, minimum: 0 }
+                        review_only: { type: boolean }
+                        summary: { type: string }
+                  counts:
+                    type: object
+                    required: [awaiting_send, review_only]
+                    properties:
+                      awaiting_send: { type: integer, minimum: 0 }
+                      review_only: { type: integer, minimum: 0 }
+                  warnings:
+                    type: array
+                    items: { type: string }
+  /mcp/log_manual_follow_up_sent:
+    post:
+      summary: Record a human-confirmed follow-up send without sending outbound
+      operationId: log_manual_follow_up_sent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [draft_id, sent_at, confirmed_by]
+              properties:
+                draft_id:
+                  type: integer
+                  minimum: 1
+                sent_at:
+                  type: string
+                  format: date-time
+                confirmed_by:
+                  type: string
+                  minLength: 1
+                  maxLength: 120
+                sent_via:
+                  type: string
+                  maxLength: 80
+                external_message_id:
+                  type: string
+                  maxLength: 200
+                audit_only_reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: Confirmation result
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, draft_id, outbound_sent, warnings]
+                properties:
+                  status:
+                    type: string
+                    enum: [logged, blocked, needs_input]
+                  draft_id: { type: integer }
+                  prospect_id: { type: [integer, "null"] }
+                  interaction_id: { type: [integer, "null"] }
+                  draft_status:
+                    type: [string, "null"]
+                    enum: [manual_sent, sent, approved, draft, discarded, null]
+                  channel: { type: [string, "null"] }
+                  sent_at: { type: [string, "null"], format: date-time }
+                  outbound_sent:
+                    type: boolean
+                    const: false
+                  warnings:
+                    type: array
+                    items: { type: string }

@@ -55,5 +55,5 @@ not as a replacement for Spec Kit artifacts.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/006-cadence-scheduler-digest/plan.md`
+`specs/007-follow-up-sent-logging/plan.md`
 <!-- SPECKIT END -->
