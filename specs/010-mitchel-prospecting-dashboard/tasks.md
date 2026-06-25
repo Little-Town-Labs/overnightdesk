@@ -30,11 +30,11 @@ story implementation.
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Define `isHermesMitchelTenant` helper in `src/lib/mitchel-prospecting/tenant-gate.ts`
+- [ ] T005 Add `isHermesMitchelTenant` beside existing `isHermesTenant` in `src/lib/instance.ts`
 - [ ] T006 [P] Define dashboard summary Zod schemas matching `specs/010-mitchel-prospecting-dashboard/contracts/dashboard-api.yaml` in `src/lib/mitchel-prospecting/schemas.ts`
 - [ ] T007 [P] Define dashboard summary TypeScript types in `src/lib/mitchel-prospecting/types.ts`
 - [ ] T008 Implement safe empty/unavailable summary builders in `src/lib/mitchel-prospecting/summary.ts`
-- [ ] T009 Implement a server-side Trevor summary client boundary in `src/lib/mitchel-prospecting/trevor-summary-client.ts` without using `TREVOR_DB_URL`
+- [ ] T009 Implement a server-side Trevor summary client boundary in `src/lib/mitchel-prospecting/trevor-summary-client.ts` that uses the existing provisioner/container pattern from `src/lib/provisioner.ts` and does not use `TREVOR_DB_URL`
 - [ ] T010 Add focused unit tests for tenant gating and summary builders in `src/lib/mitchel-prospecting/__tests__/summary.test.ts`
 - [ ] T011 Add contract test for `/api/mitchel/prospecting/summary` response shape in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
 
@@ -84,12 +84,12 @@ and Hermes dashboard launch link remain available and behave as before.
 
 ### Tests for User Story 2
 
-- [ ] T021 [P] [US2] Add regression test that the dashboard still renders Hermes chat for `hermes-mitchel` in `src/app/(protected)/dashboard/__tests__/mitchel-prospecting.test.tsx`
-- [ ] T022 [P] [US2] Add regression test that the Hermes dashboard launch link remains available in `src/app/(protected)/dashboard/__tests__/mitchel-prospecting.test.tsx`
+- [ ] T021 [P] [US2] Add regression test that the existing Overview page still embeds Hermes chat for `hermes-mitchel` in `src/app/(protected)/dashboard/__tests__/mitchel-prospecting.test.tsx`
+- [ ] T022 [P] [US2] Add regression test that the existing Hermes dashboard launch link remains available on Overview in `src/app/(protected)/dashboard/__tests__/mitchel-prospecting.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Preserve existing chat rendering path while adding Mitchel workspace in `src/app/(protected)/dashboard/page.tsx`
+- [ ] T023 [US2] Preserve existing embedded chat rendering path while adding Mitchel workspace in `src/app/(protected)/dashboard/page.tsx`; do not create a separate Mitchel chat page
 - [ ] T024 [US2] Preserve existing Hermes dashboard launch link in `src/components/dashboard/mitchel-prospecting/workspace.tsx` or the existing dashboard page component
 - [ ] T025 [US2] Verify the workspace does not require direct browser CORS access to Hermes API server in `src/lib/mitchel-prospecting/trevor-summary-client.ts`
 

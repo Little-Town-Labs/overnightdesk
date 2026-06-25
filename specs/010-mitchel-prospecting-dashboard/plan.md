@@ -26,7 +26,7 @@ tenant-local read surface is required
 dashboard/instance resolver, existing engine chat/dashboard integration, Zod for
 route response validation, documented Hermes Agent API/dashboard/Kanban
 extension points where they fit, existing Trevor MCP contracts from Features 8
-and 9
+and 9, existing provisioner boundary for container-scoped reads
 
 **Storage**: No new platform storage in the first slice. Trevor prospecting
 records remain in the `trevor` schema hosted by `tenet0-postgres`; Agiled
@@ -104,8 +104,8 @@ specs/010-mitchel-prospecting-dashboard/
 src/
 ├── app/
 │   ├── (protected)/dashboard/
-│   │   ├── page.tsx                  # Tenant-gated Mitchel workspace entry
-│   │   └── mitchel-prospecting/       # Workspace components if separated
+│   │   ├── page.tsx                  # Existing Hermes overview + embedded chat
+│   │   └── chat/page.tsx             # Existing redirect back to overview
 │   └── api/
 │       └── mitchel/
 │           └── prospecting/
@@ -114,8 +114,9 @@ src/
 │   └── dashboard/
 │       └── mitchel-prospecting/       # Presentation components
 └── lib/
-    ├── instance.ts                    # Existing instance/tenant helpers
+    ├── instance.ts                    # Existing instance/tenant helpers + Mitchel gate
     ├── resolve-instance.ts            # Existing auth + instance resolver
+    ├── provisioner.ts                 # Existing server-side container boundary
     └── mitchel-prospecting/           # Mapping/client boundary helpers
 
 tenants/hermes-mitchel/
@@ -129,6 +130,9 @@ server-side, tenant-gated boundary and do not move Trevor database access into
 platform routes. Treat Hermes Agent as a stock dependency: configure and
 integrate with documented Hermes APIs/plugins where possible, and keep
 Mitchel-specific logic in OvernightDesk or the tenant-local Trevor boundary.
+Current code comparison shows Hermes chat is already embedded on `/dashboard`
+and `/dashboard/chat` redirects back to Overview, so Feature 10 should preserve
+that overview-first pattern rather than creating a second chat surface.
 
 ## Complexity Tracking
 

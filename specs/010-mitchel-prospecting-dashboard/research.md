@@ -148,3 +148,34 @@ into the platform UI.
 - Patch Hermes to add custom Trevor JSON endpoints. Rejected because the
   preferred upgrade path is stock Hermes plus tenant-local Trevor/OvernightDesk
   adaptation.
+
+## Current Code Comparison: OvernightDesk Dashboard
+
+**Observed current structure**:
+
+- The running Hermes overview is implemented in
+  `src/app/(protected)/dashboard/page.tsx`.
+- Hermes chat is embedded directly on `/dashboard`; `src/app/(protected)/dashboard/chat/page.tsx`
+  redirects back to `/dashboard`.
+- `src/lib/instance.ts` already defines `isHermesTenant()` based on
+  `containerId` starting with `hermes-`.
+- `src/app/(protected)/dashboard/dashboard-nav.tsx` hides most dashboard tabs
+  for Hermes tenants via `HERMES_ALLOWED_TABS`.
+- Hermes session reads already go through `provisionerClient.getSessions()` in
+  `src/lib/provisioner.ts`, using the container id rather than direct browser
+  or database access.
+- Jest is rooted at `src`, so platform tests for this feature should live under
+  `src/**/__tests__`.
+
+**Implementation impact**:
+
+- Add `isHermesMitchelTenant()` beside the existing `isHermesTenant()` helper
+  instead of creating a disconnected tenant gate.
+- Preserve the existing overview-first Hermes layout and embedded chat. Do not
+  create a separate Mitchel chat page.
+- Use the existing server-side provisioner/container boundary as the preferred
+  place to add a narrow Trevor summary read if stock Hermes does not already
+  expose the needed deterministic data.
+- Be careful with any new nav entry: Hermes tenants currently see only the
+  allowed Overview/Settings/Admin tabs, so the MVP should integrate the Mitchel
+  workspace into Overview unless a separate nav decision is made.
