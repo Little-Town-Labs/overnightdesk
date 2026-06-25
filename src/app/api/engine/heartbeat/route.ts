@@ -6,6 +6,8 @@ import {
   updateHeartbeatConfig,
 } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 const heartbeatUpdateSchema = z.object({
   enabled: z.boolean().optional(),
   intervalSeconds: z.number().int().min(60).max(86400).optional(),

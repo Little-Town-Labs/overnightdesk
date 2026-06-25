@@ -3,6 +3,8 @@ import { requireAdmin } from "@/lib/require-admin";
 import { db } from "@/db";
 import { instance } from "@/db/schema";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(_request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;

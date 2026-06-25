@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { getInstanceForUser, isHermesMitchelTenant } from "@/lib/instance";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 
+export const dynamic = "force-dynamic";
+
 function errorResponse(status: number, code: string, message: string) {
   return NextResponse.json(
     { success: false, error: { code, message } },

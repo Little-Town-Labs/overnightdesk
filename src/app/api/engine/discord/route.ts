@@ -7,6 +7,8 @@ import {
   deleteDiscordConfig,
 } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 const discordUpdateSchema = z.object({
   bot_token: z.string().min(20),
   allowed_users: z.array(z.string().min(1)).min(1),

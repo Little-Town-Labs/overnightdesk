@@ -3,6 +3,8 @@ import { z } from "zod";
 import { resolveInstance } from "@/lib/resolve-instance";
 import { getJobs, createJob } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 const createJobSchema = z.object({
   prompt: z.string().min(1).max(100_000),
   name: z.string().max(255).optional(),

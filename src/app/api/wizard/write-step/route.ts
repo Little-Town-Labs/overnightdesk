@@ -6,6 +6,8 @@ import { db } from "@/db";
 import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 const UNAUTHORIZED = NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 

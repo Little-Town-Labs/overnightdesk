@@ -10,8 +10,6 @@ import { PaymentFailureEmail } from "@/lib/emails/payment-failure-email";
 import { ProvisioningEmail } from "@/lib/emails/provisioning-email";
 import * as React from "react";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const EMAIL_FROM =
   process.env.EMAIL_FROM || "OvernightDesk <noreply@overnightdesk.com>";
 
@@ -43,10 +41,18 @@ interface EmailResult {
 
 const RETRY_DELAYS = [1000, 2000, 4000];
 
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  resendClient ??= new Resend(process.env.RESEND_API_KEY);
+  return resendClient;
+}
+
 export async function sendEmail(options: SendEmailOptions): Promise<EmailResult> {
   const { to, subject, html, text, emailType, userId } = options;
   let lastError = "";
   let messageId: string | undefined;
+  const resend = getResendClient();
 
   for (let attempt = 0; attempt < RETRY_DELAYS.length; attempt++) {
     const { data, error } = await resend.emails.send({

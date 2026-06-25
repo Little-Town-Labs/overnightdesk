@@ -6,6 +6,8 @@ import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getAuthStatus } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
 

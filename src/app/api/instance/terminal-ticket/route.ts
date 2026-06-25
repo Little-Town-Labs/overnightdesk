@@ -6,6 +6,8 @@ import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getTerminalTicket } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function POST() {
   const session = await auth.api.getSession({ headers: await headers() });
 

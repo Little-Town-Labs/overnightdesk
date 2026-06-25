@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 import { provisionerClient } from "@/lib/provisioner";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {

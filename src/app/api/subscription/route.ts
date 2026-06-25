@@ -7,6 +7,8 @@ import {
   getSubscriptionForUser,
 } from "@/lib/billing";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
 

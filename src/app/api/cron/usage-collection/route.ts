@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyCronAuth } from "@/lib/verify-cron-auth";
 import { runDailyCollection } from "@/lib/usage-collection";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const authError = verifyCronAuth(request);
   if (authError) return authError;
