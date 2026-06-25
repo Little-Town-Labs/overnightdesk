@@ -12,9 +12,9 @@
 
 **Purpose**: Prepare the existing Trevor DB MCP package and tenant docs for digest work.
 
-- [x] T001 Review current call queue and follow-up output boundaries in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts` and `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
-- [x] T002 [P] Add digest fixtures in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts`
-- [x] T003 [P] Extend the in-memory test repository with stale-work and pending-draft lookup support in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
+- [x] T001 Review current call queue and follow-up output boundaries in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts` and `tenants/hermes-mitchel/mcp-servers/trevor-db/src/followup.ts`
+- [x] T002 [P] Add digest fixtures in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts`
+- [x] T003 [P] Extend the in-memory test repository with stale-work and pending-draft lookup support in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
 
 ---
 
@@ -22,9 +22,9 @@
 
 **Purpose**: Define shared digest contracts and read-only repository boundaries before user-story implementation.
 
-- [x] T004 Add cadence digest request/result, stale item, and approval item types in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [x] T005 Define read-only repository methods for pending follow-up drafts and stale work candidates in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [x] T006 Implement parameterized Postgres read methods for pending drafts and stale work in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
+- [x] T004 Add cadence digest request/result, stale item, and approval item types in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T005 Define read-only repository methods for pending follow-up drafts and stale work candidates in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T006 Implement parameterized Postgres read methods for pending drafts and stale work in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
 
 ---
 
@@ -36,16 +36,16 @@
 
 ### Tests for User Story 1
 
-- [x] T007 [P] [US1] Add failing on-demand digest composition test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-generate.test.ts`
-- [x] T008 [P] [US1] Add failing no-default-write side-effect test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-generate.test.ts`
-- [x] T009 [P] [US1] Add failing snake_case MCP contract test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-contract.test.ts`
+- [x] T007 [P] [US1] Add failing on-demand digest composition test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-generate.test.ts`
+- [x] T008 [P] [US1] Add failing no-default-write side-effect test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-generate.test.ts`
+- [x] T009 [P] [US1] Add failing snake_case MCP contract test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-contract.test.ts`
 
 ### Implementation for User Story 1
 
-- [x] T010 [US1] Implement digest orchestration in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
-- [x] T011 [US1] Map digest result to snake_case MCP output in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
-- [x] T012 [US1] Register `generate_cadence_digest` with bounded Zod input in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [x] T013 [US1] Add cadence digest tenant skill in `tenet-0/tenant-workflows/hermes-mitchel/skills/cadence-digest/SKILL.md`
+- [x] T010 [US1] Implement digest orchestration in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
+- [x] T011 [US1] Map digest result to snake_case MCP output in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
+- [x] T012 [US1] Register `generate_cadence_digest` with bounded Zod input in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T013 [US1] Add cadence digest tenant skill in `tenants/hermes-mitchel/skills/cadence-digest/SKILL.md`
 
 ---
 
@@ -57,16 +57,16 @@
 
 ### Tests for User Story 2
 
-- [x] T014 [P] [US2] Add failing pending follow-up approval digest test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-reminders.test.ts`
-- [x] T015 [P] [US2] Add failing stale and dormant work digest test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-reminders.test.ts`
-- [x] T016 [P] [US2] Add failing do-not-contact suppression and bounded-detail test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-safety.test.ts`
+- [x] T014 [P] [US2] Add failing pending follow-up approval digest test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-reminders.test.ts`
+- [x] T015 [P] [US2] Add failing stale and dormant work digest test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-reminders.test.ts`
+- [x] T016 [P] [US2] Add failing do-not-contact suppression and bounded-detail test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-safety.test.ts`
 
 ### Implementation for User Story 2
 
-- [x] T017 [US2] Implement pending draft summary selection in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
-- [x] T018 [US2] Implement stale work reason and next-step summaries in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
-- [x] T019 [US2] Enforce digest detail bounding and do-not-contact review-only behavior in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
-- [x] T020 [US2] Update cadence digest skill guidance for stale work and follow-up approval review in `tenet-0/tenant-workflows/hermes-mitchel/skills/cadence-digest/SKILL.md`
+- [x] T017 [US2] Implement pending draft summary selection in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
+- [x] T018 [US2] Implement stale work reason and next-step summaries in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
+- [x] T019 [US2] Enforce digest detail bounding and do-not-contact review-only behavior in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/digest.ts`
+- [x] T020 [US2] Update cadence digest skill guidance for stale work and follow-up approval review in `tenants/hermes-mitchel/skills/cadence-digest/SKILL.md`
 
 ---
 
@@ -78,14 +78,14 @@
 
 ### Tests for User Story 3
 
-- [x] T021 [P] [US3] Add failing scheduler-disabled-by-default assertion in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-scheduler.test.ts`
-- [x] T022 [P] [US3] Add failing runbook content check in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/digest-scheduler.test.ts`
+- [x] T021 [P] [US3] Add failing scheduler-disabled-by-default assertion in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-scheduler.test.ts`
+- [x] T022 [P] [US3] Add failing runbook content check in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/digest-scheduler.test.ts`
 
 ### Implementation for User Story 3
 
-- [x] T023 [US3] Add scheduler runbook in `tenet-0/tenant-workflows/hermes-mitchel/runbooks/cadence-scheduler.md`
-- [x] T024 [US3] Add scheduler validation and disabled-by-default notes to `tenet-0/tenant-workflows/hermes-mitchel/skills/cadence-digest/SKILL.md`
-- [x] T025 [US3] Add a repo-controlled scheduler command or script stub only if needed by the runbook in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T023 [US3] Add scheduler runbook in `tenants/hermes-mitchel/runbooks/cadence-scheduler.md`
+- [x] T024 [US3] Add scheduler validation and disabled-by-default notes to `tenants/hermes-mitchel/skills/cadence-digest/SKILL.md`
+- [x] T025 [US3] Add a repo-controlled scheduler command or script stub only if needed by the runbook in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 
 ---
 
@@ -93,8 +93,8 @@
 
 **Purpose**: Verify production readiness and keep docs synchronized.
 
-- [x] T026 Bump Trevor DB MCP server version in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [x] T027 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T026 Bump Trevor DB MCP server version in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T027 Run `npm test` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 - [x] T028 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
 - [x] T029 Run `$code-review-and-quality`
 - [x] T030 Compare deployment expectations with `aegis-prod` using `$aegis-ssh`

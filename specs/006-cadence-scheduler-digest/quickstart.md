@@ -5,7 +5,7 @@
 From the Trevor DB MCP package:
 
 ```bash
-cd tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db
+cd tenants/hermes-mitchel/mcp-servers/trevor-db
 npm test
 ```
 
@@ -52,7 +52,7 @@ Before enabling any schedule:
    - `trevor.interactions`
    - `trevor.followup_drafts`
    - `trevor.call_tasks`
-5. Only then follow `tenet-0/tenant-workflows/hermes-mitchel/runbooks/cadence-scheduler.md`.
+5. Only then follow `tenants/hermes-mitchel/runbooks/cadence-scheduler.md`.
 
 ## Deployment Verification
 

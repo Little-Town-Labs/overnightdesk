@@ -41,7 +41,7 @@ Scheduling is disabled by default. Before any weekday automation is enabled,
 the operator must follow:
 
 ```text
-tenet-0/tenant-workflows/hermes-mitchel/runbooks/cadence-scheduler.md
+tenants/hermes-mitchel/runbooks/cadence-scheduler.md
 ```
 
 The validation run must confirm useful output, clean logs, and unchanged

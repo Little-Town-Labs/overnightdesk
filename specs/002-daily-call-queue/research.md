@@ -62,7 +62,7 @@
 
 ## Decision 6: Deploy As Tenant-Local Source Controlled From Repo
 
-**Decision**: Add source-controlled tenant workflow files under `tenet-0/tenant-workflows/hermes-mitchel/`, then sync/build them into `/opt/data/mcp-servers/trevor-db` and `/opt/data/skills/daily-call-queue` on Aegis during implementation.
+**Decision**: Add source-controlled tenant workflow files under `tenants/hermes-mitchel/`, then sync/build them into `/opt/data/mcp-servers/trevor-db` and `/opt/data/skills/daily-call-queue` on Aegis during implementation.
 
 **Rationale**: The live tenant already runs these tools from `/opt/data`, but the repo needs durable artifacts so future agents can review, test, redeploy, and roll back the workflow.
 

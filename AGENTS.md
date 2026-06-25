@@ -46,6 +46,12 @@ not as a replacement for Spec Kit artifacts.
 
 - Prefer durable database constraints, grants, migrations, verification
   queries, and runbooks over prompt-only enforcement.
+- Keep tenant-specific Hermes workflow source under `tenants/<tenant-id>/`.
+  `tenants/hermes-mitchel/` owns Mitchel/Trevor MCP servers, skills, and
+  tenant runbooks.
+- Keep Tenet-0 infrastructure under `tenet-0/`. Tenet-0 database migrations may
+  still define tenant schemas such as `trevor` when the live data is hosted by
+  `tenet0-postgres`.
 - Keep tenant business data in its owning system: Postgres and Agiled for
   Mitchel prospecting, not markdown exports or hidden agent memory.
 - High-impact agent actions affecting outreach, prospects, payments, secrets,

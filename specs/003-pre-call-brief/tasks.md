@@ -18,14 +18,14 @@
 
 - [x] T001 Create `specs/003-pre-call-brief/` Spec Kit artifacts
 - [x] T002 Update `.specify/feature.json` and `AGENTS.md` for Feature 003
-- [x] T003 Create `tenet-0/tenant-workflows/hermes-mitchel/skills/pre-call-brief/SKILL.md`
+- [x] T003 Create `tenants/hermes-mitchel/skills/pre-call-brief/SKILL.md`
 
 ## Phase 2: Foundational
 
-- [x] T004 Extend `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts` with brief request/result types
-- [x] T005 Extend `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts` with read-only brief lookup methods
-- [x] T006 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/brief.ts` for brief shaping and MCP mapping
-- [x] T007 Extend `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts` and `tests/test-repo.ts` with brief data
+- [x] T004 Extend `tenants/hermes-mitchel/mcp-servers/trevor-db/src/types.ts` with brief request/result types
+- [x] T005 Extend `tenants/hermes-mitchel/mcp-servers/trevor-db/src/db.ts` with read-only brief lookup methods
+- [x] T006 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/src/brief.ts` for brief shaping and MCP mapping
+- [x] T007 Extend `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts` and `tests/test-repo.ts` with brief data
 
 ## Phase 3: User Story 1 - Brief A Queue Task (Priority: P1)
 
@@ -33,7 +33,7 @@
 
 **Independent Test**: Generate a brief by task ID and verify prospect/task context, ask, opener, fallback, and no side effects.
 
-- [x] T008 [P] [US1] Add task-based brief tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/brief-task.test.ts`
+- [x] T008 [P] [US1] Add task-based brief tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/brief-task.test.ts`
 - [x] T009 [US1] Implement task ID lookup and DNC warnings in `src/brief.ts` and `src/db.ts`
 - [x] T010 [US1] Register `generate_pre_call_brief` in `src/index.ts`
 
@@ -58,8 +58,8 @@
 ## Final Phase: Polish & Cross-Cutting
 
 - [x] T015 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
-- [x] T016 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
-- [x] T017 Run `npm audit --json` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T016 Run `npm test` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T017 Run `npm audit --json` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 - [x] T018 Run `$code-review-and-quality`
 - [x] T019 Run read-only `$aegis-ssh` comparison against `aegis-prod`
 - [x] T020 Commit local work without deploying production changes

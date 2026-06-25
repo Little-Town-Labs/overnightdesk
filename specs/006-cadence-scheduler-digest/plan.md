@@ -16,9 +16,9 @@ Add an on-demand cadence digest workflow to the repo-controlled `trevor-db` MCP 
 
 **Storage**: Existing `trevor.prospects`, `trevor.call_tasks`, `trevor.interactions`, and `trevor.followup_drafts`; no new table for the initial slice
 
-**Testing**: Node test runner through `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+**Testing**: Node test runner through `npm test` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 
-**Target Platform**: `hermes-mitchel` tenant on `aegis-prod`, with local source under `tenet-0/tenant-workflows/hermes-mitchel`
+**Target Platform**: `hermes-mitchel` tenant on `aegis-prod`, with local source under `tenants/hermes-mitchel`
 
 **Project Type**: Tenant MCP server extension plus tenant skill and operator runbook
 
@@ -57,7 +57,7 @@ specs/006-cadence-scheduler-digest/
 ### Source Code (repository root)
 
 ```text
-tenet-0/tenant-workflows/hermes-mitchel/
+tenants/hermes-mitchel/
 ├── mcp-servers/trevor-db/
 │   ├── src/
 │   │   ├── digest.ts

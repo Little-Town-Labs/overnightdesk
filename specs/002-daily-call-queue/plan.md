@@ -63,20 +63,19 @@ specs/002-daily-call-queue/
 ### Source Code (repository root)
 
 ```text
-tenet-0/
-└── tenant-workflows/
-    └── hermes-mitchel/
-        ├── mcp-servers/
-        │   └── trevor-db/
-        │       ├── package.json
-        │       ├── src/
-        │       │   ├── index.ts
-        │       │   └── queue.ts
-        │       └── tests/
-        │           └── queue.test.ts
-        └── skills/
-            └── daily-call-queue/
-                └── SKILL.md
+tenants/
+└── hermes-mitchel/
+    ├── mcp-servers/
+    │   └── trevor-db/
+    │       ├── package.json
+    │       ├── src/
+    │       │   ├── index.ts
+    │       │   └── queue.ts
+    │       └── tests/
+    │           └── queue.test.ts
+    └── skills/
+        └── daily-call-queue/
+            └── SKILL.md
 
 specs/002-daily-call-queue/
 └── contracts/
@@ -84,7 +83,7 @@ specs/002-daily-call-queue/
     └── queue-verification.sql
 ```
 
-**Structure Decision**: Put repo-controlled tenant workflow source under `tenet-0/tenant-workflows/hermes-mitchel/` because the deployed runtime is tenant-local `/opt/data`, not the public Next.js app. Keep contracts and verification SQL in the feature spec directory. Do not modify `src/app` or platform database code for this feature.
+**Structure Decision**: Put repo-controlled tenant workflow source under `tenants/hermes-mitchel/` because the deployed runtime is tenant-local `/opt/data`, not the public Next.js app. Keep contracts and verification SQL in the feature spec directory. Do not modify `src/app` or platform database code for this feature.
 
 ## Phase 0: Research
 

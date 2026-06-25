@@ -9,6 +9,15 @@ call is budget-governed; every decision is in the audit log.
 tenants may opt into this pattern but are not required to. Keep that in
 mind when reading the constitution.
 
+Tenant-specific Hermes workflow source does not live in this directory. Use
+`../tenants/<tenant-id>/` for tenant MCP servers, skills, and runbooks. For
+example, Mitchel's Trevor workflow source lives at
+`../tenants/hermes-mitchel/`.
+
+Tenet-0 database migrations can still define tenant-owned schemas when the live
+data is hosted by `tenet0-postgres`; the Trevor prospecting schema migrations
+remain under `db/migrations/` for that reason.
+
 ## Architecture at a glance
 
 ```

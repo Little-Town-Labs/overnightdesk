@@ -44,6 +44,18 @@ Customer Dashboard → Engine REST API → Jobs, Heartbeat, Conversations, Bridg
 | Hosting | Vercel | Edge-optimized, Cron jobs |
 | Domain | overnightdesk.com | Namecheap |
 
+## Tenant Workflow Source
+
+Tenant-specific Hermes workflow source lives under `tenants/<tenant-id>/`.
+These directories are repo-controlled deploy sources for tenant-local MCP
+servers, skills, and runbooks that are synced into the tenant runtime on
+`aegis-prod`.
+
+Mitchel's tenant is `tenants/hermes-mitchel/`. It contains Trevor's prospecting
+MCP server, tenant skills, and operator runbooks. The related Trevor database
+migrations remain under `tenet-0/db/migrations/` because the live `trevor`
+schema is hosted by `tenet0-postgres`.
+
 ## Features
 
 ### Phase 1: Foundation
@@ -145,6 +157,13 @@ overnightdesk/
 │       ├── schema.ts                       ← Drizzle schema (14 tables)
 │       └── index.ts                        ← Neon + Drizzle connection
 ├── drizzle/                                ← Generated migrations (0001-0004)
+├── tenants/
+│   └── hermes-mitchel/                     ← Mitchel/Trevor tenant workflow source
+│       ├── mcp-servers/trevor-db/          ← Trevor Postgres MCP tools
+│       ├── runbooks/                       ← Tenant-specific operator procedures
+│       └── skills/                         ← Tenant-local Hermes skills
+├── tenet-0/                                ← Gary/root-tenant Tenet-0 data plane
+│   └── db/migrations/                      ← Includes Trevor schema migrations
 ├── vercel.json                             ← Cron jobs config
 ├── .specify/                               ← Spec-kit specifications
 │   ├── memory/constitution.md

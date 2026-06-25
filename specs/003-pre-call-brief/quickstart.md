@@ -7,7 +7,7 @@ From the repo root:
 ```bash
 git status --short --branch
 .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-cd tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db
+cd tenants/hermes-mitchel/mcp-servers/trevor-db
 npm test
 npm audit --json
 ```
