@@ -1,0 +1,282 @@
+openapi: 3.1.0
+info:
+  title: Mitchel Prospecting Dashboard API
+  version: 0.1.0
+  description: Authenticated, tenant-gated dashboard summary for Mitchel/Trevor prospecting work.
+paths:
+  /api/mitchel/prospecting/summary:
+    get:
+      summary: Return bounded prospecting workspace data for the hermes-mitchel tenant.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Dashboard summary returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MitchelProspectingSummaryResponse"
+        "401":
+          description: User is not authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: User is authenticated but not authorized for hermes-mitchel prospecting data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Trevor prospecting summary is unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: better-auth.session_token
+  schemas:
+    MitchelProspectingSummaryResponse:
+      type: object
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          $ref: "#/components/schemas/MitchelProspectingSummary"
+    ErrorResponse:
+      type: object
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          const: false
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [UNAUTHENTICATED, FORBIDDEN, UNAVAILABLE, VALIDATION_ERROR]
+            message:
+              type: string
+    MitchelProspectingSummary:
+      type: object
+      required:
+        - tenantId
+        - generatedAt
+        - sections
+        - prospects
+        - stagedCandidates
+        - callTasks
+        - reviewItems
+        - followUpDrafts
+        - warnings
+        - outboundSent
+      properties:
+        tenantId:
+          type: string
+          const: hermes-mitchel
+        generatedAt:
+          type: string
+          format: date-time
+        sections:
+          type: object
+          required: [prospects, stagedCandidates, callTasks, reviewItems, followUpDrafts]
+          properties:
+            prospects:
+              $ref: "#/components/schemas/SectionStatus"
+            stagedCandidates:
+              $ref: "#/components/schemas/SectionStatus"
+            callTasks:
+              $ref: "#/components/schemas/SectionStatus"
+            reviewItems:
+              $ref: "#/components/schemas/SectionStatus"
+            followUpDrafts:
+              $ref: "#/components/schemas/SectionStatus"
+        prospects:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/ProspectSummary"
+        stagedCandidates:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/StagedCandidateSummary"
+        callTasks:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/CallTaskSummary"
+        reviewItems:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/ReviewItem"
+        followUpDrafts:
+          type: array
+          maxItems: 25
+          items:
+            $ref: "#/components/schemas/FollowUpDraftSummary"
+        warnings:
+          type: array
+          maxItems: 10
+          items:
+            type: string
+        outboundSent:
+          type: boolean
+          const: false
+    SectionStatus:
+      type: object
+      required: [status, count, message]
+      properties:
+        status:
+          type: string
+          enum: [ok, empty, unavailable]
+        count:
+          type: integer
+          minimum: 0
+        message:
+          type: string
+        lastUpdatedAt:
+          type: [string, "null"]
+          format: date-time
+    ProspectSummary:
+      type: object
+      required: [prospectId, displayName, status, reviewFlags]
+      properties:
+        prospectId:
+          type: integer
+        displayName:
+          type: string
+        company:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        email:
+          type: [string, "null"]
+        area:
+          type: [string, "null"]
+        status:
+          type: string
+        priority:
+          type: [string, "null"]
+        agiledContactId:
+          type: [string, "null"]
+        lastInteractionAt:
+          type: [string, "null"]
+          format: date-time
+        nextActionAt:
+          type: [string, "null"]
+          format: date-time
+        reviewFlags:
+          type: array
+          items:
+            type: string
+    StagedCandidateSummary:
+      type: object
+      required: [candidateId, businessName, reviewStatus, dedupeStatus, leadSource]
+      properties:
+        candidateId:
+          type: integer
+        businessName:
+          type: string
+        area:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        website:
+          type: [string, "null"]
+        reviewStatus:
+          type: string
+          enum: [recommended, needs_review, duplicate, rejected, approved]
+        dedupeStatus:
+          type: string
+        dedupeReason:
+          type: [string, "null"]
+        leadSource:
+          type: string
+        enrichmentSource:
+          type: [string, "null"]
+        qualityScore:
+          type: [integer, "null"]
+        sourceUrl:
+          type: [string, "null"]
+        warnings:
+          type: array
+          items:
+            type: string
+    CallTaskSummary:
+      type: object
+      required: [callTaskId, prospectId, displayName, status, readiness]
+      properties:
+        callTaskId:
+          type: integer
+        prospectId:
+          type: integer
+        displayName:
+          type: string
+        company:
+          type: [string, "null"]
+        phone:
+          type: [string, "null"]
+        dueAt:
+          type: [string, "null"]
+          format: date-time
+        priority:
+          type: [string, "null"]
+        readiness:
+          type: string
+        reason:
+          type: [string, "null"]
+        status:
+          type: string
+    ReviewItem:
+      type: object
+      required: [itemType, itemId, title, reason, source]
+      properties:
+        itemType:
+          type: string
+          enum: [candidate, prospect, call_task, follow_up_draft]
+        itemId:
+          type: string
+        title:
+          type: string
+        reason:
+          type: string
+        source:
+          type: string
+        recommendedNextStep:
+          type: [string, "null"]
+        blockingFlags:
+          type: array
+          items:
+            type: string
+    FollowUpDraftSummary:
+      type: object
+      required: [draftId, prospectId, displayName, channel, status, requiresApproval]
+      properties:
+        draftId:
+          type: integer
+        prospectId:
+          type: integer
+        displayName:
+          type: string
+        channel:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: [string, "null"]
+          format: date-time
+        summary:
+          type: [string, "null"]
+        requiresApproval:
+          type: boolean
