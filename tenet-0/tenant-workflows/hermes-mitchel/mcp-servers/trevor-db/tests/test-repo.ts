@@ -1,5 +1,11 @@
 import type {
   CallTaskStatus,
+  BuyerIntakeInteractionWrite,
+  BuyerIntakeLookup,
+  BuyerIntakeProspectUpdate,
+  BuyerIntakeProspectWrite,
+  BuyerIntakeRecordWrite,
+  BuyerIntakeRecordWriteResult,
   ExistingCallTask,
   FollowUpChannel,
   FollowUpContext,
@@ -112,6 +118,102 @@ export class FakeQueueRepository implements QueueRepository {
         candidate.company?.toLowerCase().includes(normalized)
       )
       .slice(0, limit);
+  }
+
+  async findBuyerIntakeMatches(input: BuyerIntakeLookup): Promise<ProspectCandidate[]> {
+    const phoneDigits = (input.phone ?? "").replace(/[^0-9]/g, "");
+    const email = input.email?.trim().toLowerCase();
+    const company = input.company?.trim().toLowerCase();
+    const name = input.name?.trim().toLowerCase();
+    return this.candidates
+      .filter((candidate) => candidate.status !== "archived")
+      .filter((candidate) => {
+        const candidatePhone = (candidate.phone ?? "").replace(/[^0-9]/g, "");
+        const candidateEmail = candidate.email?.trim().toLowerCase();
+        const candidateCompany = candidate.company?.trim().toLowerCase();
+        const candidateName = candidate.name?.trim().toLowerCase();
+        return (
+          Boolean(phoneDigits && candidatePhone && candidatePhone === phoneDigits) ||
+          Boolean(email && candidateEmail && candidateEmail === email) ||
+          Boolean(company && candidateCompany && (candidateCompany.includes(company) || company.includes(candidateCompany))) ||
+          Boolean(name && candidateName && (candidateName.includes(name) || name.includes(candidateName)))
+        );
+      })
+      .slice(0, input.limit);
+  }
+
+  async createBuyerIntakeProspect(input: BuyerIntakeProspectWrite): Promise<ProspectCandidate> {
+    const nextId = this.candidates.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    const created: ProspectCandidate = {
+      id: nextId,
+      name: input.name,
+      company: input.company,
+      email: input.email,
+      phone: input.phone,
+      status: input.status ?? "active",
+      notes: input.notes,
+      agiledContactId: input.agiledContactId,
+      preferredChannel: input.preferredChannel,
+      doNotContact: input.doNotContact,
+      lastOutcome: input.lastOutcome,
+      nextActionType: input.nextActionType,
+      nextActionAt: input.nextActionAt,
+      priority: input.priority,
+      updatedAt: new Date("2026-06-24T21:00:00Z"),
+      lastInteractionAt: null
+    };
+    this.candidates.push(created);
+    return created;
+  }
+
+  async updateBuyerIntakeProspect(prospectId: number, input: BuyerIntakeProspectUpdate): Promise<ProspectCandidate | null> {
+    const prospect = this.candidates.find((candidate) => candidate.id === prospectId);
+    if (!prospect) return null;
+    if (input.name) prospect.name = input.name;
+    if (input.company) prospect.company = input.company;
+    if (input.email) prospect.email = input.email;
+    if (input.phone) prospect.phone = input.phone;
+    if (input.status) prospect.status = input.status;
+    if (input.notes) prospect.notes = [prospect.notes, input.notes].filter(Boolean).join("\n");
+    if (input.agiledContactId) prospect.agiledContactId = input.agiledContactId;
+    if (input.preferredChannel) prospect.preferredChannel = input.preferredChannel;
+    if (input.doNotContact !== undefined) prospect.doNotContact = input.doNotContact;
+    if (input.lastOutcome) prospect.lastOutcome = input.lastOutcome;
+    if (input.nextActionType !== undefined) prospect.nextActionType = input.nextActionType;
+    if (input.nextActionAt !== undefined && input.nextActionAt !== null) prospect.nextActionAt = input.nextActionAt;
+    prospect.updatedAt = new Date("2026-06-24T21:15:00Z");
+    return prospect;
+  }
+
+  async createBuyerIntakeInteraction(input: BuyerIntakeInteractionWrite): Promise<ProspectInteraction & { id: number }> {
+    this.captured += 1;
+    const interaction = {
+      id: this.captured,
+      prospectId: input.prospectId,
+      channel: input.channel,
+      direction: input.direction,
+      summary: input.summary,
+      occurredAt: input.occurredAt
+    };
+    this.interactions.push(interaction);
+    return interaction;
+  }
+
+  async captureBuyerIntakeRecord(input: BuyerIntakeRecordWrite): Promise<BuyerIntakeRecordWriteResult> {
+    const prospect = input.createProspect
+      ? await this.createBuyerIntakeProspect(input.createProspect)
+      : input.prospectId && input.updateProspect
+        ? await this.updateBuyerIntakeProspect(input.prospectId, input.updateProspect)
+        : null;
+    if (!prospect) throw new Error("buyer intake prospect write failed");
+    const interaction = await this.createBuyerIntakeInteraction({
+      prospectId: prospect.id,
+      channel: input.interaction.channel,
+      direction: input.interaction.direction,
+      summary: input.interaction.summary,
+      occurredAt: input.interaction.occurredAt
+    });
+    return { prospect, interaction };
   }
 
   async findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null> {
