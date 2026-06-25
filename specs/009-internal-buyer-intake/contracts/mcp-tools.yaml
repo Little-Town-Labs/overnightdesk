@@ -1,0 +1,168 @@
+tools:
+  - name: capture_buyer_intake
+    description: Capture or validate an internal buyer/prospect intake and optional conversation for Mitchel. Writes Trevor records only when the intake is unique or safely matched; never sends outbound messages.
+    input:
+      type: object
+      required: [source]
+      properties:
+        requested_by:
+          type: string
+          maxLength: 120
+        source:
+          type: string
+          enum:
+            - manual_entry
+            - phone_call
+            - referral
+            - trade_show
+            - browseract_google_maps
+            - browseract_contact_finder
+            - camofox_website_recon
+            - mitchelbrown.com
+        intake_mode:
+          type: string
+          enum: [create_or_update, update_existing, validate_only]
+          default: create_or_update
+        prospect_id:
+          type: integer
+          minimum: 1
+        agiled_contact_id:
+          type: string
+          maxLength: 120
+        name:
+          type: string
+          maxLength: 200
+        company:
+          type: string
+          maxLength: 200
+        phone:
+          type: string
+          maxLength: 80
+        email:
+          type: string
+          maxLength: 200
+        website:
+          type: string
+          maxLength: 500
+        address:
+          type: string
+          maxLength: 300
+        area:
+          type: string
+          maxLength: 120
+        buyer_type:
+          type: string
+          enum: [retail_jeweler, wholesale_dealer, broker, private_collector, unknown]
+        preferences:
+          type: string
+          maxLength: 1000
+        conversation_channel:
+          type: string
+          enum: [phone, in_person, email, text, website, social, referral, other]
+        conversation_summary:
+          type: string
+          maxLength: 4000
+        outcome:
+          type: string
+          enum:
+            - interested
+            - quoted
+            - follow_up_later
+            - not_interested
+            - sold
+            - wrong_number
+            - do_not_contact
+            - info_only
+            - new_lead
+        next_action_type:
+          type: string
+          enum: [call, follow_up, draft_follow_up, review, none]
+        next_action_at:
+          type: string
+          maxLength: 80
+        create_call_task:
+          type: boolean
+          default: false
+        create_follow_up_draft:
+          type: boolean
+          default: false
+        agiled_sync:
+          type: string
+          enum: [not_attempted, skip, link_only, create_or_update]
+          default: not_attempted
+    output:
+      type: object
+      required: [status, dedupe_status, warnings, outbound_sent]
+      properties:
+        status:
+          type: string
+          enum: [captured, updated, created, needs_review, duplicate, rejected, validation_only, error]
+        prospect_id:
+          type: [integer, "null"]
+        interaction_id:
+          type: [integer, "null"]
+        call_task_id:
+          type: [integer, "null"]
+        follow_up_draft_id:
+          type: [integer, "null"]
+        dedupe_status:
+          type: string
+          enum: [unique, matched_existing, possible_duplicate, duplicate, needs_review]
+        dedupe_matches:
+          type: array
+          maxItems: 5
+          items:
+            type: object
+            required: [source, id, display_name, match_reason, confidence]
+            properties:
+              source:
+                type: string
+                enum: [trevor, agiled]
+              id:
+                type: string
+              display_name:
+                type: string
+              company:
+                type: [string, "null"]
+              phone:
+                type: [string, "null"]
+              email:
+                type: [string, "null"]
+              match_reason:
+                type: string
+              confidence:
+                type: string
+                enum: [exact, likely, possible]
+        agiled:
+          type: object
+          required: [status]
+          properties:
+            status:
+              type: string
+              enum: [not_attempted, skipped, linked, created, updated, failed]
+            reference:
+              type: [string, "null"]
+            message:
+              type: [string, "null"]
+        next_actions:
+          type: array
+          items:
+            type: object
+            required: [type, status]
+            properties:
+              type:
+                type: string
+                enum: [call_task, follow_up_draft]
+              id:
+                type: [integer, "null"]
+              status:
+                type: string
+                enum: [created, reused, skipped, blocked, failed]
+              reason:
+                type: [string, "null"]
+        warnings:
+          type: array
+          items: { type: string }
+        outbound_sent:
+          type: boolean
+          const: false

@@ -36,9 +36,9 @@ before the call, and what follow-up to send afterward.
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`; first bounded BrowserAct-first/CamoFox-enriched sourcing pass completed and verified; Trevor-only CamoFox enrichment tool deployed via PR #16 + PR #17
-**Feature 9 Status:** Next: Internal Buyer Intake and Conversation Capture with Spec Kit
+**Feature 9 Status:** In progress on branch `009-internal-buyer-intake`; Spec Kit artifacts and local Trevor MCP implementation are being validated
 **Feature 10 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
-**Next Work:** Start Feature 9 with Spec Kit as `internal-buyer-intake`.
+**Next Work:** Complete Feature 9 quality gate, Aegis production reality check, PR, merge, and deployment.
 
 ### Production Deployment Record
 
@@ -291,6 +291,8 @@ The first bounded Feature 8 production sourcing pass completed on 2026-06-24:
 | Cadence digest skill | `/opt/data/skills/cadence-digest` | Live |
 | Cadence scheduler runbook | `/opt/data/runbooks/cadence-scheduler.md` | Live |
 | Prospect sourcing skill | `/opt/data/skills/prospect-sourcing` | Live |
+| Internal buyer intake skill | `/opt/data/skills/internal-buyer-intake` | Planned by Feature 9 |
+| Internal buyer intake runbook | `/opt/data/runbooks/internal-buyer-intake.md` | Planned by Feature 9 |
 | BrowserAct prospect sourcing skill | `/opt/data/skills/web/browseract` | Live |
 | CamoFox enrichment skill | `/opt/data/skills/web/camofox-browser` | Live |
 | Prospect sourcing runbook | `/opt/data/runbooks/prospect-sourcing.md` | Live |
@@ -536,16 +538,20 @@ manual data entry after live conversations
 
 - [ ] Mitchel can enter or paste conversation notes from the existing
   OvernightDesk/Hermes experience.
-- [ ] Intake can find or create a Trevor prospect without creating duplicates.
-- [ ] Intake can capture name, company, phone, email, source, buyer
+- [x] Intake can find or create a Trevor prospect without creating duplicates
+  in local Trevor MCP tests.
+- [x] Intake can capture name, company, phone, email, source, buyer
   preferences, budget/timing, and next action when provided.
-- [ ] Intake writes a bounded `trevor.interactions` record for the conversation.
-- [ ] Intake can optionally create a call task or follow-up draft without
-  sending outbound messages.
-- [ ] Agiled create/update behavior is explicit and reports created, updated,
-  skipped, or failed status without blocking Trevor writes.
-- [ ] The same backend contract can support a later public website inquiry
-  form.
+- [x] Intake writes a bounded `trevor.interactions` record for the conversation
+  in local Trevor MCP tests.
+- [x] Intake can optionally create a call task or follow-up draft without
+  sending outbound messages in local Trevor MCP tests.
+- [x] Agiled create/update behavior is explicit and reports linked, created,
+  updated, skipped, or failed status without blocking Trevor writes.
+- [x] The same backend contract can support a later public website inquiry
+  form, including `mitchelbrown.com` source attribution.
+- [ ] Quality gate and Aegis production validation are complete.
+- [ ] Feature 9 is merged and deployed to `aegis-prod/hermes-mitchel`.
 
 ---
 
@@ -890,10 +896,10 @@ same reviewed intake path used internally.
 ### Phase 7
 
 - [ ] **Feature 9: Internal Buyer Intake and Conversation Capture**
-  - [ ] `$speckit-specify` for `internal-buyer-intake`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
-  - [ ] `$speckit-implement`
+  - [x] `$speckit-specify` for `internal-buyer-intake`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [x] `$speckit-implement`
   - [ ] Quality/Aegis validation
   - [ ] Merge and deployment
 
@@ -946,11 +952,11 @@ same reviewed intake path used internally.
 
 ## Next Recommended Work
 
-Start Feature 9 with Spec Kit as `internal-buyer-intake`. The first slice should
-define and implement the reusable internal intake contract that lets Mitchel
-capture buyer/prospect details and conversation notes from the existing
-OvernightDesk/Hermes experience. It should dedupe against Trevor and Agiled,
-write bounded `trevor.prospects` and `trevor.interactions` records, preserve
-source attribution, and optionally create a next call task or follow-up draft
-without sending outbound messages. Feature 10's public buyer inquiry form should
-reuse this Feature 9 contract later.
+Complete the Feature 9 quality gate and Aegis production reality check. The
+local implementation adds `capture_buyer_intake`, the internal-buyer-intake
+skill, and an operator runbook. Before commit, verify the local suite, build,
+audit output, diff whitespace, code-review-and-quality findings, and live
+production assumptions for `hermes-mitchel`, `tenet0-postgres`, and the Trevor
+schema. After Feature 9 is merged and deployed, start Feature 10 for the
+Mitchel Brown landing page and buyer inquiry form that reuses this intake
+contract.

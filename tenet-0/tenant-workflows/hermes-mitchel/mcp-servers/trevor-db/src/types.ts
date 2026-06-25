@@ -444,6 +444,158 @@ export interface PostCallCaptureResult {
   outboundSent: false;
 }
 
+export type BuyerIntakeSource =
+  | "manual_entry"
+  | "phone_call"
+  | "referral"
+  | "trade_show"
+  | "browseract_google_maps"
+  | "browseract_contact_finder"
+  | "camofox_website_recon"
+  | "mitchelbrown.com";
+
+export type BuyerIntakeMode = "create_or_update" | "update_existing" | "validate_only";
+export type BuyerIntakeChannel = "phone" | "in_person" | "email" | "text" | "website" | "social" | "referral" | "other";
+export type BuyerIntakeOutcome =
+  | "interested"
+  | "quoted"
+  | "follow_up_later"
+  | "not_interested"
+  | "sold"
+  | "wrong_number"
+  | "do_not_contact"
+  | "info_only"
+  | "new_lead";
+export type BuyerIntakeNextActionType = "call" | "follow_up" | "draft_follow_up" | "review" | "none";
+export type BuyerIntakeAgiledSync = "not_attempted" | "skip" | "link_only" | "create_or_update";
+export type BuyerIntakeAgiledStatus = "not_attempted" | "skipped" | "linked" | "created" | "updated" | "failed";
+export type BuyerIntakeStatus = "captured" | "updated" | "created" | "needs_review" | "duplicate" | "rejected" | "validation_only" | "error";
+export type BuyerIntakeDedupeStatus = "unique" | "matched_existing" | "possible_duplicate" | "duplicate" | "needs_review";
+
+export interface BuyerIntakeInput {
+  requestedBy?: string;
+  source: BuyerIntakeSource;
+  intakeMode?: BuyerIntakeMode;
+  prospectId?: number;
+  agiledContactId?: string;
+  name?: string;
+  company?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  address?: string;
+  area?: string;
+  buyerType?: "retail_jeweler" | "wholesale_dealer" | "broker" | "private_collector" | "unknown";
+  preferences?: string;
+  conversationChannel?: BuyerIntakeChannel;
+  conversationSummary?: string;
+  outcome?: BuyerIntakeOutcome;
+  nextActionType?: BuyerIntakeNextActionType;
+  nextActionAt?: string;
+  createCallTask?: boolean;
+  createFollowUpDraft?: boolean;
+  agiledSync?: BuyerIntakeAgiledSync;
+  agiledSyncStatus?: BuyerIntakeAgiledStatus;
+}
+
+export interface BuyerIntakeDedupeMatch {
+  source: "trevor" | "agiled";
+  id: string;
+  displayName: string;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  matchReason: string;
+  confidence: "exact" | "likely" | "possible";
+}
+
+export interface BuyerIntakeNextActionResult {
+  type: "call_task" | "follow_up_draft";
+  id: number | null;
+  status: "created" | "reused" | "skipped" | "blocked" | "failed";
+  reason: string | null;
+}
+
+export interface BuyerIntakeResult {
+  status: BuyerIntakeStatus;
+  missingFields: string[];
+  prospectId: number | null;
+  interactionId: number | null;
+  callTaskId: number | null;
+  followUpDraftId: number | null;
+  dedupeStatus: BuyerIntakeDedupeStatus;
+  dedupeMatches: BuyerIntakeDedupeMatch[];
+  agiled: {
+    status: BuyerIntakeAgiledStatus;
+    reference: string | null;
+    message: string | null;
+  };
+  nextActions: BuyerIntakeNextActionResult[];
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface BuyerIntakeProspectWrite {
+  name: string | null;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string | null;
+  notes: string | null;
+  agiledContactId: string | null;
+  preferredChannel: string | null;
+  doNotContact: boolean;
+  lastOutcome: string | null;
+  nextActionType: string | null;
+  nextActionAt: Date | null;
+  priority: number;
+  leadSource: string;
+}
+
+export interface BuyerIntakeProspectUpdate {
+  name?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  status?: string | null;
+  notes?: string | null;
+  agiledContactId?: string | null;
+  preferredChannel?: string | null;
+  doNotContact?: boolean;
+  lastOutcome?: string | null;
+  nextActionType?: string | null;
+  nextActionAt?: Date | null;
+  leadSource?: string | null;
+}
+
+export interface BuyerIntakeInteractionWrite {
+  prospectId: number;
+  channel: string | null;
+  direction: string | null;
+  summary: string;
+  occurredAt: Date;
+}
+
+export interface BuyerIntakeRecordWrite {
+  prospectId: number | null;
+  createProspect: BuyerIntakeProspectWrite | null;
+  updateProspect: BuyerIntakeProspectUpdate | null;
+  interaction: Omit<BuyerIntakeInteractionWrite, "prospectId">;
+}
+
+export interface BuyerIntakeRecordWriteResult {
+  prospect: ProspectCandidate;
+  interaction: ProspectInteraction & { id: number };
+}
+
+export interface BuyerIntakeLookup {
+  name: string | null;
+  company: string | null;
+  phone: string | null;
+  email: string | null;
+  limit: number;
+}
+
 export type Readiness = "call_ready" | "review_needed";
 
 export interface CallRecommendation {
@@ -584,6 +736,11 @@ export interface QueueRepository {
   findCallTaskById(taskId: number): Promise<CallTaskRecord | ExistingCallTask | null>;
   findProspectById(prospectId: number): Promise<ProspectCandidate | null>;
   searchProspects(query: string, limit: number): Promise<ProspectCandidate[]>;
+  findBuyerIntakeMatches(input: BuyerIntakeLookup): Promise<ProspectCandidate[]>;
+  createBuyerIntakeProspect(input: BuyerIntakeProspectWrite): Promise<ProspectCandidate>;
+  updateBuyerIntakeProspect(prospectId: number, input: BuyerIntakeProspectUpdate): Promise<ProspectCandidate | null>;
+  createBuyerIntakeInteraction(input: BuyerIntakeInteractionWrite): Promise<ProspectInteraction & { id: number }>;
+  captureBuyerIntakeRecord(input: BuyerIntakeRecordWrite): Promise<BuyerIntakeRecordWriteResult>;
   findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null>;
   resolvePreCallBriefLookup(lookup: PreCallBriefLookup): Promise<BriefLookupResult>;
   capturePostCall(input: PostCallCaptureWrite): Promise<PostCallCaptureWriteResult>;

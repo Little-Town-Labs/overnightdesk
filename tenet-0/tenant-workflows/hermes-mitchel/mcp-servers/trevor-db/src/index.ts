@@ -8,6 +8,7 @@ import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
 import { enrichProspectUrlWithCamoFox, trevorCamoFoxEnrichmentToMcp } from "./camofox.js";
 import { createPool, PgQueueRepository } from "./db.js";
 import { cadenceDigestToMcp, generateCadenceDigest } from "./digest.js";
+import { captureBuyerIntake, buyerIntakeToMcp } from "./intake.js";
 import {
   followUpDraftToMcp,
   followUpSendQueueToMcp,
@@ -51,7 +52,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.8.0"
+  version: "1.9.0"
 });
 
 server.registerTool("db_query", {
@@ -209,6 +210,83 @@ server.registerTool("capture_post_call", {
     return { content: [{ type: "text", text: JSON.stringify(postCallCaptureToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Capture error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("capture_buyer_intake", {
+  description: "Capture or validate an internal Mitchel buyer/prospect intake and optional conversation. Writes Trevor records only when unique or safely matched; never sends outbound messages.",
+  inputSchema: {
+    requested_by: z.string().trim().max(120).optional(),
+    source: z.enum([
+      "manual_entry",
+      "phone_call",
+      "referral",
+      "trade_show",
+      "browseract_google_maps",
+      "browseract_contact_finder",
+      "camofox_website_recon",
+      "mitchelbrown.com"
+    ]),
+    intake_mode: z.enum(["create_or_update", "update_existing", "validate_only"]).optional(),
+    prospect_id: z.number().int().positive().optional(),
+    agiled_contact_id: z.string().trim().max(120).optional(),
+    name: z.string().trim().max(200).optional(),
+    company: z.string().trim().max(200).optional(),
+    phone: z.string().trim().max(80).optional(),
+    email: z.string().trim().max(200).optional(),
+    website: z.string().trim().max(500).optional(),
+    address: z.string().trim().max(300).optional(),
+    area: z.string().trim().max(120).optional(),
+    buyer_type: z.enum(["retail_jeweler", "wholesale_dealer", "broker", "private_collector", "unknown"]).optional(),
+    preferences: z.string().trim().max(1000).optional(),
+    conversation_channel: z.enum(["phone", "in_person", "email", "text", "website", "social", "referral", "other"]).optional(),
+    conversation_summary: z.string().trim().max(4000).optional(),
+    outcome: z.enum([
+      "interested",
+      "quoted",
+      "follow_up_later",
+      "not_interested",
+      "sold",
+      "wrong_number",
+      "do_not_contact",
+      "info_only",
+      "new_lead"
+    ]).optional(),
+    next_action_type: z.enum(["call", "follow_up", "draft_follow_up", "review", "none"]).optional(),
+    next_action_at: z.string().trim().max(80).optional(),
+    create_call_task: z.boolean().optional(),
+    create_follow_up_draft: z.boolean().optional(),
+    agiled_sync: z.enum(["not_attempted", "skip", "link_only", "create_or_update"]).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await captureBuyerIntake(repo, {
+      requestedBy: input.requested_by,
+      source: input.source,
+      intakeMode: input.intake_mode,
+      prospectId: input.prospect_id,
+      agiledContactId: input.agiled_contact_id,
+      name: input.name,
+      company: input.company,
+      phone: input.phone,
+      email: input.email,
+      website: input.website,
+      address: input.address,
+      area: input.area,
+      buyerType: input.buyer_type,
+      preferences: input.preferences,
+      conversationChannel: input.conversation_channel,
+      conversationSummary: input.conversation_summary,
+      outcome: input.outcome,
+      nextActionType: input.next_action_type,
+      nextActionAt: input.next_action_at,
+      createCallTask: input.create_call_task,
+      createFollowUpDraft: input.create_follow_up_draft,
+      agiledSync: input.agiled_sync
+    });
+    return { content: [{ type: "text", text: JSON.stringify(buyerIntakeToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Buyer intake error: ${sanitizeError(err)}` }] };
   }
 });
 

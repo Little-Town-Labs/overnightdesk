@@ -7,6 +7,12 @@ import {
 } from "./db-sourcing.js";
 import type {
   BriefLookupResult,
+  BuyerIntakeInteractionWrite,
+  BuyerIntakeLookup,
+  BuyerIntakeProspectUpdate,
+  BuyerIntakeProspectWrite,
+  BuyerIntakeRecordWrite,
+  BuyerIntakeRecordWriteResult,
   CallTaskRecord,
   CallTaskStatus,
   ExistingCallTask,
@@ -330,6 +336,244 @@ export class PgQueueRepository implements QueueRepository {
       [query.trim(), normalizedLimit]
     );
     return result.rows.map(toCandidate);
+  }
+
+  async findBuyerIntakeMatches(input: BuyerIntakeLookup): Promise<ProspectCandidate[]> {
+    const result = await this.pool.query(
+      `
+      select
+        p.*,
+        max(i.occurred_at) as last_interaction_at
+      from trevor.prospects p
+      left join trevor.interactions i on i.prospect_id = p.id
+      where coalesce(p.status, 'active') <> 'archived'
+        and (
+          ($1::text is not null and regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g') = regexp_replace($1::text, '[^0-9]', '', 'g'))
+          or ($2::text is not null and lower(coalesce(p.email, '')) = lower($2::text))
+          or ($3::text is not null and p.company ilike '%' || $3::text || '%')
+          or ($4::text is not null and p.name ilike '%' || $4::text || '%')
+        )
+      group by p.id
+      order by p.updated_at desc, p.id asc
+      limit $5
+      `,
+      [input.phone, input.email, input.company, input.name, Math.max(1, Math.min(10, Math.trunc(input.limit)))]
+    );
+    return result.rows.map(toCandidate);
+  }
+
+  async createBuyerIntakeProspect(input: BuyerIntakeProspectWrite): Promise<ProspectCandidate> {
+    const result = await this.pool.query(
+      `
+      insert into trevor.prospects (
+        name,
+        company,
+        email,
+        phone,
+        status,
+        notes,
+        agiled_contact_id,
+        preferred_channel,
+        do_not_contact,
+        last_outcome,
+        next_action_type,
+        next_action_at,
+        priority,
+        lead_source
+      )
+      values ($1, $2, $3, $4, coalesce($5, 'active'), $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      returning *
+      `,
+      [
+        input.name,
+        input.company,
+        input.email,
+        input.phone,
+        input.status,
+        input.notes,
+        input.agiledContactId,
+        input.preferredChannel,
+        input.doNotContact,
+        input.lastOutcome,
+        input.nextActionType,
+        input.nextActionAt,
+        input.priority,
+        input.leadSource
+      ]
+    );
+    return toCandidate({ ...result.rows[0], last_interaction_at: null });
+  }
+
+  async updateBuyerIntakeProspect(prospectId: number, input: BuyerIntakeProspectUpdate): Promise<ProspectCandidate | null> {
+    const result = await this.pool.query(
+      `
+      update trevor.prospects
+      set name = coalesce(nullif($2::text, ''), name),
+          company = coalesce(nullif($3::text, ''), company),
+          email = coalesce(nullif($4::text, ''), email),
+          phone = coalesce(nullif($5::text, ''), phone),
+          status = coalesce(nullif($6::text, ''), status),
+          notes = case
+            when nullif($7::text, '') is null then notes
+            when nullif(coalesce(notes, ''), '') is null then $7::text
+            else notes || E'\n' || $7::text
+          end,
+          agiled_contact_id = coalesce(nullif($8::text, ''), agiled_contact_id),
+          preferred_channel = coalesce(nullif($9::text, ''), preferred_channel),
+          do_not_contact = case when $10::boolean is null then do_not_contact else $10::boolean end,
+          last_outcome = coalesce(nullif($11::text, ''), last_outcome),
+          next_action_type = case when $12::text is null then next_action_type else nullif($12::text, '') end,
+          next_action_at = coalesce($13::timestamptz, next_action_at),
+          lead_source = coalesce(nullif($14::text, ''), lead_source),
+          updated_at = now()
+      where id = $1
+      returning *
+      `,
+      [
+        prospectId,
+        input.name ?? null,
+        input.company ?? null,
+        input.email ?? null,
+        input.phone ?? null,
+        input.status ?? null,
+        input.notes ?? null,
+        input.agiledContactId ?? null,
+        input.preferredChannel ?? null,
+        input.doNotContact ?? null,
+        input.lastOutcome ?? null,
+        input.nextActionType ?? null,
+        input.nextActionAt ?? null,
+        input.leadSource ?? null
+      ]
+    );
+    return result.rows[0] ? toCandidate({ ...result.rows[0], last_interaction_at: null }) : null;
+  }
+
+  async createBuyerIntakeInteraction(input: BuyerIntakeInteractionWrite): Promise<ProspectInteraction & { id: number }> {
+    const result = await this.pool.query(
+      `
+      insert into trevor.interactions (prospect_id, channel, direction, summary, occurred_at)
+      values ($1, $2, $3, $4, $5)
+      returning id, prospect_id, channel, direction, summary, occurred_at
+      `,
+      [input.prospectId, input.channel, input.direction, input.summary, input.occurredAt]
+    );
+    const interaction = toInteraction(result.rows[0]);
+    return { ...interaction, id: Number(result.rows[0].id) };
+  }
+
+  async captureBuyerIntakeRecord(input: BuyerIntakeRecordWrite): Promise<BuyerIntakeRecordWriteResult> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+
+      let prospect: ProspectCandidate | null = null;
+      if (input.createProspect) {
+        const result = await client.query(
+          `
+          insert into trevor.prospects (
+            name,
+            company,
+            email,
+            phone,
+            status,
+            notes,
+            agiled_contact_id,
+            preferred_channel,
+            do_not_contact,
+            last_outcome,
+            next_action_type,
+            next_action_at,
+            priority,
+            lead_source
+          )
+          values ($1, $2, $3, $4, coalesce($5, 'active'), $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          returning *
+          `,
+          [
+            input.createProspect.name,
+            input.createProspect.company,
+            input.createProspect.email,
+            input.createProspect.phone,
+            input.createProspect.status,
+            input.createProspect.notes,
+            input.createProspect.agiledContactId,
+            input.createProspect.preferredChannel,
+            input.createProspect.doNotContact,
+            input.createProspect.lastOutcome,
+            input.createProspect.nextActionType,
+            input.createProspect.nextActionAt,
+            input.createProspect.priority,
+            input.createProspect.leadSource
+          ]
+        );
+        prospect = toCandidate({ ...result.rows[0], last_interaction_at: null });
+      } else if (input.prospectId && input.updateProspect) {
+        const result = await client.query(
+          `
+          update trevor.prospects
+          set name = coalesce(nullif($2::text, ''), name),
+              company = coalesce(nullif($3::text, ''), company),
+              email = coalesce(nullif($4::text, ''), email),
+              phone = coalesce(nullif($5::text, ''), phone),
+              status = coalesce(nullif($6::text, ''), status),
+              notes = case
+                when nullif($7::text, '') is null then notes
+                when nullif(coalesce(notes, ''), '') is null then $7::text
+                else notes || E'\n' || $7::text
+              end,
+              agiled_contact_id = coalesce(nullif($8::text, ''), agiled_contact_id),
+              preferred_channel = coalesce(nullif($9::text, ''), preferred_channel),
+              do_not_contact = case when $10::boolean is null then do_not_contact else $10::boolean end,
+              last_outcome = coalesce(nullif($11::text, ''), last_outcome),
+              next_action_type = case when $12::text is null then next_action_type else nullif($12::text, '') end,
+              next_action_at = coalesce($13::timestamptz, next_action_at),
+              lead_source = coalesce(nullif($14::text, ''), lead_source),
+              updated_at = now()
+          where id = $1
+          returning *
+          `,
+          [
+            input.prospectId,
+            input.updateProspect.name ?? null,
+            input.updateProspect.company ?? null,
+            input.updateProspect.email ?? null,
+            input.updateProspect.phone ?? null,
+            input.updateProspect.status ?? null,
+            input.updateProspect.notes ?? null,
+            input.updateProspect.agiledContactId ?? null,
+            input.updateProspect.preferredChannel ?? null,
+            input.updateProspect.doNotContact ?? null,
+            input.updateProspect.lastOutcome ?? null,
+            input.updateProspect.nextActionType ?? null,
+            input.updateProspect.nextActionAt ?? null,
+            input.updateProspect.leadSource ?? null
+          ]
+        );
+        prospect = result.rows[0] ? toCandidate({ ...result.rows[0], last_interaction_at: null }) : null;
+      }
+
+      if (!prospect) {
+        throw new Error("buyer intake prospect write failed");
+      }
+
+      const interactionResult = await client.query(
+        `
+        insert into trevor.interactions (prospect_id, channel, direction, summary, occurred_at)
+        values ($1, $2, $3, $4, $5)
+        returning id, prospect_id, channel, direction, summary, occurred_at
+        `,
+        [prospect.id, input.interaction.channel, input.interaction.direction, input.interaction.summary, input.interaction.occurredAt]
+      );
+      const interaction = toInteraction(interactionResult.rows[0]);
+      await client.query("commit");
+      return { prospect, interaction: { ...interaction, id: Number(interactionResult.rows[0].id) } };
+    } catch (err) {
+      await client.query("rollback");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async findLatestInteraction(prospectId: number): Promise<ProspectInteraction | null> {
