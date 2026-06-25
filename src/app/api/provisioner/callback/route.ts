@@ -7,6 +7,8 @@ import { updateInstanceStatus } from "@/lib/instance";
 import { sendProvisioningEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/config";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const provisionerSecret = process.env.PROVISIONER_SECRET;
 

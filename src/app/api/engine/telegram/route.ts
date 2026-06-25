@@ -7,6 +7,8 @@ import {
   deleteTelegramConfig,
 } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 const telegramUpdateSchema = z.object({
   bot_token: z.string().min(20),
   allowed_users: z.array(z.number().int()).min(1),

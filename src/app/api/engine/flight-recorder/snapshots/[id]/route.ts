@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveInstance } from "@/lib/resolve-instance";
 import { getFlightRecorderSnapshot } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

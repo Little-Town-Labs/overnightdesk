@@ -3,6 +3,8 @@ import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { getSecurityQueuePending } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const result = await requireProOrAdmin();
   if (!result.ok) return result.response;

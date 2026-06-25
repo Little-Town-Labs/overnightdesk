@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/require-admin";
 import { computeAdminMetrics } from "@/lib/admin-metrics";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;

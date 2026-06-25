@@ -9,6 +9,8 @@ import { db } from "@/db";
 import { subscription } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 const checkoutSchema = z.object({
   plan: z.enum(["starter", "pro"]),
 });

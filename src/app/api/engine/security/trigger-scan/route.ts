@@ -4,6 +4,8 @@ import { requireAdmin } from "@/lib/require-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { triggerSecurityScan } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 const triggerSchema = z.object({
   type: z.enum(["inbound", "audit"]),
   auditName: z.enum(["nightly_code_review", "weekly_gateway", "monthly_memory"]).optional(),

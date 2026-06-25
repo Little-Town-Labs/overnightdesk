@@ -10,11 +10,13 @@ import { AuthStatusBadge } from "./auth-status-badge";
 import { OnboardingWizard } from "./onboarding-wizard";
 import { RestartButton } from "./restart-button";
 import { getEngineStatus } from "@/lib/engine-client";
-import { isHermesTenant } from "@/lib/instance";
+import { isHermesMitchelTenant, isHermesTenant } from "@/lib/instance";
 import { SetupWizard } from "./setup-wizard";
 import { ProvisioningProgress } from "./provisioning-progress";
 import { ChatInterface } from "./chat/chat-interface";
 import { provisionerClient } from "@/lib/provisioner";
+import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
+import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -37,6 +39,7 @@ export default async function DashboardPage() {
 
   const inst = instances[0] ?? null;
   const hermesAgent = isHermesTenant(inst);
+  const mitchelTenant = isHermesMitchelTenant(inst);
 
   // Non-hermes: engine status
   let engineStatus: Record<string, unknown> | null = null;
@@ -47,14 +50,16 @@ export default async function DashboardPage() {
   // Hermes: public status + sessions (fetched in parallel)
   let hermesStatus: Record<string, unknown> | null = null;
   let initialSessions: import("./chat/chat-interface").HermesSession[] = [];
+  let mitchelProspectingSummary: Awaited<ReturnType<typeof fetchMitchelProspectingSummary>> | null = null;
 
   if (hermesAgent && inst?.status === "running" && inst.subdomain && inst.containerId) {
-    const [statusRes, sessionsData] = await Promise.allSettled([
+    const [statusRes, sessionsData, prospectingData] = await Promise.allSettled([
       fetch(`https://${inst.subdomain}/api/status`, {
         signal: AbortSignal.timeout(8_000),
         next: { revalidate: 30 },
       }),
       provisionerClient.getSessions(inst.containerId),
+      mitchelTenant ? fetchMitchelProspectingSummary(inst.containerId) : Promise.resolve(null),
     ]);
 
     if (statusRes.status === "fulfilled" && statusRes.value.ok) {
@@ -62,6 +67,9 @@ export default async function DashboardPage() {
     }
     if (sessionsData.status === "fulfilled" && sessionsData.value?.sessions) {
       initialSessions = sessionsData.value.sessions;
+    }
+    if (prospectingData.status === "fulfilled" && prospectingData.value) {
+      mitchelProspectingSummary = prospectingData.value;
     }
   }
 
@@ -160,6 +168,10 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {mitchelProspectingSummary && (
+          <MitchelProspectingWorkspace summary={mitchelProspectingSummary} />
+        )}
 
         {/* Embedded chat — full two-panel layout below hero */}
         <div className="od-card overflow-hidden" style={{ height: "calc(100vh - 28rem)" }}>

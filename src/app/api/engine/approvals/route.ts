@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveInstance } from "@/lib/resolve-instance";
 import { getApprovals } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   const result = await resolveInstance();
 

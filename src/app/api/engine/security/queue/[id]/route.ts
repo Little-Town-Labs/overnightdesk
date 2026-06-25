@@ -3,6 +3,8 @@ import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { getSecurityQueueItem } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

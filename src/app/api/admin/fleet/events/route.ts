@@ -4,6 +4,8 @@ import { db } from "@/db";
 import { fleetEvent } from "@/db/schema";
 import { eq, desc, and, count, gte } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin.ok) return admin.response;

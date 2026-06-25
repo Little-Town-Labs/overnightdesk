@@ -4,6 +4,8 @@ import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { resolveSecurityQueueItem } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 const resolveSchema = z.object({
   decision: z.enum(["approved", "rejected"]),
 });

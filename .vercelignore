@@ -3,6 +3,10 @@
 # a Docker Compose deploy — Vercel doesn't build or serve any of it.
 tenet-0/
 
+# Tenant runtime artifacts are deployed to Hermes hosts, not served by the
+# OvernightDesk Next.js frontend.
+tenants/
+
 # Local notes — already .gitignored; listed here as belt-and-suspenders.
 .docs/
 .claude/

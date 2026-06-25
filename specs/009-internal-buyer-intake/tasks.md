@@ -15,10 +15,10 @@ implemented and tested as an independent increment.
 **Purpose**: Confirm the existing Trevor MCP server shape and create the new
 feature module/doc surfaces.
 
-- [x] T001 Inspect the current Trevor MCP package scripts in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/package.json`
-- [x] T002 [P] Create the internal intake module shell in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T003 [P] Create the internal intake skill directory in `tenet-0/tenant-workflows/hermes-mitchel/skills/internal-buyer-intake/SKILL.md`
-- [x] T004 [P] Create the internal intake runbook in `tenet-0/tenant-workflows/hermes-mitchel/runbooks/internal-buyer-intake.md`
+- [x] T001 Inspect the current Trevor MCP package scripts in `tenants/hermes-mitchel/mcp-servers/trevor-db/package.json`
+- [x] T002 [P] Create the internal intake module shell in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T003 [P] Create the internal intake skill directory in `tenants/hermes-mitchel/skills/internal-buyer-intake/SKILL.md`
+- [x] T004 [P] Create the internal intake runbook in `tenants/hermes-mitchel/runbooks/internal-buyer-intake.md`
 
 ---
 
@@ -29,10 +29,10 @@ helpers required before any user story can write data.
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [x] T005 Add BuyerIntake input/result, dedupe, Agiled sync, and next-action types in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [x] T006 Add repository interface methods for buyer intake create/update, dedupe lookup, interaction write, and optional next-action writes in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
-- [x] T007 Add shared bounds/redaction helpers for intake notes and warnings in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/safety.ts`
-- [x] T008 [P] Extend the fake repository with intake prospect, interaction, call task, draft, and Agiled-status fixtures in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
+- [x] T005 Add BuyerIntake input/result, dedupe, Agiled sync, and next-action types in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T006 Add repository interface methods for buyer intake create/update, dedupe lookup, interaction write, and optional next-action writes in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/types.ts`
+- [x] T007 Add shared bounds/redaction helpers for intake notes and warnings in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/safety.ts`
+- [x] T008 [P] Extend the fake repository with intake prospect, interaction, call task, draft, and Agiled-status fixtures in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/test-repo.ts`
 - [x] T009 Inspect live migration history and only add `tenet-0/db/migrations/054_trevor_internal_intake.sql` if existing `trevor.prospects`, `trevor.interactions`, `trevor.call_tasks`, and `trevor.followup_drafts` cannot store the required fields
 
 **Checkpoint**: Foundation ready - user story implementation can now begin.
@@ -51,16 +51,16 @@ bounded conversation record, preserved source, and `outbound_sent=false`.
 
 ### Tests for User Story 1
 
-- [x] T010 [P] [US1] Add new-buyer capture test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-create.test.ts`
-- [x] T011 [P] [US1] Add missing-required-fields validation test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-create.test.ts`
-- [x] T012 [P] [US1] Add note bounding and secret-redaction test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-safety.test.ts`
+- [x] T010 [P] [US1] Add new-buyer capture test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-create.test.ts`
+- [x] T011 [P] [US1] Add missing-required-fields validation test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-create.test.ts`
+- [x] T012 [P] [US1] Add note bounding and secret-redaction test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-safety.test.ts`
 
 ### Implementation for User Story 1
 
-- [x] T013 [US1] Implement BuyerIntake input normalization, required-field validation, and bounded summary creation in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T014 [US1] Implement new prospect and bounded interaction persistence in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
-- [x] T015 [US1] Implement `captureBuyerIntake` success, needs-input, validation-only, and rejected results in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T016 [US1] Register the `capture_buyer_intake` MCP tool with zod input validation and snake_case output mapping in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T013 [US1] Implement BuyerIntake input normalization, required-field validation, and bounded summary creation in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T014 [US1] Implement new prospect and bounded interaction persistence in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
+- [x] T015 [US1] Implement `captureBuyerIntake` success, needs-input, validation-only, and rejected results in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T016 [US1] Register the `capture_buyer_intake` MCP tool with zod input validation and snake_case output mapping in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
 
 **Checkpoint**: User Story 1 should be fully functional and independently
 testable.
@@ -78,16 +78,16 @@ dedupe decision.
 
 ### Tests for User Story 2
 
-- [x] T017 [P] [US2] Add exact phone/email dedupe update test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-dedupe.test.ts`
-- [x] T018 [P] [US2] Add ambiguous name/company needs-review test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-dedupe.test.ts`
-- [x] T019 [P] [US2] Add Agiled linked, skipped, and failed status tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-agiled.test.ts`
+- [x] T017 [P] [US2] Add exact phone/email dedupe update test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-dedupe.test.ts`
+- [x] T018 [P] [US2] Add ambiguous name/company needs-review test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-dedupe.test.ts`
+- [x] T019 [P] [US2] Add Agiled linked, skipped, and failed status tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-agiled.test.ts`
 
 ### Implementation for User Story 2
 
-- [x] T020 [US2] Implement conservative Trevor dedupe by prospect ID, phone, email, and bounded name/company search in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T021 [US2] Implement database dedupe lookup and safe non-empty prospect updates in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
-- [x] T022 [US2] Implement ambiguous-match `needs_review` output with at most 5 bounded matches in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T023 [US2] Implement Agiled sync reporting as linked, skipped, not_attempted, or failed without rolling back local Trevor writes in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T020 [US2] Implement conservative Trevor dedupe by prospect ID, phone, email, and bounded name/company search in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T021 [US2] Implement database dedupe lookup and safe non-empty prospect updates in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
+- [x] T022 [US2] Implement ambiguous-match `needs_review` output with at most 5 bounded matches in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T023 [US2] Implement Agiled sync reporting as linked, skipped, not_attempted, or failed without rolling back local Trevor writes in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
 
 **Checkpoint**: User Stories 1 and 2 should both work independently.
 
@@ -104,16 +104,16 @@ do-not-contact buyers are suppressed, and `outbound_sent=false`.
 
 ### Tests for User Story 3
 
-- [x] T024 [P] [US3] Add call task create/reuse test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-next-actions.test.ts`
-- [x] T025 [P] [US3] Add follow-up draft creation test with no outbound send in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-next-actions.test.ts`
-- [x] T026 [P] [US3] Add do-not-contact suppression test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-next-actions.test.ts`
+- [x] T024 [P] [US3] Add call task create/reuse test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-next-actions.test.ts`
+- [x] T025 [P] [US3] Add follow-up draft creation test with no outbound send in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-next-actions.test.ts`
+- [x] T026 [P] [US3] Add do-not-contact suppression test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-next-actions.test.ts`
 
 ### Implementation for User Story 3
 
-- [x] T027 [US3] Implement valid next-action date handling and call task create/reuse behavior in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T028 [US3] Implement follow-up draft creation from intake interaction when enough channel/context exists in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T029 [US3] Enforce do-not-contact suppression for call tasks and persuasive drafts in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
-- [x] T030 [US3] Implement repository helpers for intake-created next actions in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
+- [x] T027 [US3] Implement valid next-action date handling and call task create/reuse behavior in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T028 [US3] Implement follow-up draft creation from intake interaction when enough channel/context exists in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T029 [US3] Enforce do-not-contact suppression for call tasks and persuasive drafts in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/intake.ts`
+- [x] T030 [US3] Implement repository helpers for intake-created next actions in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/db.ts`
 
 **Checkpoint**: Intake can create only reviewable local work and never sends.
 
@@ -130,12 +130,12 @@ no automatic promotion or outbound sending.
 
 ### Tests for User Story 4
 
-- [x] T031 [P] [US4] Add website-source contract test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-contract.test.ts`
-- [x] T032 [P] [US4] Add website incomplete-contact rejected or needs-review test in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/intake-contract.test.ts`
+- [x] T031 [P] [US4] Add website-source contract test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-contract.test.ts`
+- [x] T032 [P] [US4] Add website incomplete-contact rejected or needs-review test in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/intake-contract.test.ts`
 
 ### Implementation for User Story 4
 
-- [x] T033 [US4] Ensure `mitchelbrown.com` source and website/referral fields flow through zod input, intake types, and result output in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T033 [US4] Ensure `mitchelbrown.com` source and website/referral fields flow through zod input, intake types, and result output in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
 - [x] T034 [US4] Update `specs/009-internal-buyer-intake/contracts/mcp-tools.yaml` if implementation narrows or clarifies the public-form-compatible contract
 
 **Checkpoint**: Feature 10 can reuse the contract without creating a new lead
@@ -148,12 +148,12 @@ model.
 **Purpose**: Keep operator docs, tenant skills, Spec Kit artifacts, and
 production assumptions aligned before commit.
 
-- [x] T035 [P] Document the Trevor operator flow and no-outbound boundary in `tenet-0/tenant-workflows/hermes-mitchel/skills/internal-buyer-intake/SKILL.md`
-- [x] T036 [P] Document local validation, Aegis preflight, smoke checks, and rollback in `tenet-0/tenant-workflows/hermes-mitchel/runbooks/internal-buyer-intake.md`
+- [x] T035 [P] Document the Trevor operator flow and no-outbound boundary in `tenants/hermes-mitchel/skills/internal-buyer-intake/SKILL.md`
+- [x] T036 [P] Document local validation, Aegis preflight, smoke checks, and rollback in `tenants/hermes-mitchel/runbooks/internal-buyer-intake.md`
 - [x] T037 [P] Update Mitchel roadmap status and next-step notes in `.specify/roadmap-hermes-mitchel-prospecting.md`
-- [x] T038 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
-- [x] T039 Run `npm run build` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
-- [x] T040 Run `npm audit --json` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T038 Run `npm test` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T039 Run `npm run build` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T040 Run `npm audit --json` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 - [x] T041 Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from the repo root
 - [x] T042 Run `git diff --check` from the repo root
 - [x] T043 Run the `code-review-and-quality` skill against the full local diff

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getInstanceForUser } from "@/lib/instance";
 
+export const dynamic = "force-dynamic";
+
 const unauthorized = () => new NextResponse(null, { status: 401 });
 
 export async function GET(request: NextRequest) {

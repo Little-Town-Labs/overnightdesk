@@ -16,9 +16,9 @@ Add a draft-only follow-up workflow to the repo-controlled `trevor-db` MCP serve
 
 **Storage**: Existing `trevor.followup_drafts`, `trevor.interactions`, and `trevor.prospects`; no new table
 
-**Testing**: Node test runner through `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+**Testing**: Node test runner through `npm test` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 
-**Target Platform**: `hermes-mitchel` tenant on `aegis-prod`, with local source under `tenet-0/tenant-workflows/hermes-mitchel`
+**Target Platform**: `hermes-mitchel` tenant on `aegis-prod`, with local source under `tenants/hermes-mitchel`
 
 **Project Type**: Tenant MCP server extension plus tenant skill guidance
 
@@ -57,7 +57,7 @@ specs/005-follow-up-drafting/
 ### Source Code (repository root)
 
 ```text
-tenet-0/tenant-workflows/hermes-mitchel/
+tenants/hermes-mitchel/
 ├── mcp-servers/trevor-db/
 │   ├── src/
 │   │   ├── followup.ts

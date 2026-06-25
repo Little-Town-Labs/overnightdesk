@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
 

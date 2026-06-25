@@ -15,9 +15,9 @@ operating loop. The first useful product is not a dashboard. It is a reliable
 assistant workflow that tells Mitchel who to call, why to call them, what to say
 before the call, and what follow-up to send afterward.
 
-**Total Features:** 10
-**Phases:** 8
-**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing -> Internal Intake -> Public Landing Page
+**Total Features:** 11
+**Phases:** 9
+**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing -> Internal Intake -> Mitchel Prospecting Dashboard -> Public Landing Page
 
 ---
 
@@ -37,7 +37,8 @@ before the call, and what follow-up to send afterward.
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`; first bounded BrowserAct-first/CamoFox-enriched sourcing pass completed and verified; Trevor-only CamoFox enrichment tool deployed via PR #16 + PR #17
 **Feature 9 Status:** In progress on branch `009-internal-buyer-intake`; Spec Kit artifacts and local Trevor MCP implementation are being validated
-**Feature 10 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
+**Feature 10 Status:** Planned: Mitchel Prospecting Dashboard in OvernightDesk
+**Feature 11 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
 **Next Work:** Complete Feature 9 quality gate, Aegis production reality check, PR, merge, and deployment.
 
 ### Production Deployment Record
@@ -555,7 +556,77 @@ manual data entry after live conversations
 
 ---
 
-### Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form
+### Feature 10: Mitchel Prospecting Dashboard in OvernightDesk
+
+**Source:** User direction after Feature 9 planning: Mitchel logs into the
+OvernightDesk platform and should see a customized tenant frontend for Trevor
+prospecting, with access to his Hermes agent dashboard and a structured way to
+review prospect data that may not exist in Agiled yet.
+
+**Description:** Add a Mitchel-specific prospecting workspace inside the
+existing authenticated OvernightDesk dashboard. When the logged-in user's
+running instance is `hermes-mitchel`, the dashboard should show Trevor
+prospecting data and actions alongside the existing embedded Hermes chat and
+"Launch Dashboard" link. The first useful surface should show Trevor-only
+prospects, staged candidates, today's call tasks, review-needed items, and
+follow-up drafts without requiring Mitchel to ask Trevor in chat for every
+status check. The workflow remains human-in-the-loop and does not send outbound
+messages automatically.
+
+Hermes Kanban can be used as a visual process surface where appropriate, but it
+should not become the prospect system of record. Trevor Postgres remains the
+durable prospecting source for prospects, call tasks, interactions, candidates,
+and follow-up drafts. Any card movement or process action should call a narrow
+Trevor workflow/API that updates those durable records.
+
+**Hermes API Research Notes:** Hermes documents two relevant interfaces:
+
+- The OpenAI-compatible API server exposes chat, responses, runs, jobs,
+  sessions, skills, and toolset discovery behind bearer-token auth. It is a
+  good fit for chat/run/session integration and capability discovery, not for
+  direct Trevor prospect CRUD.
+- The Hermes Kanban dashboard plugin exposes REST routes under
+  `/api/plugins/kanban/` for board reads, task CRUD, comments, dispatch nudges,
+  config, and live events. The docs warn that plugin routes are unauthenticated
+  by design when the dashboard is bound locally, so OvernightDesk must not
+  expose those routes directly over the public platform without its own auth
+  proxy and tenant gate.
+
+**Complexity:** Medium
+**Priority:** P1
+**Dependencies:** Feature 9 internal intake backend, existing OvernightDesk
+login/dashboard, existing `hermes-mitchel` tenant, Trevor MCP tools, Hermes
+dashboard/API research, and production validation of the live `hermes-mitchel`
+dashboard/kanban configuration
+**Blocks:** A practical Mitchel operator workspace, faster review of
+Trevor-only prospects, safer candidate promotion, and a better authenticated
+entry point before the public website form
+
+**Completion Gate:**
+
+- [ ] OvernightDesk identifies the logged-in Mitchel tenant safely, using an
+  explicit `hermes-mitchel` tenant gate rather than broad Hermes detection.
+- [ ] Mitchel can open the OvernightDesk dashboard and see a customized Trevor
+  prospecting workspace.
+- [ ] The workspace keeps the existing embedded Hermes/Trevor chat available.
+- [ ] The workspace keeps the existing link to the Hermes agent dashboard.
+- [ ] The workspace lists Trevor-only prospects and staged candidates that may
+  not exist in Agiled yet.
+- [ ] The workspace shows today's call tasks and review-needed items.
+- [ ] The first implementation is read-only or review-only unless a narrow
+  write action has explicit tests and no-outbound guarantees.
+- [ ] Any Kanban integration is auth-proxied through OvernightDesk and mapped
+  back to Trevor durable records, not exposed directly as an unauthenticated
+  dashboard plugin route.
+- [ ] No platform route receives or stores `TREVOR_DB_URL`; Trevor database
+  access stays in the tenant-local boundary unless a separate security review
+  approves otherwise.
+- [ ] Quality gate and Aegis production validation are complete.
+- [ ] Feature 10 is merged and deployed.
+
+---
+
+### Feature 11: Mitchel Brown Landing Page and Buyer Inquiry Form
 
 **Source:** PRD Phase 6 public website concept plus user direction that the
 public form can be separate later if the internal intake workflow comes first,
@@ -575,8 +646,8 @@ future buyer relationships without feeling like only a form page.
 
 **Complexity:** Medium
 **Priority:** P2
-**Dependencies:** Feature 9 internal intake backend and source attribution
-contract
+**Dependencies:** Feature 9 internal intake backend, Feature 10 authenticated
+operator review workflow, and source attribution contract
 **Blocks:** Public inbound acquisition, website source attribution analytics,
 and future public buyer self-service flows
 
@@ -613,10 +684,11 @@ durable inventory source becomes useful.
 - Add stone-to-buyer recommendations.
 - Add weekly availability workflow integration.
 
-### Dashboard and Analytics
+### Dashboard Analytics Enhancements
 
-**Reason Deferred:** A text-first assistant workflow should prove the operating
-loop before UI investment.
+**Reason Deferred:** Feature 10 should first create the authenticated Mitchel
+operator workspace and prove the core review/call workflow. Rich analytics can
+follow after the UI has real usage.
 
 **Future Work:**
 
@@ -658,13 +730,15 @@ Feature 1 (Trevor Prospecting Data Model)
     |                                                                     |
     |                                                                     +--> Feature 9 (Internal Buyer Intake and Conversation Capture)
     |                                                                               |
-    |                                                                               +--> Feature 10 (Mitchel Brown Landing Page and Buyer Inquiry Form)
+    |                                                                               +--> Feature 10 (Mitchel Prospecting Dashboard in OvernightDesk)
+    |                                                                                         |
+    |                                                                                         +--> Feature 11 (Mitchel Brown Landing Page and Buyer Inquiry Form)
     |
     +--> Future: Inventory Matching
-    +--> Future: Dashboard and Analytics
+    +--> Future: Dashboard Analytics Enhancements
 ```
 
-**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
+**Critical Path:** 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11
 
 ---
 
@@ -799,14 +873,35 @@ conversations inside the existing OvernightDesk/Hermes experience.
 
 ---
 
-### Phase 8: Public Buyer Acquisition
+### Phase 8: Authenticated Mitchel Operator Workspace
+
+**Goal:** Mitchel can log into OvernightDesk and review Trevor prospecting work
+from a customized tenant dashboard without leaving the platform.
+
+**Features:**
+
+- Feature 10: Mitchel Prospecting Dashboard in OvernightDesk
+
+**Completion Gate:**
+
+- [ ] Mitchel's OvernightDesk dashboard is tenant-gated to `hermes-mitchel`.
+- [ ] Trevor prospects, staged candidates, call tasks, and review-needed items
+  are visible from the dashboard.
+- [ ] Hermes chat and the Hermes agent dashboard link remain available.
+- [ ] Any write action is routed through a narrow, tested Trevor workflow/API.
+- [ ] Hermes Kanban use is researched against live `hermes-mitchel` and not
+  exposed directly without OvernightDesk auth proxying.
+
+---
+
+### Phase 9: Public Buyer Acquisition
 
 **Goal:** `mitchelbrown.com` can capture inbound buyer inquiries through the
 same reviewed intake path used internally.
 
 **Features:**
 
-- Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form
+- Feature 11: Mitchel Brown Landing Page and Buyer Inquiry Form
 
 **Completion Gate:**
 
@@ -905,7 +1000,17 @@ same reviewed intake path used internally.
 
 ### Phase 8
 
-- [ ] **Feature 10: Mitchel Brown Landing Page and Buyer Inquiry Form**
+- [ ] **Feature 10: Mitchel Prospecting Dashboard in OvernightDesk**
+  - [ ] `$speckit-specify` for `mitchel-prospecting-dashboard`
+  - [ ] `$speckit-plan`
+  - [ ] `$speckit-tasks`
+  - [ ] `$speckit-implement`
+  - [ ] Quality/Aegis validation
+  - [ ] Merge and deployment
+
+### Phase 9
+
+- [ ] **Feature 11: Mitchel Brown Landing Page and Buyer Inquiry Form**
   - [ ] `$speckit-specify` for `mitchel-brown-landing-page`
   - [ ] `$speckit-plan`
   - [ ] `$speckit-tasks`
@@ -927,6 +1032,7 @@ same reviewed intake path used internally.
 | Scraped web content injects instructions or bad data | High | Treat scraped content as untrusted input; validate fields before writes |
 | Sourcing commits or logs external-service credentials | High | Use env-backed placeholders and run secret checks before commit |
 | Internal intake creates duplicate prospects | Medium | Reuse Trevor/Agiled dedupe before create and prefer staged review for ambiguous matches |
+| Hermes Kanban plugin routes are exposed without OvernightDesk auth | High | Do not expose `/api/plugins/kanban/*` directly; use an authenticated tenant-gated proxy if Kanban is integrated |
 | Public website form attracts spam or abuse | High | Build public form only after the internal intake contract exists; add spam controls and bounded staged writes |
 | Inventory matching overfits bad or stale inventory | Low | Defer durable matching; wholesaler handles inventory and drop shipping |
 
@@ -945,7 +1051,9 @@ same reviewed intake path used internally.
    manual call capture?
 6. Should the internal intake UI be a structured form, a chat-guided form, or
    both?
-7. Should public website inquiries create staged candidates first or active
+7. Which Hermes Kanban endpoints are enabled and reachable on live
+   `hermes-mitchel`, and should OvernightDesk proxy any of them?
+8. Should public website inquiries create staged candidates first or active
    Trevor prospects when confidence is high?
 
 ---
@@ -958,5 +1066,7 @@ skill, and an operator runbook. Before commit, verify the local suite, build,
 audit output, diff whitespace, code-review-and-quality findings, and live
 production assumptions for `hermes-mitchel`, `tenet0-postgres`, and the Trevor
 schema. After Feature 9 is merged and deployed, start Feature 10 for the
-Mitchel Brown landing page and buyer inquiry form that reuses this intake
-contract.
+authenticated Mitchel Prospecting Dashboard in OvernightDesk. Research the live
+Hermes dashboard/Kanban API shape before deciding whether to proxy Kanban or
+build the first UI directly from Trevor workflow endpoints. The Mitchel Brown
+landing page and buyer inquiry form moves to Feature 11.

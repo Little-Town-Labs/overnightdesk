@@ -28,7 +28,7 @@ candidate storage only if existing tables cannot safely represent review-only
 data
 
 **Testing**: Existing Node test runner via `npm test` in
-`tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+`tenants/hermes-mitchel/mcp-servers/trevor-db`
 
 **Target Platform**: `aegis-prod/hermes-mitchel` tenant data volume and
 `tenet0-postgres`
@@ -85,30 +85,30 @@ specs/008-prospect-sourcing-pipeline/
 tenet-0/
 ├── db/migrations/
 │   └── 053_trevor_prospect_sourcing.sql
-└── tenant-workflows/hermes-mitchel/
-    ├── mcp-servers/trevor-db/
-    │   ├── src/
-    │   │   ├── index.ts
-    │   │   ├── sourcing.ts
-    │   │   ├── db.ts
-    │   │   └── types.ts
-    │   └── tests/
-    │       ├── sourcing-candidates.test.ts
-    │       ├── sourcing-review.test.ts
-    │       ├── sourcing-promote.test.ts
-    │       └── sourcing-safety.test.ts
-    ├── runbooks/prospect-sourcing.md
-    └── skills/
-        ├── prospect-sourcing/SKILL.md
-        └── web/
-            ├── browseract/SKILL.md
-            └── camofox-browser/SKILL.md
+tenants/hermes-mitchel/
+├── mcp-servers/trevor-db/
+│   ├── src/
+│   │   ├── index.ts
+│   │   ├── sourcing.ts
+│   │   ├── db.ts
+│   │   └── types.ts
+│   └── tests/
+│       ├── sourcing-candidates.test.ts
+│       ├── sourcing-review.test.ts
+│       ├── sourcing-promote.test.ts
+│       └── sourcing-safety.test.ts
+├── runbooks/prospect-sourcing.md
+└── skills/
+    ├── prospect-sourcing/SKILL.md
+    └── web/
+        ├── browseract/SKILL.md
+        └── camofox-browser/SKILL.md
 ```
 
 **Structure Decision**: Extend the existing `trevor-db` MCP server because it
 already owns purpose-built Trevor prospect, queue, briefing, capture, follow-up,
 digest, and sent-log tools. Source-control the existing live web-scraping skill
-knowledge under `tenet-0/tenant-workflows/hermes-mitchel/skills` so production
+knowledge under `tenants/hermes-mitchel/skills` so production
 tenant behavior can be reviewed and redeployed without copying secrets.
 
 ## Complexity Tracking

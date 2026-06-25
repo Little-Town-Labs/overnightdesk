@@ -4,6 +4,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { auth } from "@/lib/auth";
 import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
   if (!session) {

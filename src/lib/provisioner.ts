@@ -139,6 +139,23 @@ export const provisionerClient = {
     }
   },
 
+  async getMitchelProspectingSummary(containerId: string): Promise<unknown | null> {
+    const { url, secret } = getConfig();
+    try {
+      const response = await fetch(
+        `${url}/mitchel/prospecting/summary?containerId=${encodeURIComponent(containerId)}`,
+        {
+          headers: { Authorization: `Bearer ${secret}` },
+          signal: AbortSignal.timeout(15_000),
+        }
+      );
+      if (!response.ok) return null;
+      return await response.json();
+    } catch {
+      return null;
+    }
+  },
+
   async deprovision(tenantId: string): Promise<ProvisionerResult> {
     const { url, secret } = getConfig();
 

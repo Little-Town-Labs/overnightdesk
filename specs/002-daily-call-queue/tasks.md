@@ -18,9 +18,9 @@
 
 **Purpose**: Establish repo-controlled tenant workflow source without touching production.
 
-- [x] T001 Create tenant workflow directories `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/`, `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/`, and `tenet-0/tenant-workflows/hermes-mitchel/skills/daily-call-queue/`
-- [x] T002 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/package.json` with TypeScript build/test scripts and dependencies matching the live MCP pattern
-- [x] T003 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tsconfig.json` for ESM output to `dist/`
+- [x] T001 Create tenant workflow directories `tenants/hermes-mitchel/mcp-servers/trevor-db/src/`, `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/`, and `tenants/hermes-mitchel/skills/daily-call-queue/`
+- [x] T002 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/package.json` with TypeScript build/test scripts and dependencies matching the live MCP pattern
+- [x] T003 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/tsconfig.json` for ESM output to `dist/`
 - [x] T004 [P] Create `specs/002-daily-call-queue/contracts/queue-verification.sql` with placeholder sections for DNC suppression, ranking, idempotency, and no side-effect verification
 
 ---
@@ -31,11 +31,11 @@
 
 **CRITICAL**: No user story work can be complete until this phase is complete.
 
-- [x] T005 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/types.ts` with `ProspectCandidate`, `CallRecommendation`, `QueueRunResult`, and `CallTaskStatus` types from `data-model.md`
-- [x] T006 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/db.ts` with `pg.Pool` initialization from `TREVOR_DB_URL` and no credential logging
-- [x] T007 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/safety.ts` with helpers for redacting notes/contact details from errors and rejecting send-capable actions
-- [x] T008 [P] Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts` with representative prospect/task fixtures covering due, stale, high-priority, DNC, missing-phone, and duplicate-task cases
-- [x] T009 Create `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts` preserving existing `db_query` and `db_execute` tools while importing the new queue tools
+- [x] T005 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/src/types.ts` with `ProspectCandidate`, `CallRecommendation`, `QueueRunResult`, and `CallTaskStatus` types from `data-model.md`
+- [x] T006 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/src/db.ts` with `pg.Pool` initialization from `TREVOR_DB_URL` and no credential logging
+- [x] T007 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/src/safety.ts` with helpers for redacting notes/contact details from errors and rejecting send-capable actions
+- [x] T008 [P] Create `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/fixtures.ts` with representative prospect/task fixtures covering due, stale, high-priority, DNC, missing-phone, and duplicate-task cases
+- [x] T009 Create `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts` preserving existing `db_query` and `db_execute` tools while importing the new queue tools
 
 **Checkpoint**: Tenant MCP source exists, builds, and preserves generic tools before queue behavior is added.
 
@@ -49,15 +49,15 @@
 
 ### Tests for User Story 1
 
-- [x] T010 [P] [US1] Add ranking tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-ranking.test.ts`
-- [x] T011 [P] [US1] Add output-shape tests for `generate_daily_call_queue` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-output.test.ts`
+- [x] T010 [P] [US1] Add ranking tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-ranking.test.ts`
+- [x] T011 [P] [US1] Add output-shape tests for `generate_daily_call_queue` in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-output.test.ts`
 
 ### Implementation for User Story 1
 
-- [x] T012 [US1] Implement candidate query SQL in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T013 [US1] Implement deterministic scoring and tie-break logic in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T014 [US1] Implement recommendation text shaping in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T015 [US1] Register `generate_daily_call_queue` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts` with `persist=false` support
+- [x] T012 [US1] Implement candidate query SQL in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T013 [US1] Implement deterministic scoring and tie-break logic in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T014 [US1] Implement recommendation text shaping in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T015 [US1] Register `generate_daily_call_queue` in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts` with `persist=false` support
 - [x] T016 [US1] Update `specs/002-daily-call-queue/contracts/queue-verification.sql` with ranking verification queries
 
 **Checkpoint**: User Story 1 is complete when the tool can generate a non-persisted ranked queue from fixture or staging data.
@@ -72,14 +72,14 @@
 
 ### Tests for User Story 2
 
-- [x] T017 [P] [US2] Add DNC suppression tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-suppression.test.ts`
-- [x] T018 [P] [US2] Add review-needed tests for missing phone/preferred channel in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-readiness.test.ts`
+- [x] T017 [P] [US2] Add DNC suppression tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-suppression.test.ts`
+- [x] T018 [P] [US2] Add review-needed tests for missing phone/preferred channel in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-readiness.test.ts`
 
 ### Implementation for User Story 2
 
-- [x] T019 [US2] Implement hard DNC filtering in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T020 [US2] Implement `review_needed` output for missing contact context in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T021 [US2] Add sanitized warning/count metadata for suppressed and review-needed prospects in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T019 [US2] Implement hard DNC filtering in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T020 [US2] Implement `review_needed` output for missing contact context in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T021 [US2] Add sanitized warning/count metadata for suppressed and review-needed prospects in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
 - [x] T022 [US2] Update `specs/002-daily-call-queue/contracts/queue-verification.sql` with DNC and readiness verification queries
 
 **Checkpoint**: User Story 2 is complete when callable output has zero DNC prospects and missing-context rows are separated.
@@ -94,14 +94,14 @@
 
 ### Tests for User Story 3
 
-- [x] T023 [P] [US3] Add idempotent task persistence tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-persistence.test.ts`
-- [x] T024 [P] [US3] Add task status contract tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/call-task-status.test.ts`
+- [x] T023 [P] [US3] Add idempotent task persistence tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-persistence.test.ts`
+- [x] T024 [P] [US3] Add task status contract tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/call-task-status.test.ts`
 
 ### Implementation for User Story 3
 
-- [x] T025 [US3] Implement find-or-create open call task logic in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T026 [US3] Register `list_call_tasks` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
-- [x] T027 [US3] Register `mark_call_task_status` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T025 [US3] Implement find-or-create open call task logic in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T026 [US3] Register `list_call_tasks` in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
+- [x] T027 [US3] Register `mark_call_task_status` in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/index.ts`
 - [x] T028 [US3] Update `specs/002-daily-call-queue/contracts/queue-verification.sql` with duplicate-task and no-interaction/no-draft side-effect checks
 
 **Checkpoint**: User Story 3 is complete when persisted queue rows are stable across repeated generation.
@@ -116,12 +116,12 @@
 
 ### Tests for User Story 4
 
-- [x] T029 [P] [US4] Add missing-context explanation tests in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-explanations.test.ts`
+- [x] T029 [P] [US4] Add missing-context explanation tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-explanations.test.ts`
 
 ### Implementation for User Story 4
 
-- [x] T030 [US4] Implement optional `inventory_context` handling without storing inventory text in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
-- [x] T031 [US4] Create tenant skill `tenet-0/tenant-workflows/hermes-mitchel/skills/daily-call-queue/SKILL.md` describing when and how Trevor should call the queue tools
+- [x] T030 [US4] Implement optional `inventory_context` handling without storing inventory text in `tenants/hermes-mitchel/mcp-servers/trevor-db/src/queue.ts`
+- [x] T031 [US4] Create tenant skill `tenants/hermes-mitchel/skills/daily-call-queue/SKILL.md` describing when and how Trevor should call the queue tools
 - [x] T032 [US4] Add operator notes to `specs/002-daily-call-queue/quickstart.md` for validating honest missing-context output
 
 **Checkpoint**: User Story 4 is complete when queue output clearly distinguishes known facts from missing context.
@@ -132,9 +132,9 @@
 
 **Purpose**: Validate, document, and prepare for production sync.
 
-- [x] T033 [P] Run placeholder search across `specs/002-daily-call-queue/`, `tenet-0/tenant-workflows/hermes-mitchel/`, and `AGENTS.md`
-- [x] T034 Run `npm test` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
-- [x] T035 Run `npm run build` in `tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T033 [P] Run placeholder search across `specs/002-daily-call-queue/`, `tenants/hermes-mitchel/`, and `AGENTS.md`
+- [x] T034 Run `npm test` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
+- [x] T035 Run `npm run build` in `tenants/hermes-mitchel/mcp-servers/trevor-db`
 - [x] T036 Run read-only Aegis preflight from `specs/002-daily-call-queue/quickstart.md`
 - [x] T037 Update `.specify/roadmap-hermes-mitchel-prospecting.md` to mark Feature 2 plan/tasks/implementation status accurately
 - [x] T038 Run `git status --short` and confirm all changed files are expected
@@ -173,8 +173,8 @@
 ## Parallel Example: US2
 
 ```text
-Task: "Add DNC suppression tests in tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-suppression.test.ts"
-Task: "Add review-needed tests for missing phone/preferred channel in tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db/tests/queue-readiness.test.ts"
+Task: "Add DNC suppression tests in tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-suppression.test.ts"
+Task: "Add review-needed tests for missing phone/preferred channel in tenants/hermes-mitchel/mcp-servers/trevor-db/tests/queue-readiness.test.ts"
 ```
 
 ## Implementation Strategy

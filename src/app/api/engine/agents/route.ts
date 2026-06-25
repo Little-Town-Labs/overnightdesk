@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { resolveInstance } from "@/lib/resolve-instance";
 import { getAgents } from "@/lib/engine-client";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const result = await resolveInstance();
 

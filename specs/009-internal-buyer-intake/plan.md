@@ -31,7 +31,7 @@ existing `trevor.prospects`, `trevor.interactions`, `trevor.call_tasks`, and
 for intake source, dedupe, and Agiled sync status.
 
 **Testing**: Existing Node test runner via `npm test` in
-`tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db`
+`tenants/hermes-mitchel/mcp-servers/trevor-db`
 
 **Target Platform**: `aegis-prod/hermes-mitchel` tenant data volume and
 `tenet0-postgres`
@@ -92,22 +92,22 @@ specs/009-internal-buyer-intake/
 tenet-0/
 ├── db/migrations/
 │   └── 054_trevor_internal_intake.sql        # only if schema changes are needed
-└── tenant-workflows/hermes-mitchel/
-    ├── mcp-servers/trevor-db/
-    │   ├── src/
-    │   │   ├── index.ts                      # register intake tool
-    │   │   ├── intake.ts                     # intake orchestration
-    │   │   ├── db.ts                         # DB repository implementation
-    │   │   ├── types.ts                      # input/output types
-    │   │   └── safety.ts                     # shared redaction/bounds
-    │   └── tests/
-    │       ├── intake-create.test.ts
-    │       ├── intake-dedupe.test.ts
-    │       ├── intake-next-actions.test.ts
-    │       ├── intake-agiled.test.ts
-    │       └── intake-safety.test.ts
-    ├── runbooks/internal-buyer-intake.md
-    └── skills/internal-buyer-intake/SKILL.md
+tenants/hermes-mitchel/
+├── mcp-servers/trevor-db/
+│   ├── src/
+│   │   ├── index.ts                          # register intake tool
+│   │   ├── intake.ts                         # intake orchestration
+│   │   ├── db.ts                             # DB repository implementation
+│   │   ├── types.ts                          # input/output types
+│   │   └── safety.ts                         # shared redaction/bounds
+│   └── tests/
+│       ├── intake-create.test.ts
+│       ├── intake-dedupe.test.ts
+│       ├── intake-next-actions.test.ts
+│       ├── intake-agiled.test.ts
+│       └── intake-safety.test.ts
+├── runbooks/internal-buyer-intake.md
+└── skills/internal-buyer-intake/SKILL.md
 ```
 
 **Structure Decision**: Extend the existing `trevor-db` MCP server because it is

@@ -10,6 +10,8 @@ import bcrypt from "bcryptjs";
 import { getInstanceForUser } from "@/lib/instance";
 import { provisionerClient } from "@/lib/provisioner";
 
+export const dynamic = "force-dynamic";
+
 const deleteAccountSchema = z.object({
   password: z.string().min(1),
   confirmation: z.literal("DELETE"),

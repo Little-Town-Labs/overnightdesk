@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 import { provisionerClient } from "@/lib/provisioner";
 
+export const dynamic = "force-dynamic";
+
 const UNAUTHORIZED = NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 

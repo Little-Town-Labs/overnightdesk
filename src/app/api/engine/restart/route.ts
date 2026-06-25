@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveInstance } from "@/lib/resolve-instance";
 import { provisionerClient } from "@/lib/provisioner";
 
+export const dynamic = "force-dynamic";
+
 // Rate limiter: 1 request per 300 seconds (5 minutes) per user
 // Stored on globalThis so test infrastructure can reset between tests
 const g = globalThis as unknown as Record<string, unknown>;

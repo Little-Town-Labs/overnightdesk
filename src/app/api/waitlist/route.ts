@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { waitlist } from "@/db/schema";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
   email: z.string().email("Please enter a valid email address"),
   name: z.string().max(100).optional(),

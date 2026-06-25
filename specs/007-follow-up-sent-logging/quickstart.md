@@ -5,7 +5,7 @@
 From the Trevor DB MCP package:
 
 ```bash
-cd tenet-0/tenant-workflows/hermes-mitchel/mcp-servers/trevor-db
+cd tenants/hermes-mitchel/mcp-servers/trevor-db
 npm test
 ```
 
