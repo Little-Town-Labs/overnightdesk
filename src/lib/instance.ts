@@ -47,6 +47,12 @@ export function isHermesTenant(inst: { containerId: string | null } | null): boo
   return inst?.containerId?.startsWith("hermes-") ?? false;
 }
 
+export function isHermesMitchelTenant(
+  inst: { tenantId: string; containerId: string | null } | null
+): boolean {
+  return inst?.tenantId === "hermes-mitchel" || inst?.containerId === "hermes-mitchel";
+}
+
 export async function createInstance(
   userId: string,
   plan: "starter" | "pro"

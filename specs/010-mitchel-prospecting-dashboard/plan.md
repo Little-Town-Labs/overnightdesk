@@ -42,7 +42,10 @@ and no-outbound/no-mutation guarantees. Existing Trevor MCP tests remain under
 `aegis-prod/hermes-mitchel` through existing authenticated tenant boundaries.
 
 **Project Type**: Brownfield authenticated web dashboard with a narrow
-server-side data boundary to a tenant-local prospecting workflow.
+server-side data boundary to a tenant-local prospecting workflow. This feature
+has a cross-repo boundary: the OvernightDesk frontend owns the authenticated UI
+and API facade, while `overnightdesk-engine` owns the hermes provisioner route
+that can safely query the live tenant container/Postgres environment.
 
 **Performance Goals**: Workspace should render the initial summary in under 2s
 for normal tenant data volumes and bound each queue to a small review-focused
@@ -133,6 +136,13 @@ Mitchel-specific logic in OvernightDesk or the tenant-local Trevor boundary.
 Current code comparison shows Hermes chat is already embedded on `/dashboard`
 and `/dashboard/chat` redirects back to Overview, so Feature 10 should preserve
 that overview-first pattern rather than creating a second chat surface.
+
+**Refactor Boundary**: The existing provisioner client already exposes
+`getSessions(containerId)` and points to the hermes provisioner in
+`overnightdesk-engine`. The new Trevor summary should follow that pattern:
+`overnightdesk` may add a typed client method and fail-closed UI, but live data
+requires a matching `overnightdesk-engine/internal/hermes` route. Do not
+refactor the frontend into direct DB access just to avoid a cross-repo change.
 
 ## Complexity Tracking
 

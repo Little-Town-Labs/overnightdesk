@@ -179,3 +179,39 @@ into the platform UI.
 - Be careful with any new nav entry: Hermes tenants currently see only the
   allowed Overview/Settings/Admin tabs, so the MVP should integrate the Mitchel
   workspace into Overview unless a separate nav decision is made.
+
+## Decision: Treat Live Trevor Summary as Cross-Repo Provisioner Work
+
+**Decision**: Implementing live Trevor dashboard data should be planned as a
+small `overnightdesk-engine` hermes provisioner extension, not as direct
+OvernightDesk database access.
+
+**Rationale**: The current frontend already reads Hermes sessions through
+`provisionerClient.getSessions(containerId)`, and the matching provisioner
+source lives in `overnightdesk-engine/internal/hermes/handlers.go`. That route
+uses authenticated provisioner access and Docker/container context. A matching
+read-only Trevor summary endpoint keeps platform code thin and avoids placing
+Trevor DB credentials in Vercel/Next.js.
+
+**Alternatives considered**:
+
+- Add `TREVOR_DB_URL` to the frontend environment. Rejected because it expands
+  platform secret scope and violates the tenant data boundary.
+- Query Hermes/Trevor through an LLM chat turn. Rejected because the dashboard
+  needs deterministic structured data and stable empty/error states.
+- Delay all frontend work until the provisioner route exists. Rejected because
+  the frontend can safely ship a fail-closed unavailable state and typed
+  contract first.
+
+**Implementation evidence**:
+
+- The provisioner route lives in `overnightdesk-engine/internal/hermes` as
+  `GET /mitchel/prospecting/summary`, guarded by the existing bearer secret and
+  an explicit `containerId=hermes-mitchel` allow-list.
+- The Trevor-specific SQL and handler are isolated in
+  `internal/hermes/trevor_summary.go` so the generic handler file remains route
+  wiring and shared auth.
+- A read-only Aegis check on 2026-06-25 executed the exact summary SQL against
+  `tenet0-postgres` and returned bounded JSON with 25 prospects, 10 staged
+  candidates, 1 review item, empty call tasks, empty follow-up drafts, and
+  `outboundSent=false`.

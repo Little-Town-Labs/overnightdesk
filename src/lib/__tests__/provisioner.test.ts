@@ -139,4 +139,29 @@ describe("Provisioner Client", () => {
       expect(body.tenantId).toBe("a1b2c3d4e5f6");
     });
   });
+
+  describe("getMitchelProspectingSummary()", () => {
+    it("GETs the Mitchel prospecting summary by container id", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ tenantId: "hermes-mitchel", outboundSent: false }),
+      });
+
+      const result = await provisionerClient.getMitchelProspectingSummary("hermes-mitchel");
+
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        "https://api.overnightdesk.com/mitchel/prospecting/summary?containerId=hermes-mitchel"
+      );
+      expect(mockFetch.mock.calls[0][1].headers.Authorization).toBe("Bearer test-secret");
+      expect(result).toEqual({ tenantId: "hermes-mitchel", outboundSent: false });
+    });
+
+    it("returns null when the summary endpoint is unavailable", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+
+      const result = await provisionerClient.getMitchelProspectingSummary("hermes-mitchel");
+
+      expect(result).toBeNull();
+    });
+  });
 });

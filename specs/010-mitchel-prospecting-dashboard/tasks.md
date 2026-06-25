@@ -30,17 +30,37 @@ story implementation.
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Add `isHermesMitchelTenant` beside existing `isHermesTenant` in `src/lib/instance.ts`
-- [ ] T006 [P] Define dashboard summary Zod schemas matching `specs/010-mitchel-prospecting-dashboard/contracts/dashboard-api.yaml` in `src/lib/mitchel-prospecting/schemas.ts`
-- [ ] T007 [P] Define dashboard summary TypeScript types in `src/lib/mitchel-prospecting/types.ts`
-- [ ] T008 Implement safe empty/unavailable summary builders in `src/lib/mitchel-prospecting/summary.ts`
-- [ ] T009 Implement a server-side Trevor summary client boundary in `src/lib/mitchel-prospecting/trevor-summary-client.ts` that uses the existing provisioner/container pattern from `src/lib/provisioner.ts` and does not use `TREVOR_DB_URL`
-- [ ] T010 Add focused unit tests for tenant gating and summary builders in `src/lib/mitchel-prospecting/__tests__/summary.test.ts`
-- [ ] T011 Add contract test for `/api/mitchel/prospecting/summary` response shape in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
+- [x] T005 Add `isHermesMitchelTenant` beside existing `isHermesTenant` in `src/lib/instance.ts`
+- [x] T006 [P] Define dashboard summary Zod schemas matching `specs/010-mitchel-prospecting-dashboard/contracts/dashboard-api.yaml` in `src/lib/mitchel-prospecting/schemas.ts`
+- [x] T007 [P] Define dashboard summary TypeScript types in `src/lib/mitchel-prospecting/types.ts`
+- [x] T008 Implement safe empty/unavailable summary builders in `src/lib/mitchel-prospecting/summary.ts`
+- [x] T009 Implement a server-side Trevor summary client boundary in `src/lib/mitchel-prospecting/trevor-summary-client.ts` that uses the existing provisioner/container pattern from `src/lib/provisioner.ts` and does not use `TREVOR_DB_URL`
+- [x] T010 Add focused unit tests for tenant gating and summary builders in `src/lib/mitchel-prospecting/__tests__/summary.test.ts`
+- [x] T011 Add contract test for `/api/mitchel/prospecting/summary` response shape in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
 
 **Checkpoint**: Foundation ready. The project has an explicit tenant gate,
 validated bounded response shape, and no direct platform Trevor DB credential
 path.
+
+---
+
+## Phase 2A: Backend Boundary Refactor - Live Trevor Summary
+
+**Goal**: Add the matching read-only summary boundary in `overnightdesk-engine`
+so the platform can display live Trevor data without direct database credentials.
+
+**Independent Test**: From `overnightdesk-engine`, call the new hermes
+provisioner handler with a fake executor and confirm it authenticates, requires
+`containerId`, returns bounded summary JSON, and does not execute write SQL.
+
+- [x] T011A [P] Add `GET /mitchel/prospecting/summary` route registration in `/home/frosted639/src/overnightdesk-suite/overnightdesk-engine/internal/hermes/handlers.go`
+- [x] T011B Add read-only Docker exec script or helper in `/home/frosted639/src/overnightdesk-suite/overnightdesk-engine/internal/hermes/handlers.go` or a new `/home/frosted639/src/overnightdesk-suite/overnightdesk-engine/internal/hermes/trevor_summary.go`
+- [x] T011C [P] Add handler tests for auth, missing `containerId`, success JSON shape, and executor failure in `/home/frosted639/src/overnightdesk-suite/overnightdesk-engine/internal/hermes/handlers_test.go`
+- [x] T011D Run focused `overnightdesk-engine` hermes tests from `/home/frosted639/src/overnightdesk-suite/overnightdesk-engine`
+- [x] T011E Update deployment notes or runbook if the provisioner binary must be rebuilt for this feature
+
+**Checkpoint**: Live data boundary exists outside the frontend, and the
+frontend client can keep using the provisioner/container pattern.
 
 ---
 
@@ -56,18 +76,18 @@ shown.
 
 ### Tests for User Story 1
 
-- [ ] T012 [P] [US1] Add route authorization tests for authenticated `hermes-mitchel`, authenticated non-Mitchel, and unauthenticated cases in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
+- [x] T012 [P] [US1] Add route authorization tests for authenticated `hermes-mitchel`, authenticated non-Mitchel, and unauthenticated cases in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
 - [ ] T013 [P] [US1] Add dashboard rendering tests for Mitchel and non-Mitchel tenant states in `src/app/(protected)/dashboard/__tests__/mitchel-prospecting.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Implement authenticated GET route in `src/app/api/mitchel/prospecting/summary/route.ts`
-- [ ] T015 [US1] Map Trevor candidate, prospect, call task, review item, and draft summaries in `src/lib/mitchel-prospecting/summary.ts`
-- [ ] T016 [P] [US1] Create reusable queue section component in `src/components/dashboard/mitchel-prospecting/queue-section.tsx`
-- [ ] T017 [P] [US1] Create workspace shell component in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
-- [ ] T018 [US1] Integrate Mitchel workspace into `src/app/(protected)/dashboard/page.tsx` behind `isHermesMitchelTenant`
-- [ ] T019 [US1] Add loading, empty, partial unavailable, and warning states in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
-- [ ] T020 [US1] Verify no platform code references `TREVOR_DB_URL` with `rg "TREVOR_DB_URL" src specs/010-mitchel-prospecting-dashboard`
+- [x] T014 [US1] Implement authenticated GET route in `src/app/api/mitchel/prospecting/summary/route.ts`
+- [x] T015 [US1] Map Trevor candidate, prospect, call task, review item, and draft summaries through the read-only provisioner summary boundary and validate them in `src/lib/mitchel-prospecting/schemas.ts`
+- [x] T016 [P] [US1] Create reusable queue section component in `src/components/dashboard/mitchel-prospecting/queue-section.tsx`
+- [x] T017 [P] [US1] Create workspace shell component in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
+- [x] T018 [US1] Integrate Mitchel workspace into `src/app/(protected)/dashboard/page.tsx` behind `isHermesMitchelTenant`
+- [x] T019 [US1] Add loading, empty, partial unavailable, and warning states in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
+- [x] T020 [US1] Verify no production platform code references `TREVOR_DB_URL` with `rg "TREVOR_DB_URL" src --glob '!**/__tests__/**'`
 
 **Checkpoint**: User Story 1 is fully functional and independently testable as
 the MVP.
@@ -89,9 +109,9 @@ and Hermes dashboard launch link remain available and behave as before.
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Preserve existing embedded chat rendering path while adding Mitchel workspace in `src/app/(protected)/dashboard/page.tsx`; do not create a separate Mitchel chat page
-- [ ] T024 [US2] Preserve existing Hermes dashboard launch link in `src/components/dashboard/mitchel-prospecting/workspace.tsx` or the existing dashboard page component
-- [ ] T025 [US2] Verify the workspace does not require direct browser CORS access to Hermes API server in `src/lib/mitchel-prospecting/trevor-summary-client.ts`
+- [x] T023 [US2] Preserve existing embedded chat rendering path while adding Mitchel workspace in `src/app/(protected)/dashboard/page.tsx`; do not create a separate Mitchel chat page
+- [x] T024 [US2] Preserve existing Hermes dashboard launch link in `src/components/dashboard/mitchel-prospecting/workspace.tsx` or the existing dashboard page component
+- [x] T025 [US2] Verify the workspace does not require direct browser CORS access to Hermes API server in `src/lib/mitchel-prospecting/trevor-summary-client.ts`
 
 **Checkpoint**: User Stories 1 and 2 both work without regressing the existing
 Hermes interaction path.
@@ -110,14 +130,14 @@ occurs from page load.
 ### Tests for User Story 3
 
 - [ ] T026 [P] [US3] Add tests for do-not-contact and duplicate/rejected candidate display in `src/lib/mitchel-prospecting/__tests__/summary.test.ts`
-- [ ] T027 [P] [US3] Add test that summary route returns `outboundSent=false` and performs no write action in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
+- [x] T027 [P] [US3] Add test that summary route returns `outboundSent=false` and performs no write action in `src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Add review flag mapping for do-not-contact, missing contact data, duplicate, rejected, and needs-review records in `src/lib/mitchel-prospecting/summary.ts`
-- [ ] T029 [US3] Add review-needed presentation to `src/components/dashboard/mitchel-prospecting/workspace.tsx`
-- [ ] T030 [US3] Ensure draft summaries are displayed as pending review only in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
-- [ ] T031 [US3] Add explicit no-outbound warning/result text where needed in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
+- [x] T028 [US3] Add review flag mapping for do-not-contact, missing contact data, duplicate, rejected, and needs-review records in the provisioner summary boundary
+- [x] T029 [US3] Add review-needed presentation to `src/components/dashboard/mitchel-prospecting/workspace.tsx`
+- [x] T030 [US3] Ensure draft summaries are displayed as pending review only in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
+- [x] T031 [US3] Add explicit no-outbound warning/result text where needed in `src/components/dashboard/mitchel-prospecting/workspace.tsx`
 
 **Checkpoint**: Review states are visible and read-only behavior is verified.
 
@@ -152,15 +172,20 @@ of truth.
 
 **Purpose**: Validation, documentation, and production readiness.
 
-- [ ] T037 [P] Update `specs/010-mitchel-prospecting-dashboard/quickstart.md` with final local validation commands and observed behavior
+- [x] T037 [P] Update `specs/010-mitchel-prospecting-dashboard/quickstart.md` with final local validation commands and observed behavior
 - [ ] T038 [P] Update `README.md` if the Mitchel workspace changes documented dashboard behavior
-- [ ] T039 Run `git diff --check`
+- [x] T039 Run `git diff --check`
 - [ ] T040 Run relevant platform tests and build from the repo root
 - [ ] T041 Run Trevor MCP tests/build if any `tenants/hermes-mitchel/mcp-servers/trevor-db` files changed
-- [ ] T042 Run `$code-review-and-quality` as the quality gate
-- [ ] T043 Validate assumptions against `aegis-prod` with `$aegis-ssh`, including Hermes API/Kanban availability and no direct route exposure
+- [x] T042 Run `$code-review-and-quality` as the quality gate
+- [x] T043 Validate assumptions against `aegis-prod` with `$aegis-ssh`, including Hermes API/Kanban availability and no direct route exposure
 - [ ] T044 Validate initial workspace render target and stock-Hermes compatibility notes in `specs/010-mitchel-prospecting-dashboard/quickstart.md`
 - [ ] T045 Stop before commit for user review unless explicitly told to commit
+
+**T040 note**: Focused Feature 10 platform tests pass. `npm run build` with a
+dummy `DATABASE_URL` compiles and type-checks, then fails during page-data
+collection for the pre-existing `/api/engine/conversations/[id]/messages`
+route.
 
 ---
 

@@ -21,7 +21,22 @@ without causing outbound side effects.
    npm test
    ```
 
-3. Run Trevor MCP checks if the tenant-local contract changes:
+3. Run focused platform checks for this feature:
+
+   ```bash
+   npm test -- src/lib/mitchel-prospecting/__tests__/summary.test.ts src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts src/lib/__tests__/provisioner.test.ts src/lib/__tests__/instance.test.ts
+   rg "TREVOR_DB_URL" src --glob '!**/__tests__/**'
+   git diff --check
+   ```
+
+4. Run the matching provisioner checks if the live summary boundary changes:
+
+   ```bash
+   cd /home/frosted639/src/overnightdesk-suite/overnightdesk-engine
+   GOCACHE=/tmp/overnightdesk-engine-go-cache go test ./internal/hermes
+   ```
+
+5. Run Trevor MCP checks if the tenant-local contract changes:
 
    ```bash
    cd tenants/hermes-mitchel/mcp-servers/trevor-db
@@ -29,7 +44,7 @@ without causing outbound side effects.
    npm run build
    ```
 
-4. Confirm the active feature pointer:
+6. Confirm the active feature pointer:
 
    ```bash
    cat .specify/feature.json
@@ -76,6 +91,16 @@ Expected planning baseline from 2026-06-25:
 - `hermes-mitchel` container is running.
 - `http://127.0.0.1:8642/health` is not listening inside the container.
 - `http://127.0.0.1:9119/api/plugins/kanban/boards` requires authorization.
+
+Live Trevor summary validation on 2026-06-25:
+
+- The new provisioner SQL executed read-only against `tenet0-postgres`.
+- It returned bounded JSON for `hermes-mitchel` with 25 prospects, 10 staged
+  candidates, 1 review item, no call tasks, no follow-up drafts, and
+  `outboundSent=false`.
+- Postgres timestamps use offsets such as `2026-06-25T11:58:59.291722+00:00`,
+  so the frontend schema accepts non-empty timestamp strings instead of only
+  `Z`-suffixed JavaScript timestamps.
 
 ## Safety Checks
 
