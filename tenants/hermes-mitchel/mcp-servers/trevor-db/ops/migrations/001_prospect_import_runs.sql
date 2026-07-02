@@ -26,4 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_prospect_import_runs_source_batch_created
 CREATE INDEX IF NOT EXISTS idx_prospect_import_runs_created
   ON trevor.prospect_import_runs (created_at DESC, id DESC);
 
+GRANT SELECT, INSERT ON trevor.prospect_import_runs TO trevor_app;
+GRANT USAGE, SELECT ON SEQUENCE trevor.prospect_import_runs_id_seq TO trevor_app;
+
 COMMIT;

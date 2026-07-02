@@ -73,6 +73,29 @@ docker run --rm \
   -lc 'set -a; . /opt/data/.env; set +a; psql "$TREVOR_DB_URL" -v ON_ERROR_STOP=1 -c "select (select count(*) from trevor.prospects) as prospects, (select count(*) from trevor.call_tasks) as call_tasks, (select count(*) from trevor.followup_drafts) as followup_drafts;"'
 ```
 
+## Trevor DDL Migrations
+
+Trevor application code runs as `trevor_app`; do not grant that role schema DDL
+permission. Apply schema changes from the repo with the admin/migration role:
+
+```bash
+tenants/hermes-mitchel/mcp-servers/trevor-db/ops/apply-migrations.sh
+```
+
+The runner applies sorted SQL files from
+`tenants/hermes-mitchel/mcp-servers/trevor-db/ops/migrations/` over SSH to
+`tenet0-postgres` as `tenet0_admin`, then verifies `trevor_app` can read the
+resulting ledger table. Each migration must be idempotent and include the
+runtime grants needed by `trevor_app`.
+
+For a custom target or key:
+
+```bash
+AEGIS_SSH_TARGET=ubuntu@147.224.183.55 \
+AEGIS_SSH_KEY=~/.ssh/ssh-key-2026-03-15 \
+tenants/hermes-mitchel/mcp-servers/trevor-db/ops/apply-migrations.sh
+```
+
 ## Rules
 
 - Do not install `psql` into `hermes-mitchel` for routine operator checks.
@@ -81,3 +104,5 @@ docker run --rm \
 - Keep SQL checks bounded. Avoid full prospect dumps in terminal logs.
 - Use `-v ON_ERROR_STOP=1` for verification commands that should fail fast.
 - Any write SQL must have an explicit operator reason and backup/rollback path.
+- Use the Trevor migration runner for DDL. Keep DDL on `tenet0_admin` or a
+  dedicated migration role, not `trevor_app`.

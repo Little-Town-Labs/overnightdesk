@@ -1,7 +1,7 @@
 ---
 name: prospect-spreadsheet-import
 description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor, resolve the latest import batch, then process conservative missing-email enrichment batches without sending outbound messages.
-version: 1.5.0
+version: 1.6.0
 author: OvernightDesk
 metadata:
   hermes:
@@ -91,3 +91,6 @@ After a successful import, run a small enrichment batch:
 - Do not process an unscoped queue when "last import" cannot be resolved.
 - Treat `trevor.prospect_import_runs` as the durable import ledger; queue-only
   latest-batch results are legacy fallback data and may have null import counts.
+- If the import ledger is missing, apply DDL with
+  `tenants/hermes-mitchel/mcp-servers/trevor-db/ops/apply-migrations.sh`;
+  do not grant schema DDL permission to `trevor_app`.

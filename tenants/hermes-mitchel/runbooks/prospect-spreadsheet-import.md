@@ -57,6 +57,13 @@ docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
   -c "select count(*) from trevor.prospect_import_runs;"
 ```
 
+If the ledger is missing, apply Trevor DDL through the repo migration runner
+instead of granting DDL to `trevor_app`:
+
+```bash
+tenants/hermes-mitchel/mcp-servers/trevor-db/ops/apply-migrations.sh
+```
+
 ## Import Flow
 
 1. Save the uploaded CSV or `.xlsx` under `/opt/data/cache/documents/`.
