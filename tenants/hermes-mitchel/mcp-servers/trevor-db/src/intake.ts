@@ -77,6 +77,10 @@ function defaultPreferredChannel(input: BuyerIntakeInput): string | null {
   return input.conversationChannel ?? null;
 }
 
+function intakeDirection(): "inbound" {
+  return "inbound";
+}
+
 function toMatch(prospect: ProspectCandidate, input: BuyerIntakeInput): BuyerIntakeDedupeMatch {
   const exactPhone = phoneDigits(input.phone) && phoneDigits(prospect.phone) === phoneDigits(input.phone);
   const exactEmail = emailKey(input.email) && emailKey(prospect.email) === emailKey(input.email);
@@ -157,8 +161,9 @@ function emptyResult(status: BuyerIntakeResult["status"], input: BuyerIntakeInpu
 function prospectWrite(input: BuyerIntakeInput) {
   const nextActionAt = parseDate(input.nextActionAt);
   const doNotContact = input.outcome === "do_not_contact";
+  const name = clean(input.name, 200) ?? clean(input.company, 200);
   return {
-    name: clean(input.name, 200),
+    name,
     company: clean(input.company, 200),
     email: clean(input.email, 200),
     phone: clean(input.phone, 80),
@@ -321,7 +326,7 @@ export async function captureBuyerIntake(repo: QueueRepository, input: BuyerInta
       updateProspect: update,
       interaction: {
         channel: input.conversationChannel ?? defaultPreferredChannel(input),
-        direction: input.source === "phone_call" ? "inbound" : "internal",
+        direction: intakeDirection(),
         summary: summaryFor(input),
         occurredAt: new Date()
       }
@@ -335,7 +340,7 @@ export async function captureBuyerIntake(repo: QueueRepository, input: BuyerInta
     updateProspect: null,
     interaction: {
       channel: input.conversationChannel ?? defaultPreferredChannel(input),
-      direction: input.source === "phone_call" ? "inbound" : "internal",
+      direction: intakeDirection(),
       summary: summaryFor(input),
       occurredAt: new Date()
     }

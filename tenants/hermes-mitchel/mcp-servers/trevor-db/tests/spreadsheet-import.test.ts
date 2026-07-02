@@ -47,6 +47,9 @@ test("imports normalized spreadsheet rows and seeds email enrichment queue", asy
   assert.equal(repo.candidates.length, 2);
   assert.match(repo.candidates[0]?.notes ?? "", /AGS A-to-T spreadsheet/);
   assert.match(repo.candidates[1]?.notes ?? "", /AGS A-to-T spreadsheet/);
+  assert.equal(repo.candidates[1]?.name, "New Diamond Buyer");
+  assert.equal(repo.interactions[0]?.direction, "inbound");
+  assert.equal(repo.interactions[1]?.direction, "inbound");
   assert.equal(result.emailEnrichment?.insertedCount, 2);
   assert.equal(repo.emailEnrichment.length, 2);
   assert.equal(repo.prospectImportRuns.length, 1);
