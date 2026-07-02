@@ -1,7 +1,7 @@
 ---
 name: prospect-spreadsheet-import
-description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor and seed missing-email enrichment without sending outbound messages.
-version: 1.2.0
+description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor, then process conservative missing-email enrichment batches without sending outbound messages.
+version: 1.3.0
 author: OvernightDesk
 metadata:
   hermes:
@@ -27,9 +27,12 @@ load a provided list of buyers.
 5. If `needs_review` is nonzero, stop and ask Mitchel or the operator to
    resolve the ambiguous rows.
 6. If import counts are acceptable, process missing emails through the durable
-   queue with `claim_prospect_email_enrichment_batch`,
+   queue with `process_prospect_email_enrichment_batch`, using a first-pass
+   limit of 5-10.
+7. Use the lower-level tools `claim_prospect_email_enrichment_batch`,
    `trevor_camofox_enrich_url`, and
-   `apply_prospect_email_enrichment_result`.
+   `apply_prospect_email_enrichment_result` only when a human/agent needs to
+   review or repair individual rows.
 
 ## Tool Pattern
 
@@ -46,6 +49,19 @@ load a provided list of buyers.
 }
 ```
 
+After a successful import, run a small enrichment batch:
+
+```json
+{
+  "tool": "process_prospect_email_enrichment_batch",
+  "arguments": {
+    "source_batch": "ags_2026_07_02",
+    "limit": 5,
+    "claimed_by": "hermes-mitchel"
+  }
+}
+```
+
 ## Safety Rules
 
 - Never send outbound messages from spreadsheet import.
@@ -57,3 +73,5 @@ load a provided list of buyers.
   note or label matching for new imports.
 - Never invent emails. Only apply emails with public evidence URL and
   `official` or `likely` confidence.
+- Treat `needs_review` as the correct result for missing websites, conflicting
+  public emails, chain stores, or uncertain evidence.

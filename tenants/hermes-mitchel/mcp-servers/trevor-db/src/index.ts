@@ -18,6 +18,7 @@ import {
   getProspectEmailEnrichmentSummary,
   seedProspectEmailEnrichmentQueue
 } from "./email-enrichment.js";
+import { emailEnrichmentRunnerToMcp, runProspectEmailEnrichmentBatch } from "./email-enrichment-runner.js";
 import { captureBuyerIntake, buyerIntakeToMcp } from "./intake.js";
 import {
   followUpDraftToMcp,
@@ -651,6 +652,26 @@ server.registerTool("get_prospect_email_enrichment_summary", {
     return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentSummaryToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Email enrichment summary error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("process_prospect_email_enrichment_batch", {
+  description: "Claim and process a conservative Trevor prospect email enrichment batch with CamoFox research. Writes only through apply_prospect_email_enrichment_result rules; never guesses emails or sends outbound messages.",
+  inputSchema: {
+    source_batch: z.string().trim().max(120).optional(),
+    limit: z.number().int().min(1).max(10).optional(),
+    claimed_by: z.string().trim().max(120).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await runProspectEmailEnrichmentBatch(repo, {
+      sourceBatch: input.source_batch,
+      limit: input.limit,
+      claimedBy: input.claimed_by
+    });
+    return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentRunnerToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Email enrichment runner error: ${sanitizeError(err)}` }] };
   }
 });
 

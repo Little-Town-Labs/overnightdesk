@@ -20,6 +20,7 @@ files should be exported to `.xlsx` or CSV before processing.
   - `seed_prospect_email_enrichment_queue`
   - `get_prospect_email_enrichment_summary`
   - `claim_prospect_email_enrichment_batch`
+  - `process_prospect_email_enrichment_batch`
   - `trevor_camofox_enrich_url`
   - `apply_prospect_email_enrichment_result`
 - `tenet0-postgres`: source of truth for `trevor.prospects` and
@@ -75,7 +76,36 @@ docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
    - `rejected`: anonymous or incomplete rows.
 6. If any rows are `needs_review`, stop and present those rows before creating
    outreach work.
-7. Claim bounded email-enrichment batches only after import counts look right.
+7. Process bounded email-enrichment batches only after import counts look right.
+
+## Enrichment Flow
+
+Prefer the controlled runner for first-pass processing:
+
+```json
+{
+  "source_batch": "ags_2026_07_02",
+  "limit": 5,
+  "claimed_by": "hermes-mitchel"
+}
+```
+
+Use `process_prospect_email_enrichment_batch` with `limit` between 5 and 10.
+The runner claims queue rows, inspects known websites/contact pages with
+CamoFox, discovers obvious contact links from homepage links, and applies
+results only through the same reviewed `apply_prospect_email_enrichment_result`
+rules.
+
+Expected summary buckets:
+
+- `email_found`: one public email found with an evidence URL and `official` or
+  `likely` confidence.
+- `no_email_found`: website/contact page inspected and no public email found.
+- `needs_review`: no website/contact page, multiple public emails, or ambiguous
+  evidence.
+- `errors`: CamoFox or runtime failures that can be retried.
+- `remaining_count`: pending, claimed, or retryable error rows left in the
+  batch scope.
 
 ## Safety Rules
 
@@ -87,6 +117,9 @@ docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
 - Use `create_call_tasks=false` unless Mitchel explicitly approves call work.
 - Never fabricate emails from domain patterns; only write public, evidenced
   emails through `apply_prospect_email_enrichment_result`.
+- Keep first-pass enrichment conservative: no guessed websites, no guessed
+  emails, no outbound messages, and no writes outside the reviewed enrichment
+  apply path.
 
 ## Example Tool Payload
 
