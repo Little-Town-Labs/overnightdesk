@@ -3,13 +3,14 @@ import { sanitizeError } from "./safety.js";
 
 const DEFAULT_ENV_FILE = "/opt/data/.env";
 const DEFAULT_USER_ID = "trevor-prospecting";
-const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_TIMEOUT_MS = 45_000;
 const MAX_TEXT_LENGTH = 4000;
 const MAX_LINKS = 30;
 
 export interface TrevorCamoFoxConfig {
   url: string;
   apiKey: string | null;
+  timeoutMs: number;
   source: "process_env" | "env_file";
 }
 
@@ -56,12 +57,20 @@ function readEnvFile(path: string): Record<string, string> {
   }
 }
 
+function parseTimeoutMs(value: string | undefined): number {
+  if (!value) return DEFAULT_TIMEOUT_MS;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1_000) return DEFAULT_TIMEOUT_MS;
+  return parsed;
+}
+
 export function resolveTrevorCamoFoxConfig(env: NodeJS.ProcessEnv = process.env): TrevorCamoFoxConfig | null {
   const envUrl = env.CAMOFOX_URL?.trim();
   if (envUrl) {
     return {
       url: envUrl.replace(/\/+$/, ""),
       apiKey: env.CAMOFOX_API_KEY?.trim() || null,
+      timeoutMs: parseTimeoutMs(env.CAMOFOX_TIMEOUT_MS),
       source: "process_env"
     };
   }
@@ -72,6 +81,7 @@ export function resolveTrevorCamoFoxConfig(env: NodeJS.ProcessEnv = process.env)
   return {
     url: fileUrl.replace(/\/+$/, ""),
     apiKey: fileValues.CAMOFOX_API_KEY?.trim() || null,
+    timeoutMs: parseTimeoutMs(fileValues.CAMOFOX_TIMEOUT_MS),
     source: "env_file"
   };
 }
@@ -167,7 +177,7 @@ async function requestJson(
   const response = await fetchImpl(`${config.url}${path}`, {
     ...init,
     headers,
-    signal: AbortSignal.timeout(DEFAULT_TIMEOUT_MS)
+    signal: AbortSignal.timeout(config.timeoutMs)
   });
   if (!response.ok) {
     throw new Error(`CamoFox HTTP ${response.status}`);

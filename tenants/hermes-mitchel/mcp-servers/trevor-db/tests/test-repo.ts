@@ -6,6 +6,12 @@ import type {
   BuyerIntakeProspectWrite,
   BuyerIntakeRecordWrite,
   BuyerIntakeRecordWriteResult,
+  EmailEnrichmentApplyWrite,
+  EmailEnrichmentClaimWrite,
+  EmailEnrichmentConfidence,
+  EmailEnrichmentRecord,
+  EmailEnrichmentSeedWrite,
+  EmailEnrichmentStatus,
   ExistingCallTask,
   FollowUpChannel,
   FollowUpContext,
@@ -32,6 +38,7 @@ export class FakeQueueRepository implements QueueRepository {
   public drafts: FollowUpDraftRecord[] = [];
   public sourcingRuns: ProspectSourcingRunRecord[] = [];
   public sourcingCandidates: ProspectSourceCandidateRecord[] = [];
+  public emailEnrichment: EmailEnrichmentRecord[] = [];
   public created = 0;
   public captured = 0;
 
@@ -590,6 +597,193 @@ export class FakeQueueRepository implements QueueRepository {
       candidateId: input.candidateId,
       prospectId,
       callTaskId,
+      warnings: [],
+      outboundSent: false as const
+    };
+  }
+
+  async seedEmailEnrichmentQueue(input: EmailEnrichmentSeedWrite) {
+    let insertedCount = 0;
+    let syncedExistingEmailCount = 0;
+    let resetClaimedCount = 0;
+    const source = input.sourceLabel.toLowerCase();
+
+    for (const item of this.emailEnrichment) {
+      if (
+        input.resetClaimedOlderThanMinutes &&
+        item.status === "claimed" &&
+        item.claimedAt &&
+        Date.now() - item.claimedAt.getTime() > input.resetClaimedOlderThanMinutes * 60 * 1000
+      ) {
+        item.status = "pending";
+        item.claimedBy = null;
+        item.claimedAt = null;
+        resetClaimedCount += 1;
+      }
+      const prospect = this.candidates.find((candidate) => candidate.id === item.prospectId);
+      if (prospect?.email && ["pending", "claimed", "error"].includes(item.status)) {
+        item.status = "email_found";
+        item.verifiedEmail = prospect.email;
+        item.confidence = "official";
+        item.lastCheckedAt = new Date("2026-06-24T21:30:00Z");
+        syncedExistingEmailCount += 1;
+      }
+    }
+
+    const eligible = this.candidates.filter((candidate) =>
+      candidate.status !== "archived" &&
+      (
+        candidate.notes?.toLowerCase().includes(source) ||
+        candidate.company?.toLowerCase().includes(source) ||
+        candidate.name?.toLowerCase().includes(source)
+      )
+    );
+
+    for (const candidate of eligible) {
+      if (this.emailEnrichment.some((item) => item.prospectId === candidate.id)) continue;
+      insertedCount += 1;
+      this.emailEnrichment.push({
+        queueId: this.emailEnrichment.reduce((max, item) => Math.max(max, item.queueId), 0) + 1,
+        prospectId: candidate.id,
+        sourceBatch: input.sourceBatch,
+        status: candidate.email ? "email_found" : "pending",
+        displayName: candidate.name ?? candidate.company ?? `Prospect ${candidate.id}`,
+        company: candidate.company,
+        phone: candidate.phone,
+        currentEmail: candidate.email,
+        notesExcerpt: candidate.notes,
+        candidateWebsite: null,
+        contactPageUrl: null,
+        evidenceSourceUrl: null,
+        verifiedEmail: candidate.email,
+        confidence: candidate.email ? "official" : null,
+        attemptCount: 0,
+        claimedBy: null,
+        claimedAt: null,
+        lastCheckedAt: candidate.email ? new Date("2026-06-24T21:30:00Z") : null,
+        lastError: null
+      });
+    }
+
+    return {
+      status: "ok" as const,
+      insertedCount,
+      alreadyQueuedCount: eligible.length - insertedCount,
+      syncedExistingEmailCount,
+      resetClaimedCount,
+      warnings: [],
+      outboundSent: false as const
+    };
+  }
+
+  async claimEmailEnrichmentBatch(input: EmailEnrichmentClaimWrite) {
+    for (const item of this.emailEnrichment) {
+      const prospect = this.candidates.find((candidate) => candidate.id === item.prospectId);
+      if (prospect?.email && ["pending", "claimed", "error"].includes(item.status)) {
+        item.status = "email_found";
+        item.verifiedEmail = prospect.email;
+        item.confidence = "official";
+        item.lastCheckedAt = new Date("2026-06-24T21:35:00Z");
+      }
+    }
+
+    const claimable = this.emailEnrichment
+      .filter((item) => !input.sourceBatch || item.sourceBatch === input.sourceBatch)
+      .filter((item) => {
+        const prospect = this.candidates.find((candidate) => candidate.id === item.prospectId);
+        if (prospect?.email) return false;
+        return item.status === "pending" || item.status === "error" || (input.includeNeedsReview && item.status === "needs_review");
+      })
+      .sort((a, b) => a.queueId - b.queueId)
+      .slice(0, input.limit);
+
+    for (const item of claimable) {
+      item.status = "claimed";
+      item.claimedBy = input.claimedBy;
+      item.claimedAt = new Date("2026-06-24T21:40:00Z");
+      item.attemptCount += 1;
+    }
+
+    return {
+      status: "ok" as const,
+      claimedCount: claimable.length,
+      items: claimable,
+      warnings: [],
+      outboundSent: false as const
+    };
+  }
+
+  async applyEmailEnrichmentResult(input: EmailEnrichmentApplyWrite) {
+    const item = this.emailEnrichment.find((queueItem) => queueItem.prospectId === input.prospectId);
+    const prospect = this.candidates.find((candidate) => candidate.id === input.prospectId);
+    if (!item || !prospect) {
+      return {
+        status: "not_found" as const,
+        prospectId: input.prospectId,
+        queueId: item?.queueId ?? null,
+        prospectEmailUpdated: false,
+        warnings: ["No email enrichment queue row exists for this prospect."],
+        outboundSent: false as const
+      };
+    }
+
+    const hadEmail = Boolean(prospect.email);
+    const shouldUpdateEmail = input.status === "email_found" && Boolean(input.verifiedEmail) && !hadEmail;
+    if (shouldUpdateEmail) {
+      prospect.email = input.verifiedEmail;
+      prospect.preferredChannel = prospect.preferredChannel ?? "email";
+      const note = [
+        `Email enrichment: found ${input.verifiedEmail}.`,
+        input.evidenceSourceUrl ? `Source: ${input.evidenceSourceUrl}.` : null,
+        input.evidenceNote
+      ].filter(Boolean).join(" ");
+      if (note && !(prospect.notes ?? "").includes(note)) {
+        prospect.notes = [prospect.notes, note].filter(Boolean).join("\n");
+      }
+    }
+
+    item.status = input.status as EmailEnrichmentStatus;
+    item.claimedBy = null;
+    item.claimedAt = null;
+    item.lastCheckedAt = new Date("2026-06-24T21:45:00Z");
+    item.candidateWebsite = input.candidateWebsite ?? item.candidateWebsite;
+    item.contactPageUrl = input.contactPageUrl ?? item.contactPageUrl;
+    item.evidenceSourceUrl = input.evidenceSourceUrl ?? item.evidenceSourceUrl;
+    item.verifiedEmail = input.verifiedEmail ?? item.verifiedEmail;
+    item.confidence = input.confidence as EmailEnrichmentConfidence | null;
+    item.lastError = input.status === "error" ? input.lastError : null;
+
+    return {
+      status: "applied" as const,
+      prospectId: input.prospectId,
+      queueId: item.queueId,
+      prospectEmailUpdated: shouldUpdateEmail,
+      warnings: hadEmail && input.status === "email_found" ? ["Prospect already had an email; queue was updated but prospect.email was left unchanged."] : [],
+      outboundSent: false as const
+    };
+  }
+
+  async getEmailEnrichmentSummary(sourceBatch?: string | null) {
+    const items = this.emailEnrichment.filter((item) => !sourceBatch || item.sourceBatch === sourceBatch);
+    const count = (status: EmailEnrichmentStatus) => items.filter((item) => item.status === status).length;
+    const counts = {
+      pending: count("pending"),
+      claimed: count("claimed"),
+      websiteFound: count("website_found"),
+      emailFound: count("email_found"),
+      noEmailFound: count("no_email_found"),
+      needsReview: count("needs_review"),
+      error: count("error"),
+      skipped: count("skipped")
+    };
+    const completedOnceCount = counts.websiteFound + counts.emailFound + counts.noEmailFound + counts.needsReview + counts.skipped;
+    return {
+      status: "ok" as const,
+      sourceBatch: sourceBatch ?? null,
+      total: items.length,
+      counts,
+      remainingCount: Math.max(0, items.length - completedOnceCount),
+      completedOnceCount,
       warnings: [],
       outboundSent: false as const
     };

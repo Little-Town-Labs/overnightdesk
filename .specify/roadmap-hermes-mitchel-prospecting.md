@@ -23,11 +23,12 @@ before the call, and what follow-up to send afterward.
 
 ## Current Status
 
-**Last Updated:** 2026-06-24
+**Last Updated:** 2026-06-25
 **Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `802e48d`
-**Latest Deployed OvernightDesk Source SHA:** `802e48d`
-**Latest Deployed Platform Standard SHA:** `0833e6b`
+**Latest Merged OvernightDesk SHA:** `5cf5959`
+**Latest Deployed OvernightDesk Source SHA:** `5cf5959`
+**Latest Deployed Engine SHA:** `b87702b`
+**Latest Deployed Platform Standard SHA:** `fca6af6`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
 **Feature 2 Status:** Merged via PR #8 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 3 Status:** Merged via PR #9 and deployed to `aegis-prod/hermes-mitchel`
@@ -36,10 +37,10 @@ before the call, and what follow-up to send afterward.
 **Feature 6 Status:** Merged via PR #12 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 7 Status:** Merged via PR #14 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 8 Status:** Merged via PR #15 and deployed to `aegis-prod/hermes-mitchel`; first bounded BrowserAct-first/CamoFox-enriched sourcing pass completed and verified; Trevor-only CamoFox enrichment tool deployed via PR #16 + PR #17
-**Feature 9 Status:** In progress on branch `009-internal-buyer-intake`; Spec Kit artifacts and local Trevor MCP implementation are being validated
-**Feature 10 Status:** Planned: Mitchel Prospecting Dashboard in OvernightDesk
+**Feature 9 Status:** Merged via PR #18 and deployed to `aegis-prod/hermes-mitchel`
+**Feature 10 Status:** Merged via PR #19 and deployed to Vercel/Aegis production support
 **Feature 11 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
-**Next Work:** Complete Feature 9 quality gate, Aegis production reality check, PR, merge, and deployment.
+**Next Work:** Start Feature 11 with Spec Kit for the public Mitchel Brown landing page, `/books` content path, and buyer inquiry form routed through the Feature 9 intake contract.
 
 ### Production Deployment Record
 
@@ -237,6 +238,42 @@ The first bounded Feature 8 production sourcing pass completed on 2026-06-24:
   `sourcing_runs=1`, `prospect_candidates=10`, `prospects=43`,
   `call_tasks=0`, `interactions=0`, `followup_drafts=0`.
 
+Feature 9 was deployed to `aegis-prod/hermes-mitchel/trevor-db` on
+2026-06-25. The deployment record is in the same deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #18 merged Feature 9 into `main`.
+- Synced built Trevor DB MCP runtime, source/tests, the
+  internal-buyer-intake skill, and the operator runbook to the
+  `hermes-mitchel` data volume.
+- Restarted only `hermes-mitchel`.
+- Direct MCP validation confirmed `capture_buyer_intake` and a validate-only
+  `mitchelbrown.com` intake path with `outbound_sent=false`.
+- Production side-effect check remained clean:
+  `prospects=43`, `interactions=0`, `call_tasks=0`,
+  `followup_drafts=0`, `sourcing_runs=1`, `prospect_candidates=10`.
+
+Feature 10 was deployed on 2026-06-25 after `overnightdesk` PR #19 and
+`overnightdesk-engine` PR #1 merged. The deployment record is in the same
+deploy log.
+
+Deployment facts:
+
+- `overnightdesk` PR #19 merged Feature 10 into `main` at `5cf5959`.
+- `overnightdesk-engine` PR #1 merged the Mitchel summary provisioner support
+  into `main` at `b87702b`.
+- Synced `hermes-mitchel` tenant Trevor DB MCP, skills, and runbooks to the
+  production data volume and restarted `hermes-mitchel`.
+- Rebuilt/restarted `platform-orchestrator` with the production Phase-injected
+  start path.
+- Installed the ARM64 `hermes-provisioner` binary with the
+  `/mitchel/prospecting/summary` route.
+- Public provisioner `/healthz` returned `200`; authenticated Mitchel summary
+  returned `200` with `prospects=25`, `stagedCandidates=10`,
+  `reviewItems=1`, `callTasks=0`, `followUpDrafts=0`, and
+  `outboundSent=false`.
+
 ### Open Follow-Ups
 
 - `overnightdesk-platform-standard` PR #1 documented the new Trevor tables and
@@ -263,8 +300,12 @@ The first bounded Feature 8 production sourcing pass completed on 2026-06-24:
   and has been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
 - `overnightdesk` PR #16 delivered the Trevor-only CamoFox enrichment tool.
 - `overnightdesk` PR #17 fixed the production CamoFox `userId` tab contract.
-- `overnightdesk` commit `802e48d` records the latest deployed
-  `hermes-mitchel` Trevor DB MCP source state.
+- `overnightdesk` PR #18 delivered Feature 9, `internal-buyer-intake`, and has
+  been merged into `main` and deployed to `aegis-prod/hermes-mitchel`.
+- `overnightdesk` PR #19 delivered Feature 10, `mitchel-prospecting-dashboard`,
+  and has been merged into `main` and deployed with Aegis production support.
+- `overnightdesk` commit `5cf5959` records the latest deployed
+  Mitchel dashboard source state.
 
 ---
 
@@ -282,7 +323,7 @@ The first bounded Feature 8 production sourcing pass completed on 2026-06-24:
 | Follow-up draft table | `trevor.followup_drafts` | Live, empty |
 | Prospect sourcing run table | `trevor.prospect_sourcing_runs` | Live, 1 bounded Arlington/Northern Virginia run staged |
 | Prospect candidate table | `trevor.prospect_candidates` | Live, 10 staged candidates; 9 recommended and CamoFox-verified, 1 needs review |
-| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live v1.8.0 with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, follow-up sent logging, prospect sourcing tools, and Trevor-only CamoFox enrichment |
+| Trevor DB MCP server | `/opt/data/mcp-servers/trevor-db` | Live with daily call queue, pre-call brief, post-call capture, follow-up drafting, cadence digest, follow-up sent logging, prospect sourcing, Trevor-only CamoFox enrichment, and internal buyer intake tools |
 | Agiled MCP server | `/opt/data/mcp-servers/agiled` | Live |
 | Diamond client skill | `/opt/data/skills/diamond-clients` | Live |
 | Daily call queue skill | `/opt/data/skills/daily-call-queue` | Live |
@@ -292,8 +333,8 @@ The first bounded Feature 8 production sourcing pass completed on 2026-06-24:
 | Cadence digest skill | `/opt/data/skills/cadence-digest` | Live |
 | Cadence scheduler runbook | `/opt/data/runbooks/cadence-scheduler.md` | Live |
 | Prospect sourcing skill | `/opt/data/skills/prospect-sourcing` | Live |
-| Internal buyer intake skill | `/opt/data/skills/internal-buyer-intake` | Planned by Feature 9 |
-| Internal buyer intake runbook | `/opt/data/runbooks/internal-buyer-intake.md` | Planned by Feature 9 |
+| Internal buyer intake skill | `/opt/data/skills/internal-buyer-intake` | Live |
+| Internal buyer intake runbook | `/opt/data/runbooks/internal-buyer-intake.md` | Live |
 | BrowserAct prospect sourcing skill | `/opt/data/skills/web/browseract` | Live |
 | CamoFox enrichment skill | `/opt/data/skills/web/camofox-browser` | Live |
 | Prospect sourcing runbook | `/opt/data/runbooks/prospect-sourcing.md` | Live |
@@ -537,7 +578,7 @@ manual data entry after live conversations
 
 **Completion Gate:**
 
-- [ ] Mitchel can enter or paste conversation notes from the existing
+- [x] Mitchel can enter or paste conversation notes from the existing
   OvernightDesk/Hermes experience.
 - [x] Intake can find or create a Trevor prospect without creating duplicates
   in local Trevor MCP tests.
@@ -551,8 +592,8 @@ manual data entry after live conversations
   updated, skipped, or failed status without blocking Trevor writes.
 - [x] The same backend contract can support a later public website inquiry
   form, including `mitchelbrown.com` source attribution.
-- [ ] Quality gate and Aegis production validation are complete.
-- [ ] Feature 9 is merged and deployed to `aegis-prod/hermes-mitchel`.
+- [x] Quality gate and Aegis production validation are complete.
+- [x] Feature 9 is merged and deployed to `aegis-prod/hermes-mitchel`.
 
 ---
 
@@ -604,25 +645,25 @@ entry point before the public website form
 
 **Completion Gate:**
 
-- [ ] OvernightDesk identifies the logged-in Mitchel tenant safely, using an
+- [x] OvernightDesk identifies the logged-in Mitchel tenant safely, using an
   explicit `hermes-mitchel` tenant gate rather than broad Hermes detection.
-- [ ] Mitchel can open the OvernightDesk dashboard and see a customized Trevor
+- [x] Mitchel can open the OvernightDesk dashboard and see a customized Trevor
   prospecting workspace.
-- [ ] The workspace keeps the existing embedded Hermes/Trevor chat available.
-- [ ] The workspace keeps the existing link to the Hermes agent dashboard.
-- [ ] The workspace lists Trevor-only prospects and staged candidates that may
+- [x] The workspace keeps the existing embedded Hermes/Trevor chat available.
+- [x] The workspace keeps the existing link to the Hermes agent dashboard.
+- [x] The workspace lists Trevor-only prospects and staged candidates that may
   not exist in Agiled yet.
-- [ ] The workspace shows today's call tasks and review-needed items.
-- [ ] The first implementation is read-only or review-only unless a narrow
+- [x] The workspace shows today's call tasks and review-needed items.
+- [x] The first implementation is read-only or review-only unless a narrow
   write action has explicit tests and no-outbound guarantees.
-- [ ] Any Kanban integration is auth-proxied through OvernightDesk and mapped
+- [x] Any Kanban integration is auth-proxied through OvernightDesk and mapped
   back to Trevor durable records, not exposed directly as an unauthenticated
   dashboard plugin route.
-- [ ] No platform route receives or stores `TREVOR_DB_URL`; Trevor database
+- [x] No platform route receives or stores `TREVOR_DB_URL`; Trevor database
   access stays in the tenant-local boundary unless a separate security review
   approves otherwise.
-- [ ] Quality gate and Aegis production validation are complete.
-- [ ] Feature 10 is merged and deployed.
+- [x] Quality gate and Aegis production validation are complete.
+- [x] Feature 10 is merged and deployed.
 
 ---
 
@@ -990,23 +1031,23 @@ same reviewed intake path used internally.
 
 ### Phase 7
 
-- [ ] **Feature 9: Internal Buyer Intake and Conversation Capture**
+- [x] **Feature 9: Internal Buyer Intake and Conversation Capture**
   - [x] `$speckit-specify` for `internal-buyer-intake`
   - [x] `$speckit-plan`
   - [x] `$speckit-tasks`
   - [x] `$speckit-implement`
-  - [ ] Quality/Aegis validation
-  - [ ] Merge and deployment
+  - [x] Quality/Aegis validation
+  - [x] Merge and deployment
 
 ### Phase 8
 
-- [ ] **Feature 10: Mitchel Prospecting Dashboard in OvernightDesk**
-  - [ ] `$speckit-specify` for `mitchel-prospecting-dashboard`
-  - [ ] `$speckit-plan`
-  - [ ] `$speckit-tasks`
-  - [ ] `$speckit-implement`
-  - [ ] Quality/Aegis validation
-  - [ ] Merge and deployment
+- [x] **Feature 10: Mitchel Prospecting Dashboard in OvernightDesk**
+  - [x] `$speckit-specify` for `mitchel-prospecting-dashboard`
+  - [x] `$speckit-plan`
+  - [x] `$speckit-tasks`
+  - [x] `$speckit-implement`
+  - [x] Quality/Aegis validation
+  - [x] Merge and deployment
 
 ### Phase 9
 
@@ -1060,13 +1101,11 @@ same reviewed intake path used internally.
 
 ## Next Recommended Work
 
-Complete the Feature 9 quality gate and Aegis production reality check. The
-local implementation adds `capture_buyer_intake`, the internal-buyer-intake
-skill, and an operator runbook. Before commit, verify the local suite, build,
-audit output, diff whitespace, code-review-and-quality findings, and live
-production assumptions for `hermes-mitchel`, `tenet0-postgres`, and the Trevor
-schema. After Feature 9 is merged and deployed, start Feature 10 for the
-authenticated Mitchel Prospecting Dashboard in OvernightDesk. Research the live
-Hermes dashboard/Kanban API shape before deciding whether to proxy Kanban or
-build the first UI directly from Trevor workflow endpoints. The Mitchel Brown
-landing page and buyer inquiry form moves to Feature 11.
+Start Feature 11 with Spec Kit for the Mitchel Brown public landing page and
+buyer inquiry form. The first slice should preserve the existing website/book
+content under a `/books` path, create a buyer-focused landing page positioned
+around "Mitchel Brown: Diamonds, Jewelry, and More", and route inquiry
+submissions through the deployed Feature 9 intake contract with spam controls,
+bounded staged writes, and `outboundSent=false` guarantees. Use the Feature 10
+dashboard and deployed Mitchel summary endpoint as the authenticated operator
+review surface for submitted inquiries.

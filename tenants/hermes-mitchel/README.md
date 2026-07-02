@@ -17,6 +17,15 @@ tenants/hermes-mitchel/
 └── skills/               # Tenant-local skills synced into /opt/data/skills
 ```
 
+## Runbooks
+
+- `runbooks/trevor-postgres-toolbox.md`: read-only `psql` checks for Trevor
+  using `tenet0-postgres` or a disposable `postgres:16-alpine` client. Do not
+  install `psql` into the `hermes-mitchel` runtime for routine inspection.
+- `runbooks/prospect-spreadsheet-import.md`: operator flow for loading
+  Mitchel-provided prospect spreadsheets into Trevor and seeding missing-email
+  enrichment.
+
 ## Boundaries
 
 - Tenant workflow code lives here, not under `tenet-0/`.

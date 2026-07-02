@@ -33,7 +33,7 @@ docker exec hermes-mitchel sh -lc 'test -d /opt/data/mcp-servers/trevor-db && ls
 Check table counts before any write smoke:
 
 ```bash
-docker exec tenet0-postgres psql -U overnightdesk_app -d tenet0 -c "select (select count(*) from trevor.prospects) as prospects, (select count(*) from trevor.interactions) as interactions, (select count(*) from trevor.call_tasks) as call_tasks, (select count(*) from trevor.followup_drafts) as followup_drafts;"
+docker exec tenet0-postgres psql -U trevor_app -d tenet0 -c "select (select count(*) from trevor.prospects) as prospects, (select count(*) from trevor.interactions) as interactions, (select count(*) from trevor.call_tasks) as call_tasks, (select count(*) from trevor.followup_drafts) as followup_drafts;"
 ```
 
 ## Safe Operation

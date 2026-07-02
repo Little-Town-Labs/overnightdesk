@@ -96,5 +96,15 @@ test("resolves Trevor CamoFox config from process env first", () => {
 
   assert.equal(config?.url, "http://camofox-browser:9377");
   assert.equal(config?.apiKey, "secret-test-key");
+  assert.equal(config?.timeoutMs, 45_000);
   assert.equal(config?.source, "process_env");
+});
+
+test("allows Trevor CamoFox timeout override from process env", () => {
+  const config = resolveTrevorCamoFoxConfig({
+    CAMOFOX_URL: "http://camofox-browser:9377/",
+    CAMOFOX_TIMEOUT_MS: "60000"
+  });
+
+  assert.equal(config?.timeoutMs, 60_000);
 });

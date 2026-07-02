@@ -323,6 +323,185 @@ export interface PromoteProspectCandidateWrite {
   approvalNote: string | null;
 }
 
+export type EmailEnrichmentStatus =
+  | "pending"
+  | "claimed"
+  | "website_found"
+  | "email_found"
+  | "no_email_found"
+  | "needs_review"
+  | "error"
+  | "skipped";
+
+export type EmailEnrichmentConfidence = "official" | "likely" | "possible" | "unknown";
+
+export interface EmailEnrichmentRecord {
+  queueId: number;
+  prospectId: number;
+  sourceBatch: string;
+  status: EmailEnrichmentStatus;
+  displayName: string;
+  company: string | null;
+  phone: string | null;
+  currentEmail: string | null;
+  notesExcerpt: string | null;
+  candidateWebsite: string | null;
+  contactPageUrl: string | null;
+  evidenceSourceUrl: string | null;
+  verifiedEmail: string | null;
+  confidence: EmailEnrichmentConfidence | null;
+  attemptCount: number;
+  claimedBy: string | null;
+  claimedAt: Date | null;
+  lastCheckedAt: Date | null;
+  lastError: string | null;
+}
+
+export interface EmailEnrichmentSeedInput {
+  sourceBatch?: string;
+  sourceLabel?: string;
+  resetClaimedOlderThanMinutes?: number;
+}
+
+export interface EmailEnrichmentSeedWrite {
+  sourceBatch: string;
+  sourceLabel: string;
+  resetClaimedOlderThanMinutes?: number;
+}
+
+export interface EmailEnrichmentSeedResult {
+  status: "ok";
+  insertedCount: number;
+  alreadyQueuedCount: number;
+  syncedExistingEmailCount: number;
+  resetClaimedCount: number;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface EmailEnrichmentClaimInput {
+  sourceBatch?: string;
+  limit?: number;
+  claimedBy?: string;
+  includeNeedsReview?: boolean;
+}
+
+export interface EmailEnrichmentClaimWrite {
+  sourceBatch: string | null;
+  limit: number;
+  claimedBy: string;
+  includeNeedsReview: boolean;
+}
+
+export interface EmailEnrichmentClaimResult {
+  status: "ok";
+  claimedCount: number;
+  items: EmailEnrichmentRecord[];
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface EmailEnrichmentApplyInput {
+  prospectId: number;
+  status: Exclude<EmailEnrichmentStatus, "pending" | "claimed" | "skipped">;
+  verifiedEmail?: string | null;
+  confidence?: EmailEnrichmentConfidence | null;
+  candidateWebsite?: string | null;
+  contactPageUrl?: string | null;
+  evidenceSourceUrl?: string | null;
+  evidenceNote?: string | null;
+  lastError?: string | null;
+}
+
+export interface EmailEnrichmentApplyWrite {
+  prospectId: number;
+  status: EmailEnrichmentApplyInput["status"];
+  verifiedEmail: string | null;
+  confidence: EmailEnrichmentConfidence | null;
+  candidateWebsite: string | null;
+  contactPageUrl: string | null;
+  evidenceSourceUrl: string | null;
+  evidenceNote: string | null;
+  lastError: string | null;
+}
+
+export interface EmailEnrichmentApplyResult {
+  status: "applied" | "not_found" | "rejected";
+  prospectId: number;
+  queueId: number | null;
+  prospectEmailUpdated: boolean;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface EmailEnrichmentSummaryResult {
+  status: "ok";
+  sourceBatch: string | null;
+  total: number;
+  counts: {
+    pending: number;
+    claimed: number;
+    websiteFound: number;
+    emailFound: number;
+    noEmailFound: number;
+    needsReview: number;
+    error: number;
+    skipped: number;
+  };
+  remainingCount: number;
+  completedOnceCount: number;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface ProspectSpreadsheetRowInput {
+  rowNumber?: number;
+  name?: string | null;
+  company?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  address?: string | null;
+  area?: string | null;
+  notes?: string | null;
+  preferences?: string | null;
+}
+
+export interface ProspectSpreadsheetImportInput {
+  requestedBy?: string;
+  sourceLabel: string;
+  sourceBatch?: string;
+  seedEmailEnrichment?: boolean;
+  createCallTasks?: boolean;
+  rows: ProspectSpreadsheetRowInput[];
+}
+
+export interface ProspectSpreadsheetImportRowResult {
+  rowNumber: number | null;
+  status: BuyerIntakeStatus;
+  prospectId: number | null;
+  interactionId: number | null;
+  dedupeStatus: BuyerIntakeDedupeStatus;
+  warnings: string[];
+}
+
+export interface ProspectSpreadsheetImportResult {
+  status: "imported" | "needs_review" | "rejected";
+  sourceLabel: string;
+  sourceBatch: string;
+  counts: {
+    totalRows: number;
+    created: number;
+    updated: number;
+    needsReview: number;
+    rejected: number;
+  };
+  rows: ProspectSpreadsheetImportRowResult[];
+  emailEnrichment: EmailEnrichmentSeedResult | null;
+  warnings: string[];
+  outboundSent: false;
+}
+
 export interface CadenceDigestInput {
   salesDay?: string;
   limit?: number;
@@ -446,6 +625,7 @@ export interface PostCallCaptureResult {
 
 export type BuyerIntakeSource =
   | "manual_entry"
+  | "spreadsheet_import"
   | "phone_call"
   | "referral"
   | "trade_show"
@@ -757,4 +937,11 @@ export interface QueueRepository {
   reviewProspectCandidates(input: ReviewProspectCandidatesInput): Promise<ReviewProspectCandidatesResult>;
   findProspectSourceCandidateById(candidateId: number): Promise<ProspectSourceCandidateRecord | null>;
   promoteProspectCandidate(input: PromoteProspectCandidateWrite): Promise<PromoteProspectCandidateResult>;
+}
+
+export interface EmailEnrichmentQueueRepository {
+  seedEmailEnrichmentQueue(input: EmailEnrichmentSeedWrite): Promise<EmailEnrichmentSeedResult>;
+  claimEmailEnrichmentBatch(input: EmailEnrichmentClaimWrite): Promise<EmailEnrichmentClaimResult>;
+  applyEmailEnrichmentResult(input: EmailEnrichmentApplyWrite): Promise<EmailEnrichmentApplyResult>;
+  getEmailEnrichmentSummary(sourceBatch?: string | null): Promise<EmailEnrichmentSummaryResult>;
 }

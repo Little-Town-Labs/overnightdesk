@@ -8,6 +8,16 @@ import { capturePostCall, postCallCaptureToMcp } from "./capture.js";
 import { enrichProspectUrlWithCamoFox, trevorCamoFoxEnrichmentToMcp } from "./camofox.js";
 import { createPool, PgQueueRepository } from "./db.js";
 import { cadenceDigestToMcp, generateCadenceDigest } from "./digest.js";
+import {
+  applyProspectEmailEnrichmentResult,
+  claimProspectEmailEnrichmentBatch,
+  emailEnrichmentApplyToMcp,
+  emailEnrichmentClaimToMcp,
+  emailEnrichmentSeedToMcp,
+  emailEnrichmentSummaryToMcp,
+  getProspectEmailEnrichmentSummary,
+  seedProspectEmailEnrichmentQueue
+} from "./email-enrichment.js";
 import { captureBuyerIntake, buyerIntakeToMcp } from "./intake.js";
 import {
   followUpDraftToMcp,
@@ -27,6 +37,7 @@ import {
   taskStatusToMcp
 } from "./queue.js";
 import { sanitizeError } from "./safety.js";
+import { importProspectSpreadsheetRows, prospectSpreadsheetImportToMcp } from "./spreadsheet-import.js";
 import {
   promoteProspectCandidate,
   promoteProspectCandidateToMcp,
@@ -52,7 +63,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.9.0"
+  version: "1.11.0"
 });
 
 server.registerTool("db_query", {
@@ -219,6 +230,7 @@ server.registerTool("capture_buyer_intake", {
     requested_by: z.string().trim().max(120).optional(),
     source: z.enum([
       "manual_entry",
+      "spreadsheet_import",
       "phone_call",
       "referral",
       "trade_show",
@@ -404,6 +416,54 @@ server.registerTool("generate_cadence_digest", {
   }
 });
 
+server.registerTool("import_prospect_spreadsheet_rows", {
+  description: "Import normalized prospect rows from a spreadsheet into Trevor, dedupe through buyer intake, and optionally seed email enrichment. Never sends outbound messages.",
+  inputSchema: {
+    requested_by: z.string().trim().max(120).optional(),
+    source_label: z.string().trim().min(1).max(120),
+    source_batch: z.string().trim().max(120).optional(),
+    seed_email_enrichment: z.boolean().optional(),
+    create_call_tasks: z.boolean().optional(),
+    rows: z.array(z.object({
+      row_number: z.number().int().positive().optional(),
+      name: z.string().trim().max(200).optional(),
+      company: z.string().trim().max(200).optional(),
+      phone: z.string().trim().max(80).optional(),
+      email: z.string().trim().max(200).optional(),
+      website: z.string().trim().max(500).optional(),
+      address: z.string().trim().max(300).optional(),
+      area: z.string().trim().max(120).optional(),
+      notes: z.string().trim().max(1000).optional(),
+      preferences: z.string().trim().max(1000).optional()
+    })).min(1).max(100)
+  }
+}, async (input) => {
+  try {
+    const result = await importProspectSpreadsheetRows(repo, {
+      requestedBy: input.requested_by,
+      sourceLabel: input.source_label,
+      sourceBatch: input.source_batch,
+      seedEmailEnrichment: input.seed_email_enrichment,
+      createCallTasks: input.create_call_tasks,
+      rows: input.rows.map((row) => ({
+        rowNumber: row.row_number,
+        name: row.name,
+        company: row.company,
+        phone: row.phone,
+        email: row.email,
+        website: row.website,
+        address: row.address,
+        area: row.area,
+        notes: row.notes,
+        preferences: row.preferences
+      }))
+    });
+    return { content: [{ type: "text", text: JSON.stringify(prospectSpreadsheetImportToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect spreadsheet import error: ${sanitizeError(err)}` }] };
+  }
+});
+
 server.registerTool("stage_prospect_candidates", {
   description: "Stage BrowserAct-discovered prospect candidates, optionally enriched by CamoFox, for review before creating Trevor prospects. Never sends outbound messages.",
   inputSchema: {
@@ -476,6 +536,94 @@ server.registerTool("trevor_camofox_enrich_url", {
     return { content: [{ type: "text", text: JSON.stringify(trevorCamoFoxEnrichmentToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Trevor CamoFox enrichment error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("seed_prospect_email_enrichment_queue", {
+  description: "Seed a durable, idempotent Trevor prospect email enrichment queue from AGS/imported prospects. Never sends outbound messages.",
+  inputSchema: {
+    source_batch: z.string().trim().max(120).optional(),
+    source_label: z.string().trim().max(80).optional(),
+    reset_claimed_older_than_minutes: z.number().int().min(5).max(1440).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await seedProspectEmailEnrichmentQueue(repo, {
+      sourceBatch: input.source_batch,
+      sourceLabel: input.source_label,
+      resetClaimedOlderThanMinutes: input.reset_claimed_older_than_minutes
+    });
+    return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentSeedToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Email enrichment seed error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("claim_prospect_email_enrichment_batch", {
+  description: "Claim a bounded batch of Trevor prospects needing email enrichment using row locks. Never sends outbound messages.",
+  inputSchema: {
+    source_batch: z.string().trim().max(120).optional(),
+    limit: z.number().int().min(1).max(50).optional(),
+    claimed_by: z.string().trim().max(120).optional(),
+    include_needs_review: z.boolean().optional()
+  }
+}, async (input) => {
+  try {
+    const result = await claimProspectEmailEnrichmentBatch(repo, {
+      sourceBatch: input.source_batch,
+      limit: input.limit,
+      claimedBy: input.claimed_by,
+      includeNeedsReview: input.include_needs_review
+    });
+    return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentClaimToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Email enrichment claim error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("apply_prospect_email_enrichment_result", {
+  description: "Apply one reviewed email enrichment result to the durable queue. Writes prospect.email only for valid official/likely email_found results. Never sends outbound messages.",
+  inputSchema: {
+    prospect_id: z.number().int().positive(),
+    status: z.enum(["website_found", "email_found", "no_email_found", "needs_review", "error"]),
+    verified_email: z.string().trim().max(320).optional(),
+    confidence: z.enum(["official", "likely", "possible", "unknown"]).optional(),
+    candidate_website: z.string().trim().max(500).optional(),
+    contact_page_url: z.string().trim().max(500).optional(),
+    evidence_source_url: z.string().trim().max(500).optional(),
+    evidence_note: z.string().trim().max(1200).optional(),
+    last_error: z.string().trim().max(800).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await applyProspectEmailEnrichmentResult(repo, {
+      prospectId: input.prospect_id,
+      status: input.status,
+      verifiedEmail: input.verified_email,
+      confidence: input.confidence,
+      candidateWebsite: input.candidate_website,
+      contactPageUrl: input.contact_page_url,
+      evidenceSourceUrl: input.evidence_source_url,
+      evidenceNote: input.evidence_note,
+      lastError: input.last_error
+    });
+    return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentApplyToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Email enrichment apply error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("get_prospect_email_enrichment_summary", {
+  description: "Summarize durable Trevor prospect email enrichment progress by status.",
+  inputSchema: {
+    source_batch: z.string().trim().max(120).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await getProspectEmailEnrichmentSummary(repo, input.source_batch);
+    return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentSummaryToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Email enrichment summary error: ${sanitizeError(err)}` }] };
   }
 });
 

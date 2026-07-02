@@ -15,6 +15,13 @@ import type {
   BuyerIntakeRecordWriteResult,
   CallTaskRecord,
   CallTaskStatus,
+  EmailEnrichmentApplyWrite,
+  EmailEnrichmentClaimWrite,
+  EmailEnrichmentConfidence,
+  EmailEnrichmentRecord,
+  EmailEnrichmentSeedWrite,
+  EmailEnrichmentStatus,
+  EmailEnrichmentSummaryResult,
   ExistingCallTask,
   FollowUpChannel,
   FollowUpContext,
@@ -132,6 +139,30 @@ function toFollowUpDraft(row: Record<string, unknown>): FollowUpDraftRecord {
     sentInteractionId: row.sent_interaction_id !== undefined && row.sent_interaction_id !== null ? Number(row.sent_interaction_id) : null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string)
+  };
+}
+
+function toEmailEnrichmentRecord(row: Record<string, unknown>): EmailEnrichmentRecord {
+  return {
+    queueId: Number(row.queue_id ?? row.id),
+    prospectId: Number(row.prospect_id),
+    sourceBatch: row.source_batch as string,
+    status: row.status as EmailEnrichmentStatus,
+    displayName: row.display_name as string,
+    company: row.company as string | null,
+    phone: row.phone as string | null,
+    currentEmail: row.current_email as string | null,
+    notesExcerpt: row.notes_excerpt as string | null,
+    candidateWebsite: row.candidate_website as string | null,
+    contactPageUrl: row.contact_page_url as string | null,
+    evidenceSourceUrl: row.evidence_source_url as string | null,
+    verifiedEmail: row.verified_email as string | null,
+    confidence: row.confidence as EmailEnrichmentConfidence | null,
+    attemptCount: Number(row.attempt_count ?? 0),
+    claimedBy: row.claimed_by as string | null,
+    claimedAt: row.claimed_at ? new Date(row.claimed_at as string) : null,
+    lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at as string) : null,
+    lastError: row.last_error as string | null
   };
 }
 
@@ -1060,5 +1091,342 @@ export class PgQueueRepository implements QueueRepository {
 
   async promoteProspectCandidate(input: Parameters<typeof promoteProspectCandidateInDb>[1]) {
     return promoteProspectCandidateInDb(this.pool, input);
+  }
+
+  async seedEmailEnrichmentQueue(input: EmailEnrichmentSeedWrite) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+
+      const resetMinutes = input.resetClaimedOlderThanMinutes && input.resetClaimedOlderThanMinutes > 0
+        ? Math.trunc(input.resetClaimedOlderThanMinutes)
+        : null;
+      const reset = resetMinutes
+        ? await client.query(
+          `
+          update trevor.prospect_email_enrichment
+          set status = 'pending',
+              claimed_by = null,
+              claimed_at = null,
+              next_retry_at = now(),
+              last_error = coalesce(last_error, 'stale claimed work reset'),
+              updated_at = now()
+          where status = 'claimed'
+            and claimed_at < now() - ($1::int * interval '1 minute')
+          `,
+          [resetMinutes]
+        )
+        : { rowCount: 0 };
+
+      const synced = await client.query(
+        `
+        update trevor.prospect_email_enrichment e
+        set status = 'email_found',
+            verified_email = p.email,
+            confidence = coalesce(e.confidence, 'official'),
+            evidence_source_url = coalesce(e.evidence_source_url, 'trevor.prospects.email'),
+            evidence_note = coalesce(e.evidence_note, 'Prospect already had an email before enrichment queue processing.'),
+            last_checked_at = coalesce(e.last_checked_at, now()),
+            updated_at = now()
+        from trevor.prospects p
+        where p.id = e.prospect_id
+          and nullif(btrim(coalesce(p.email, '')), '') is not null
+          and e.status in ('pending', 'claimed', 'error')
+        `
+      );
+
+      const inserted = await client.query(
+        `
+        with eligible as (
+          select p.id, p.email, to_jsonb(p)->>'website' as website
+          from trevor.prospects p
+          where coalesce(p.status, 'active') <> 'archived'
+            and (
+              p.lead_source ilike '%' || $2::text || '%'
+              or p.notes ilike '%' || $2::text || '%'
+            )
+        ),
+        inserted as (
+          insert into trevor.prospect_email_enrichment (
+            prospect_id,
+            source_batch,
+            status,
+            candidate_website,
+            verified_email,
+            confidence,
+            evidence_source_url,
+            last_checked_at,
+            evidence_note
+          )
+          select
+            eligible.id,
+            $1,
+            case when nullif(btrim(coalesce(eligible.email, '')), '') is null then 'pending' else 'email_found' end,
+            nullif(btrim(eligible.website), ''),
+            nullif(btrim(eligible.email), ''),
+            case when nullif(btrim(coalesce(eligible.email, '')), '') is null then null else 'official' end,
+            case when nullif(btrim(coalesce(eligible.email, '')), '') is null then null else 'trevor.prospects.email' end,
+            case when nullif(btrim(coalesce(eligible.email, '')), '') is null then null else now() end,
+            case when nullif(btrim(coalesce(eligible.email, '')), '') is null then null else 'Prospect already had an email before enrichment queue processing.' end
+          from eligible
+          on conflict (prospect_id) do nothing
+          returning 1
+        )
+        select
+          (select count(*) from inserted) as inserted_count,
+          (select count(*) from eligible) as eligible_count
+        `,
+        [input.sourceBatch, input.sourceLabel]
+      );
+
+      await client.query("commit");
+      const insertedCount = Number(inserted.rows[0]?.inserted_count ?? 0);
+      const eligibleCount = Number(inserted.rows[0]?.eligible_count ?? 0);
+      return {
+        status: "ok" as const,
+        insertedCount,
+        alreadyQueuedCount: Math.max(0, eligibleCount - insertedCount),
+        syncedExistingEmailCount: synced.rowCount ?? 0,
+        resetClaimedCount: reset.rowCount ?? 0,
+        warnings: [],
+        outboundSent: false as const
+      };
+    } catch (err) {
+      await client.query("rollback");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async claimEmailEnrichmentBatch(input: EmailEnrichmentClaimWrite) {
+    await this.pool.query(
+      `
+      update trevor.prospect_email_enrichment e
+      set status = 'email_found',
+          verified_email = p.email,
+          confidence = coalesce(e.confidence, 'official'),
+          evidence_source_url = coalesce(e.evidence_source_url, 'trevor.prospects.email'),
+          evidence_note = coalesce(e.evidence_note, 'Prospect already had an email before enrichment queue processing.'),
+          last_checked_at = coalesce(e.last_checked_at, now()),
+          updated_at = now()
+      from trevor.prospects p
+      where p.id = e.prospect_id
+        and nullif(btrim(coalesce(p.email, '')), '') is not null
+        and e.status in ('pending', 'claimed', 'error')
+      `
+    );
+
+    const reviewFilter = input.includeNeedsReview ? "or e.status = 'needs_review'" : "";
+    const result = await this.pool.query(
+      `
+      with selected as (
+        select e.id
+        from trevor.prospect_email_enrichment e
+        join trevor.prospects p on p.id = e.prospect_id
+        where ($2::text is null or e.source_batch = $2::text)
+          and nullif(btrim(coalesce(p.email, '')), '') is null
+          and (
+            e.status = 'pending'
+            or (e.status = 'error' and coalesce(e.next_retry_at, now()) <= now())
+            ${reviewFilter}
+          )
+        order by e.updated_at asc, e.id asc
+        for update skip locked
+        limit $1
+      ),
+      claimed as (
+        update trevor.prospect_email_enrichment e
+        set status = 'claimed',
+            claimed_by = $3,
+            claimed_at = now(),
+            attempt_count = e.attempt_count + 1,
+            updated_at = now()
+        from selected
+        where e.id = selected.id
+        returning e.*
+      )
+      select
+        claimed.id as queue_id,
+        claimed.prospect_id,
+        claimed.source_batch,
+        claimed.status,
+        coalesce(nullif(trim(p.name), ''), nullif(trim(p.company), ''), 'Prospect ' || p.id::text) as display_name,
+        p.company,
+        p.phone,
+        p.email as current_email,
+        left(p.notes, 800) as notes_excerpt,
+        claimed.candidate_website,
+        claimed.contact_page_url,
+        claimed.evidence_source_url,
+        claimed.verified_email,
+        claimed.confidence,
+        claimed.attempt_count,
+        claimed.claimed_by,
+        claimed.claimed_at,
+        claimed.last_checked_at,
+        claimed.last_error
+      from claimed
+      join trevor.prospects p on p.id = claimed.prospect_id
+      order by claimed.id asc
+      `,
+      [input.limit, input.sourceBatch, input.claimedBy]
+    );
+
+    return {
+      status: "ok" as const,
+      claimedCount: result.rowCount ?? 0,
+      items: result.rows.map(toEmailEnrichmentRecord),
+      warnings: [],
+      outboundSent: false as const
+    };
+  }
+
+  async applyEmailEnrichmentResult(input: EmailEnrichmentApplyWrite) {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+      const found = await client.query(
+        `
+        select e.id, e.status, p.email as current_email
+        from trevor.prospect_email_enrichment e
+        join trevor.prospects p on p.id = e.prospect_id
+        where e.prospect_id = $1
+        for update of e, p
+        `,
+        [input.prospectId]
+      );
+      const row = found.rows[0];
+      if (!row) {
+        await client.query("commit");
+        return {
+          status: "not_found" as const,
+          prospectId: input.prospectId,
+          queueId: null,
+          prospectEmailUpdated: false,
+          warnings: ["No email enrichment queue row exists for this prospect."],
+          outboundSent: false as const
+        };
+      }
+
+      const queueId = Number(row.id);
+      const currentEmail = typeof row.current_email === "string" && row.current_email.trim() ? row.current_email.trim() : null;
+      const shouldWriteProspectEmail = input.status === "email_found" && input.verifiedEmail !== null && !currentEmail;
+      const note = [
+        input.status === "email_found" ? `Email enrichment: found ${input.verifiedEmail}.` : `Email enrichment: ${input.status}.`,
+        input.evidenceSourceUrl ? `Source: ${input.evidenceSourceUrl}.` : null,
+        input.evidenceNote
+      ].filter(Boolean).join(" ");
+
+      if (shouldWriteProspectEmail) {
+        await client.query(
+          `
+          update trevor.prospects
+          set email = $2,
+              preferred_channel = coalesce(preferred_channel, 'email'),
+              notes = case
+                when nullif($3::text, '') is null then notes
+                when notes ilike '%' || $3::text || '%' then notes
+                when nullif(coalesce(notes, ''), '') is null then $3::text
+                else notes || E'\n' || $3::text
+              end,
+              updated_at = now()
+          where id = $1
+          `,
+          [input.prospectId, input.verifiedEmail, note]
+        );
+      }
+
+      await client.query(
+        `
+        update trevor.prospect_email_enrichment
+        set status = $2,
+            claimed_by = null,
+            claimed_at = null,
+            last_checked_at = now(),
+            next_retry_at = case when $2 = 'error' then now() + interval '1 hour' else null end,
+            candidate_website = coalesce($3, candidate_website),
+            contact_page_url = coalesce($4, contact_page_url),
+            evidence_source_url = coalesce($5, evidence_source_url),
+            verified_email = coalesce($6, verified_email),
+            confidence = coalesce($7, confidence),
+            evidence_note = coalesce($8, evidence_note),
+            last_error = case when $2 = 'error' then $9 else null end,
+            updated_at = now()
+        where id = $1
+        `,
+        [
+          queueId,
+          input.status,
+          input.candidateWebsite,
+          input.contactPageUrl,
+          input.evidenceSourceUrl,
+          input.verifiedEmail,
+          input.confidence,
+          input.evidenceNote,
+          input.lastError
+        ]
+      );
+
+      await client.query("commit");
+      return {
+        status: "applied" as const,
+        prospectId: input.prospectId,
+        queueId,
+        prospectEmailUpdated: shouldWriteProspectEmail,
+        warnings: currentEmail && input.status === "email_found" ? ["Prospect already had an email; queue was updated but prospect.email was left unchanged."] : [],
+        outboundSent: false as const
+      };
+    } catch (err) {
+      await client.query("rollback");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async getEmailEnrichmentSummary(sourceBatch?: string | null): Promise<EmailEnrichmentSummaryResult> {
+    const result = await this.pool.query(
+      `
+      select status, count(*)::int as count
+      from trevor.prospect_email_enrichment
+      where ($1::text is null or source_batch = $1::text)
+      group by status
+      `,
+      [sourceBatch ?? null]
+    );
+    const counts = {
+      pending: 0,
+      claimed: 0,
+      websiteFound: 0,
+      emailFound: 0,
+      noEmailFound: 0,
+      needsReview: 0,
+      error: 0,
+      skipped: 0
+    };
+    for (const row of result.rows) {
+      const count = Number(row.count ?? 0);
+      if (row.status === "pending") counts.pending = count;
+      if (row.status === "claimed") counts.claimed = count;
+      if (row.status === "website_found") counts.websiteFound = count;
+      if (row.status === "email_found") counts.emailFound = count;
+      if (row.status === "no_email_found") counts.noEmailFound = count;
+      if (row.status === "needs_review") counts.needsReview = count;
+      if (row.status === "error") counts.error = count;
+      if (row.status === "skipped") counts.skipped = count;
+    }
+    const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+    const completedOnceCount = counts.websiteFound + counts.emailFound + counts.noEmailFound + counts.needsReview + counts.skipped;
+    return {
+      status: "ok",
+      sourceBatch: sourceBatch ?? null,
+      total,
+      counts,
+      remainingCount: Math.max(0, total - completedOnceCount),
+      completedOnceCount,
+      warnings: [],
+      outboundSent: false
+    };
   }
 }
