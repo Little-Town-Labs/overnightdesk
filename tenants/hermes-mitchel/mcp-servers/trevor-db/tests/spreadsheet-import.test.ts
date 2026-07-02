@@ -52,6 +52,8 @@ test("imports normalized spreadsheet rows and seeds email enrichment queue", asy
   assert.equal(repo.interactions[1]?.direction, "inbound");
   assert.equal(result.emailEnrichment?.insertedCount, 2);
   assert.equal(repo.emailEnrichment.length, 2);
+  assert.equal(repo.emailEnrichment.find((item) => item.prospectId === 1)?.candidateWebsite, "https://existing.example");
+  assert.equal(repo.emailEnrichment.find((item) => item.prospectId === 2)?.candidateWebsite, "https://new-buyer.example");
   assert.equal(repo.prospectImportRuns.length, 1);
   assert.equal(repo.prospectImportRuns[0]?.sourceBatch, "ags_2026_07_02");
   assert.equal(repo.prospectImportRuns[0]?.createdCount, 1);

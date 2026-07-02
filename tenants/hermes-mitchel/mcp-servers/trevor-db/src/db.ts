@@ -1202,7 +1202,20 @@ export class PgQueueRepository implements QueueRepository {
       const inserted = await client.query(
         `
         with eligible as (
-          select p.id, p.email, to_jsonb(p)->>'website' as website
+          select
+            p.id,
+            p.email,
+            nullif(
+              regexp_replace(
+                coalesce(
+                  nullif(btrim(to_jsonb(p)->>'website'), ''),
+                  (regexp_match(coalesce(p.notes, ''), 'Website:\\s*(https?://[^[:space:]]+)'))[1]
+                ),
+                '[\\.,;\\)]+$',
+                ''
+              ),
+              ''
+            ) as website
           from trevor.prospects p
           where coalesce(p.status, 'active') <> 'archived'
             and (
@@ -1215,6 +1228,16 @@ export class PgQueueRepository implements QueueRepository {
                 )
               )
             )
+        ),
+        website_synced as (
+          update trevor.prospect_email_enrichment e
+          set candidate_website = eligible.website,
+              updated_at = now()
+          from eligible
+          where e.prospect_id = eligible.id
+            and nullif(btrim(coalesce(e.candidate_website, '')), '') is null
+            and nullif(btrim(coalesce(eligible.website, '')), '') is not null
+          returning 1
         ),
         inserted as (
           insert into trevor.prospect_email_enrichment (

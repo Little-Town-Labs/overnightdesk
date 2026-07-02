@@ -47,6 +47,11 @@ export class FakeQueueRepository implements QueueRepository {
 
   constructor(public candidates: ProspectCandidate[]) {}
 
+  private candidateWebsite(candidate: ProspectCandidate): string | null {
+    const match = /Website:\s*(https?:\/\/[^\s]+)/i.exec(candidate.notes ?? "");
+    return match?.[1]?.replace(/[.,;)]+$/, "") ?? null;
+  }
+
   async listProspectCandidates(_salesDay: string, limit: number, options: { callableOnly?: boolean } = {}): Promise<ProspectCandidate[]> {
     const candidates = options.callableOnly
       ? this.candidates.filter((candidate) => !candidate.doNotContact && candidate.phone)
@@ -648,7 +653,12 @@ export class FakeQueueRepository implements QueueRepository {
     );
 
     for (const candidate of eligible) {
-      if (this.emailEnrichment.some((item) => item.prospectId === candidate.id)) continue;
+      const candidateWebsite = this.candidateWebsite(candidate);
+      const existing = this.emailEnrichment.find((item) => item.prospectId === candidate.id);
+      if (existing) {
+        if (!existing.candidateWebsite && candidateWebsite) existing.candidateWebsite = candidateWebsite;
+        continue;
+      }
       insertedCount += 1;
       this.emailEnrichment.push({
         queueId: this.emailEnrichment.reduce((max, item) => Math.max(max, item.queueId), 0) + 1,
@@ -660,7 +670,7 @@ export class FakeQueueRepository implements QueueRepository {
         phone: candidate.phone,
         currentEmail: candidate.email,
         notesExcerpt: candidate.notes,
-        candidateWebsite: null,
+        candidateWebsite,
         contactPageUrl: null,
         evidenceSourceUrl: null,
         verifiedEmail: candidate.email,
