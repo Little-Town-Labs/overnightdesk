@@ -458,6 +458,12 @@ export interface EmailEnrichmentSummaryResult {
 export interface ProspectImportBatchLookupResult {
   status: "found" | "not_found";
   sourceBatch: string | null;
+  sourceLabel: string | null;
+  importRunId: number | null;
+  importedAt: Date | null;
+  filePath: string | null;
+  originalFilename: string | null;
+  totalRows: number | null;
   queuedCount: number;
   imported: {
     created: number | null;
@@ -491,6 +497,8 @@ export interface ProspectSpreadsheetImportInput {
   requestedBy?: string;
   sourceLabel: string;
   sourceBatch?: string;
+  filePath?: string;
+  originalFilename?: string;
   seedEmailEnrichment?: boolean;
   createCallTasks?: boolean;
   rows: ProspectSpreadsheetRowInput[];
@@ -551,6 +559,24 @@ export interface ProspectSpreadsheetFileImportResult {
   import: ProspectSpreadsheetImportResult;
   warnings: string[];
   outboundSent: false;
+}
+
+export interface ProspectImportRunWrite {
+  sourceBatch: string;
+  sourceLabel: string;
+  filePath: string | null;
+  originalFilename: string | null;
+  requestedBy: string | null;
+  totalRows: number;
+  createdCount: number;
+  updatedCount: number;
+  needsReviewCount: number;
+  rejectedCount: number;
+  enrichmentInsertedCount: number;
+  enrichmentAlreadyQueuedCount: number;
+  enrichmentExistingEmailCount: number;
+  enrichmentResetClaimedCount: number;
+  warnings: string[];
 }
 
 export interface CadenceDigestInput {
@@ -992,6 +1018,7 @@ export interface QueueRepository {
 
 export interface EmailEnrichmentQueueRepository {
   seedEmailEnrichmentQueue(input: EmailEnrichmentSeedWrite): Promise<EmailEnrichmentSeedResult>;
+  recordProspectImportRun(input: ProspectImportRunWrite): Promise<{ id: number | null }>;
   claimEmailEnrichmentBatch(input: EmailEnrichmentClaimWrite): Promise<EmailEnrichmentClaimResult>;
   applyEmailEnrichmentResult(input: EmailEnrichmentApplyWrite): Promise<EmailEnrichmentApplyResult>;
   getEmailEnrichmentSummary(sourceBatch?: string | null): Promise<EmailEnrichmentSummaryResult>;

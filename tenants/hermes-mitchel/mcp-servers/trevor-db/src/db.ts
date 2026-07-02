@@ -32,6 +32,7 @@ import type {
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
   ProspectCandidate,
+  ProspectImportRunWrite,
   ProspectInteraction,
   ProspectSourceCandidateRecord,
   ProspectSourcingRunRecord,
@@ -1093,6 +1094,66 @@ export class PgQueueRepository implements QueueRepository {
     return promoteProspectCandidateInDb(this.pool, input);
   }
 
+  async recordProspectImportRun(input: ProspectImportRunWrite) {
+    const result = await this.pool.query(
+      `
+      insert into trevor.prospect_import_runs (
+        source_batch,
+        source_label,
+        file_path,
+        original_filename,
+        requested_by,
+        total_rows,
+        created_count,
+        updated_count,
+        needs_review_count,
+        rejected_count,
+        enrichment_inserted_count,
+        enrichment_already_queued_count,
+        enrichment_existing_email_count,
+        enrichment_reset_claimed_count,
+        warnings
+      )
+      values (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        $7,
+        $8,
+        $9,
+        $10,
+        $11,
+        $12,
+        $13,
+        $14,
+        $15::jsonb
+      )
+      returning id
+      `,
+      [
+        input.sourceBatch,
+        input.sourceLabel,
+        input.filePath,
+        input.originalFilename,
+        input.requestedBy,
+        input.totalRows,
+        input.createdCount,
+        input.updatedCount,
+        input.needsReviewCount,
+        input.rejectedCount,
+        input.enrichmentInsertedCount,
+        input.enrichmentAlreadyQueuedCount,
+        input.enrichmentExistingEmailCount,
+        input.enrichmentResetClaimedCount,
+        JSON.stringify(input.warnings)
+      ]
+    );
+    return { id: result.rows[0]?.id ? Number(result.rows[0].id) : null };
+  }
+
   async seedEmailEnrichmentQueue(input: EmailEnrichmentSeedWrite) {
     const client = await this.pool.connect();
     try {
@@ -1440,6 +1501,66 @@ export class PgQueueRepository implements QueueRepository {
   }
 
   async getLatestEmailEnrichmentBatch() {
+    try {
+      const latestRun = await this.pool.query(
+        `
+        select
+          id,
+          source_batch,
+          source_label,
+          file_path,
+          original_filename,
+          total_rows,
+          created_count,
+          updated_count,
+          needs_review_count,
+          rejected_count,
+          created_at
+        from trevor.prospect_import_runs
+        where nullif(btrim(source_batch), '') is not null
+        order by created_at desc nulls last, id desc
+        limit 1
+        `
+      );
+      const run = latestRun.rows[0];
+      if (run?.source_batch) {
+        const sourceBatch = run.source_batch as string;
+        const summary = await this.getEmailEnrichmentSummary(sourceBatch);
+        const importedAt = run.created_at instanceof Date
+          ? run.created_at
+          : run.created_at
+            ? new Date(run.created_at)
+            : null;
+        return {
+          status: "found" as const,
+          sourceBatch,
+          sourceLabel: run.source_label as string | null,
+          importRunId: run.id ? Number(run.id) : null,
+          importedAt,
+          filePath: run.file_path as string | null,
+          originalFilename: run.original_filename as string | null,
+          totalRows: Number(run.total_rows ?? 0),
+          queuedCount: summary.total,
+          imported: {
+            created: Number(run.created_count ?? 0),
+            updated: Number(run.updated_count ?? 0),
+            needsReview: Number(run.needs_review_count ?? 0),
+            rejected: Number(run.rejected_count ?? 0)
+          },
+          counts: summary.counts,
+          remainingCount: summary.remainingCount,
+          completedOnceCount: summary.completedOnceCount,
+          latestQueuedAt: importedAt,
+          suggestedTelegramCommand: `continue enrichment batch ${sourceBatch}, 10 rows`,
+          warnings: [],
+          outboundSent: false as const
+        };
+      }
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code !== "42P01") throw err;
+    }
+
     const latest = await this.pool.query(
       `
       select source_batch, max(created_at) as latest_queued_at, max(id) as latest_queue_id
@@ -1455,6 +1576,12 @@ export class PgQueueRepository implements QueueRepository {
       return {
         status: "not_found" as const,
         sourceBatch: null,
+        sourceLabel: null,
+        importRunId: null,
+        importedAt: null,
+        filePath: null,
+        originalFilename: null,
+        totalRows: null,
         queuedCount: 0,
         imported: {
           created: null,
@@ -1490,6 +1617,12 @@ export class PgQueueRepository implements QueueRepository {
     return {
       status: "found" as const,
       sourceBatch,
+      sourceLabel: null,
+      importRunId: null,
+      importedAt: null,
+      filePath: null,
+      originalFilename: null,
+      totalRows: null,
       queuedCount: summary.total,
       imported: {
         created: null,

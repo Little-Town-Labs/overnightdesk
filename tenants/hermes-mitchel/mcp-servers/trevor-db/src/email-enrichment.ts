@@ -197,6 +197,12 @@ export function emailEnrichmentLatestBatchToMcp(result: ProspectImportBatchLooku
   return {
     status: result.status,
     source_batch: result.sourceBatch,
+    source_label: result.sourceLabel,
+    import_run_id: result.importRunId,
+    imported_at: result.importedAt?.toISOString() ?? null,
+    file_path: result.filePath,
+    original_filename: result.originalFilename,
+    total_rows: result.totalRows,
     queued_count: result.queuedCount,
     imported: {
       created: result.imported.created,

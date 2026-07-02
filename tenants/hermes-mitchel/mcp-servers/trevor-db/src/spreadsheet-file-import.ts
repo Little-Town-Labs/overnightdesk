@@ -261,6 +261,8 @@ export async function importProspectSpreadsheetFile(
     requestedBy: input.requestedBy,
     sourceLabel: input.sourceLabel,
     sourceBatch: input.sourceBatch,
+    filePath: input.filePath,
+    originalFilename: path.basename(input.filePath),
     seedEmailEnrichment: input.seedEmailEnrichment,
     createCallTasks: input.createCallTasks,
     rows: parsed.rows

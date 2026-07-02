@@ -24,8 +24,8 @@ files should be exported to `.xlsx` or CSV before processing.
   - `process_prospect_email_enrichment_batch`
   - `trevor_camofox_enrich_url`
   - `apply_prospect_email_enrichment_result`
-- `tenet0-postgres`: source of truth for `trevor.prospects` and
-  `trevor.prospect_email_enrichment`.
+- `tenet0-postgres`: source of truth for `trevor.prospects`,
+  `trevor.prospect_import_runs`, and `trevor.prospect_email_enrichment`.
 - `camofox-browser`: public website/contact-page verification when email is
   missing.
 
@@ -48,6 +48,13 @@ Check the current queue:
 ```bash
 docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
   -c "select status, count(*) from trevor.prospect_email_enrichment group by status order by status;"
+```
+
+Confirm the import-run ledger exists:
+
+```bash
+docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
+  -c "select count(*) from trevor.prospect_import_runs;"
 ```
 
 ## Import Flow
@@ -75,6 +82,9 @@ docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
    - `updated`: existing prospects matched by phone, email, company, or name.
    - `needs_review`: ambiguous matches that require operator/Mitchel review.
    - `rejected`: anonymous or incomplete rows.
+   Trevor also records these counts in `trevor.prospect_import_runs`, including
+   file metadata for file-based imports and the enrichment seed counts for the
+   imported prospect IDs.
 6. If any rows are `needs_review`, stop and present those rows before creating
    outreach work.
 7. Process bounded email-enrichment batches only after import counts look right.
@@ -102,10 +112,10 @@ CamoFox, discovers obvious contact links from homepage links, and applies
 results only through the same reviewed `apply_prospect_email_enrichment_result`
 rules.
 
-Current limitation: `get_latest_prospect_import_batch` resolves the latest
-batch from the durable enrichment queue. It returns queued/progress counts, but
-created/updated import row counts are `null` until a dedicated import-run
-ledger exists.
+`get_latest_prospect_import_batch` resolves the latest import from
+`trevor.prospect_import_runs` and joins the current enrichment queue progress
+for that `source_batch`. For older queue-only batches that predate the ledger,
+it falls back to the durable enrichment queue and returns `null` import counts.
 
 Expected summary buckets:
 

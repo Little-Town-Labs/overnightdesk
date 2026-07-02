@@ -1,7 +1,7 @@
 ---
 name: prospect-spreadsheet-import
 description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor, resolve the latest import batch, then process conservative missing-email enrichment batches without sending outbound messages.
-version: 1.4.0
+version: 1.5.0
 author: OvernightDesk
 metadata:
   hermes:
@@ -27,8 +27,11 @@ load a provided list of buyers.
 5. If `needs_review` is nonzero, stop and ask Mitchel or the operator to
    resolve the ambiguous rows.
 6. If Mitchel refers to the last AGS import without a batch ID, call
-   `get_latest_prospect_import_batch` first. Use its `source_batch` only when
-   `status=found`; otherwise ask Mitchel for the batch ID.
+   `get_latest_prospect_import_batch` first. It should resolve the latest
+   import from `trevor.prospect_import_runs`, including created/updated counts
+   and current enrichment progress for that `source_batch`. Use its
+   `source_batch` only when `status=found`; otherwise ask Mitchel for the
+   batch ID.
 7. If import counts are acceptable, process missing emails through the durable
    queue with `process_prospect_email_enrichment_batch`, using a first-pass
    limit of 5-10.
@@ -86,3 +89,5 @@ After a successful import, run a small enrichment batch:
 - Treat `needs_review` as the correct result for missing websites, conflicting
   public emails, chain stores, or uncertain evidence.
 - Do not process an unscoped queue when "last import" cannot be resolved.
+- Treat `trevor.prospect_import_runs` as the durable import ledger; queue-only
+  latest-batch results are legacy fallback data and may have null import counts.

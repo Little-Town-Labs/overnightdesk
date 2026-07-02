@@ -86,6 +86,28 @@ export async function importProspectSpreadsheetRows(
   const emailEnrichment = input.seedEmailEnrichment === false
     ? null
     : await repo.seedEmailEnrichmentQueue({ sourceBatch: batch, sourceLabel: label, prospectIds: importedProspectIds });
+  try {
+    await repo.recordProspectImportRun({
+      sourceBatch: batch,
+      sourceLabel: label,
+      filePath: clean(input.filePath, 1000),
+      originalFilename: clean(input.originalFilename, 300),
+      requestedBy: clean(input.requestedBy, 120),
+      totalRows: results.length,
+      createdCount: created,
+      updatedCount: updated,
+      needsReviewCount: needsReview,
+      rejectedCount: rejected,
+      enrichmentInsertedCount: emailEnrichment?.insertedCount ?? 0,
+      enrichmentAlreadyQueuedCount: emailEnrichment?.alreadyQueuedCount ?? 0,
+      enrichmentExistingEmailCount: emailEnrichment?.syncedExistingEmailCount ?? 0,
+      enrichmentResetClaimedCount: emailEnrichment?.resetClaimedCount ?? 0,
+      warnings
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "unknown error";
+    warnings.push(`Import run ledger write failed: ${message}`);
+  }
 
   return {
     status: rejected === results.length ? "rejected" : needsReview > 0 ? "needs_review" : "imported",

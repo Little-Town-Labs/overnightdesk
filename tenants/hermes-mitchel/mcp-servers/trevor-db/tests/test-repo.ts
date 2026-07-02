@@ -23,6 +23,7 @@ import type {
   PostCallCaptureWriteResult,
   PromoteProspectCandidateWrite,
   ProspectImportBatchLookupResult,
+  ProspectImportRunWrite,
   ProspectCandidate,
   ProspectInteraction,
   ProspectSourceCandidateRecord,
@@ -40,6 +41,7 @@ export class FakeQueueRepository implements QueueRepository {
   public sourcingRuns: ProspectSourcingRunRecord[] = [];
   public sourcingCandidates: ProspectSourceCandidateRecord[] = [];
   public emailEnrichment: EmailEnrichmentRecord[] = [];
+  public prospectImportRuns: Array<ProspectImportRunWrite & { id: number; createdAt: Date }> = [];
   public created = 0;
   public captured = 0;
 
@@ -682,6 +684,16 @@ export class FakeQueueRepository implements QueueRepository {
     };
   }
 
+  async recordProspectImportRun(input: ProspectImportRunWrite) {
+    const id = this.prospectImportRuns.reduce((max, item) => Math.max(max, item.id), 0) + 1;
+    this.prospectImportRuns.push({
+      ...input,
+      id,
+      createdAt: new Date(`2026-06-25T12:${String(id).padStart(2, "0")}:00Z`)
+    });
+    return { id };
+  }
+
   async claimEmailEnrichmentBatch(input: EmailEnrichmentClaimWrite) {
     for (const item of this.emailEnrichment) {
       const prospect = this.candidates.find((candidate) => candidate.id === item.prospectId);
@@ -796,6 +808,35 @@ export class FakeQueueRepository implements QueueRepository {
   }
 
   async getLatestEmailEnrichmentBatch(): Promise<ProspectImportBatchLookupResult> {
+    const latestRun = [...this.prospectImportRuns]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id - a.id)[0];
+    if (latestRun) {
+      const summary = await this.getEmailEnrichmentSummary(latestRun.sourceBatch);
+      return {
+        status: "found",
+        sourceBatch: latestRun.sourceBatch,
+        sourceLabel: latestRun.sourceLabel,
+        importRunId: latestRun.id,
+        importedAt: latestRun.createdAt,
+        filePath: latestRun.filePath,
+        originalFilename: latestRun.originalFilename,
+        totalRows: latestRun.totalRows,
+        queuedCount: summary.total,
+        imported: {
+          created: latestRun.createdCount,
+          updated: latestRun.updatedCount,
+          needsReview: latestRun.needsReviewCount,
+          rejected: latestRun.rejectedCount
+        },
+        counts: summary.counts,
+        remainingCount: summary.remainingCount,
+        completedOnceCount: summary.completedOnceCount,
+        latestQueuedAt: latestRun.createdAt,
+        suggestedTelegramCommand: `continue enrichment batch ${latestRun.sourceBatch}, 10 rows`,
+        warnings: [],
+        outboundSent: false
+      };
+    }
     const latest = [...this.emailEnrichment]
       .filter((item) => item.sourceBatch)
       .sort((a, b) => b.queueId - a.queueId)[0];
@@ -803,6 +844,12 @@ export class FakeQueueRepository implements QueueRepository {
       return {
         status: "not_found",
         sourceBatch: null,
+        sourceLabel: null,
+        importRunId: null,
+        importedAt: null,
+        filePath: null,
+        originalFilename: null,
+        totalRows: null,
         queuedCount: 0,
         imported: {
           created: null,
@@ -832,6 +879,12 @@ export class FakeQueueRepository implements QueueRepository {
     return {
       status: "found",
       sourceBatch: latest.sourceBatch,
+      sourceLabel: null,
+      importRunId: null,
+      importedAt: null,
+      filePath: null,
+      originalFilename: null,
+      totalRows: null,
       queuedCount: summary.total,
       imported: {
         created: null,

@@ -179,3 +179,65 @@ test("returns the latest source batch from the enrichment queue with progress co
   assert.equal(mcp.suggested_telegram_command, "continue enrichment batch ags_2026_07_02, 10 rows");
   assert.equal(mcp.outbound_sent, false);
 });
+
+test("returns the latest source batch from the import-run ledger with import counts", async () => {
+  const repo = new FakeQueueRepository([
+    prospect({ id: 1, company: "Old One", email: null, notes: "Source: Old AGS import" }),
+    prospect({ id: 2, company: "Latest One", email: null, notes: "Source: Latest AGS import" }),
+    prospect({ id: 3, company: "Latest Two", email: "buyer@example.test", notes: "Source: Latest AGS import" })
+  ]);
+  await seedProspectEmailEnrichmentQueue(repo, { sourceBatch: "ags_2026_07_01", sourceLabel: "Old AGS" });
+  await repo.recordProspectImportRun({
+    sourceBatch: "ags_2026_07_01",
+    sourceLabel: "Old AGS",
+    filePath: "/tmp/old.csv",
+    originalFilename: "old.csv",
+    requestedBy: "Mitchel",
+    totalRows: 1,
+    createdCount: 1,
+    updatedCount: 0,
+    needsReviewCount: 0,
+    rejectedCount: 0,
+    enrichmentInsertedCount: 1,
+    enrichmentAlreadyQueuedCount: 0,
+    enrichmentExistingEmailCount: 0,
+    enrichmentResetClaimedCount: 0,
+    warnings: []
+  });
+  await seedProspectEmailEnrichmentQueue(repo, { sourceBatch: "ags_2026_07_02", sourceLabel: "Latest AGS" });
+  await repo.recordProspectImportRun({
+    sourceBatch: "ags_2026_07_02",
+    sourceLabel: "Latest AGS",
+    filePath: "/tmp/latest.xlsx",
+    originalFilename: "latest.xlsx",
+    requestedBy: "Mitchel",
+    totalRows: 2,
+    createdCount: 1,
+    updatedCount: 1,
+    needsReviewCount: 0,
+    rejectedCount: 0,
+    enrichmentInsertedCount: 2,
+    enrichmentAlreadyQueuedCount: 0,
+    enrichmentExistingEmailCount: 0,
+    enrichmentResetClaimedCount: 0,
+    warnings: []
+  });
+
+  const result = await getLatestProspectImportBatch(repo);
+
+  assert.equal(result.status, "found");
+  assert.equal(result.sourceBatch, "ags_2026_07_02");
+  assert.equal(result.sourceLabel, "Latest AGS");
+  assert.equal(result.totalRows, 2);
+  assert.equal(result.imported.created, 1);
+  assert.equal(result.imported.updated, 1);
+  assert.equal(result.originalFilename, "latest.xlsx");
+  assert.equal(result.queuedCount, 2);
+  assert.deepEqual(result.warnings, []);
+
+  const mcp = emailEnrichmentLatestBatchToMcp(result);
+  assert.equal(mcp.source_label, "Latest AGS");
+  assert.equal(mcp.total_rows, 2);
+  assert.equal(mcp.original_filename, "latest.xlsx");
+  assert.equal(mcp.imported.created, 1);
+});

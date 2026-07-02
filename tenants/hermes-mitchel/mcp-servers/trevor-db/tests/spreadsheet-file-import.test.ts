@@ -54,6 +54,9 @@ test("imports a CSV file and seeds enrichment only for imported prospects", asyn
     repo.emailEnrichment.map((item) => item.prospectId).sort((a, b) => a - b),
     [1, 3]
   );
+  assert.equal(repo.prospectImportRuns.length, 1);
+  assert.equal(repo.prospectImportRuns[0]?.filePath, filePath);
+  assert.equal(repo.prospectImportRuns[0]?.originalFilename, "ags.csv");
 });
 
 test("imports an XLSX file and seeds enrichment only for imported prospects", async () => {
@@ -96,6 +99,9 @@ test("imports an XLSX file and seeds enrichment only for imported prospects", as
     repo.emailEnrichment.map((item) => item.prospectId).sort((a, b) => a - b),
     [1, 3]
   );
+  assert.equal(repo.prospectImportRuns.length, 1);
+  assert.equal(repo.prospectImportRuns[0]?.filePath, filePath);
+  assert.equal(repo.prospectImportRuns[0]?.originalFilename, "ags.xlsx");
 });
 
 test("rejects legacy XLS files before import", async () => {

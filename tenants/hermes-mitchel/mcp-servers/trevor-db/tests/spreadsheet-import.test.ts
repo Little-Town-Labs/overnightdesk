@@ -49,6 +49,11 @@ test("imports normalized spreadsheet rows and seeds email enrichment queue", asy
   assert.match(repo.candidates[1]?.notes ?? "", /AGS A-to-T spreadsheet/);
   assert.equal(result.emailEnrichment?.insertedCount, 2);
   assert.equal(repo.emailEnrichment.length, 2);
+  assert.equal(repo.prospectImportRuns.length, 1);
+  assert.equal(repo.prospectImportRuns[0]?.sourceBatch, "ags_2026_07_02");
+  assert.equal(repo.prospectImportRuns[0]?.createdCount, 1);
+  assert.equal(repo.prospectImportRuns[0]?.updatedCount, 1);
+  assert.equal(repo.prospectImportRuns[0]?.enrichmentInsertedCount, 2);
 
   const mcp = prospectSpreadsheetImportToMcp(result);
   assert.equal(mcp.outbound_sent, false);
