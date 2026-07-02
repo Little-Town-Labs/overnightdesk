@@ -1,7 +1,7 @@
 ---
 name: prospect-spreadsheet-import
-description: Import Mitchel-provided prospect CSV files or normalized rows into Trevor and seed missing-email enrichment without sending outbound messages.
-version: 1.1.0
+description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor and seed missing-email enrichment without sending outbound messages.
+version: 1.2.0
 author: OvernightDesk
 metadata:
   hermes:
@@ -16,9 +16,9 @@ load a provided list of buyers.
 ## Workflow
 
 1. Save the uploaded file under `/opt/data/cache/documents/`.
-2. If the file is CSV, call `import_prospect_spreadsheet_file` with the saved
-   path. If Mitchel provided Excel, ask for/export to CSV for this first
-   processor slice.
+2. If the file is CSV or modern Excel `.xlsx`, call
+   `import_prospect_spreadsheet_file` with the saved path. If Mitchel provided
+   legacy `.xls`, ask for/export to `.xlsx` or CSV first.
 3. Use `import_prospect_spreadsheet_rows` only when rows have already been
    normalized into bounded objects with these fields when present:
    `row_number`, `name`, `company`, `phone`, `email`, `website`, `address`,

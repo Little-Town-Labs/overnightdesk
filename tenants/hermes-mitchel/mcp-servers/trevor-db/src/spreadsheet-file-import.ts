@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { readSheet } from "read-excel-file/node";
 import { importProspectSpreadsheetRows, prospectSpreadsheetImportToMcp } from "./spreadsheet-import.js";
 import type {
   EmailEnrichmentQueueRepository,
@@ -106,6 +107,12 @@ function parseCsv(text: string): string[][] {
   return rows.filter((row) => row.some((cell) => cell.trim() !== ""));
 }
 
+function cellToString(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return String(value);
+}
+
 function rowHasIdentity(row: ProspectSpreadsheetRowInput): boolean {
   return Boolean(clean(row.company, 200) || clean(row.name, 200) || clean(row.phone, 80) || clean(row.email, 200) || clean(row.website, 500));
 }
@@ -144,17 +151,16 @@ function setRowField(row: ProspectSpreadsheetRowInput, field: keyof ProspectSpre
   }
 }
 
-function rowsFromCsv(text: string) {
-  const table = parseCsv(text.replace(/^\uFEFF/, ""));
+function rowsFromTable(table: string[][], fileType: "CSV" | "XLSX") {
   const warnings: string[] = [];
   const rejectedRows: ProspectSpreadsheetFileImportResult["parse"]["rejectedRows"] = [];
   if (table.length < 2) {
-    return { rows: [], totalDataRows: Math.max(0, table.length - 1), rejectedRows, warnings: ["CSV must include a header row and at least one data row."] };
+    return { rows: [], totalDataRows: Math.max(0, table.length - 1), rejectedRows, warnings: [`${fileType} must include a header row and at least one data row.`] };
   }
 
   const header = table[0].map((cell) => HEADER_ALIASES[normalizeHeader(cell)] ?? null);
   if (!header.some(Boolean)) {
-    return { rows: [], totalDataRows: table.length - 1, rejectedRows, warnings: ["CSV header row does not contain recognized prospect columns."] };
+    return { rows: [], totalDataRows: table.length - 1, rejectedRows, warnings: [`${fileType} header row does not contain recognized prospect columns.`] };
   }
 
   const rows: ProspectSpreadsheetRowInput[] = [];
@@ -178,6 +184,15 @@ function rowsFromCsv(text: string) {
   }
 
   return { rows, totalDataRows: table.length - 1, rejectedRows, warnings };
+}
+
+function rowsFromCsv(text: string) {
+  return rowsFromTable(parseCsv(text.replace(/^\uFEFF/, "")), "CSV");
+}
+
+async function rowsFromXlsx(filePath: string) {
+  const sheet = await readSheet(filePath);
+  return rowsFromTable(sheet.map((row) => row.map(cellToString)), "XLSX");
 }
 
 function rejectedFileResult(input: ProspectSpreadsheetFileImportInput, warnings: string[]): ProspectSpreadsheetFileImportResult {
@@ -220,18 +235,26 @@ export async function importProspectSpreadsheetFile(
   repo: QueueRepository & EmailEnrichmentQueueRepository,
   input: ProspectSpreadsheetFileImportInput
 ): Promise<ProspectSpreadsheetFileImportResult> {
-  if (path.extname(input.filePath).toLowerCase() !== ".csv") {
-    return rejectedFileResult(input, ["Only CSV files are supported by the first file import slice. Convert Excel files to CSV before importing."]);
+  const extension = path.extname(input.filePath).toLowerCase();
+  if (extension !== ".csv" && extension !== ".xlsx") {
+    return rejectedFileResult(input, ["Only CSV and XLSX files are supported. Legacy .xls files are not parsed by this workflow."]);
   }
 
   const buffer = await readFile(input.filePath);
   if (buffer.byteLength > MAX_FILE_BYTES) {
-    return rejectedFileResult(input, ["CSV file is too large. Maximum size is 5MB."]);
+    return rejectedFileResult(input, ["Spreadsheet file is too large. Maximum size is 5MB."]);
   }
 
-  const parsed = rowsFromCsv(buffer.toString("utf8"));
+  let parsed: ReturnType<typeof rowsFromCsv>;
+  try {
+    parsed = extension === ".xlsx"
+      ? await rowsFromXlsx(input.filePath)
+      : rowsFromCsv(buffer.toString("utf8"));
+  } catch {
+    return rejectedFileResult(input, [`Unable to parse ${extension.slice(1).toUpperCase()} spreadsheet file.`]);
+  }
   if (parsed.rows.length === 0) {
-    return rejectedFileResult(input, parsed.warnings.length ? parsed.warnings : ["CSV did not contain importable prospect rows."]);
+    return rejectedFileResult(input, parsed.warnings.length ? parsed.warnings : ["Spreadsheet did not contain importable prospect rows."]);
   }
 
   const imported = await importProspectSpreadsheetRows(repo, {

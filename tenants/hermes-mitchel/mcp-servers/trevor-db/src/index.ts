@@ -466,9 +466,9 @@ server.registerTool("import_prospect_spreadsheet_rows", {
 });
 
 server.registerTool("import_prospect_spreadsheet_file", {
-  description: "Parse a CSV prospect spreadsheet file, import rows into Trevor, and seed email enrichment only for the imported prospects. Never sends outbound messages.",
+  description: "Parse a CSV or XLSX prospect spreadsheet file, import rows into Trevor, and seed email enrichment only for the imported prospects. Never sends outbound messages.",
   inputSchema: {
-    file_path: z.string().trim().min(1).max(1000).describe("Path to a CSV file saved in the tenant document cache."),
+    file_path: z.string().trim().min(1).max(1000).describe("Path to a CSV or XLSX file saved in the tenant document cache."),
     requested_by: z.string().trim().max(120).optional(),
     source_label: z.string().trim().min(1).max(120),
     source_batch: z.string().trim().max(120).optional(),

@@ -5,11 +5,11 @@
 Import prospect rows that Mitchel provides by spreadsheet into Trevor, then
 seed the durable email enrichment queue for missing contact data.
 
-This workflow is CSV-first. Telegram can save `.xlsx`, `.xls`, and `.csv`
-documents, but Trevor's first deterministic processor parses CSV files, loads
-bounded rows into Trevor, and seeds enrichment only for the prospects touched
-by that import. Convert Excel workbooks to CSV before using the file-level
-processor.
+This workflow supports CSV and modern Excel `.xlsx` files. Telegram can save
+`.xlsx`, `.xls`, and `.csv` documents, but Trevor's deterministic processor
+parses only CSV and `.xlsx`, loads bounded rows into Trevor, and seeds
+enrichment only for the prospects touched by that import. Legacy binary `.xls`
+files should be exported to `.xlsx` or CSV before processing.
 
 ## Production Components
 
@@ -50,9 +50,9 @@ docker exec tenet0-postgres psql -U trevor_app -d tenet0 \
 
 ## Import Flow
 
-1. Save the uploaded CSV under `/opt/data/cache/documents/`.
+1. Save the uploaded CSV or `.xlsx` under `/opt/data/cache/documents/`.
 2. Prefer `import_prospect_spreadsheet_file` with:
-   - `file_path`: the saved CSV path.
+   - `file_path`: the saved CSV or `.xlsx` path.
    - `source_label`: human-readable source such as `AGS A-to-T spreadsheet`.
    - `source_batch`: stable batch ID such as `ags_2026_07_02`.
    - `seed_email_enrichment`: `true`.
