@@ -1135,6 +1135,9 @@ export class PgQueueRepository implements QueueRepository {
         `
       );
 
+      const exactProspectScope = input.prospectIds !== undefined;
+      const prospectIds = [...new Set((input.prospectIds ?? [])
+        .filter((prospectId) => Number.isInteger(prospectId) && prospectId > 0))];
       const inserted = await client.query(
         `
         with eligible as (
@@ -1142,8 +1145,14 @@ export class PgQueueRepository implements QueueRepository {
           from trevor.prospects p
           where coalesce(p.status, 'active') <> 'archived'
             and (
-              p.lead_source ilike '%' || $2::text || '%'
-              or p.notes ilike '%' || $2::text || '%'
+              ($4::boolean and p.id = any($3::int[]))
+              or (
+                not $4::boolean
+                and (
+                  p.lead_source ilike '%' || $2::text || '%'
+                  or p.notes ilike '%' || $2::text || '%'
+                )
+              )
             )
         ),
         inserted as (
@@ -1176,7 +1185,7 @@ export class PgQueueRepository implements QueueRepository {
           (select count(*) from inserted) as inserted_count,
           (select count(*) from eligible) as eligible_count
         `,
-        [input.sourceBatch, input.sourceLabel]
+        [input.sourceBatch, input.sourceLabel, prospectIds, exactProspectScope]
       );
 
       await client.query("commit");

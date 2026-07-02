@@ -37,6 +37,7 @@ import {
   taskStatusToMcp
 } from "./queue.js";
 import { sanitizeError } from "./safety.js";
+import { importProspectSpreadsheetFile, prospectSpreadsheetFileImportToMcp } from "./spreadsheet-file-import.js";
 import { importProspectSpreadsheetRows, prospectSpreadsheetImportToMcp } from "./spreadsheet-import.js";
 import {
   promoteProspectCandidate,
@@ -461,6 +462,32 @@ server.registerTool("import_prospect_spreadsheet_rows", {
     return { content: [{ type: "text", text: JSON.stringify(prospectSpreadsheetImportToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Prospect spreadsheet import error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("import_prospect_spreadsheet_file", {
+  description: "Parse a CSV prospect spreadsheet file, import rows into Trevor, and seed email enrichment only for the imported prospects. Never sends outbound messages.",
+  inputSchema: {
+    file_path: z.string().trim().min(1).max(1000).describe("Path to a CSV file saved in the tenant document cache."),
+    requested_by: z.string().trim().max(120).optional(),
+    source_label: z.string().trim().min(1).max(120),
+    source_batch: z.string().trim().max(120).optional(),
+    seed_email_enrichment: z.boolean().optional(),
+    create_call_tasks: z.boolean().optional()
+  }
+}, async (input) => {
+  try {
+    const result = await importProspectSpreadsheetFile(repo, {
+      filePath: input.file_path,
+      requestedBy: input.requested_by,
+      sourceLabel: input.source_label,
+      sourceBatch: input.source_batch,
+      seedEmailEnrichment: input.seed_email_enrichment,
+      createCallTasks: input.create_call_tasks
+    });
+    return { content: [{ type: "text", text: JSON.stringify(prospectSpreadsheetFileImportToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect spreadsheet file import error: ${sanitizeError(err)}` }] };
   }
 });
 

@@ -80,9 +80,12 @@ export async function importProspectSpreadsheetRows(
   const updated = results.filter((row) => row.status === "updated").length;
   const needsReview = results.filter((row) => row.status === "needs_review").length;
   const rejected = results.filter((row) => row.status === "rejected").length;
+  const importedProspectIds = [...new Set(results
+    .map((row) => row.prospectId)
+    .filter((prospectId): prospectId is number => typeof prospectId === "number" && Number.isInteger(prospectId) && prospectId > 0))];
   const emailEnrichment = input.seedEmailEnrichment === false
     ? null
-    : await repo.seedEmailEnrichmentQueue({ sourceBatch: batch, sourceLabel: label });
+    : await repo.seedEmailEnrichmentQueue({ sourceBatch: batch, sourceLabel: label, prospectIds: importedProspectIds });
 
   return {
     status: rejected === results.length ? "rejected" : needsReview > 0 ? "needs_review" : "imported",

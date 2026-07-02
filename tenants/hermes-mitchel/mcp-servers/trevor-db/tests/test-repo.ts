@@ -630,12 +630,17 @@ export class FakeQueueRepository implements QueueRepository {
       }
     }
 
+    const exactProspectScope = input.prospectIds !== undefined;
+    const scopedIds = new Set(input.prospectIds ?? []);
     const eligible = this.candidates.filter((candidate) =>
       candidate.status !== "archived" &&
       (
-        candidate.notes?.toLowerCase().includes(source) ||
-        candidate.company?.toLowerCase().includes(source) ||
-        candidate.name?.toLowerCase().includes(source)
+        (exactProspectScope && scopedIds.has(candidate.id)) ||
+        (!exactProspectScope && (
+          candidate.notes?.toLowerCase().includes(source) ||
+          candidate.company?.toLowerCase().includes(source) ||
+          candidate.name?.toLowerCase().includes(source)
+        ))
       )
     );
 

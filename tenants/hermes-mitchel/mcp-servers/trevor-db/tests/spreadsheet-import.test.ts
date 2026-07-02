@@ -59,7 +59,8 @@ test("imports normalized spreadsheet rows and seeds email enrichment queue", asy
 test("keeps ambiguous spreadsheet matches for review without writing a row", async () => {
   const repo = new FakeQueueRepository([
     prospect({ id: 1, company: "Twin Jewelers", phone: "703-555-0101", email: null }),
-    prospect({ id: 2, company: "Twin Jewelers", phone: "703-555-0102", email: null })
+    prospect({ id: 2, company: "Twin Jewelers", phone: "703-555-0102", email: null }),
+    prospect({ id: 3, company: "Older AGS Similar", phone: "703-555-0111", email: null, notes: "Source: AGS import" })
   ]);
 
   const result = await importProspectSpreadsheetRows(repo, {
@@ -77,7 +78,8 @@ test("keeps ambiguous spreadsheet matches for review without writing a row", asy
   assert.equal(result.status, "needs_review");
   assert.equal(result.counts.needsReview, 1);
   assert.equal(result.rows[0]?.status, "needs_review");
-  assert.equal(repo.candidates.length, 2);
+  assert.equal(repo.candidates.length, 3);
   assert.equal(repo.interactions.length, 0);
+  assert.equal(repo.emailEnrichment.length, 0);
   assert.equal(result.outboundSent, false);
 });

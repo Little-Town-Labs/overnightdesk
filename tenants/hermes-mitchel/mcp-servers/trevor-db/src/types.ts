@@ -366,6 +366,7 @@ export interface EmailEnrichmentSeedInput {
 export interface EmailEnrichmentSeedWrite {
   sourceBatch: string;
   sourceLabel: string;
+  prospectIds?: number[];
   resetClaimedOlderThanMinutes?: number;
 }
 
@@ -498,6 +499,37 @@ export interface ProspectSpreadsheetImportResult {
   };
   rows: ProspectSpreadsheetImportRowResult[];
   emailEnrichment: EmailEnrichmentSeedResult | null;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface ProspectSpreadsheetFileImportInput {
+  filePath: string;
+  requestedBy?: string;
+  sourceLabel: string;
+  sourceBatch?: string;
+  seedEmailEnrichment?: boolean;
+  createCallTasks?: boolean;
+}
+
+export interface ProspectSpreadsheetParseResult {
+  totalDataRows: number;
+  importedRows: number;
+  rejectedRows: Array<{
+    rowNumber: number;
+    reason: string;
+  }>;
+  warnings: string[];
+}
+
+export interface ProspectSpreadsheetFileImportResult {
+  status: "imported" | "needs_review" | "rejected";
+  file: {
+    path: string;
+    originalFilename: string;
+  };
+  parse: ProspectSpreadsheetParseResult;
+  import: ProspectSpreadsheetImportResult;
   warnings: string[];
   outboundSent: false;
 }
