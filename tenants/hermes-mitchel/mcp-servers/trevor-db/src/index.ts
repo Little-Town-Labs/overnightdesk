@@ -13,8 +13,10 @@ import {
   claimProspectEmailEnrichmentBatch,
   emailEnrichmentApplyToMcp,
   emailEnrichmentClaimToMcp,
+  emailEnrichmentLatestBatchToMcp,
   emailEnrichmentSeedToMcp,
   emailEnrichmentSummaryToMcp,
+  getLatestProspectImportBatch,
   getProspectEmailEnrichmentSummary,
   seedProspectEmailEnrichmentQueue
 } from "./email-enrichment.js";
@@ -652,6 +654,18 @@ server.registerTool("get_prospect_email_enrichment_summary", {
     return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentSummaryToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Email enrichment summary error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("get_latest_prospect_import_batch", {
+  description: "Return the latest Trevor prospect import/enrichment source batch and queue progress so 'last import' commands can be scoped safely. Never sends outbound messages.",
+  inputSchema: {}
+}, async () => {
+  try {
+    const result = await getLatestProspectImportBatch(repo);
+    return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentLatestBatchToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Latest prospect import batch error: ${sanitizeError(err)}` }] };
   }
 });
 

@@ -1438,4 +1438,72 @@ export class PgQueueRepository implements QueueRepository {
       outboundSent: false
     };
   }
+
+  async getLatestEmailEnrichmentBatch() {
+    const latest = await this.pool.query(
+      `
+      select source_batch, max(created_at) as latest_queued_at, max(id) as latest_queue_id
+      from trevor.prospect_email_enrichment
+      where nullif(btrim(source_batch), '') is not null
+      group by source_batch
+      order by max(created_at) desc nulls last, max(id) desc
+      limit 1
+      `
+    );
+    const sourceBatch = latest.rows[0]?.source_batch as string | undefined;
+    if (!sourceBatch) {
+      return {
+        status: "not_found" as const,
+        sourceBatch: null,
+        queuedCount: 0,
+        imported: {
+          created: null,
+          updated: null,
+          needsReview: null,
+          rejected: null
+        },
+        counts: {
+          pending: 0,
+          claimed: 0,
+          websiteFound: 0,
+          emailFound: 0,
+          noEmailFound: 0,
+          needsReview: 0,
+          error: 0,
+          skipped: 0
+        },
+        remainingCount: 0,
+        completedOnceCount: 0,
+        latestQueuedAt: null,
+        suggestedTelegramCommand: null,
+        warnings: ["No enrichment batches exist yet."],
+        outboundSent: false as const
+      };
+    }
+
+    const summary = await this.getEmailEnrichmentSummary(sourceBatch);
+    const latestQueuedAt = latest.rows[0]?.latest_queued_at instanceof Date
+      ? latest.rows[0].latest_queued_at
+      : latest.rows[0]?.latest_queued_at
+        ? new Date(latest.rows[0].latest_queued_at)
+        : null;
+    return {
+      status: "found" as const,
+      sourceBatch,
+      queuedCount: summary.total,
+      imported: {
+        created: null,
+        updated: null,
+        needsReview: null,
+        rejected: null
+      },
+      counts: summary.counts,
+      remainingCount: summary.remainingCount,
+      completedOnceCount: summary.completedOnceCount,
+      latestQueuedAt,
+      suggestedTelegramCommand: `continue enrichment batch ${sourceBatch}, 10 rows`,
+      warnings: ["Import created/updated row counts are not yet tracked in a durable import ledger."],
+      outboundSent: false as const
+    };
+  }
 }

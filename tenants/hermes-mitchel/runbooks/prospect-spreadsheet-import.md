@@ -18,6 +18,7 @@ files should be exported to `.xlsx` or CSV before processing.
   - `import_prospect_spreadsheet_file`
   - `import_prospect_spreadsheet_rows`
   - `seed_prospect_email_enrichment_queue`
+  - `get_latest_prospect_import_batch`
   - `get_prospect_email_enrichment_summary`
   - `claim_prospect_email_enrichment_batch`
   - `process_prospect_email_enrichment_batch`
@@ -90,11 +91,21 @@ Prefer the controlled runner for first-pass processing:
 }
 ```
 
+When Mitchel says "last AGS import" or does not provide a batch ID, call
+`get_latest_prospect_import_batch` first. Use its `source_batch` and
+`suggested_telegram_command` only when `status=found`. If it returns
+`status=not_found`, ask for the batch ID instead of processing the broad queue.
+
 Use `process_prospect_email_enrichment_batch` with `limit` between 5 and 10.
 The runner claims queue rows, inspects known websites/contact pages with
 CamoFox, discovers obvious contact links from homepage links, and applies
 results only through the same reviewed `apply_prospect_email_enrichment_result`
 rules.
+
+Current limitation: `get_latest_prospect_import_batch` resolves the latest
+batch from the durable enrichment queue. It returns queued/progress counts, but
+created/updated import row counts are `null` until a dedicated import-run
+ledger exists.
 
 Expected summary buckets:
 

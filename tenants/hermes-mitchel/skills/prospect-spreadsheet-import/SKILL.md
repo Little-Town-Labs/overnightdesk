@@ -1,7 +1,7 @@
 ---
 name: prospect-spreadsheet-import
-description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor, then process conservative missing-email enrichment batches without sending outbound messages.
-version: 1.3.0
+description: Import Mitchel-provided prospect CSV/XLSX files or normalized rows into Trevor, resolve the latest import batch, then process conservative missing-email enrichment batches without sending outbound messages.
+version: 1.4.0
 author: OvernightDesk
 metadata:
   hermes:
@@ -26,10 +26,13 @@ load a provided list of buyers.
 4. Review `created`, `updated`, `needs_review`, and `rejected` counts.
 5. If `needs_review` is nonzero, stop and ask Mitchel or the operator to
    resolve the ambiguous rows.
-6. If import counts are acceptable, process missing emails through the durable
+6. If Mitchel refers to the last AGS import without a batch ID, call
+   `get_latest_prospect_import_batch` first. Use its `source_batch` only when
+   `status=found`; otherwise ask Mitchel for the batch ID.
+7. If import counts are acceptable, process missing emails through the durable
    queue with `process_prospect_email_enrichment_batch`, using a first-pass
    limit of 5-10.
-7. Use the lower-level tools `claim_prospect_email_enrichment_batch`,
+8. Use the lower-level tools `claim_prospect_email_enrichment_batch`,
    `trevor_camofox_enrich_url`, and
    `apply_prospect_email_enrichment_result` only when a human/agent needs to
    review or repair individual rows.
@@ -50,6 +53,13 @@ load a provided list of buyers.
 ```
 
 After a successful import, run a small enrichment batch:
+
+```json
+{
+  "tool": "get_latest_prospect_import_batch",
+  "arguments": {}
+}
+```
 
 ```json
 {
@@ -75,3 +85,4 @@ After a successful import, run a small enrichment batch:
   `official` or `likely` confidence.
 - Treat `needs_review` as the correct result for missing websites, conflicting
   public emails, chain stores, or uncertain evidence.
+- Do not process an unscoped queue when "last import" cannot be resolved.

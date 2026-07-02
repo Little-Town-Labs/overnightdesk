@@ -455,6 +455,25 @@ export interface EmailEnrichmentSummaryResult {
   outboundSent: false;
 }
 
+export interface ProspectImportBatchLookupResult {
+  status: "found" | "not_found";
+  sourceBatch: string | null;
+  queuedCount: number;
+  imported: {
+    created: number | null;
+    updated: number | null;
+    needsReview: number | null;
+    rejected: number | null;
+  };
+  counts: EmailEnrichmentSummaryResult["counts"];
+  remainingCount: number;
+  completedOnceCount: number;
+  latestQueuedAt: Date | null;
+  suggestedTelegramCommand: string | null;
+  warnings: string[];
+  outboundSent: false;
+}
+
 export interface ProspectSpreadsheetRowInput {
   rowNumber?: number;
   name?: string | null;
@@ -976,4 +995,5 @@ export interface EmailEnrichmentQueueRepository {
   claimEmailEnrichmentBatch(input: EmailEnrichmentClaimWrite): Promise<EmailEnrichmentClaimResult>;
   applyEmailEnrichmentResult(input: EmailEnrichmentApplyWrite): Promise<EmailEnrichmentApplyResult>;
   getEmailEnrichmentSummary(sourceBatch?: string | null): Promise<EmailEnrichmentSummaryResult>;
+  getLatestEmailEnrichmentBatch(): Promise<ProspectImportBatchLookupResult>;
 }

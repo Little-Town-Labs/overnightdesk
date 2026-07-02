@@ -22,6 +22,7 @@ import type {
   PostCallCaptureWrite,
   PostCallCaptureWriteResult,
   PromoteProspectCandidateWrite,
+  ProspectImportBatchLookupResult,
   ProspectCandidate,
   ProspectInteraction,
   ProspectSourceCandidateRecord,
@@ -791,6 +792,60 @@ export class FakeQueueRepository implements QueueRepository {
       completedOnceCount,
       warnings: [],
       outboundSent: false as const
+    };
+  }
+
+  async getLatestEmailEnrichmentBatch(): Promise<ProspectImportBatchLookupResult> {
+    const latest = [...this.emailEnrichment]
+      .filter((item) => item.sourceBatch)
+      .sort((a, b) => b.queueId - a.queueId)[0];
+    if (!latest) {
+      return {
+        status: "not_found",
+        sourceBatch: null,
+        queuedCount: 0,
+        imported: {
+          created: null,
+          updated: null,
+          needsReview: null,
+          rejected: null
+        },
+        counts: {
+          pending: 0,
+          claimed: 0,
+          websiteFound: 0,
+          emailFound: 0,
+          noEmailFound: 0,
+          needsReview: 0,
+          error: 0,
+          skipped: 0
+        },
+        remainingCount: 0,
+        completedOnceCount: 0,
+        latestQueuedAt: null,
+        suggestedTelegramCommand: null,
+        warnings: ["No enrichment batches exist yet."],
+        outboundSent: false
+      };
+    }
+    const summary = await this.getEmailEnrichmentSummary(latest.sourceBatch);
+    return {
+      status: "found",
+      sourceBatch: latest.sourceBatch,
+      queuedCount: summary.total,
+      imported: {
+        created: null,
+        updated: null,
+        needsReview: null,
+        rejected: null
+      },
+      counts: summary.counts,
+      remainingCount: summary.remainingCount,
+      completedOnceCount: summary.completedOnceCount,
+      latestQueuedAt: latest.lastCheckedAt ?? latest.claimedAt,
+      suggestedTelegramCommand: `continue enrichment batch ${latest.sourceBatch}, 10 rows`,
+      warnings: ["Import created/updated row counts are not yet tracked in a durable import ledger."],
+      outboundSent: false
     };
   }
 }

@@ -6,6 +6,8 @@ import {
   applyProspectEmailEnrichmentResult,
   claimProspectEmailEnrichmentBatch,
   emailEnrichmentApplyToMcp,
+  emailEnrichmentLatestBatchToMcp,
+  getLatestProspectImportBatch,
   getProspectEmailEnrichmentSummary,
   seedProspectEmailEnrichmentQueue
 } from "../src/email-enrichment.js";
@@ -149,4 +151,31 @@ test("counts website_found as worked once for first-pass completion", async () =
   assert.equal(summary.counts.websiteFound, 1);
   assert.equal(summary.remainingCount, 0);
   assert.equal(summary.completedOnceCount, 1);
+});
+
+test("returns the latest source batch from the enrichment queue with progress counts", async () => {
+  const repo = new FakeQueueRepository([
+    prospect({ id: 1, company: "Old One", email: null, notes: "Source: Old AGS import" }),
+    prospect({ id: 2, company: "Latest One", email: null, notes: "Source: Latest AGS import" }),
+    prospect({ id: 3, company: "Latest Two", email: "buyer@example.test", notes: "Source: Latest AGS import" })
+  ]);
+  await seedProspectEmailEnrichmentQueue(repo, { sourceBatch: "ags_2026_07_01", sourceLabel: "Old AGS" });
+  await seedProspectEmailEnrichmentQueue(repo, { sourceBatch: "ags_2026_07_02", sourceLabel: "Latest AGS" });
+
+  const result = await getLatestProspectImportBatch(repo);
+
+  assert.equal(result.status, "found");
+  assert.equal(result.sourceBatch, "ags_2026_07_02");
+  assert.equal(result.queuedCount, 2);
+  assert.equal(result.counts.pending, 1);
+  assert.equal(result.counts.emailFound, 1);
+  assert.equal(result.remainingCount, 1);
+  assert.equal(result.suggestedTelegramCommand, "continue enrichment batch ags_2026_07_02, 10 rows");
+  assert.match(result.warnings.join(" "), /Import created\/updated row counts are not yet tracked/);
+
+  const mcp = emailEnrichmentLatestBatchToMcp(result);
+  assert.equal(mcp.source_batch, "ags_2026_07_02");
+  assert.equal(mcp.queued_count, 2);
+  assert.equal(mcp.suggested_telegram_command, "continue enrichment batch ags_2026_07_02, 10 rows");
+  assert.equal(mcp.outbound_sent, false);
 });

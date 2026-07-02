@@ -7,7 +7,8 @@ import type {
   EmailEnrichmentSeedInput,
   EmailEnrichmentSeedResult,
   EmailEnrichmentStatus,
-  EmailEnrichmentSummaryResult
+  EmailEnrichmentSummaryResult,
+  ProspectImportBatchLookupResult
 } from "./types.js";
 
 const MAX_LIMIT = 50;
@@ -120,6 +121,12 @@ export async function getProspectEmailEnrichmentSummary(
   return repo.getEmailEnrichmentSummary(clean(sourceBatch, 120));
 }
 
+export async function getLatestProspectImportBatch(
+  repo: EmailEnrichmentQueueRepository
+): Promise<ProspectImportBatchLookupResult> {
+  return repo.getLatestEmailEnrichmentBatch();
+}
+
 export function emailEnrichmentSeedToMcp(result: EmailEnrichmentSeedResult) {
   return {
     status: result.status,
@@ -181,6 +188,36 @@ export function emailEnrichmentSummaryToMcp(result: EmailEnrichmentSummaryResult
     },
     remaining_count: result.remainingCount,
     completed_once_count: result.completedOnceCount,
+    warnings: result.warnings,
+    outbound_sent: false
+  };
+}
+
+export function emailEnrichmentLatestBatchToMcp(result: ProspectImportBatchLookupResult) {
+  return {
+    status: result.status,
+    source_batch: result.sourceBatch,
+    queued_count: result.queuedCount,
+    imported: {
+      created: result.imported.created,
+      updated: result.imported.updated,
+      needs_review: result.imported.needsReview,
+      rejected: result.imported.rejected
+    },
+    counts: {
+      pending: result.counts.pending,
+      claimed: result.counts.claimed,
+      website_found: result.counts.websiteFound,
+      email_found: result.counts.emailFound,
+      no_email_found: result.counts.noEmailFound,
+      needs_review: result.counts.needsReview,
+      error: result.counts.error,
+      skipped: result.counts.skipped
+    },
+    remaining_count: result.remainingCount,
+    completed_once_count: result.completedOnceCount,
+    latest_queued_at: result.latestQueuedAt?.toISOString() ?? null,
+    suggested_telegram_command: result.suggestedTelegramCommand,
     warnings: result.warnings,
     outbound_sent: false
   };
