@@ -1,5 +1,7 @@
 import type {
   EmailEnrichmentConfidence,
+  ProspectResearchClaimInput,
+  ProspectResearchClaimResult,
   ProspectResearchEvidenceInput,
   ProspectResearchEvidenceListInput,
   ProspectResearchEvidenceListResult,
@@ -11,6 +13,7 @@ import type {
 
 const DEFAULT_LIMIT = 15;
 const MAX_LIMIT = 50;
+const DEFAULT_CLAIM_LIMIT = 10;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EMAIL_PROMOTABLE_SOURCES: ProspectResearchSourceType[] = [
   "official_site",
@@ -28,6 +31,10 @@ function clean(value: string | null | undefined, max: number): string | null {
 
 function normalizeLimit(limit: number | undefined): number {
   return Math.max(1, Math.min(MAX_LIMIT, Math.trunc(limit ?? DEFAULT_LIMIT)));
+}
+
+function normalizeClaimLimit(limit: number | undefined): number {
+  return Math.max(1, Math.min(25, Math.trunc(limit ?? DEFAULT_CLAIM_LIMIT)));
 }
 
 function normalizeEmail(value: string | null | undefined): string | null {
@@ -138,6 +145,13 @@ export async function storeProspectResearchEvidence(
   };
 }
 
+export async function claimProspectResearchBatch(
+  repo: ProspectResearchRepository,
+  input: ProspectResearchClaimInput = {}
+): Promise<ProspectResearchClaimResult> {
+  return repo.claimProspectResearchBatch({ limit: normalizeClaimLimit(input.limit) });
+}
+
 export async function listProspectResearchEvidence(
   repo: ProspectResearchRepository,
   input: ProspectResearchEvidenceListInput = {}
@@ -156,6 +170,27 @@ export function prospectResearchEvidenceStoreToMcp(result: ProspectResearchEvide
     prospect_id: result.prospectId,
     review_status: result.reviewStatus,
     email_promotable: result.emailPromotable,
+    warnings: result.warnings,
+    outbound_sent: false
+  };
+}
+
+export function prospectResearchClaimToMcp(result: ProspectResearchClaimResult) {
+  return {
+    status: result.status,
+    items: result.items.map((item) => ({
+      prospect_id: item.prospectId,
+      display_name: item.displayName,
+      company: item.company,
+      email: item.email,
+      phone: item.phone,
+      status: item.status,
+      priority: item.priority,
+      missing_email: item.missingEmail,
+      has_public_clue: item.hasPublicClue,
+      latest_evidence_at: item.latestEvidenceAt?.toISOString() ?? null,
+      research_reason: item.researchReason
+    })),
     warnings: result.warnings,
     outbound_sent: false
   };

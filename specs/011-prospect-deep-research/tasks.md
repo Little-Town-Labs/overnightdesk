@@ -34,8 +34,8 @@
 
 **Independent Test**: Seed mixed prospects and verify claim order.
 
-- [ ] T010 [US2] Add prioritized claim data contract and tests in `tests/prospect-research.test.ts`
-- [ ] T011 [US2] Implement bounded claim method and MCP mapping
+- [x] T010 [US2] Add prioritized claim data contract and tests in `tests/prospect-research.test.ts`
+- [x] T011 [US2] Implement bounded claim method and MCP mapping
 
 ## Phase 5: User Story 3 - Review and Promote High-Confidence Findings (P3)
 

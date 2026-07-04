@@ -43,7 +43,9 @@ import { sanitizeError } from "./safety.js";
 import { importProspectSpreadsheetFile, prospectSpreadsheetFileImportToMcp } from "./spreadsheet-file-import.js";
 import { importProspectSpreadsheetRows, prospectSpreadsheetImportToMcp } from "./spreadsheet-import.js";
 import {
+  claimProspectResearchBatch,
   listProspectResearchEvidence,
+  prospectResearchClaimToMcp,
   prospectResearchEvidenceListToMcp,
   prospectResearchEvidenceStoreToMcp,
   storeProspectResearchEvidence
@@ -73,7 +75,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.12.0"
+  version: "1.13.0"
 });
 
 const prospectResearchSourceSchema = z.enum([
@@ -748,6 +750,20 @@ server.registerTool("store_prospect_research_evidence", {
     return { content: [{ type: "text", text: JSON.stringify(prospectResearchEvidenceStoreToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Prospect research evidence store error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("claim_prospect_research_batch", {
+  description: "Claim a bounded read-only list of Trevor prospects for deep research, prioritizing missing-email prospects. Never writes prospect data and never sends outbound messages.",
+  inputSchema: {
+    limit: z.number().int().min(1).max(25).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await claimProspectResearchBatch(repo, { limit: input.limit });
+    return { content: [{ type: "text", text: JSON.stringify(prospectResearchClaimToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect research claim error: ${sanitizeError(err)}` }] };
   }
 });
 

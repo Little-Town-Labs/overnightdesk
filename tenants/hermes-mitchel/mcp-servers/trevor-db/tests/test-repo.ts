@@ -26,6 +26,7 @@ import type {
   ProspectImportRunWrite,
   ProspectCandidate,
   ProspectInteraction,
+  ProspectResearchClaimResult,
   ProspectResearchEvidenceListInput,
   ProspectResearchEvidenceListResult,
   ProspectResearchEvidenceRecord,
@@ -962,6 +963,59 @@ export class FakeQueueRepository implements QueueRepository {
     };
     this.researchEvidence.push(record);
     return record;
+  }
+
+  async claimProspectResearchBatch(input: { limit: number }): Promise<ProspectResearchClaimResult> {
+    const latestEvidence = new Map<number, Date>();
+    for (const item of this.researchEvidence) {
+      const existing = latestEvidence.get(item.prospectId);
+      if (!existing || item.createdAt > existing) {
+        latestEvidence.set(item.prospectId, item.createdAt);
+      }
+    }
+
+    const claimed = this.candidates
+      .filter((item) => item.status !== "archived")
+      .map((item) => {
+        const missingEmail = !item.email?.trim();
+        const hasPublicClue = Boolean(
+          item.phone?.trim() ||
+          item.notes?.match(/https?:\/\/|www\.|website|contact|chamber|directory/i)
+        );
+        const latestEvidenceAt = latestEvidence.get(item.id) ?? null;
+        return {
+          prospectId: item.id,
+          displayName: item.name || item.company || `Prospect ${item.id}`,
+          company: item.company,
+          email: item.email,
+          phone: item.phone,
+          status: item.status,
+          priority: item.priority,
+          missingEmail,
+          hasPublicClue,
+          latestEvidenceAt,
+          researchReason: missingEmail
+            ? hasPublicClue
+              ? "Missing email with public contact clue."
+              : "Missing email; needs public source research."
+            : "Existing email; business-context refresh candidate."
+        };
+      })
+      .sort((a, b) =>
+        Number(b.missingEmail) - Number(a.missingEmail) ||
+        Number(b.hasPublicClue) - Number(a.hasPublicClue) ||
+        (a.latestEvidenceAt?.getTime() ?? 0) - (b.latestEvidenceAt?.getTime() ?? 0) ||
+        b.priority - a.priority ||
+        a.prospectId - b.prospectId
+      )
+      .slice(0, input.limit);
+
+    return {
+      status: "ok" as const,
+      items: claimed,
+      warnings: [],
+      outboundSent: false as const
+    };
   }
 
   async listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult> {

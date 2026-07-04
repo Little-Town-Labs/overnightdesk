@@ -17,6 +17,8 @@ send outbound messages or directly update `trevor.prospects.email`.
 
 ## MVP Tools
 
+- `claim_prospect_research_batch`: returns a bounded, read-only prospect list
+  for research with missing-email prospects first.
 - `store_prospect_research_evidence`: stores one bounded evidence row for one
   prospect.
 - `list_prospect_research_evidence`: lists bounded evidence rows by prospect or
@@ -28,13 +30,14 @@ Both tools return `outbound_sent=false`.
 
 1. Prioritize prospects missing email, especially where a website/contact clue
    already exists.
-2. Store public evidence with source URL, source type, confidence, and a concise
+2. Use `claim_prospect_research_batch` to get the next bounded research set.
+3. Store public evidence with source URL, source type, confidence, and a concise
    search-location note.
-3. Leave evidence in `pending_review` until Mitchel or the operator approves or
+4. Leave evidence in `pending_review` until Mitchel or the operator approves or
    rejects it.
-4. Promote approved high-confidence email evidence only through a controlled
+5. Promote approved high-confidence email evidence only through a controlled
    email enrichment apply path.
-5. Promote business context as concise prospect notes only after review.
+6. Promote business context as concise prospect notes only after review.
 
 ## Safety Checks
 

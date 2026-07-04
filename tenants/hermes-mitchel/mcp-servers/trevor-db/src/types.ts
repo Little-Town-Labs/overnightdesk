@@ -522,6 +522,31 @@ export interface ProspectResearchEvidenceListResult {
   outboundSent: false;
 }
 
+export interface ProspectResearchClaimInput {
+  limit?: number;
+}
+
+export interface ProspectResearchClaimItem {
+  prospectId: number;
+  displayName: string;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  status: string | null;
+  priority: number;
+  missingEmail: boolean;
+  hasPublicClue: boolean;
+  latestEvidenceAt: Date | null;
+  researchReason: string;
+}
+
+export interface ProspectResearchClaimResult {
+  status: "ok";
+  items: ProspectResearchClaimItem[];
+  warnings: string[];
+  outboundSent: false;
+}
+
 export interface EmailEnrichmentSummaryResult {
   status: "ok";
   sourceBatch: string | null;
@@ -1114,6 +1139,7 @@ export interface EmailEnrichmentQueueRepository {
 
 export interface ProspectResearchRepository {
   findProspectById(prospectId: number): Promise<ProspectCandidate | null>;
+  claimProspectResearchBatch(input: { limit: number }): Promise<ProspectResearchClaimResult>;
   storeProspectResearchEvidence(input: ProspectResearchEvidenceWrite): Promise<ProspectResearchEvidenceRecord>;
   listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult>;
 }

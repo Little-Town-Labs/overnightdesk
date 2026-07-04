@@ -34,6 +34,7 @@ import type {
   ProspectCandidate,
   ProspectImportRunWrite,
   ProspectInteraction,
+  ProspectResearchClaimResult,
   ProspectResearchEvidenceListInput,
   ProspectResearchEvidenceListResult,
   ProspectResearchEvidenceRecord,
@@ -1745,6 +1746,71 @@ export class PgQueueRepository implements QueueRepository {
       ]
     );
     return toProspectResearchEvidence(result.rows[0]);
+  }
+
+  async claimProspectResearchBatch(input: { limit: number }): Promise<ProspectResearchClaimResult> {
+    const result = await this.pool.query(
+      `
+      select
+        p.id,
+        coalesce(nullif(btrim(p.name), ''), nullif(btrim(p.company), ''), 'Prospect ' || p.id::text) as display_name,
+        p.company,
+        p.email,
+        p.phone,
+        p.status,
+        p.priority,
+        max(e.created_at) as latest_evidence_at,
+        (
+          nullif(btrim(coalesce(p.email, '')), '') is null
+        ) as missing_email,
+        (
+          nullif(btrim(coalesce(p.phone, '')), '') is not null
+          or coalesce(p.notes, '') ~* '(https?://|www\\.|website|contact|chamber|directory)'
+        ) as has_public_clue
+      from trevor.prospects p
+      left join trevor.prospect_research_evidence e on e.prospect_id = p.id
+      where coalesce(p.status, 'active') <> 'archived'
+      group by p.id
+      order by
+        (nullif(btrim(coalesce(p.email, '')), '') is null) desc,
+        (
+          nullif(btrim(coalesce(p.phone, '')), '') is not null
+          or coalesce(p.notes, '') ~* '(https?://|www\\.|website|contact|chamber|directory)'
+        ) desc,
+        max(e.created_at) asc nulls first,
+        p.priority desc,
+        p.id asc
+      limit $1
+      `,
+      [input.limit]
+    );
+
+    return {
+      status: "ok" as const,
+      items: result.rows.map((row) => {
+        const missingEmail = Boolean(row.missing_email);
+        const hasPublicClue = Boolean(row.has_public_clue);
+        return {
+          prospectId: Number(row.id),
+          displayName: row.display_name as string,
+          company: row.company as string | null,
+          email: row.email as string | null,
+          phone: row.phone as string | null,
+          status: row.status as string | null,
+          priority: Number(row.priority ?? 0),
+          missingEmail,
+          hasPublicClue,
+          latestEvidenceAt: row.latest_evidence_at ? new Date(row.latest_evidence_at as string) : null,
+          researchReason: missingEmail
+            ? hasPublicClue
+              ? "Missing email with public contact clue."
+              : "Missing email; needs public source research."
+            : "Existing email; business-context refresh candidate."
+        };
+      }),
+      warnings: [],
+      outboundSent: false as const
+    };
   }
 
   async listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult> {
