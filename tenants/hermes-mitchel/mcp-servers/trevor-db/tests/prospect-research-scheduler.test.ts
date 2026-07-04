@@ -17,7 +17,7 @@ test("prospect weekly scheduler template is disabled and pinned to Saturday nigh
       id: string;
       enabled: boolean;
       schedule: { kind: string; day_of_week: string; time: string; timezone: string };
-      scope: { outbound_sent: boolean };
+      scope: { outbound_sent: boolean; subagents?: string[] };
       required_tools: string[];
     }>;
   };
@@ -43,6 +43,15 @@ test("prospect weekly scheduler template is disabled and pinned to Saturday nigh
     assert.equal(job.scope.outbound_sent, false);
     assert.ok(job.required_tools.length > 0, `${job.id} must declare required MCP tools`);
   }
+
+  const researchJob = template.jobs.find((job) => job.id === "trevor-prospect-deep-research-weekly");
+  assert.ok(researchJob, "missing deep research job");
+  assert.ok(researchJob.required_tools.includes("delegate_task"));
+  assert.deepEqual(researchJob.scope.subagents, [
+    "source-finder",
+    "rdap-domain-verifier",
+    "evidence-quality-reviewer"
+  ]);
 });
 
 test("prospect deep research runbook documents scheduler operations", () => {
@@ -108,6 +117,16 @@ test("Hermes install plan stays disabled and uses Central-time wake gate", () =>
   assert.ok(enrichmentJob, "missing enrichment job");
   assert.match(enrichmentJob.prompt, /newly queued, retryable error, or stale claimed/i);
   assert.match(enrichmentJob.prompt, /do not reset completed no_email_found or needs_review/i);
+
+  const researchJob = plan.jobs.find((job) => job.id === "trevor-prospect-deep-research-weekly");
+  assert.ok(researchJob, "missing deep research job");
+  assert.match(researchJob.prompt, /delegate_task/);
+  assert.match(researchJob.prompt, /source-finder/);
+  assert.match(researchJob.prompt, /rdap-domain-verifier/);
+  assert.match(researchJob.prompt, /evidence-quality-reviewer/);
+  assert.match(researchJob.prompt, /toolsets=.*web/i);
+  assert.match(researchJob.prompt, /Do not ask child agents to call store_prospect_research_evidence/i);
+  assert.match(researchJob.prompt, /After children return, the parent job/i);
 });
 
 test("Central-time wake gate emits wakeAgent JSON", () => {

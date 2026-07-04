@@ -62,3 +62,28 @@ Use a disabled Hermes-compatible install plan with cron expression `0 4,5 * * 0`
 - `0 23 * * 6`: rejected because the host and container run UTC, so this would run at 23:00 UTC, not 23:00 Central.
 - Fixed `0 4 * * 0`: rejected because it is correct during CDT but one hour early during CST.
 - Fixed `0 5 * * 0`: rejected because it is correct during CST but one hour late during CDT.
+
+## Decision: Hermes native delegation for weekly deep research
+
+Use Hermes `delegate_task` for the weekly deep research job rather than
+introducing a separate agent framework in this slice.
+
+**Rationale**: Live Hermes-Mitchel already has native child-agent delegation,
+batch execution, inherited MCP toolsets, and a production configuration with
+`max_concurrent_children=3`. This lets the scheduled parent job split research
+into focused leaf roles while keeping the existing Trevor MCP write boundary.
+
+The parent job remains responsible for claims and evidence writes. Child agents
+perform public research only:
+
+- `source-finder`
+- `rdap-domain-verifier`
+- `evidence-quality-reviewer`
+
+**Alternatives considered**:
+
+- Add Vercel Eve immediately: deferred because Eve is promising but beta, and
+  Hermes already has the required delegation primitive for this workflow.
+- Run one broad parent prompt without child roles: rejected because source
+  discovery, domain verification, and quality review need separate instructions
+  and cleaner auditability.

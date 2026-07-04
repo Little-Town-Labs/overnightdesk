@@ -42,7 +42,10 @@ Before installing the weekly jobs in production:
 5. Verify the Central-time wake gate returns `wakeAgent=false` outside the
    target Saturday 23:00 America/Chicago window.
 6. Run one on-demand missing-email enrichment smoke.
-7. Run one on-demand deep research smoke that stores evidence only.
+7. Run one on-demand deep research smoke that uses Hermes `delegate_task`
+   subagents for source-finder, rdap-domain-verifier, and
+   evidence-quality-reviewer roles, then stores evidence only from the parent
+   job.
 8. Get explicit operator approval to enable the weekly jobs.
 9. Install both jobs with cron `0 4,5 * * 0` plus the Central-time wake gate.
 

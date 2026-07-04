@@ -51,9 +51,15 @@
         "prospects": "all_prospects_missing_email_first",
         "batch_limit": 25,
         "store_evidence_only": true,
-        "outbound_sent": false
+        "outbound_sent": false,
+        "subagents": [
+          "source-finder",
+          "rdap-domain-verifier",
+          "evidence-quality-reviewer"
+        ]
       },
       "required_tools": [
+        "delegate_task",
         "claim_prospect_research_batch",
         "store_prospect_research_evidence",
         "list_prospect_research_evidence"

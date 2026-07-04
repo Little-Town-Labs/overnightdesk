@@ -66,6 +66,7 @@
 - [x] T022 [US4] Update prospect deep research runbook with weekly scheduler validation, enable, disable, rollback, owner, log location, and side-effect checks
 - [x] T023 [US4] Verify live Hermes scheduler support and add a Central-time wake-gated install plan
 - [ ] T024 [US4] Install and enable weekly jobs only after migration 055, MCP deploy, smoke tests, and explicit operator approval
+- [x] T025 [US4] Update weekly deep research job to use Hermes native subagents with parent-only evidence writes
 
 ## Dependencies & Execution Order
 

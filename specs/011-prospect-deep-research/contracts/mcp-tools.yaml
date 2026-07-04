@@ -153,7 +153,12 @@ scheduler_templates:
           - process_prospect_email_enrichment_batch
           - get_prospect_email_enrichment_summary
       - id: trevor-prospect-deep-research-weekly
+        subagents:
+          - source-finder
+          - rdap-domain-verifier
+          - evidence-quality-reviewer
         required_tools:
+          - delegate_task
           - claim_prospect_research_batch
           - store_prospect_research_evidence
           - list_prospect_research_evidence

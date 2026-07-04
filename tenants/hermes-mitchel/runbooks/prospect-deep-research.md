@@ -47,6 +47,28 @@ The review tool reports eligibility only. It does not update
 `trevor.prospects.email`, append prospect notes, create outreach tasks, or send
 outbound messages.
 
+## Hermes Subagent Workflow
+
+The weekly deep research job uses Hermes native `delegate_task` support. The
+parent job claims prospects, delegates bounded public research, applies the
+quality gate, and is the only agent allowed to call
+`store_prospect_research_evidence`.
+
+Use leaf child agents with `toolsets=["web"]` and these roles:
+
+- `source-finder`: find official sites/contact pages, city/town/chamber
+  directories, credible business listings, and credible news or business
+  context.
+- `rdap-domain-verifier`: verify domain plausibility, registration status, or
+  domain age for candidate domains. RDAP/WHOIS remains domain-verification only.
+- `evidence-quality-reviewer`: check name/address/phone match strength,
+  ambiguity, source type, confidence, and concise search-location notes.
+
+Child agents must not call Trevor write tools, update prospect records, create
+outreach tasks, or send outbound messages. Ambiguous findings should be
+returned to the parent as rejected or needs-deeper-review, not stored as trusted
+evidence.
+
 ## Safety Checks
 
 - Never store raw page dumps or private contact data.
@@ -136,6 +158,8 @@ OvernightDesk operator with Mitchel/Trevor production approval.
 - Missing-email enrichment may update `trevor.prospects.email` only through the
   existing reviewed enrichment apply path.
 - Deep research may insert or update `trevor.prospect_research_evidence` only.
+- Deep research subagents may perform public research only; the parent job is
+  responsible for all evidence writes.
 - Neither weekly job may send outbound messages.
 - Do-not-contact prospects may receive internal context evidence but no
   outreach task.
