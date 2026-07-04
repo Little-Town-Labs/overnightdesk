@@ -23,8 +23,10 @@ send outbound messages or directly update `trevor.prospects.email`.
   prospect.
 - `list_prospect_research_evidence`: lists bounded evidence rows by prospect or
   review status.
+- `review_prospect_research_evidence`: approves, rejects, or supersedes one
+  evidence row and reports controlled promotion eligibility.
 
-Both tools return `outbound_sent=false`.
+All tools return `outbound_sent=false`.
 
 ## Operating Flow
 
@@ -35,9 +37,15 @@ Both tools return `outbound_sent=false`.
    search-location note.
 4. Leave evidence in `pending_review` until Mitchel or the operator approves or
    rejects it.
-5. Promote approved high-confidence email evidence only through a controlled
-   email enrichment apply path.
-6. Promote business context as concise prospect notes only after review.
+5. Review evidence with `review_prospect_research_evidence`.
+6. Treat `email_promotable=true` as eligible for a later controlled email
+   enrichment apply path.
+7. Treat `note_promotable=true` as eligible for a later concise prospect note
+   promotion path.
+
+The review tool reports eligibility only. It does not update
+`trevor.prospects.email`, append prospect notes, create outreach tasks, or send
+outbound messages.
 
 ## Safety Checks
 

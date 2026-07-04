@@ -68,31 +68,6 @@ tools:
           items: { type: string }
         outbound_sent: { type: boolean, enum: [false] }
 
-scheduler_templates:
-  - name: prospect_weekly_research_jobs
-    description: Disabled-by-default weekly jobs for missing-email enrichment and prospect deep research.
-    file: tenants/hermes-mitchel/schedules/prospect-weekly-research-jobs.json
-    schedule:
-      day_of_week: saturday
-      time: "23:00"
-      timezone: America/Chicago
-    defaults:
-      enabled: false
-      install_status: template_only
-      approval_required: true
-      outbound_sent: false
-    jobs:
-      - id: trevor-missing-email-enrichment-weekly
-        required_tools:
-          - seed_prospect_email_enrichment_queue
-          - process_prospect_email_enrichment_batch
-          - get_prospect_email_enrichment_summary
-      - id: trevor-prospect-deep-research-weekly
-        required_tools:
-          - claim_prospect_research_batch
-          - store_prospect_research_evidence
-          - list_prospect_research_evidence
-
   - name: list_prospect_research_evidence
     description: List bounded research evidence for a prospect or review queue.
     input:
@@ -121,3 +96,58 @@ scheduler_templates:
           type: array
           items: { type: string }
         outbound_sent: { type: boolean, enum: [false] }
+
+  - name: review_prospect_research_evidence
+    description: Review one prospect research evidence row and report controlled promotion eligibility without mutating prospect records.
+    input:
+      type: object
+      required: [evidence_id, review_status, reviewed_by]
+      properties:
+        evidence_id: { type: integer, minimum: 1 }
+        review_status:
+          type: string
+          enum: [approved, rejected, superseded]
+        reviewed_by: { type: string, minLength: 1, maxLength: 120 }
+        review_note: { type: string, maxLength: 500 }
+    output:
+      type: object
+      required: [status, evidence_id, prospect_id, review_status, email_promotable, note_promotable, promoted_to, warnings, outbound_sent]
+      properties:
+        status: { type: string, enum: [reviewed, rejected, not_found] }
+        evidence_id: { type: integer }
+        prospect_id: { type: [integer, "null"] }
+        review_status: { type: [string, "null"] }
+        email_promotable: { type: boolean }
+        note_promotable: { type: boolean }
+        promoted_to:
+          type: [string, "null"]
+          enum: [email_enrichment_or_prospect_note, prospect_note, null]
+        warnings:
+          type: array
+          items: { type: string }
+        outbound_sent: { type: boolean, enum: [false] }
+
+scheduler_templates:
+  - name: prospect_weekly_research_jobs
+    description: Disabled-by-default weekly jobs for missing-email enrichment and prospect deep research.
+    file: tenants/hermes-mitchel/schedules/prospect-weekly-research-jobs.json
+    schedule:
+      day_of_week: saturday
+      time: "23:00"
+      timezone: America/Chicago
+    defaults:
+      enabled: false
+      install_status: template_only
+      approval_required: true
+      outbound_sent: false
+    jobs:
+      - id: trevor-missing-email-enrichment-weekly
+        required_tools:
+          - seed_prospect_email_enrichment_queue
+          - process_prospect_email_enrichment_batch
+          - get_prospect_email_enrichment_summary
+      - id: trevor-prospect-deep-research-weekly
+        required_tools:
+          - claim_prospect_research_batch
+          - store_prospect_research_evidence
+          - list_prospect_research_evidence

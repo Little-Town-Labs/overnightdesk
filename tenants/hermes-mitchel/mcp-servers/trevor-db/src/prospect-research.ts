@@ -5,6 +5,8 @@ import type {
   ProspectResearchEvidenceInput,
   ProspectResearchEvidenceListInput,
   ProspectResearchEvidenceListResult,
+  ProspectResearchEvidenceReviewInput,
+  ProspectResearchEvidenceReviewResult,
   ProspectResearchEvidenceStoreResult,
   ProspectResearchEvidenceWrite,
   ProspectResearchRepository,
@@ -59,6 +61,18 @@ function isEmailPromotable(sourceType: ProspectResearchSourceType, foundEmail: s
     foundEmail &&
     EMAIL_PROMOTABLE_SOURCES.includes(sourceType) &&
     (confidence === "official" || confidence === "likely")
+  );
+}
+
+function isNotePromotable(record: {
+  businessContextNote: string | null;
+  evidenceNote: string | null;
+  searchLocationNote: string | null;
+  reviewStatus: string | null;
+}): boolean {
+  return Boolean(
+    record.reviewStatus === "approved" &&
+    (record.businessContextNote || record.evidenceNote || record.searchLocationNote)
   );
 }
 
@@ -152,6 +166,66 @@ export async function claimProspectResearchBatch(
   return repo.claimProspectResearchBatch({ limit: normalizeClaimLimit(input.limit) });
 }
 
+export async function reviewProspectResearchEvidence(
+  repo: ProspectResearchRepository,
+  input: ProspectResearchEvidenceReviewInput
+): Promise<ProspectResearchEvidenceReviewResult> {
+  const reviewedBy = clean(input.reviewedBy, 120);
+  const reviewNote = clean(input.reviewNote, 500);
+  if (!reviewedBy) {
+    return {
+      status: "rejected",
+      evidenceId: input.evidenceId,
+      prospectId: null,
+      reviewStatus: null,
+      emailPromotable: false,
+      notePromotable: false,
+      promotedTo: null,
+      warnings: ["reviewed_by is required for evidence review."],
+      outboundSent: false
+    };
+  }
+
+  const record = await repo.reviewProspectResearchEvidence({
+    evidenceId: input.evidenceId,
+    reviewStatus: input.reviewStatus,
+    reviewedBy,
+    reviewedAt: new Date(),
+    reviewNote
+  });
+  if (!record) {
+    return {
+      status: "not_found",
+      evidenceId: input.evidenceId,
+      prospectId: null,
+      reviewStatus: null,
+      emailPromotable: false,
+      notePromotable: false,
+      promotedTo: null,
+      warnings: ["No prospect research evidence exists for this evidence_id."],
+      outboundSent: false
+    };
+  }
+
+  const warnings: string[] = [];
+  const emailPromotable = record.reviewStatus === "approved" && isEmailPromotable(record.sourceType, record.foundEmail, record.confidence);
+  const notePromotable = isNotePromotable(record);
+  if (record.reviewStatus === "approved" && record.sourceType === "rdap_whois") {
+    warnings.push("RDAP/WHOIS evidence is domain verification only and is not email-promotable.");
+  }
+  return {
+    status: "reviewed",
+    evidenceId: record.evidenceId,
+    prospectId: record.prospectId,
+    reviewStatus: record.reviewStatus,
+    emailPromotable,
+    notePromotable,
+    promotedTo: emailPromotable ? "email_enrichment_or_prospect_note" : notePromotable ? "prospect_note" : null,
+    warnings,
+    outboundSent: false
+  };
+}
+
 export async function listProspectResearchEvidence(
   repo: ProspectResearchRepository,
   input: ProspectResearchEvidenceListInput = {}
@@ -191,6 +265,20 @@ export function prospectResearchClaimToMcp(result: ProspectResearchClaimResult) 
       latest_evidence_at: item.latestEvidenceAt?.toISOString() ?? null,
       research_reason: item.researchReason
     })),
+    warnings: result.warnings,
+    outbound_sent: false
+  };
+}
+
+export function prospectResearchReviewToMcp(result: ProspectResearchEvidenceReviewResult) {
+  return {
+    status: result.status,
+    evidence_id: result.evidenceId,
+    prospect_id: result.prospectId,
+    review_status: result.reviewStatus,
+    email_promotable: result.emailPromotable,
+    note_promotable: result.notePromotable,
+    promoted_to: result.promotedTo,
     warnings: result.warnings,
     outbound_sent: false
   };

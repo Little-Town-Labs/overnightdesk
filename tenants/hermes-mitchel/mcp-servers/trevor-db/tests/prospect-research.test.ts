@@ -5,6 +5,8 @@ import { FakeQueueRepository } from "./test-repo.js";
 import {
   claimProspectResearchBatch,
   prospectResearchClaimToMcp,
+  prospectResearchReviewToMcp,
+  reviewProspectResearchEvidence,
   listProspectResearchEvidence,
   prospectResearchEvidenceListToMcp,
   prospectResearchEvidenceStoreToMcp,
@@ -180,4 +182,92 @@ test("claim prospect research batch is bounded and maps to snake_case MCP output
   assert.equal(mcp.items[0]?.missing_email, true);
   assert.equal(mcp.items[0]?.has_public_clue, true);
   assert.equal(mcp.outbound_sent, false);
+});
+
+test("approves official evidence and reports promotion eligibility", async () => {
+  const repo = new FakeQueueRepository([
+    prospect({ id: 1, company: "AGS One", email: null })
+  ]);
+  const stored = await storeProspectResearchEvidence(repo, {
+    prospectId: 1,
+    sourceType: "contact_page",
+    sourceUrl: "https://ags-one.example/contact",
+    foundEmail: "buying@ags-one.example",
+    businessContextNote: "Official contact page lists diamond buying appointments.",
+    searchLocationNote: "Email found on the official contact page.",
+    confidence: "official"
+  });
+
+  const result = await reviewProspectResearchEvidence(repo, {
+    evidenceId: stored.evidenceId ?? 0,
+    reviewStatus: "approved",
+    reviewedBy: "operator",
+    reviewNote: "Official public contact page."
+  });
+  const mcp = prospectResearchReviewToMcp(result);
+
+  assert.equal(result.status, "reviewed");
+  assert.equal(result.reviewStatus, "approved");
+  assert.equal(result.emailPromotable, true);
+  assert.equal(result.notePromotable, true);
+  assert.equal(result.promotedTo, "email_enrichment_or_prospect_note");
+  assert.equal(mcp.email_promotable, true);
+  assert.equal(mcp.note_promotable, true);
+  assert.equal(mcp.outbound_sent, false);
+  assert.equal(repo.candidates[0]?.email, null);
+});
+
+test("rejects RDAP email-like evidence from promotion eligibility", async () => {
+  const repo = new FakeQueueRepository([
+    prospect({ id: 1, company: "AGS One", email: null })
+  ]);
+  const stored = await storeProspectResearchEvidence(repo, {
+    prospectId: 1,
+    sourceType: "rdap_whois",
+    sourceUrl: "https://rdap.example/domain/ags-one.example",
+    foundEmail: "registrar-abuse@example.test",
+    businessContextNote: "RDAP confirms domain registration.",
+    searchLocationNote: "RDAP domain record.",
+    evidenceNote: "Registrar contact is not an outreach address.",
+    confidence: "possible"
+  });
+
+  const result = await reviewProspectResearchEvidence(repo, {
+    evidenceId: stored.evidenceId ?? 0,
+    reviewStatus: "approved",
+    reviewedBy: "operator",
+    reviewNote: "Domain verification only."
+  });
+
+  assert.equal(result.status, "reviewed");
+  assert.equal(result.reviewStatus, "approved");
+  assert.equal(result.emailPromotable, false);
+  assert.equal(result.notePromotable, true);
+  assert.equal(result.promotedTo, "prospect_note");
+  assert.match(result.warnings.join(" "), /RDAP\/WHOIS/);
+  assert.equal(repo.candidates[0]?.email, null);
+});
+
+test("requires reviewer when approving research evidence", async () => {
+  const repo = new FakeQueueRepository([
+    prospect({ id: 1, company: "AGS One", email: null })
+  ]);
+  const stored = await storeProspectResearchEvidence(repo, {
+    prospectId: 1,
+    sourceType: "official_site",
+    sourceUrl: "https://ags-one.example",
+    businessContextNote: "Official site confirms the business is active.",
+    searchLocationNote: "Official homepage.",
+    confidence: "official"
+  });
+
+  const result = await reviewProspectResearchEvidence(repo, {
+    evidenceId: stored.evidenceId ?? 0,
+    reviewStatus: "approved",
+    reviewedBy: " ",
+    reviewNote: "Missing reviewer."
+  });
+
+  assert.equal(result.status, "rejected");
+  assert.match(result.warnings.join(" "), /reviewed_by/);
 });

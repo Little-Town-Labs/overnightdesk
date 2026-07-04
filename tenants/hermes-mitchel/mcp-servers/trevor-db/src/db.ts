@@ -38,6 +38,7 @@ import type {
   ProspectResearchEvidenceListInput,
   ProspectResearchEvidenceListResult,
   ProspectResearchEvidenceRecord,
+  ProspectResearchEvidenceReviewWrite,
   ProspectResearchEvidenceWrite,
   ProspectResearchReviewStatus,
   ProspectResearchSourceType,
@@ -1811,6 +1812,30 @@ export class PgQueueRepository implements QueueRepository {
       warnings: [],
       outboundSent: false as const
     };
+  }
+
+  async reviewProspectResearchEvidence(input: ProspectResearchEvidenceReviewWrite): Promise<ProspectResearchEvidenceRecord | null> {
+    const result = await this.pool.query(
+      `
+      update trevor.prospect_research_evidence
+      set
+        review_status = $2,
+        reviewed_by = $3,
+        reviewed_at = $4,
+        review_note = $5,
+        updated_at = now()
+      where id = $1
+      returning *
+      `,
+      [
+        input.evidenceId,
+        input.reviewStatus,
+        input.reviewedBy,
+        input.reviewedAt,
+        input.reviewNote
+      ]
+    );
+    return result.rows[0] ? toProspectResearchEvidence(result.rows[0]) : null;
   }
 
   async listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult> {

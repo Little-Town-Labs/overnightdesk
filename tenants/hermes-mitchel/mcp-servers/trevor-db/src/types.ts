@@ -522,6 +522,33 @@ export interface ProspectResearchEvidenceListResult {
   outboundSent: false;
 }
 
+export interface ProspectResearchEvidenceReviewInput {
+  evidenceId: number;
+  reviewStatus: Extract<ProspectResearchReviewStatus, "approved" | "rejected" | "superseded">;
+  reviewedBy?: string | null;
+  reviewNote?: string | null;
+}
+
+export interface ProspectResearchEvidenceReviewWrite {
+  evidenceId: number;
+  reviewStatus: Extract<ProspectResearchReviewStatus, "approved" | "rejected" | "superseded">;
+  reviewedBy: string;
+  reviewedAt: Date;
+  reviewNote: string | null;
+}
+
+export interface ProspectResearchEvidenceReviewResult {
+  status: "reviewed" | "rejected" | "not_found";
+  evidenceId: number;
+  prospectId: number | null;
+  reviewStatus: ProspectResearchReviewStatus | null;
+  emailPromotable: boolean;
+  notePromotable: boolean;
+  promotedTo: "email_enrichment_or_prospect_note" | "prospect_note" | null;
+  warnings: string[];
+  outboundSent: false;
+}
+
 export interface ProspectResearchClaimInput {
   limit?: number;
 }
@@ -1141,5 +1168,6 @@ export interface ProspectResearchRepository {
   findProspectById(prospectId: number): Promise<ProspectCandidate | null>;
   claimProspectResearchBatch(input: { limit: number }): Promise<ProspectResearchClaimResult>;
   storeProspectResearchEvidence(input: ProspectResearchEvidenceWrite): Promise<ProspectResearchEvidenceRecord>;
+  reviewProspectResearchEvidence(input: ProspectResearchEvidenceReviewWrite): Promise<ProspectResearchEvidenceRecord | null>;
   listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult>;
 }

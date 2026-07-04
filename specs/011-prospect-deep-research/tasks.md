@@ -43,9 +43,9 @@
 
 **Independent Test**: Approve official evidence, reject RDAP email-like evidence, and verify only approved official evidence is promotable.
 
-- [ ] T012 [US3] Add review state tests and service contract
-- [ ] T013 [US3] Implement evidence review tool and promotion eligibility output
-- [ ] T014 [US3] Document controlled promotion into email enrichment/prospect notes
+- [x] T012 [US3] Add review state tests and service contract
+- [x] T013 [US3] Implement evidence review tool and promotion eligibility output
+- [x] T014 [US3] Document controlled promotion into email enrichment/prospect notes
 
 ## Phase 6: Polish & Rollout
 

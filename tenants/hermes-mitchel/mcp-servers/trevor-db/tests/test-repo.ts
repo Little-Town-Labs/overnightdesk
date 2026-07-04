@@ -30,6 +30,7 @@ import type {
   ProspectResearchEvidenceListInput,
   ProspectResearchEvidenceListResult,
   ProspectResearchEvidenceRecord,
+  ProspectResearchEvidenceReviewWrite,
   ProspectResearchEvidenceWrite,
   ProspectSourceCandidateRecord,
   ProspectSourcingRunRecord,
@@ -1016,6 +1017,17 @@ export class FakeQueueRepository implements QueueRepository {
       warnings: [],
       outboundSent: false as const
     };
+  }
+
+  async reviewProspectResearchEvidence(input: ProspectResearchEvidenceReviewWrite): Promise<ProspectResearchEvidenceRecord | null> {
+    const record = this.researchEvidence.find((item) => item.evidenceId === input.evidenceId);
+    if (!record) return null;
+    record.reviewStatus = input.reviewStatus;
+    record.reviewedBy = input.reviewedBy;
+    record.reviewedAt = input.reviewedAt;
+    record.reviewNote = input.reviewNote;
+    record.updatedAt = new Date("2026-07-04T16:15:00Z");
+    return record;
   }
 
   async listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult> {

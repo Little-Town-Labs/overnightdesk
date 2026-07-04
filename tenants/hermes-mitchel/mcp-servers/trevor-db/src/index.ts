@@ -48,6 +48,8 @@ import {
   prospectResearchClaimToMcp,
   prospectResearchEvidenceListToMcp,
   prospectResearchEvidenceStoreToMcp,
+  prospectResearchReviewToMcp,
+  reviewProspectResearchEvidence,
   storeProspectResearchEvidence
 } from "./prospect-research.js";
 import {
@@ -75,7 +77,7 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.13.0"
+  version: "1.14.0"
 });
 
 const prospectResearchSourceSchema = z.enum([
@@ -764,6 +766,28 @@ server.registerTool("claim_prospect_research_batch", {
     return { content: [{ type: "text", text: JSON.stringify(prospectResearchClaimToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Prospect research claim error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("review_prospect_research_evidence", {
+  description: "Review one prospect research evidence row and report controlled promotion eligibility. Does not update prospect records or send outbound messages.",
+  inputSchema: {
+    evidence_id: z.number().int().positive(),
+    review_status: z.enum(["approved", "rejected", "superseded"]),
+    reviewed_by: z.string().trim().min(1).max(120),
+    review_note: z.string().trim().max(500).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await reviewProspectResearchEvidence(repo, {
+      evidenceId: input.evidence_id,
+      reviewStatus: input.review_status,
+      reviewedBy: input.reviewed_by,
+      reviewNote: input.review_note
+    });
+    return { content: [{ type: "text", text: JSON.stringify(prospectResearchReviewToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect research review error: ${sanitizeError(err)}` }] };
   }
 });
 

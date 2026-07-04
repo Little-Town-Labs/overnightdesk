@@ -955,7 +955,7 @@ stored for review before promotion.
 - [x] MVP MCP storage/listing tools are implemented locally with tests.
 - [x] Production migration and MCP deployment are completed with schema backup.
 - [x] Prioritized missing-email claim order is implemented.
-- [ ] Review and controlled promotion workflow is implemented.
+- [x] Review and controlled promotion eligibility workflow is implemented.
 - [ ] Weekly missing-email enrichment and deep research scheduler is validated
   for Saturday 23:00 America/Chicago and enabled only after explicit approval.
 
