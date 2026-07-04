@@ -47,6 +47,11 @@ test("runs a conservative CamoFox batch and applies a verified official email", 
   assert.equal(repo.candidates[0]?.email, "sales@ags-one.example");
   assert.equal(repo.emailEnrichment[0]?.status, "email_found");
   assert.equal(repo.emailEnrichment[0]?.evidenceSourceUrl, "https://ags-one.example/contact");
+  assert.equal(repo.emailEnrichment[0]?.confidence, "official");
+  assert.match(repo.emailEnrichment[0]?.evidenceNote ?? "", /Search location:/);
+  assert.match(repo.emailEnrichment[0]?.evidenceNote ?? "", /email located on https:\/\/ags-one\.example\/contact/);
+  assert.equal(result.items[0]?.confidence, "official");
+  assert.match(result.items[0]?.searchLocationNote ?? "", /email located on https:\/\/ags-one\.example\/contact/);
   assert.match(result.telegramSummary, /found 1/);
   assert.equal(result.outboundSent, false);
 });
@@ -82,6 +87,8 @@ test("discovers a contact link and records no_email_found when no public email e
   assert.equal(repo.candidates[0]?.email, null);
   assert.equal(repo.emailEnrichment[0]?.status, "no_email_found");
   assert.equal(repo.emailEnrichment[0]?.contactPageUrl, "https://ags-one.example/contact");
+  assert.match(repo.emailEnrichment[0]?.evidenceNote ?? "", /Search location:/);
+  assert.match(repo.emailEnrichment[0]?.evidenceNote ?? "", /inspected https:\/\/ags-one\.example\/ and https:\/\/ags-one\.example\/contact/);
 });
 
 test("marks missing website rows as needs_review without guessing", async () => {

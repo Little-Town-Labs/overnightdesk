@@ -30,6 +30,8 @@ export interface EmailEnrichmentRunnerItem {
   status: EmailEnrichmentApplyInput["status"];
   evidenceSourceUrl: string | null;
   verifiedEmail: string | null;
+  confidence: EmailEnrichmentConfidence | null;
+  searchLocationNote: string | null;
   warnings: string[];
 }
 
@@ -116,6 +118,32 @@ function confidenceForEmail(email: string, evidenceUrl: string | null): EmailEnr
   return "likely";
 }
 
+function inspectedUrls(pages: TrevorCamoFoxEnrichResult[]): string[] {
+  const urls = new Set<string>();
+  for (const page of pages) {
+    const url = normalizePublicUrl(page.finalUrl) ?? normalizePublicUrl(page.url);
+    if (url) urls.add(url);
+  }
+  return [...urls];
+}
+
+function searchLocationNote(parts: {
+  inspected: string[];
+  discoveredContactUrl?: string | null;
+  emailEvidenceUrl?: string | null;
+  outcome: "email_found" | "multiple_emails" | "no_email_found" | "needs_review" | "error";
+}): string {
+  const inspected = parts.inspected.length ? parts.inspected.join(" and ") : "no public page";
+  const details = [`inspected ${inspected}`];
+  if (parts.discoveredContactUrl) details.push(`contact page located at ${parts.discoveredContactUrl}`);
+  if (parts.emailEvidenceUrl) details.push(`email located on ${parts.emailEvidenceUrl}`);
+  if (parts.outcome === "multiple_emails") details.push("multiple emails were located across inspected text");
+  if (parts.outcome === "no_email_found") details.push("no public email was located in inspected text");
+  if (parts.outcome === "needs_review") details.push("no website/contact URL was available for inspection");
+  if (parts.outcome === "error") details.push("inspection failed before a reliable result was located");
+  return details.join("; ");
+}
+
 async function inspectUrl(
   enrichUrl: (url: string, item: EmailEnrichmentRecord) => Promise<TrevorCamoFoxEnrichResult>,
   url: string,
@@ -134,7 +162,8 @@ async function buildApplyInput(
       prospectId: item.prospectId,
       status: "needs_review",
       lastError: "No website or contact page is available for automated CamoFox research.",
-      evidenceNote: "Runner did not guess a website or email."
+      evidenceNote: "Runner did not guess a website or email.",
+      searchLocationNote: searchLocationNote({ inspected: [], outcome: "needs_review" })
     };
   }
 
@@ -146,7 +175,8 @@ async function buildApplyInput(
       candidateWebsite: normalizePublicUrl(item.candidateWebsite) ?? startUrl,
       contactPageUrl: normalizePublicUrl(item.contactPageUrl),
       evidenceSourceUrl: startUrl,
-      lastError: first.warnings.join(" ") || `CamoFox returned ${first.status}.`
+      lastError: first.warnings.join(" ") || `CamoFox returned ${first.status}.`,
+      searchLocationNote: searchLocationNote({ inspected: [startUrl], outcome: "error" })
     };
   }
 
@@ -170,6 +200,7 @@ async function buildApplyInput(
 
   const candidateWebsite = normalizePublicUrl(item.candidateWebsite) ?? normalizePublicUrl(first.finalUrl) ?? startUrl;
   const contactPageUrl = discoveredContactUrl ?? null;
+  const inspectedPageUrls = inspectedUrls(okPages);
   if (unique.size === 1) {
     const [[email, evidenceSourceUrl]] = [...unique.entries()];
     return {
@@ -180,7 +211,13 @@ async function buildApplyInput(
       candidateWebsite,
       contactPageUrl,
       evidenceSourceUrl,
-      evidenceNote: "CamoFox found one public email on an inspected website/contact page."
+      evidenceNote: "CamoFox found one public email on an inspected website/contact page.",
+      searchLocationNote: searchLocationNote({
+        inspected: inspectedPageUrls,
+        discoveredContactUrl: contactPageUrl,
+        emailEvidenceUrl: evidenceSourceUrl,
+        outcome: "email_found"
+      })
     };
   }
 
@@ -192,6 +229,12 @@ async function buildApplyInput(
       contactPageUrl,
       evidenceSourceUrl: normalizePublicUrl(first.finalUrl) ?? startUrl,
       evidenceNote: `CamoFox found multiple public emails: ${[...unique.keys()].join(", ")}.`,
+      searchLocationNote: searchLocationNote({
+        inspected: inspectedPageUrls,
+        discoveredContactUrl: contactPageUrl,
+        emailEvidenceUrl: normalizePublicUrl(first.finalUrl) ?? startUrl,
+        outcome: "multiple_emails"
+      }),
       lastError: "Multiple public emails require review before writing prospect.email."
     };
   }
@@ -203,7 +246,12 @@ async function buildApplyInput(
     contactPageUrl,
     evidenceSourceUrl: contactPageUrl ?? normalizePublicUrl(first.finalUrl) ?? startUrl,
     confidence: "unknown",
-    evidenceNote: "CamoFox inspected the available website/contact page and found no public email."
+    evidenceNote: "CamoFox inspected the available website/contact page and found no public email.",
+    searchLocationNote: searchLocationNote({
+      inspected: inspectedPageUrls,
+      discoveredContactUrl: contactPageUrl,
+      outcome: "no_email_found"
+    })
   };
 }
 
@@ -253,6 +301,8 @@ export async function runProspectEmailEnrichmentBatch(
         status: applyInput.status,
         evidenceSourceUrl: applyInput.evidenceSourceUrl ?? null,
         verifiedEmail: applyInput.verifiedEmail ?? null,
+        confidence: applyInput.confidence ?? null,
+        searchLocationNote: applyInput.searchLocationNote ?? null,
         warnings: applied.warnings
       });
     } catch (err) {
@@ -270,6 +320,8 @@ export async function runProspectEmailEnrichmentBatch(
         status: "error",
         evidenceSourceUrl: null,
         verifiedEmail: null,
+        confidence: null,
+        searchLocationNote: null,
         warnings: applied.warnings
       });
     }
@@ -313,6 +365,8 @@ export function emailEnrichmentRunnerToMcp(result: EmailEnrichmentRunnerResult) 
       status: item.status,
       evidence_source_url: item.evidenceSourceUrl,
       verified_email: item.verifiedEmail,
+      confidence: item.confidence,
+      search_location_note: item.searchLocationNote,
       warnings: item.warnings
     })),
     warnings: result.warnings,

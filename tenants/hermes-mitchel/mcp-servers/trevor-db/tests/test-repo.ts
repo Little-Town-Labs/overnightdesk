@@ -675,6 +675,7 @@ export class FakeQueueRepository implements QueueRepository {
         evidenceSourceUrl: null,
         verifiedEmail: candidate.email,
         confidence: candidate.email ? "official" : null,
+        evidenceNote: null,
         attemptCount: 0,
         claimedBy: null,
         claimedAt: null,
@@ -779,6 +780,7 @@ export class FakeQueueRepository implements QueueRepository {
     item.evidenceSourceUrl = input.evidenceSourceUrl ?? item.evidenceSourceUrl;
     item.verifiedEmail = input.verifiedEmail ?? item.verifiedEmail;
     item.confidence = input.confidence as EmailEnrichmentConfidence | null;
+    item.evidenceNote = input.evidenceNote ?? item.evidenceNote;
     item.lastError = input.status === "error" ? input.lastError : null;
 
     return {

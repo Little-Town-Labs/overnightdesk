@@ -350,6 +350,7 @@ export interface EmailEnrichmentRecord {
   evidenceSourceUrl: string | null;
   verifiedEmail: string | null;
   confidence: EmailEnrichmentConfidence | null;
+  evidenceNote: string | null;
   attemptCount: number;
   claimedBy: string | null;
   claimedAt: Date | null;
@@ -411,6 +412,7 @@ export interface EmailEnrichmentApplyInput {
   contactPageUrl?: string | null;
   evidenceSourceUrl?: string | null;
   evidenceNote?: string | null;
+  searchLocationNote?: string | null;
   lastError?: string | null;
 }
 
@@ -423,6 +425,7 @@ export interface EmailEnrichmentApplyWrite {
   contactPageUrl: string | null;
   evidenceSourceUrl: string | null;
   evidenceNote: string | null;
+  searchLocationNote: string | null;
   lastError: string | null;
 }
 

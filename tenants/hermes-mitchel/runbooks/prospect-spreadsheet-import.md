@@ -117,7 +117,15 @@ Use `process_prospect_email_enrichment_batch` with `limit` between 5 and 10.
 The runner claims queue rows, inspects known websites/contact pages with
 CamoFox, discovers obvious contact links from homepage links, and applies
 results only through the same reviewed `apply_prospect_email_enrichment_result`
-rules.
+rules. Runner result items include both the reliability rating as `confidence`
+and a `search_location_note` that names the inspected website/contact pages and
+where the email or no-email evidence was located.
+
+For manual applications through `apply_prospect_email_enrichment_result`, set
+`search_location_note` in addition to `confidence` and `evidence_note` whenever
+the search location is known. Keep it concise: describe the public page(s)
+checked, where the contact page was located, and where the email was found or
+why no public email was found.
 
 `get_latest_prospect_import_batch` resolves the latest import from
 `trevor.prospect_import_runs` and joins the current enrichment queue progress
@@ -127,7 +135,7 @@ it falls back to the durable enrichment queue and returns `null` import counts.
 Expected summary buckets:
 
 - `email_found`: one public email found with an evidence URL and `official` or
-  `likely` confidence.
+  `likely` confidence plus a search-location note.
 - `no_email_found`: website/contact page inspected and no public email found.
 - `needs_review`: no website/contact page, multiple public emails, or ambiguous
   evidence.

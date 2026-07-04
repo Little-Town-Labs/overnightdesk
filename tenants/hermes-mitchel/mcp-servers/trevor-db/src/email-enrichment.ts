@@ -25,6 +25,14 @@ function clean(value: string | null | undefined, max: number): string | null {
   return normalized.length > max ? normalized.slice(0, max) : normalized;
 }
 
+function combineEvidenceNote(evidenceNote: string | null, searchLocationNote: string | null): string | null {
+  const parts = [
+    evidenceNote,
+    searchLocationNote ? `Search location: ${searchLocationNote}` : null
+  ].filter(Boolean);
+  return clean(parts.join(" "), 1200);
+}
+
 function normalizeEmail(value: string | null | undefined): string | null {
   const email = clean(value, 320)?.toLowerCase() ?? null;
   return email && EMAIL_PATTERN.test(email) ? email : null;
@@ -77,7 +85,7 @@ export async function applyProspectEmailEnrichmentResult(
   const evidenceSourceUrl = normalizeUrl(input.evidenceSourceUrl);
   const candidateWebsite = normalizeUrl(input.candidateWebsite);
   const contactPageUrl = normalizeUrl(input.contactPageUrl);
-  const evidenceNote = clean(input.evidenceNote, 1200);
+  const evidenceNote = combineEvidenceNote(clean(input.evidenceNote, 900), clean(input.searchLocationNote, 500));
   const lastError = clean(input.lastError, 800);
   const confidence = input.confidence ?? (status === "email_found" ? "unknown" : null);
 
@@ -110,6 +118,7 @@ export async function applyProspectEmailEnrichmentResult(
     contactPageUrl,
     evidenceSourceUrl,
     evidenceNote,
+    searchLocationNote: clean(input.searchLocationNote, 500),
     lastError
   });
 }

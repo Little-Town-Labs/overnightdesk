@@ -622,6 +622,7 @@ server.registerTool("apply_prospect_email_enrichment_result", {
     contact_page_url: z.string().trim().max(500).optional(),
     evidence_source_url: z.string().trim().max(500).optional(),
     evidence_note: z.string().trim().max(1200).optional(),
+    search_location_note: z.string().trim().max(500).optional(),
     last_error: z.string().trim().max(800).optional()
   }
 }, async (input) => {
@@ -635,6 +636,7 @@ server.registerTool("apply_prospect_email_enrichment_result", {
       contactPageUrl: input.contact_page_url,
       evidenceSourceUrl: input.evidence_source_url,
       evidenceNote: input.evidence_note,
+      searchLocationNote: input.search_location_note,
       lastError: input.last_error
     });
     return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentApplyToMcp(result)) }] };
