@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const schedulerPath = "../../schedules/prospect-weekly-research-jobs.json";
+const hermesInstallPlanPath = "../../schedules/prospect-weekly-hermes-install-plan.json";
+const centralGateScriptPath = "../../scripts/prospect-weekly-central-gate.sh";
 const runbookPath = "../../runbooks/prospect-deep-research.md";
 
 test("prospect weekly scheduler template is disabled and pinned to Saturday night Central time", () => {
@@ -60,4 +62,60 @@ test("prospect deep research runbook documents scheduler operations", () => {
   ]) {
     assert.ok(runbook.includes(phrase), `missing ${phrase}`);
   }
+});
+
+test("Hermes install plan stays disabled and uses Central-time wake gate", () => {
+  const plan = JSON.parse(readFileSync(hermesInstallPlanPath, "utf8")) as {
+    install_status: string;
+    approval_required: boolean;
+    timezone_strategy: {
+      requested_local_time: string;
+      hermes_host_timezone: string;
+      cron_expression: string;
+      wake_gate_script: string;
+    };
+    jobs: Array<{
+      id: string;
+      enabled: boolean;
+      state: string;
+      script: string;
+      no_agent: boolean;
+      prompt: string;
+      schedule: { kind: string; expr: string; display: string };
+    }>;
+  };
+
+  assert.equal(plan.install_status, "disabled_install_plan");
+  assert.equal(plan.approval_required, true);
+  assert.equal(plan.timezone_strategy.requested_local_time, "Saturday 23:00 America/Chicago");
+  assert.equal(plan.timezone_strategy.hermes_host_timezone, "UTC");
+  assert.equal(plan.timezone_strategy.cron_expression, "0 4,5 * * 0");
+  assert.equal(plan.timezone_strategy.wake_gate_script, "prospect-weekly-central-gate.sh");
+  assert.equal(plan.jobs.length, 2);
+
+  for (const job of plan.jobs) {
+    assert.equal(job.enabled, false, `${job.id} must not enable production cron`);
+    assert.equal(job.state, "paused");
+    assert.equal(job.script, "prospect-weekly-central-gate.sh");
+    assert.equal(job.no_agent, false);
+    assert.equal(job.schedule.kind, "cron");
+    assert.equal(job.schedule.expr, "0 4,5 * * 0");
+    assert.match(job.schedule.display, /America\/Chicago/);
+    assert.match(job.prompt, /Do not|Never/i);
+  }
+
+  const enrichmentJob = plan.jobs.find((job) => job.id === "trevor-missing-email-enrichment-weekly");
+  assert.ok(enrichmentJob, "missing enrichment job");
+  assert.match(enrichmentJob.prompt, /newly queued, retryable error, or stale claimed/i);
+  assert.match(enrichmentJob.prompt, /do not reset completed no_email_found or needs_review/i);
+});
+
+test("Central-time wake gate emits wakeAgent JSON", () => {
+  const script = readFileSync(centralGateScriptPath, "utf8");
+
+  assert.match(script, /TZ=America\/Chicago/);
+  assert.match(script, /local_dow/);
+  assert.match(script, /local_hour/);
+  assert.match(script, /"wakeAgent": true/);
+  assert.match(script, /"wakeAgent": false/);
 });

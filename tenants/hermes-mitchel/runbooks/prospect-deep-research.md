@@ -60,6 +60,10 @@ outbound messages.
 
 The repo-owned scheduler template is
 `tenants/hermes-mitchel/schedules/prospect-weekly-research-jobs.json`.
+The Hermes-compatible disabled install plan is
+`tenants/hermes-mitchel/schedules/prospect-weekly-hermes-install-plan.json`.
+The Central-time wake gate script is
+`tenants/hermes-mitchel/scripts/prospect-weekly-central-gate.sh`.
 
 It defines two disabled jobs:
 
@@ -67,9 +71,16 @@ It defines two disabled jobs:
 - `trevor-prospect-deep-research-weekly`
 
 Both jobs are intended to run Saturday at 23:00 America/Chicago local
-wall-clock time. Use timezone-aware scheduler support when available. If a
-UTC-only cron path is used, document the active CST/CDT conversion at install
-time and revisit it before daylight-saving changes.
+wall-clock time. Live Hermes cron is UTC-based, so the install plan uses cron
+expression `0 4,5 * * 0` plus `prospect-weekly-central-gate.sh`. The cron
+expression fires at both UTC hours that can correspond to Saturday 23:00
+America/Chicago across CDT/CST; the wake gate returns `{"wakeAgent": false}`
+unless the current Central local time is Saturday 23:00.
+
+Initial missing-email enrichment rerun policy is conservative: process newly
+queued, retryable error, or stale claimed enrichment work. Do not reset
+completed `no_email_found` or `needs_review` rows every week until a separate
+reviewed stale-retry policy/tool exists.
 
 ### Validation
 
@@ -78,18 +89,23 @@ Before enabling either job:
 1. Confirm migration 055 is applied.
 2. Confirm the deployed Trevor MCP server exposes all required tools from the
    scheduler template.
-3. Run one on-demand missing-email enrichment smoke against a bounded batch.
-4. Run one on-demand deep research smoke that stores reviewable evidence only.
-5. Verify `trevor.prospects.email` changes only through the reviewed email
+3. Copy `prospect-weekly-central-gate.sh` to `/opt/data/scripts/` and make it
+   executable.
+4. Verify the wake gate returns `wakeAgent=false` outside Saturday 23:00
+   America/Chicago.
+5. Run one on-demand missing-email enrichment smoke against a bounded batch.
+6. Run one on-demand deep research smoke that stores reviewable evidence only.
+7. Verify `trevor.prospects.email` changes only through the reviewed email
    enrichment apply path.
-6. Verify neither job sends outbound messages or creates outreach tasks.
-7. Get explicit operator approval to enable the jobs.
+8. Verify neither job sends outbound messages or creates outreach tasks.
+9. Get explicit operator approval to enable the jobs.
 
 ### Enable
 
-Install the two jobs from the template only after validation passes. Keep the
-job names and `origin` values unchanged so later audits can connect production
-state back to this repository.
+Install the two jobs from the Hermes-compatible install plan only after
+validation passes. Keep the job names and `origin` values unchanged so later
+audits can connect production state back to this repository. Jobs must remain
+`enabled=false` until explicit final enable approval.
 
 ### Disable
 

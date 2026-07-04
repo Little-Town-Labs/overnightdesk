@@ -35,10 +35,16 @@ Before installing the weekly jobs in production:
 1. Confirm migration 055 is applied.
 2. Confirm the deployed Trevor MCP server exposes the enrichment and deep
    research tools required by the scheduler template.
-3. Run one on-demand missing-email enrichment smoke.
-4. Run one on-demand deep research smoke that stores evidence only.
-5. Get explicit operator approval to enable the weekly jobs.
-6. Install both jobs for Saturday 23:00 America/Chicago local wall-clock time.
+3. Copy `tenants/hermes-mitchel/scripts/prospect-weekly-central-gate.sh` to
+   `/opt/data/scripts/prospect-weekly-central-gate.sh` and make it executable.
+4. Use `tenants/hermes-mitchel/schedules/prospect-weekly-hermes-install-plan.json`
+   as the disabled Hermes job source.
+5. Verify the Central-time wake gate returns `wakeAgent=false` outside the
+   target Saturday 23:00 America/Chicago window.
+6. Run one on-demand missing-email enrichment smoke.
+7. Run one on-demand deep research smoke that stores evidence only.
+8. Get explicit operator approval to enable the weekly jobs.
+9. Install both jobs with cron `0 4,5 * * 0` plus the Central-time wake gate.
 
 ## Production rollout notes
 

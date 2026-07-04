@@ -131,10 +131,16 @@ scheduler_templates:
   - name: prospect_weekly_research_jobs
     description: Disabled-by-default weekly jobs for missing-email enrichment and prospect deep research.
     file: tenants/hermes-mitchel/schedules/prospect-weekly-research-jobs.json
+    hermes_install_plan: tenants/hermes-mitchel/schedules/prospect-weekly-hermes-install-plan.json
+    wake_gate_script: tenants/hermes-mitchel/scripts/prospect-weekly-central-gate.sh
     schedule:
       day_of_week: saturday
       time: "23:00"
       timezone: America/Chicago
+    hermes_schedule:
+      kind: cron
+      expr: "0 4,5 * * 0"
+      gate: America/Chicago Saturday 23:00
     defaults:
       enabled: false
       install_status: template_only

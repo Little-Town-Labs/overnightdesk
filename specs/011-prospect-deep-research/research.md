@@ -50,3 +50,15 @@ Define the weekly missing-email enrichment rerun and deep research cadence in a 
 - Enable live production jobs immediately: rejected because the deep research runner is still a later slice and production scheduler support must be verified against the live Hermes runtime.
 - Use UTC-only cron in the repository: rejected because the requested schedule is Central US local time and daylight-saving changes would make a fixed UTC offset wrong part of the year.
 - Combine enrichment and research in one job: rejected because the two paths have different prerequisites, smoke tests, and rollback needs.
+
+## Decision: Hermes cron adapter with Central wake gate
+
+Use a disabled Hermes-compatible install plan with cron expression `0 4,5 * * 0` and pre-run script `prospect-weekly-central-gate.sh`.
+
+**Rationale**: Live Hermes cron supports cron expressions and pre-run wake gates, but not timezone-aware schedule objects. Firing at both possible UTC hours and suppressing the non-matching Central-time run preserves the requested Saturday 23:00 America/Chicago wall-clock time across CST/CDT without modifying Hermes itself.
+
+**Alternatives considered**:
+
+- `0 23 * * 6`: rejected because the host and container run UTC, so this would run at 23:00 UTC, not 23:00 Central.
+- Fixed `0 4 * * 0`: rejected because it is correct during CDT but one hour early during CST.
+- Fixed `0 5 * * 0`: rejected because it is correct during CST but one hour late during CDT.

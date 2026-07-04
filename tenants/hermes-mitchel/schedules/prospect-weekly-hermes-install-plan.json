@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "name": "prospect-weekly-hermes-install-plan",
+  "install_status": "disabled_install_plan",
+  "approval_required": true,
+  "timezone_strategy": {
+    "requested_local_time": "Saturday 23:00 America/Chicago",
+    "hermes_host_timezone": "UTC",
+    "cron_expression": "0 4,5 * * 0",
+    "wake_gate_script": "prospect-weekly-central-gate.sh",
+    "rationale": "Hermes cron stores UTC cron expressions. The job fires at both UTC hours that can correspond to Saturday 23:00 America/Chicago across CDT/CST; the wake gate suppresses the non-matching hour before the agent runs."
+  },
+  "install_steps": [
+    "Copy tenants/hermes-mitchel/scripts/prospect-weekly-central-gate.sh to /opt/data/scripts/prospect-weekly-central-gate.sh and make it executable.",
+    "Merge the disabled jobs below into /opt/data/cron/jobs.json only after on-demand smokes and explicit operator approval.",
+    "Keep enabled=false until the final enable step; do not modify existing paused AGS enrichment jobs.",
+    "After install, verify both jobs remain disabled until explicit enable approval."
+  ],
+  "jobs": [
+    {
+      "id": "trevor-missing-email-enrichment-weekly",
+      "name": "Trevor missing-email enrichment weekly rerun",
+      "prompt": "Weekly Trevor missing-email enrichment rerun. The pre-run script has already confirmed it is Saturday 23:00 America/Chicago. Policy: process newly queued, retryable error, or stale claimed enrichment work for prospects still missing email; do not reset completed no_email_found or needs_review rows without a separate reviewed retry policy. Required flow: 1. Call seed_prospect_email_enrichment_queue with source_batch=ags_prospect_import, source_label=AGS, reset_claimed_older_than_minutes=1440. 2. Call get_prospect_email_enrichment_summary for source_batch=ags_prospect_import. 3. Call process_prospect_email_enrichment_batch with source_batch=ags_prospect_import, limit=10, claimed_by=hermes-weekly-missing-email. 4. Never fabricate emails. Never send outbound messages. 5. End with status counts, remaining_count, and any warnings.",
+      "skills": [],
+      "skill": null,
+      "model": "gpt-5.5",
+      "provider": "openai-codex",
+      "base_url": null,
+      "script": "prospect-weekly-central-gate.sh",
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 4,5 * * 0",
+        "display": "Saturday 23:00 America/Chicago guarded"
+      },
+      "schedule_display": "Saturday 23:00 America/Chicago guarded",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": null,
+      "paused_reason": "Disabled install plan; enable only after explicit operator approval.",
+      "deliver": "local",
+      "origin": {
+        "platform": "operator",
+        "source": "specs/011-prospect-deep-research"
+      },
+      "enabled_toolsets": null,
+      "workdir": "/opt/data/mcp-servers/trevor-db"
+    },
+    {
+      "id": "trevor-prospect-deep-research-weekly",
+      "name": "Trevor prospect deep research weekly pass",
+      "prompt": "Weekly Trevor prospect deep research pass. The pre-run script has already confirmed it is Saturday 23:00 America/Chicago. Required flow: 1. Call claim_prospect_research_batch with limit=10. 2. For each claimed prospect, search public web sources for official site/contact page, chamber/city/town directory, credible news, and business context. Use RDAP/WHOIS only for domain verification. 3. Store concise source-attributed findings with store_prospect_research_evidence. 4. Leave evidence pending_review unless a human/operator separately reviews it. 5. Do not update trevor.prospects.email or prospect notes. Do not create outreach tasks. Do not send outbound messages. 6. End with prospect count, evidence count, and warnings.",
+      "skills": [],
+      "skill": null,
+      "model": "gpt-5.5",
+      "provider": "openai-codex",
+      "base_url": null,
+      "script": "prospect-weekly-central-gate.sh",
+      "no_agent": false,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 4,5 * * 0",
+        "display": "Saturday 23:00 America/Chicago guarded"
+      },
+      "schedule_display": "Saturday 23:00 America/Chicago guarded",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": null,
+      "paused_reason": "Disabled install plan; enable only after explicit operator approval.",
+      "deliver": "local",
+      "origin": {
+        "platform": "operator",
+        "source": "specs/011-prospect-deep-research"
+      },
+      "enabled_toolsets": null,
+      "workdir": "/opt/data/mcp-servers/trevor-db"
+    }
+  ]
+}

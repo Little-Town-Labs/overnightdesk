@@ -64,7 +64,7 @@
 - [x] T020 [US4] Add disabled scheduler template at `tenants/hermes-mitchel/schedules/prospect-weekly-research-jobs.json`
 - [x] T021 [US4] Add scheduler artifact tests in `tenants/hermes-mitchel/mcp-servers/trevor-db/tests/prospect-research-scheduler.test.ts`
 - [x] T022 [US4] Update prospect deep research runbook with weekly scheduler validation, enable, disable, rollback, owner, log location, and side-effect checks
-- [ ] T023 [US4] Verify live Hermes scheduler supports timezone-aware weekly jobs before production installation
+- [x] T023 [US4] Verify live Hermes scheduler support and add a Central-time wake-gated install plan
 - [ ] T024 [US4] Install and enable weekly jobs only after migration 055, MCP deploy, smoke tests, and explicit operator approval
 
 ## Dependencies & Execution Order
@@ -74,7 +74,7 @@
 - US1 is the MVP and can deploy independently after T009.
 - US2 depends on evidence types and repository foundation.
 - US3 depends on evidence storage and listing.
-- US4 can define disabled scheduler artifacts now, but production activation depends on US2/deep research runner completion, migration 055, MCP deploy, live scheduler validation, and explicit operator approval.
+- US4 can define disabled scheduler artifacts now, but production activation depends on on-demand enrichment/research smokes and explicit operator approval.
 
 ## Implementation Strategy
 
