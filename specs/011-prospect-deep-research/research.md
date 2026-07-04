@@ -38,3 +38,15 @@ RDAP/WHOIS evidence may support whether a website plausibly belongs to a busines
 Approved evidence can later be promoted to email enrichment or a concise prospect note through explicit review actions.
 
 **Rationale**: The same evidence table can support both email discovery and broader business intelligence while keeping review/audit state explicit.
+
+## Decision: Disabled-by-default weekly scheduler artifact
+
+Define the weekly missing-email enrichment rerun and deep research cadence in a repo-owned template, but keep production activation disabled until migration 055, MCP deployment, and on-demand smoke tests are complete.
+
+**Rationale**: The requested cadence is operationally useful, but the live scheduler shape and production side effects need explicit validation. A template captures the intended Saturday 23:00 America/Chicago wall-clock schedule without silently enabling automation.
+
+**Alternatives considered**:
+
+- Enable live production jobs immediately: rejected because the deep research runner is still a later slice and production scheduler support must be verified against the live Hermes runtime.
+- Use UTC-only cron in the repository: rejected because the requested schedule is Central US local time and daylight-saving changes would make a fixed UTC offset wrong part of the year.
+- Combine enrichment and research in one job: rejected because the two paths have different prerequisites, smoke tests, and rollback needs.

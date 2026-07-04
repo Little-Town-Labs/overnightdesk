@@ -63,6 +63,27 @@ Feature-specific behavior:
 - Missing-email prospects are prioritized for research.
 - Approved evidence may later be summarized into prospect notes or routed through email enrichment.
 
+## Weekly Prospect Scheduler
+
+Represents the repo-owned template for weekly prospect automation.
+
+Fields:
+
+- `schema_version`: version for the template format.
+- `timezone`: `America/Chicago`.
+- `schedule_local`: `Saturday 23:00 America/Chicago`.
+- `install_status`: `template_only` until explicitly approved and installed.
+- `approval_required`: `true`.
+- `jobs`: two disabled job definitions, one for missing-email enrichment and one for deep research.
+
+Validation:
+
+- Jobs must be disabled by default.
+- Jobs must use Saturday 23:00 America/Chicago local wall-clock time.
+- Missing-email enrichment must prioritize prospects with missing email.
+- Deep research must store evidence only and must not directly update `trevor.prospects.email`.
+- Production installation must verify timezone support or document the UTC offset used for the current CST/CDT period.
+
 ## State Transitions
 
 Evidence review:

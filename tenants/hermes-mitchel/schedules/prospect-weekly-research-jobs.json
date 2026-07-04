@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "name": "prospect-weekly-research-jobs",
+  "install_status": "template_only",
+  "approval_required": true,
+  "timezone": "America/Chicago",
+  "schedule_local": "Saturday 23:00 America/Chicago",
+  "notes": [
+    "Disabled-by-default template. Do not install or enable in production until migration 055, Trevor MCP deploy, on-demand smokes, and explicit operator approval are complete.",
+    "Use timezone-aware scheduler support. If production uses UTC-only cron, document the CST/CDT conversion at install time and revisit before daylight-saving changes.",
+    "No job in this template may send outbound messages."
+  ],
+  "jobs": [
+    {
+      "id": "trevor-missing-email-enrichment-weekly",
+      "name": "Trevor missing-email enrichment weekly rerun",
+      "enabled": false,
+      "schedule": {
+        "kind": "weekly_local",
+        "day_of_week": "saturday",
+        "time": "23:00",
+        "timezone": "America/Chicago"
+      },
+      "origin": "specs/011-prospect-deep-research",
+      "workdir": "/opt/data/mcp-servers/trevor-db",
+      "scope": {
+        "prospects": "missing_email_first",
+        "batch_limit": 50,
+        "outbound_sent": false
+      },
+      "required_tools": [
+        "seed_prospect_email_enrichment_queue",
+        "process_prospect_email_enrichment_batch",
+        "get_prospect_email_enrichment_summary"
+      ],
+      "runbook": "tenants/hermes-mitchel/runbooks/prospect-deep-research.md"
+    },
+    {
+      "id": "trevor-prospect-deep-research-weekly",
+      "name": "Trevor prospect deep research weekly pass",
+      "enabled": false,
+      "schedule": {
+        "kind": "weekly_local",
+        "day_of_week": "saturday",
+        "time": "23:00",
+        "timezone": "America/Chicago"
+      },
+      "origin": "specs/011-prospect-deep-research",
+      "workdir": "/opt/data/mcp-servers/trevor-db",
+      "scope": {
+        "prospects": "all_prospects_missing_email_first",
+        "batch_limit": 25,
+        "store_evidence_only": true,
+        "outbound_sent": false
+      },
+      "required_tools": [
+        "claim_prospect_research_batch",
+        "store_prospect_research_evidence",
+        "list_prospect_research_evidence"
+      ],
+      "runbook": "tenants/hermes-mitchel/runbooks/prospect-deep-research.md"
+    }
+  ]
+}

@@ -8,6 +8,8 @@
 
 **Input**: User description: "Deep research pass for all Trevor prospects, prioritizing prospects missing email; store public web research evidence in a new foreign-keyed table; include official sites, city/town/chamber directories, news, business context, and RDAP/WHOIS only for domain verification; high-confidence notes are reviewable and can be promoted; no outbound messaging or guessed/private emails."
 
+**Scheduler Addendum**: Re-run missing-email enrichment weekly and run deep research weekly on Saturday night at 11:00 PM Central US time.
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Store Reviewable Public Evidence (Priority: P1)
@@ -56,6 +58,22 @@ Mitchel or the operator can review high-confidence findings and promote approved
 2. **Given** evidence from RDAP/WHOIS, **When** it contains contact-like data, **Then** the system treats it as domain verification only and does not mark it as email-promotable.
 3. **Given** multiple conflicting candidate emails exist, **When** evidence is reviewed, **Then** the prospect remains in review until a human chooses or rejects the candidates.
 
+---
+
+### User Story 4 - Weekly Missing-Email and Deep Research Scheduler (Priority: P3)
+
+Mitchel can rely on a disabled-by-default weekly scheduler definition that re-runs missing-email enrichment and deep research every Saturday at 11:00 PM America/Chicago after the required MCP tools and production migration are deployed.
+
+**Why this priority**: Weekly refresh keeps missing-email prospects from going stale and lets the research table accumulate broader business context without requiring daily manual operation.
+
+**Independent Test**: Can be tested by validating the scheduler artifact documents two disabled jobs, both pinned to Saturday 23:00 America/Chicago, with explicit approval, validation, disable, and rollback instructions.
+
+**Acceptance Scenarios**:
+
+1. **Given** the production scheduler is not explicitly approved, **When** the repository scheduler artifact is deployed, **Then** both weekly jobs remain disabled/template-only and no production run is scheduled.
+2. **Given** the operator approves scheduler activation after migration and MCP smoke tests, **When** the scheduler is installed, **Then** missing-email enrichment and deep research are configured for Saturday 23:00 America/Chicago local wall-clock time.
+3. **Given** the weekly jobs run, **When** they process prospects, **Then** missing-email enrichment is prioritized, deep research stores reviewable evidence only, and neither job sends outbound messages.
+
 ### Edge Cases
 
 - RDAP/WHOIS results may be redacted, privacy-proxied, stale, or registrar abuse contacts; these must never be sufficient email evidence.
@@ -63,6 +81,7 @@ Mitchel or the operator can review high-confidence findings and promote approved
 - Scraped pages and search snippets are untrusted text; notes must be bounded and stored as summaries, not raw pages.
 - Duplicate evidence for the same prospect/source/value should be suppressed or updated rather than repeatedly inserted.
 - Do-not-contact prospects may still receive internal research context, but no outreach task or outbound action may be created.
+- The Saturday 23:00 America/Chicago schedule crosses CST/CDT changes; production installation must use the scheduler's timezone support when available, or update UTC cron offsets during daylight-saving transitions.
 
 ## Requirements
 
@@ -78,11 +97,16 @@ Mitchel or the operator can review high-confidence findings and promote approved
 - **FR-008**: System MUST make approved high-confidence notes available for controlled promotion to the prospect record or email enrichment workflow.
 - **FR-009**: System MUST retain public provenance for every promoted finding.
 - **FR-010**: System MUST expose bounded MCP tools for storing, listing, and reviewing research evidence without sending outbound messages.
+- **FR-011**: System MUST provide a repo-controlled, disabled-by-default weekly scheduler artifact for missing-email enrichment and deep research at Saturday 23:00 America/Chicago.
+- **FR-012**: Scheduler activation MUST require explicit operator approval after migration, MCP deploy, and one on-demand smoke for each job path.
+- **FR-013**: Weekly missing-email enrichment MUST prioritize prospects where `trevor.prospects.email` is missing and MUST avoid creating outbound messages.
+- **FR-014**: Weekly deep research MUST store evidence in the research evidence table and MUST NOT directly update `trevor.prospects.email`.
 
 ### Key Entities
 
 - **Prospect Research Evidence**: A public evidence row linked to one Trevor prospect, containing source attribution, findings, confidence, review status, and promotion metadata.
 - **Research Run**: A bounded run or batch that records who requested research, how many prospects were considered, and status/counts.
+- **Weekly Prospect Scheduler**: A disabled-by-default scheduler definition for the missing-email enrichment rerun and deep research batch.
 - **Trevor Prospect**: Existing durable prospect record that research evidence references.
 
 ## Success Criteria
@@ -94,6 +118,7 @@ Mitchel or the operator can review high-confidence findings and promote approved
 - **SC-003**: 100% of stored evidence rows include a prospect link, source type, source URL or explicit source-location note, confidence, and review status.
 - **SC-004**: RDAP/WHOIS evidence cannot produce an email-promotable result in validation tests.
 - **SC-005**: Duplicate evidence inserts for the same prospect/source/value are suppressed or updated.
+- **SC-006**: Scheduler artifact validation confirms two disabled weekly jobs, both set to Saturday 23:00 America/Chicago, with no outbound side effects.
 
 ## Assumptions
 
@@ -101,3 +126,4 @@ Mitchel or the operator can review high-confidence findings and promote approved
 - First implementation is evidence-first and review-first; web search automation and promotion can ship in later slices.
 - Existing CamoFox and web research helpers can be reused where appropriate but must not send outbound messages.
 - The production rollout will follow the existing Aegis backup, migration, smoke, and deploy-log process.
+- Weekly scheduling is installed only after explicit operator approval; this feature records the intended cadence and validation path before enabling production automation.

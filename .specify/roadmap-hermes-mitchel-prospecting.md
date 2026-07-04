@@ -956,6 +956,8 @@ stored for review before promotion.
 - [ ] Production migration and MCP deployment are completed with schema backup.
 - [ ] Prioritized missing-email claim order is implemented.
 - [ ] Review and controlled promotion workflow is implemented.
+- [ ] Weekly missing-email enrichment and deep research scheduler is validated
+  for Saturday 23:00 America/Chicago and enabled only after explicit approval.
 
 ---
 

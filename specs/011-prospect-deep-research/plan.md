@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add a durable, review-first research evidence layer for all Trevor prospects. The first implementation slice creates the foreign-keyed evidence table and bounded MCP contracts for storing and listing public findings, then later slices add prioritized claiming, automated research, and reviewed promotion.
+Add a durable, review-first research evidence layer for all Trevor prospects. The first implementation slice creates the foreign-keyed evidence table and bounded MCP contracts for storing and listing public findings, then later slices add prioritized claiming, automated research, reviewed promotion, and a disabled-by-default Saturday 23:00 America/Chicago scheduler for missing-email enrichment and deep research.
 
 ## Technical Context
 
@@ -24,7 +24,7 @@ Add a durable, review-first research evidence layer for all Trevor prospects. Th
 
 **Performance Goals**: Claim/list operations remain bounded; default batches should handle 5-10 prospects without long-running table scans.
 
-**Constraints**: No outbound messaging; no direct `trevor.prospects.email` writes from unreviewed evidence; RDAP/WHOIS is never sufficient email evidence; source notes are bounded and sanitized summaries.
+**Constraints**: No outbound messaging; no direct `trevor.prospects.email` writes from unreviewed evidence; RDAP/WHOIS is never sufficient email evidence; source notes are bounded and sanitized summaries; production scheduler activation requires explicit operator approval after migration, MCP deploy, and on-demand smoke tests.
 
 **Scale/Scope**: Single Mitchel tenant, hundreds of prospects, public evidence rows per prospect.
 
@@ -69,10 +69,14 @@ tenants/hermes-mitchel/mcp-servers/trevor-db/
 │   └── types.ts
 └── tests/
     ├── prospect-research.test.ts
+    ├── prospect-research-scheduler.test.ts
     └── test-repo.ts
 
 tenants/hermes-mitchel/runbooks/
 └── prospect-deep-research.md
+
+tenants/hermes-mitchel/schedules/
+└── prospect-weekly-research-jobs.json
 ```
 
 **Structure Decision**: Keep schema under Tenet-0 migrations because the live Trevor schema is hosted by `tenet0-postgres`; keep workflow code under `tenants/hermes-mitchel/mcp-servers/trevor-db` because that owns Mitchel/Trevor tenant tools.
