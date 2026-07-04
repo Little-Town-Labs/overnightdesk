@@ -15,18 +15,18 @@ operating loop. The first useful product is not a dashboard. It is a reliable
 assistant workflow that tells Mitchel who to call, why to call them, what to say
 before the call, and what follow-up to send afterward.
 
-**Total Features:** 11
+**Total Features:** 12
 **Phases:** 9
-**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing -> Internal Intake -> Mitchel Prospecting Dashboard -> Public Landing Page
+**Critical Path:** Schema Hardening -> Call Queue -> Post-Call Capture -> Follow-Up Drafting -> Scheduler -> Follow-Up Sent Logging -> Prospect Sourcing -> Internal Intake -> Mitchel Prospecting Dashboard -> Prospect Deep Research -> Public Landing Page
 
 ---
 
 ## Current Status
 
-**Last Updated:** 2026-06-25
-**Active Branch:** `main`
-**Latest Merged OvernightDesk SHA:** `5cf5959`
-**Latest Deployed OvernightDesk Source SHA:** `5cf5959`
+**Last Updated:** 2026-07-04
+**Active Branch:** `011-prospect-deep-research`
+**Latest Merged OvernightDesk SHA:** `eccc642`
+**Latest Deployed OvernightDesk Source SHA:** `eccc642`
 **Latest Deployed Engine SHA:** `b87702b`
 **Latest Deployed Platform Standard SHA:** `fca6af6`
 **Feature 1 Status:** Deployed to `aegis-prod`; platform-standard inventory PR #1 merged and standards consumer refreshed
@@ -40,7 +40,8 @@ before the call, and what follow-up to send afterward.
 **Feature 9 Status:** Merged via PR #18 and deployed to `aegis-prod/hermes-mitchel`
 **Feature 10 Status:** Merged via PR #19 and deployed to Vercel/Aegis production support
 **Feature 11 Status:** Planned: Mitchel Brown Landing Page and Buyer Inquiry Form
-**Next Work:** Start Feature 11 with Spec Kit for the public Mitchel Brown landing page, `/books` content path, and buyer inquiry form routed through the Feature 9 intake contract.
+**Feature 12 Status:** In progress on branch `011-prospect-deep-research`; Spec Kit artifacts initialized in `specs/011-prospect-deep-research`; first slice is the durable `trevor.prospect_research_evidence` table and MCP storage/listing contract.
+**Next Work:** Finish Feature 12 MVP: apply migration 055 locally/production-reviewed path, add Trevor MCP storage/listing tools, run no-email-write smoke, then continue to prioritized missing-email claim order.
 
 ### Production Deployment Record
 
@@ -935,7 +936,30 @@ from a customized tenant dashboard without leaving the platform.
 
 ---
 
-### Phase 9: Public Buyer Acquisition
+### Phase 9: Prospect Deep Research
+
+**Goal:** Mitchel can build richer context and contact evidence for every
+Trevor prospect, with missing-email prospects prioritized and all findings
+stored for review before promotion.
+
+**Features:**
+
+- Feature 12: Prospect Deep Research
+
+**Completion Gate:**
+
+- [x] Spec Kit artifacts define all-prospect scope, missing-email priority,
+  RDAP/WHOIS domain-verification-only rules, and review-first evidence storage.
+- [x] Additive migration 055 defines `trevor.prospect_research_runs` and
+  `trevor.prospect_research_evidence`.
+- [x] MVP MCP storage/listing tools are implemented locally with tests.
+- [ ] Production migration and MCP deployment are completed with schema backup.
+- [ ] Prioritized missing-email claim order is implemented.
+- [ ] Review and controlled promotion workflow is implemented.
+
+---
+
+### Phase 10: Public Buyer Acquisition
 
 **Goal:** `mitchelbrown.com` can capture inbound buyer inquiries through the
 same reviewed intake path used internally.

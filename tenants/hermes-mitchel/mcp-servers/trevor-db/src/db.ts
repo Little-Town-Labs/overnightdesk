@@ -34,6 +34,12 @@ import type {
   ProspectCandidate,
   ProspectImportRunWrite,
   ProspectInteraction,
+  ProspectResearchEvidenceListInput,
+  ProspectResearchEvidenceListResult,
+  ProspectResearchEvidenceRecord,
+  ProspectResearchEvidenceWrite,
+  ProspectResearchReviewStatus,
+  ProspectResearchSourceType,
   ProspectSourceCandidateRecord,
   ProspectSourcingRunRecord,
   QueueRepository,
@@ -165,6 +171,31 @@ function toEmailEnrichmentRecord(row: Record<string, unknown>): EmailEnrichmentR
     claimedAt: row.claimed_at ? new Date(row.claimed_at as string) : null,
     lastCheckedAt: row.last_checked_at ? new Date(row.last_checked_at as string) : null,
     lastError: row.last_error as string | null
+  };
+}
+
+function toProspectResearchEvidence(row: Record<string, unknown>): ProspectResearchEvidenceRecord {
+  return {
+    evidenceId: Number(row.evidence_id ?? row.id),
+    prospectId: Number(row.prospect_id),
+    researchRunId: row.research_run_id !== undefined && row.research_run_id !== null ? Number(row.research_run_id) : null,
+    sourceType: row.source_type as ProspectResearchSourceType,
+    sourceUrl: row.source_url as string | null,
+    sourceTitle: row.source_title as string | null,
+    foundEmail: row.found_email as string | null,
+    foundPhone: row.found_phone as string | null,
+    businessContextNote: row.business_context_note as string | null,
+    searchLocationNote: row.search_location_note as string | null,
+    evidenceNote: row.evidence_note as string | null,
+    confidence: row.confidence as EmailEnrichmentConfidence,
+    reviewStatus: row.review_status as ProspectResearchReviewStatus,
+    reviewedBy: row.reviewed_by as string | null,
+    reviewedAt: row.reviewed_at ? new Date(row.reviewed_at as string) : null,
+    reviewNote: row.review_note as string | null,
+    promotedAt: row.promoted_at ? new Date(row.promoted_at as string) : null,
+    promotedTo: row.promoted_to as string | null,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string)
   };
 }
 
@@ -1661,6 +1692,77 @@ export class PgQueueRepository implements QueueRepository {
       latestQueuedAt,
       suggestedTelegramCommand: `continue enrichment batch ${sourceBatch}, 10 rows`,
       warnings: ["Import created/updated row counts are not yet tracked in a durable import ledger."],
+      outboundSent: false as const
+    };
+  }
+
+  async storeProspectResearchEvidence(input: ProspectResearchEvidenceWrite): Promise<ProspectResearchEvidenceRecord> {
+    const result = await this.pool.query(
+      `
+      insert into trevor.prospect_research_evidence (
+        prospect_id,
+        research_run_id,
+        source_type,
+        source_url,
+        source_title,
+        found_email,
+        found_phone,
+        business_context_note,
+        search_location_note,
+        evidence_note,
+        confidence
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      on conflict (
+        prospect_id,
+        source_type,
+        coalesce(source_url, ''),
+        coalesce(found_email, ''),
+        coalesce(business_context_note, '')
+      )
+      do update set
+        research_run_id = coalesce(excluded.research_run_id, trevor.prospect_research_evidence.research_run_id),
+        source_title = coalesce(excluded.source_title, trevor.prospect_research_evidence.source_title),
+        found_phone = coalesce(excluded.found_phone, trevor.prospect_research_evidence.found_phone),
+        search_location_note = coalesce(excluded.search_location_note, trevor.prospect_research_evidence.search_location_note),
+        evidence_note = coalesce(excluded.evidence_note, trevor.prospect_research_evidence.evidence_note),
+        confidence = excluded.confidence,
+        updated_at = now()
+      returning *
+      `,
+      [
+        input.prospectId,
+        input.researchRunId ?? null,
+        input.sourceType,
+        input.sourceUrl,
+        input.sourceTitle,
+        input.foundEmail,
+        input.foundPhone,
+        input.businessContextNote,
+        input.searchLocationNote,
+        input.evidenceNote,
+        input.confidence
+      ]
+    );
+    return toProspectResearchEvidence(result.rows[0]);
+  }
+
+  async listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult> {
+    const result = await this.pool.query(
+      `
+      select *
+      from trevor.prospect_research_evidence
+      where ($1::bigint is null or prospect_id = $1::bigint)
+        and ($2::text is null or review_status = $2::text)
+      order by created_at desc, id desc
+      limit $3
+      `,
+      [input.prospectId ?? null, input.reviewStatus ?? null, input.limit]
+    );
+    return {
+      status: "ok" as const,
+      items: result.rows.map(toProspectResearchEvidence),
+      warnings: [],
       outboundSent: false as const
     };
   }

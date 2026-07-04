@@ -334,6 +334,16 @@ export type EmailEnrichmentStatus =
   | "skipped";
 
 export type EmailEnrichmentConfidence = "official" | "likely" | "possible" | "unknown";
+export type ProspectResearchSourceType =
+  | "official_site"
+  | "contact_page"
+  | "city_directory"
+  | "chamber_directory"
+  | "news_story"
+  | "business_listing"
+  | "rdap_whois"
+  | "other_public_source";
+export type ProspectResearchReviewStatus = "pending_review" | "approved" | "rejected" | "superseded";
 
 export interface EmailEnrichmentRecord {
   queueId: number;
@@ -434,6 +444,80 @@ export interface EmailEnrichmentApplyResult {
   prospectId: number;
   queueId: number | null;
   prospectEmailUpdated: boolean;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface ProspectResearchEvidenceRecord {
+  evidenceId: number;
+  prospectId: number;
+  researchRunId: number | null;
+  sourceType: ProspectResearchSourceType;
+  sourceUrl: string | null;
+  sourceTitle: string | null;
+  foundEmail: string | null;
+  foundPhone: string | null;
+  businessContextNote: string | null;
+  searchLocationNote: string | null;
+  evidenceNote: string | null;
+  confidence: EmailEnrichmentConfidence;
+  reviewStatus: ProspectResearchReviewStatus;
+  reviewedBy: string | null;
+  reviewedAt: Date | null;
+  reviewNote: string | null;
+  promotedAt: Date | null;
+  promotedTo: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProspectResearchEvidenceWrite {
+  prospectId: number;
+  researchRunId?: number | null;
+  sourceType: ProspectResearchSourceType;
+  sourceUrl: string | null;
+  sourceTitle: string | null;
+  foundEmail: string | null;
+  foundPhone: string | null;
+  businessContextNote: string | null;
+  searchLocationNote: string | null;
+  evidenceNote: string | null;
+  confidence: EmailEnrichmentConfidence;
+}
+
+export interface ProspectResearchEvidenceInput {
+  prospectId: number;
+  researchRunId?: number | null;
+  sourceType: ProspectResearchSourceType;
+  sourceUrl?: string | null;
+  sourceTitle?: string | null;
+  foundEmail?: string | null;
+  foundPhone?: string | null;
+  businessContextNote?: string | null;
+  searchLocationNote?: string | null;
+  evidenceNote?: string | null;
+  confidence?: EmailEnrichmentConfidence | null;
+}
+
+export interface ProspectResearchEvidenceStoreResult {
+  status: "stored" | "rejected" | "not_found";
+  evidenceId: number | null;
+  prospectId: number;
+  reviewStatus: ProspectResearchReviewStatus | null;
+  emailPromotable: boolean;
+  warnings: string[];
+  outboundSent: false;
+}
+
+export interface ProspectResearchEvidenceListInput {
+  prospectId?: number | null;
+  reviewStatus?: ProspectResearchReviewStatus | null;
+  limit?: number;
+}
+
+export interface ProspectResearchEvidenceListResult {
+  status: "ok";
+  items: ProspectResearchEvidenceRecord[];
   warnings: string[];
   outboundSent: false;
 }
@@ -1026,4 +1110,10 @@ export interface EmailEnrichmentQueueRepository {
   applyEmailEnrichmentResult(input: EmailEnrichmentApplyWrite): Promise<EmailEnrichmentApplyResult>;
   getEmailEnrichmentSummary(sourceBatch?: string | null): Promise<EmailEnrichmentSummaryResult>;
   getLatestEmailEnrichmentBatch(): Promise<ProspectImportBatchLookupResult>;
+}
+
+export interface ProspectResearchRepository {
+  findProspectById(prospectId: number): Promise<ProspectCandidate | null>;
+  storeProspectResearchEvidence(input: ProspectResearchEvidenceWrite): Promise<ProspectResearchEvidenceRecord>;
+  listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult>;
 }

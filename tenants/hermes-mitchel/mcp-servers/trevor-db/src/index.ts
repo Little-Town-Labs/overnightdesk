@@ -43,6 +43,12 @@ import { sanitizeError } from "./safety.js";
 import { importProspectSpreadsheetFile, prospectSpreadsheetFileImportToMcp } from "./spreadsheet-file-import.js";
 import { importProspectSpreadsheetRows, prospectSpreadsheetImportToMcp } from "./spreadsheet-import.js";
 import {
+  listProspectResearchEvidence,
+  prospectResearchEvidenceListToMcp,
+  prospectResearchEvidenceStoreToMcp,
+  storeProspectResearchEvidence
+} from "./prospect-research.js";
+import {
   promoteProspectCandidate,
   promoteProspectCandidateToMcp,
   reviewProspectCandidates,
@@ -67,8 +73,26 @@ try {
 
 const server = new McpServer({
   name: "trevor-db",
-  version: "1.11.0"
+  version: "1.12.0"
 });
+
+const prospectResearchSourceSchema = z.enum([
+  "official_site",
+  "contact_page",
+  "city_directory",
+  "chamber_directory",
+  "news_story",
+  "business_listing",
+  "rdap_whois",
+  "other_public_source"
+]);
+
+const prospectResearchReviewStatusSchema = z.enum([
+  "pending_review",
+  "approved",
+  "rejected",
+  "superseded"
+]);
 
 server.registerTool("db_query", {
   description: "Run a read-only SQL SELECT against the trevor schema.",
@@ -688,6 +712,62 @@ server.registerTool("process_prospect_email_enrichment_batch", {
     return { content: [{ type: "text", text: JSON.stringify(emailEnrichmentRunnerToMcp(result)) }] };
   } catch (err) {
     return { content: [{ type: "text", text: `Email enrichment runner error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("store_prospect_research_evidence", {
+  description: "Store bounded public deep-research evidence for one Trevor prospect. Review-first; never updates prospect.email and never sends outbound messages.",
+  inputSchema: {
+    prospect_id: z.number().int().positive(),
+    research_run_id: z.number().int().positive().optional(),
+    source_type: prospectResearchSourceSchema,
+    source_url: z.string().trim().max(500).optional(),
+    source_title: z.string().trim().max(300).optional(),
+    found_email: z.string().trim().max(320).optional(),
+    found_phone: z.string().trim().max(80).optional(),
+    business_context_note: z.string().trim().max(1200).optional(),
+    search_location_note: z.string().trim().max(800).optional(),
+    evidence_note: z.string().trim().max(1200).optional(),
+    confidence: z.enum(["official", "likely", "possible", "unknown"]).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await storeProspectResearchEvidence(repo, {
+      prospectId: input.prospect_id,
+      researchRunId: input.research_run_id,
+      sourceType: input.source_type,
+      sourceUrl: input.source_url,
+      sourceTitle: input.source_title,
+      foundEmail: input.found_email,
+      foundPhone: input.found_phone,
+      businessContextNote: input.business_context_note,
+      searchLocationNote: input.search_location_note,
+      evidenceNote: input.evidence_note,
+      confidence: input.confidence
+    });
+    return { content: [{ type: "text", text: JSON.stringify(prospectResearchEvidenceStoreToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect research evidence store error: ${sanitizeError(err)}` }] };
+  }
+});
+
+server.registerTool("list_prospect_research_evidence", {
+  description: "List bounded Trevor prospect deep-research evidence for a prospect or review queue. Read-only; never sends outbound messages.",
+  inputSchema: {
+    prospect_id: z.number().int().positive().optional(),
+    review_status: prospectResearchReviewStatusSchema.optional(),
+    limit: z.number().int().min(1).max(50).optional()
+  }
+}, async (input) => {
+  try {
+    const result = await listProspectResearchEvidence(repo, {
+      prospectId: input.prospect_id,
+      reviewStatus: input.review_status,
+      limit: input.limit
+    });
+    return { content: [{ type: "text", text: JSON.stringify(prospectResearchEvidenceListToMcp(result)) }] };
+  } catch (err) {
+    return { content: [{ type: "text", text: `Prospect research evidence list error: ${sanitizeError(err)}` }] };
   }
 });
 

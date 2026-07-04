@@ -26,6 +26,10 @@ import type {
   ProspectImportRunWrite,
   ProspectCandidate,
   ProspectInteraction,
+  ProspectResearchEvidenceListInput,
+  ProspectResearchEvidenceListResult,
+  ProspectResearchEvidenceRecord,
+  ProspectResearchEvidenceWrite,
   ProspectSourceCandidateRecord,
   ProspectSourcingRunRecord,
   QueueRepository,
@@ -41,6 +45,7 @@ export class FakeQueueRepository implements QueueRepository {
   public sourcingRuns: ProspectSourcingRunRecord[] = [];
   public sourcingCandidates: ProspectSourceCandidateRecord[] = [];
   public emailEnrichment: EmailEnrichmentRecord[] = [];
+  public researchEvidence: ProspectResearchEvidenceRecord[] = [];
   public prospectImportRuns: Array<ProspectImportRunWrite & { id: number; createdAt: Date }> = [];
   public created = 0;
   public captured = 0;
@@ -911,6 +916,65 @@ export class FakeQueueRepository implements QueueRepository {
       suggestedTelegramCommand: `continue enrichment batch ${latest.sourceBatch}, 10 rows`,
       warnings: ["Import created/updated row counts are not yet tracked in a durable import ledger."],
       outboundSent: false
+    };
+  }
+
+  async storeProspectResearchEvidence(input: ProspectResearchEvidenceWrite): Promise<ProspectResearchEvidenceRecord> {
+    const existing = this.researchEvidence.find((item) =>
+      item.prospectId === input.prospectId &&
+      item.sourceType === input.sourceType &&
+      (item.sourceUrl ?? "") === (input.sourceUrl ?? "") &&
+      (item.foundEmail ?? "") === (input.foundEmail ?? "") &&
+      (item.businessContextNote ?? "") === (input.businessContextNote ?? "")
+    );
+    if (existing) {
+      existing.researchRunId = input.researchRunId ?? existing.researchRunId;
+      existing.sourceTitle = input.sourceTitle ?? existing.sourceTitle;
+      existing.foundPhone = input.foundPhone ?? existing.foundPhone;
+      existing.searchLocationNote = input.searchLocationNote ?? existing.searchLocationNote;
+      existing.evidenceNote = input.evidenceNote ?? existing.evidenceNote;
+      existing.confidence = input.confidence;
+      existing.updatedAt = new Date("2026-07-04T16:00:00Z");
+      return existing;
+    }
+    const now = new Date("2026-07-04T15:45:00Z");
+    const record: ProspectResearchEvidenceRecord = {
+      evidenceId: this.researchEvidence.reduce((max, item) => Math.max(max, item.evidenceId), 0) + 1,
+      prospectId: input.prospectId,
+      researchRunId: input.researchRunId ?? null,
+      sourceType: input.sourceType,
+      sourceUrl: input.sourceUrl,
+      sourceTitle: input.sourceTitle,
+      foundEmail: input.foundEmail,
+      foundPhone: input.foundPhone,
+      businessContextNote: input.businessContextNote,
+      searchLocationNote: input.searchLocationNote,
+      evidenceNote: input.evidenceNote,
+      confidence: input.confidence,
+      reviewStatus: "pending_review",
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewNote: null,
+      promotedAt: null,
+      promotedTo: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.researchEvidence.push(record);
+    return record;
+  }
+
+  async listProspectResearchEvidence(input: ProspectResearchEvidenceListInput & { limit: number }): Promise<ProspectResearchEvidenceListResult> {
+    const items = this.researchEvidence
+      .filter((item) => !input.prospectId || item.prospectId === input.prospectId)
+      .filter((item) => !input.reviewStatus || item.reviewStatus === input.reviewStatus)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.evidenceId - a.evidenceId)
+      .slice(0, input.limit);
+    return {
+      status: "ok" as const,
+      items,
+      warnings: [],
+      outboundSent: false as const
     };
   }
 }

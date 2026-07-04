@@ -1,0 +1,73 @@
+tools:
+  - name: store_prospect_research_evidence
+    description: Store bounded public research evidence for one Trevor prospect without updating the prospect email or sending outbound messages.
+    input:
+      type: object
+      required: [prospect_id, source_type]
+      properties:
+        prospect_id: { type: integer, minimum: 1 }
+        research_run_id: { type: integer, minimum: 1 }
+        source_type:
+          type: string
+          enum:
+            - official_site
+            - contact_page
+            - city_directory
+            - chamber_directory
+            - news_story
+            - business_listing
+            - rdap_whois
+            - other_public_source
+        source_url: { type: string, maxLength: 500 }
+        source_title: { type: string, maxLength: 300 }
+        found_email: { type: string, maxLength: 320 }
+        found_phone: { type: string, maxLength: 80 }
+        business_context_note: { type: string, maxLength: 1200 }
+        search_location_note: { type: string, maxLength: 800 }
+        evidence_note: { type: string, maxLength: 1200 }
+        confidence:
+          type: string
+          enum: [official, likely, possible, unknown]
+          default: unknown
+    output:
+      type: object
+      required: [status, evidence_id, prospect_id, review_status, email_promotable, warnings, outbound_sent]
+      properties:
+        status: { type: string, enum: [stored, rejected, not_found] }
+        evidence_id: { type: [integer, "null"] }
+        prospect_id: { type: integer }
+        review_status: { type: string }
+        email_promotable: { type: boolean }
+        warnings:
+          type: array
+          items: { type: string }
+        outbound_sent: { type: boolean, enum: [false] }
+
+  - name: list_prospect_research_evidence
+    description: List bounded research evidence for a prospect or review queue.
+    input:
+      type: object
+      properties:
+        prospect_id: { type: integer, minimum: 1 }
+        review_status:
+          type: string
+          enum: [pending_review, approved, rejected, superseded]
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 15
+    output:
+      type: object
+      required: [status, items, warnings, outbound_sent]
+      properties:
+        status: { type: string, enum: [ok] }
+        items:
+          type: array
+          items:
+            type: object
+            required: [evidence_id, prospect_id, source_type, confidence, review_status, email_promotable]
+        warnings:
+          type: array
+          items: { type: string }
+        outbound_sent: { type: boolean, enum: [false] }
