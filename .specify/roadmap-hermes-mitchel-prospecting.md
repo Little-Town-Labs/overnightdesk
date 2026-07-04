@@ -953,7 +953,7 @@ stored for review before promotion.
 - [x] Additive migration 055 defines `trevor.prospect_research_runs` and
   `trevor.prospect_research_evidence`.
 - [x] MVP MCP storage/listing tools are implemented locally with tests.
-- [ ] Production migration and MCP deployment are completed with schema backup.
+- [x] Production migration and MCP deployment are completed with schema backup.
 - [ ] Prioritized missing-email claim order is implemented.
 - [ ] Review and controlled promotion workflow is implemented.
 - [ ] Weekly missing-email enrichment and deep research scheduler is validated

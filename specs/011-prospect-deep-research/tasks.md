@@ -51,8 +51,8 @@
 
 - [x] T015 Add `tenants/hermes-mitchel/runbooks/prospect-deep-research.md`
 - [x] T016 Run full Trevor MCP tests and `git diff --check`
-- [ ] T017 Perform Aegis read-only preflight before production migration/deploy
-- [ ] T018 Deploy with schema backup, MCP smoke, no-email-write smoke, and deploy log entry
+- [x] T017 Perform Aegis read-only preflight before production migration/deploy
+- [x] T018 Deploy with schema backup, MCP smoke, no-email-write smoke, and deploy log entry
 
 ## Phase 7: Weekly Scheduler
 
