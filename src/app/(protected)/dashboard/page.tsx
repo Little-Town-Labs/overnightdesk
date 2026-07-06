@@ -257,7 +257,7 @@ export default async function DashboardPage() {
             </div>
             {inst.status === "running" && !hermesAgent && (
               <div>
-                <dt className="text-xs mb-1" style={{ color: "var(--color-od-text-3)" }}>Claude Code</dt>
+                <dt className="text-xs mb-1" style={{ color: "var(--color-od-text-3)" }}>AI Runtime</dt>
                 <dd className="mt-1"><AuthStatusBadge status={inst.claudeAuthStatus} /></dd>
               </div>
             )}

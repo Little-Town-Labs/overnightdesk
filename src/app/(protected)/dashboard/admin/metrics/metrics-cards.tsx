@@ -52,7 +52,7 @@ export function MetricsCards({
       />
 
       <MetricCard
-        title="Avg Daily Claude Calls"
+        title="Avg Daily Model Calls"
         value={avgDailyClaudeCalls}
         accent="border-purple-500/30"
       >

@@ -244,7 +244,7 @@ export async function sendProvisioningEmail(options: {
     to: userInfo.email,
     subject: "Your instance is ready — OvernightDesk",
     html,
-    text: `Hi ${userInfo.name}, your Claude Code instance is ready! Open your dashboard: ${dashboardUrl}`,
+    text: `Hi ${userInfo.name}, your OvernightDesk instance is ready. Open your dashboard: ${dashboardUrl}`,
     emailType: "provisioning",
     userId: userInfo.id,
   });

@@ -29,13 +29,13 @@ export function WelcomeEmail({
       {isWaitlistConvert ? (
         <Text style={textStyle}>
           Thanks for your patience — your spot is ready. Your account is now
-          active and you can subscribe to get started with your managed Claude
-          Code instance.
+          active and you can subscribe to get started with your managed AI
+          assistant.
         </Text>
       ) : (
         <Text style={textStyle}>
           Your email has been verified and your account is active. Subscribe to
-          get your own managed Claude Code instance running overnight.
+          get your own managed AI assistant running overnight.
         </Text>
       )}
       <Button href={dashboardUrl} style={buttonStyle}>

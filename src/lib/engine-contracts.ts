@@ -578,7 +578,7 @@ export const FIXTURES = {
 
   authStatus: {
     status: "authenticated" as const,
-    message: "Claude Code is authenticated",
+    message: "Runtime is authenticated",
   } satisfies EngineAuthStatusResponse,
 
   terminalTicket: {

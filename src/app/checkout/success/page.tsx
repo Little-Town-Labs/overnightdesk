@@ -40,7 +40,7 @@ export default function CheckoutSuccessPage() {
               </li>
               <li className="flex gap-2">
                 <span className="text-zinc-500 font-mono">2.</span>
-                Connect your Claude Code account
+                Connect your runtime credentials
               </li>
               <li className="flex gap-2">
                 <span className="text-zinc-500 font-mono">3.</span>

@@ -73,7 +73,7 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h3 className="text-white font-semibold">Claude Code Connected</h3>
+        <h3 className="text-white font-semibold">AI Runtime Connected</h3>
         <p className="text-zinc-400 text-sm mt-1">
           Your AI assistant is authenticated and running 24/7.
         </p>
@@ -84,12 +84,12 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
       <h3 className="text-lg font-semibold text-white mb-1">
-        {isReconnect ? "Reconnect Claude Code" : "Connect Claude Code"}
+        {isReconnect ? "Reconnect AI Runtime" : "Connect AI Runtime"}
       </h3>
       <p className="text-zinc-400 text-sm mb-6">
         {isReconnect
-          ? "Your Claude Code session expired. Reconnect to resume your assistant."
-          : "Connect your Claude Code subscription to activate your AI assistant."}
+          ? "Your runtime session expired. Reconnect to resume your assistant."
+          : "Connect your runtime credentials to activate your AI assistant."}
       </p>
 
       {/* Step indicators */}
@@ -122,14 +122,14 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
         <div>
           <div className="bg-zinc-800/50 border border-zinc-700/50 rounded-lg p-4 mb-4">
             <p className="text-zinc-300 text-sm">
-              Clicking Connect will open a terminal to your instance. Claude Code will
-              launch and ask you to log in to your Anthropic account in a new browser tab.
+              Clicking Connect will open a terminal to your instance. The runtime
+              will launch and ask you to complete provider authentication.
             </p>
           </div>
 
           <div className="bg-blue-500/5 border border-blue-500/20 rounded-lg p-3 mb-4">
             <p className="text-blue-300 text-xs">
-              You&apos;re logging into YOUR Claude Code account. We never see your credentials.
+              You&apos;re logging into your own provider account. We never see your credentials.
               Authentication happens directly in your container.
             </p>
           </div>
@@ -141,7 +141,7 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
             disabled={loading}
             className="w-full py-3 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors disabled:opacity-50"
           >
-            {loading ? "Connecting..." : isReconnect ? "Reconnect" : "Connect Claude Code"}
+            {loading ? "Connecting..." : isReconnect ? "Reconnect" : "Connect Runtime"}
           </button>
         </div>
       )}
@@ -150,8 +150,8 @@ export function OnboardingWizard({ instanceSubdomain, authStatus: initialAuthSta
       {step === 2 && terminalOpen && ticket && wsUrl && (
         <div>
           <p className="text-zinc-400 text-sm mb-3">
-            A new tab should open for Anthropic login. Complete authentication there,
-            then this terminal will confirm the connection.
+            Complete provider authentication in the opened flow, then this terminal
+            will confirm the connection.
           </p>
           <TerminalEmbed
             wsUrl={wsUrl}

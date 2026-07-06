@@ -15,22 +15,21 @@ export function ProvisioningEmail({
 }: ProvisioningEmailProps) {
   return (
     <EmailLayout
-      preview="Your Claude Code instance is ready"
+      preview="Your OvernightDesk instance is ready"
       unsubscribeUrl={unsubscribeUrl}
     >
       <Text style={headingStyle}>Your instance is ready</Text>
       <Text style={textStyle}>Hi {name},</Text>
       <Text style={textStyle}>
-        Your managed Claude Code instance has been provisioned and is ready to
-        use. Head to your dashboard to connect your Claude Code account and
-        start running tasks.
+        Your managed AI assistant instance has been provisioned and is ready to
+        use. Head to your dashboard to connect runtime credentials and start
+        running tasks.
       </Text>
       <Button href={dashboardUrl} style={buttonStyle}>
         Open Dashboard
       </Button>
       <Text style={smallTextStyle}>
-        Next step: Click &quot;Connect Claude Code&quot; in your dashboard to
-        authenticate with your Anthropic account.
+        Next step: connect runtime credentials in your dashboard.
       </Text>
     </EmailLayout>
   );

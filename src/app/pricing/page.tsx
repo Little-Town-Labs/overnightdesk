@@ -48,21 +48,12 @@ export default async function PricingPage() {
           </h1>
           <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
             Your AI assistant runs 24/7 in an isolated container. Pick a plan,
-            connect your Claude Code subscription, and you&apos;re live.
+            connect your provider credentials, and you&apos;re live.
           </p>
           <div className="mt-4 inline-block bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-2">
             <p className="text-zinc-400 text-sm">
-              <span className="text-amber-400 font-medium">BYOS:</span> You
-              bring your own{" "}
-              <a
-                href="https://claude.ai"
-                className="text-blue-400 hover:text-blue-300 underline"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Claude Code subscription
-              </a>
-              . We never see your credentials.
+              <span className="text-amber-400 font-medium">BYOK:</span> You
+              bring your own provider credentials. We never see them.
             </p>
           </div>
         </div>

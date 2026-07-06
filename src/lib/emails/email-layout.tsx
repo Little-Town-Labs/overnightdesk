@@ -31,7 +31,7 @@ export function EmailLayout({
           <Section style={contentStyle}>{children}</Section>
           <Hr style={hrStyle} />
           <Text style={footerStyle}>
-            OvernightDesk — Managed Claude Code Hosting
+            OvernightDesk — Managed AI Operations
             <br />
             Little Town Labs
           </Text>

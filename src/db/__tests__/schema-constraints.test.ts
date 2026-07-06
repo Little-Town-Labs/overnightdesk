@@ -315,7 +315,7 @@ describeDb("database constraints", () => {
       });
 
       await testDb.insert(schema.platformAuditLog).values({
-        actor: "agent-zero",
+        actor: "gary-hermes",
         action: "health_check.pass",
         target: "tenant-bob",
       });

@@ -37,7 +37,7 @@ export function UsageTable({ usage }: UsageTableProps) {
   }
 
   const today = getTodayUTC();
-  const maxClaude = Math.max(...usage.map((r) => r.claudeCalls), 1);
+  const maxModel = Math.max(...usage.map((r) => r.claudeCalls), 1);
   const maxTool = Math.max(...usage.map((r) => r.toolExecutions), 1);
 
   return (
@@ -49,7 +49,7 @@ export function UsageTable({ usage }: UsageTableProps) {
               Date
             </th>
             <th className="text-left text-zinc-400 text-sm font-medium px-4 py-3">
-              Claude Calls
+              Model Calls
             </th>
             <th className="text-left text-zinc-400 text-sm font-medium px-4 py-3">
               Tool Executions
@@ -83,7 +83,7 @@ export function UsageTable({ usage }: UsageTableProps) {
                       <div
                         className="h-full rounded bg-blue-500/30"
                         style={{
-                          width: `${(row.claudeCalls / maxClaude) * 100}%`,
+                          width: `${(row.claudeCalls / maxModel) * 100}%`,
                         }}
                       />
                     </div>
