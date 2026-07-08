@@ -128,16 +128,29 @@ Tests use a fake in-memory `Store` and exercise the FastMCP tool registry direct
 
 ## Deploy
 
-Built and run on aegis-prod via the main `/opt/overnightdesk/docker-compose.yml`. Source rsynced to `~/ob1-mcp/`.
+Built and run on aegis-prod as a standalone Docker container. Source is rsynced
+to `~/ob1-mcp/`, the local image is rebuilt as `ob1-mcp:latest`, and the
+container is recreated with the existing env file, `overnightdesk_overnightdesk`
+network, hardened runtime flags, and tailnet-only binding
+`100.100.1.21:13005->3000`.
 
-To roll out the provenance migration:
+To roll out migrations:
 
 ```bash
 # on aegis-prod
-pg_dump -n ace_memory tenet0 > ace_memory_pre_provenance.sql
-psql tenet0 < ~/ob1-mcp/migrations/001_provenance.sql
-docker compose -f /opt/overnightdesk/docker-compose.yml up -d --build ob1-mcp
-curl -s localhost:<port>/healthz
+pg_dump -n ace_memory "$POSTGRES_DB" > ace_memory_pre_ob1_change.sql
+psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < ~/ob1-mcp/migrations/<migration>.sql
+docker build -t ob1-mcp:latest ~/ob1-mcp
+docker stop ob1-mcp
+docker rename ob1-mcp ob1-mcp-prev-$(date -u +%Y%m%dT%H%M%SZ)
+docker run -d --name ob1-mcp --restart unless-stopped ...
+curl -fsS http://100.100.1.21:13005/healthz
 ```
 
 Existing rows backfill to `provenance='imported'`. Old `save_thought` callers continue to work (defaulting to `provenance='generated'`); update hermes-agent skills incrementally to pass real provenance / source / runtime / task_id.
+
+The Judge Extender tools are exposed through the existing `open_brain` MCP
+server. Existing Hermes MCP configuration does not need to change for clients to
+discover the new tools; runtime-specific judge adapters or skills should be
+added only when a caller is ready to submit action proposals and decision
+write-back envelopes.
