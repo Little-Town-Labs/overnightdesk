@@ -87,17 +87,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Create review queue tests in `ob1-mcp/tests/test_judge_review_queue.py`
-- [ ] T025 [P] [US3] Add migration shape assertions or SQL smoke checks for review tables in `ob1-mcp/tests/test_judge_review_queue.py`
+- [x] T024 [P] [US3] Create review queue tests in `ob1-mcp/tests/test_judge_review_queue.py`
+- [x] T025 [P] [US3] Add migration shape assertions or SQL smoke checks for review tables in `ob1-mcp/tests/test_judge_review_queue.py`
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Add migration `ob1-mcp/migrations/003_judge_extender_review.sql` with `review_candidates` and `review_actions`
-- [ ] T027 [US3] Add review candidate/action store methods in `ob1-mcp/src/db.py`
-- [ ] T028 [US3] Materialize review candidates from `record_judge_decision` when `memory_to_write` contains future-facing entries in `ob1-mcp/src/server.py`
-- [ ] T029 [US3] Add `list_review_queue` MCP tool in `ob1-mcp/src/server.py`
-- [ ] T030 [US3] Add `review_memory_candidate` MCP tool in `ob1-mcp/src/server.py`
-- [ ] T031 [US3] Ensure confirm review action uses guarded memory write semantics and non-confirm actions never create instruction-grade memory in `ob1-mcp/src/server.py`
+- [x] T026 [US3] Add migration `ob1-mcp/migrations/003_judge_extender_review.sql` with `review_candidates` and `review_actions`
+- [x] T027 [US3] Add review candidate/action store methods in `ob1-mcp/src/db.py`
+- [x] T028 [US3] Materialize review candidates from `record_judge_decision` when `memory_to_write` contains future-facing entries in `ob1-mcp/src/server.py`
+- [x] T029 [US3] Add `list_review_queue` MCP tool in `ob1-mcp/src/server.py`
+- [x] T030 [US3] Add `review_memory_candidate` MCP tool in `ob1-mcp/src/server.py`
+- [x] T031 [US3] Ensure confirm review action uses guarded memory write semantics and non-confirm actions never create instruction-grade memory in `ob1-mcp/src/server.py`
 
 **Checkpoint**: Review gating prevents generated lessons from becoming hidden instructions.
 

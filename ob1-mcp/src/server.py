@@ -385,7 +385,10 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient, guard: Guard) -> F
         """Store a judge decision envelope idempotently by idempotency_key."""
         validated = validate_judge_decision(decision)
         row = await store.insert_judge_decision(validated)
-        return _judge_decision_to_payload(row)
+        candidates = await store.create_review_candidates_for_decision(row)
+        payload = _judge_decision_to_payload(row)
+        payload["review_candidates_created"] = len(candidates)
+        return payload
 
     @mcp.tool()
     async def get_judge_decision(
@@ -396,6 +399,85 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient, guard: Guard) -> F
         if row is None:
             return {"decision_id": decision_id, "found": False}
         payload = _judge_decision_to_payload(row)
+        payload["found"] = True
+        return payload
+
+    @mcp.tool()
+    async def list_review_queue(
+        workspace_id: str = Field(description="Workspace id to list review candidates for."),
+        project_id: str | None = Field(default=None, description="Optional project filter."),
+        status: str | None = Field(default="pending", description="Optional review status filter."),
+        limit: int = Field(default=20, ge=1, le=100),
+    ) -> dict[str, Any]:
+        """List review candidates awaiting or carrying human review state."""
+        if status is not None and status not in REVIEW_STATUSES:
+            raise ValueError(f"status={status!r} not allowed; allowed: {sorted(REVIEW_STATUSES)}")
+        rows = await store.list_review_candidates(
+            workspace_id=workspace_id,
+            project_id=project_id,
+            status=status,
+            limit=limit,
+        )
+        return {"items": [_review_candidate_to_payload(row) for row in rows]}
+
+    @mcp.tool()
+    async def review_memory_candidate(
+        candidate_id: str = Field(description="Review candidate id."),
+        action: str = Field(
+            description=(
+                "Review action: confirm | edit | evidence_only | restrict_scope | "
+                "mark_stale | reject | dispute | supersede."
+            )
+        ),
+        reviewer: str = Field(description="Human or platform-trusted reviewer id."),
+        note: str | None = Field(default=None),
+        edited_content: str | None = Field(default=None),
+        new_use_policy: str | None = Field(default=None),
+        new_scope: str | None = Field(default=None),
+    ) -> dict[str, Any]:
+        """Apply a review action. Only confirm creates instruction-grade memory."""
+        _validate_review_inputs(action, new_use_policy, new_scope)
+        candidate = await store.get_review_candidate(candidate_id)
+        if candidate is None:
+            return {"candidate_id": candidate_id, "found": False}
+        result_memory_id = None
+        if action == "confirm":
+            content = edited_content or candidate["proposed_content"]
+            try:
+                guard.check_quota()
+                await guard.check_content(content)
+            except GuardRejection as e:
+                raise ValueError(str(e)) from e
+            row = await store.insert_entry(
+                category=candidate["proposed_category"],
+                content=content,
+                tags=list(candidate.get("proposed_tags") or []),
+                embedding=await embed.embed(content),
+                embedding_model=cfg.embedding_model,
+                provenance="confirmed",
+                source=f"review_candidate:{candidate_id}",
+                runtime="ob1-mcp",
+                reasoning_model=None,
+                channel="review_queue",
+                task_id=candidate.get("task_id"),
+                confidence=candidate.get("confidence"),
+                use_policy="can_use_as_instruction",
+                user_confirmed_at=datetime.now(timezone.utc),
+            )
+            result_memory_id = row["id"]
+        updated = await store.apply_review_action(
+            candidate_id=candidate_id,
+            action=action,
+            reviewer=reviewer,
+            note=note,
+            edited_content=edited_content,
+            new_use_policy=new_use_policy,
+            new_scope=new_scope,
+            result_memory_id=result_memory_id,
+        )
+        if updated is None:
+            return {"candidate_id": candidate_id, "found": False}
+        payload = _review_candidate_to_payload(updated)
         payload["found"] = True
         return payload
 
@@ -467,6 +549,70 @@ def _judge_decision_to_payload(row: dict[str, Any]) -> dict[str, Any]:
         "requires_review": row.get("requires_review"),
         "created_at": _iso(row.get("created_at")),
     }
+
+
+REVIEW_ACTIONS = {
+    "confirm",
+    "edit",
+    "evidence_only",
+    "restrict_scope",
+    "mark_stale",
+    "reject",
+    "dispute",
+    "supersede",
+}
+REVIEW_STATUSES = {
+    "pending",
+    "confirmed",
+    "evidence_only",
+    "restricted",
+    "rejected",
+    "disputed",
+    "stale",
+    "superseded",
+}
+REVIEW_SCOPES = {"personal", "project", "workspace", "org"}
+
+
+def _review_candidate_to_payload(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": row.get("id"),
+        "candidate_id": row["candidate_id"],
+        "source_decision_id": row["source_decision_id"],
+        "workspace_id": row["workspace_id"],
+        "project_id": row.get("project_id"),
+        "task_id": row.get("task_id"),
+        "flow_id": row.get("flow_id"),
+        "candidate_kind": row["candidate_kind"],
+        "proposed_content": row["proposed_content"],
+        "proposed_category": row.get("proposed_category"),
+        "proposed_tags": list(row.get("proposed_tags") or []),
+        "provenance_status": row.get("provenance_status"),
+        "confidence": row.get("confidence"),
+        "suggested_use_policy": row.get("suggested_use_policy"),
+        "visibility_scope": row.get("visibility_scope"),
+        "review_status": row["review_status"],
+        "review_priority": row.get("review_priority"),
+        "reason": row.get("reason"),
+        "created_at": _iso(row.get("created_at")),
+        "reviewed_at": _iso(row.get("reviewed_at")),
+        "reviewed_by": row.get("reviewed_by"),
+        "result_memory_id": row.get("result_memory_id"),
+    }
+
+
+def _validate_review_inputs(
+    action: str, new_use_policy: str | None, new_scope: str | None
+) -> None:
+    if action not in REVIEW_ACTIONS:
+        raise ValueError(f"action={action!r} not allowed; allowed: {sorted(REVIEW_ACTIONS)}")
+    if new_use_policy is not None and new_use_policy not in USE_POLICY_VALUES:
+        raise ValueError(
+            f"new_use_policy={new_use_policy!r} not allowed; "
+            f"allowed: {sorted(USE_POLICY_VALUES)}"
+        )
+    if new_scope is not None and new_scope not in REVIEW_SCOPES:
+        raise ValueError(f"new_scope={new_scope!r} not allowed; allowed: {sorted(REVIEW_SCOPES)}")
 
 
 def _row_to_recall_memory(

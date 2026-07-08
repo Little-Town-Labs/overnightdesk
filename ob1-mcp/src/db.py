@@ -424,6 +424,186 @@ class Store:
             await conn.commit()
         return row
 
+    async def create_review_candidates_for_decision(
+        self, decision_row: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        """Create review queue candidates from a judge decision's memory_to_write."""
+        if not decision_row.get("requires_review", True):
+            return []
+        candidates = _review_candidates_from_decision(decision_row)
+        if not candidates:
+            return []
+        created: list[dict[str, Any]] = []
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                for candidate in candidates:
+                    await cur.execute(
+                        """
+                        INSERT INTO ace_memory.review_candidates (
+                            candidate_id, source_decision_id, workspace_id,
+                            project_id, task_id, flow_id, candidate_kind,
+                            proposed_content, proposed_category, proposed_tags,
+                            provenance_status, confidence, suggested_use_policy,
+                            visibility_scope, review_status, review_priority,
+                            reason
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'pending', 'normal', %s)
+                        ON CONFLICT (candidate_id) DO NOTHING
+                        RETURNING id, candidate_id, source_decision_id,
+                                  workspace_id, project_id, task_id, flow_id,
+                                  candidate_kind, proposed_content,
+                                  proposed_category, proposed_tags,
+                                  provenance_status, confidence,
+                                  suggested_use_policy, visibility_scope,
+                                  review_status, review_priority, reason,
+                                  created_at, reviewed_at, reviewed_by,
+                                  result_memory_id
+                        """,
+                        (
+                            candidate["candidate_id"],
+                            candidate["source_decision_id"],
+                            candidate["workspace_id"],
+                            candidate["project_id"],
+                            candidate["task_id"],
+                            candidate["flow_id"],
+                            candidate["candidate_kind"],
+                            candidate["proposed_content"],
+                            candidate["proposed_category"],
+                            candidate["proposed_tags"],
+                            candidate["provenance_status"],
+                            candidate["confidence"],
+                            candidate["suggested_use_policy"],
+                            candidate["visibility_scope"],
+                            candidate["reason"],
+                        ),
+                    )
+                    row = await cur.fetchone()
+                    if row is not None:
+                        created.append(row)
+            await conn.commit()
+        return created
+
+    async def list_review_candidates(
+        self,
+        workspace_id: str,
+        project_id: str | None,
+        status: str | None,
+        limit: int,
+    ) -> list[dict[str, Any]]:
+        clauses = ["workspace_id = %s"]
+        params: list[Any] = [workspace_id]
+        if project_id is not None:
+            clauses.append("project_id = %s")
+            params.append(project_id)
+        if status is not None:
+            clauses.append("review_status = %s")
+            params.append(status)
+        params.append(limit)
+        sql = f"""
+            SELECT id, candidate_id, source_decision_id, workspace_id,
+                   project_id, task_id, flow_id, candidate_kind,
+                   proposed_content, proposed_category, proposed_tags,
+                   provenance_status, confidence, suggested_use_policy,
+                   visibility_scope, review_status, review_priority, reason,
+                   created_at, reviewed_at, reviewed_by, result_memory_id
+            FROM ace_memory.review_candidates
+            WHERE {" AND ".join(clauses)}
+            ORDER BY created_at DESC, id DESC
+            LIMIT %s
+        """
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(sql, params)
+                return list(await cur.fetchall())
+
+    async def get_review_candidate(self, candidate_id: str) -> dict[str, Any] | None:
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT id, candidate_id, source_decision_id, workspace_id,
+                           project_id, task_id, flow_id, candidate_kind,
+                           proposed_content, proposed_category, proposed_tags,
+                           provenance_status, confidence, suggested_use_policy,
+                           visibility_scope, review_status, review_priority,
+                           reason, created_at, reviewed_at, reviewed_by,
+                           result_memory_id
+                    FROM ace_memory.review_candidates
+                    WHERE candidate_id = %s
+                    """,
+                    (candidate_id,),
+                )
+                return await cur.fetchone()
+
+    async def apply_review_action(
+        self,
+        *,
+        candidate_id: str,
+        action: str,
+        reviewer: str,
+        note: str | None,
+        edited_content: str | None,
+        new_use_policy: str | None,
+        new_scope: str | None,
+        result_memory_id: int | None,
+    ) -> dict[str, Any] | None:
+        status = _review_status_for_action(action)
+        if new_use_policy is not None:
+            _validate_use_policy(new_use_policy)
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    INSERT INTO ace_memory.review_actions (
+                        candidate_id, action, reviewer, note, edited_content,
+                        new_use_policy, new_scope, result_memory_id
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        candidate_id,
+                        action,
+                        reviewer,
+                        note,
+                        edited_content,
+                        new_use_policy,
+                        new_scope,
+                        result_memory_id,
+                    ),
+                )
+                await cur.execute(
+                    """
+                    UPDATE ace_memory.review_candidates
+                       SET review_status = %s,
+                           reviewed_at = NOW(),
+                           reviewed_by = %s,
+                           proposed_content = COALESCE(%s, proposed_content),
+                           suggested_use_policy = COALESCE(%s, suggested_use_policy),
+                           visibility_scope = COALESCE(%s, visibility_scope),
+                           result_memory_id = COALESCE(%s, result_memory_id)
+                     WHERE candidate_id = %s
+                 RETURNING id, candidate_id, source_decision_id, workspace_id,
+                           project_id, task_id, flow_id, candidate_kind,
+                           proposed_content, proposed_category, proposed_tags,
+                           provenance_status, confidence, suggested_use_policy,
+                           visibility_scope, review_status, review_priority,
+                           reason, created_at, reviewed_at, reviewed_by,
+                           result_memory_id
+                    """,
+                    (
+                        status,
+                        reviewer,
+                        edited_content,
+                        new_use_policy,
+                        new_scope,
+                        result_memory_id,
+                        candidate_id,
+                    ),
+                )
+                row = await cur.fetchone()
+            await conn.commit()
+        return row
+
     async def get_judge_decision(self, decision_id: str) -> dict[str, Any] | None:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:
@@ -503,6 +683,69 @@ def _decision_fields(decision_doc: dict[str, Any]) -> dict[str, Any]:
         "memory_to_write": decision_doc.get("memory_to_write") or {},
         "requires_review": bool(provenance.get("requires_review", True)),
     }
+
+
+def _review_candidates_from_decision(
+    decision_row: dict[str, Any]
+) -> list[dict[str, Any]]:
+    decision_doc = decision_row.get("decision_doc") or {}
+    provenance = decision_doc.get("provenance") or {}
+    provenance_status = provenance.get("default_status") or "generated"
+    suggested_use_policy = (
+        "requires_confirmation"
+        if provenance_status in {"generated", "inferred"}
+        else "can_use_as_evidence"
+    )
+    memory_to_write = decision_row.get("memory_to_write") or {}
+    kind_map = {
+        "decisions": "decision",
+        "lessons": "lesson",
+        "failures": "failure",
+        "constraints": "constraint",
+        "open_questions": "open_question",
+    }
+    candidates: list[dict[str, Any]] = []
+    for field, kind in kind_map.items():
+        for index, content in enumerate(memory_to_write.get(field) or []):
+            if not isinstance(content, str) or not content.strip():
+                continue
+            candidates.append(
+                {
+                    "candidate_id": f"{decision_row['decision_id']}:{field}:{index}",
+                    "source_decision_id": decision_row["decision_id"],
+                    "workspace_id": decision_row["workspace_id"],
+                    "project_id": decision_row.get("project_id"),
+                    "task_id": decision_row.get("task_id"),
+                    "flow_id": decision_row.get("flow_id"),
+                    "candidate_kind": kind,
+                    "proposed_content": content.strip(),
+                    "proposed_category": f"judge_{kind}",
+                    "proposed_tags": ["judge", kind],
+                    "provenance_status": provenance_status,
+                    "confidence": None,
+                    "suggested_use_policy": suggested_use_policy,
+                    "visibility_scope": "project",
+                    "reason": "judge_decision_memory_to_write",
+                }
+            )
+    return candidates
+
+
+def _review_status_for_action(action: str) -> str:
+    mapping = {
+        "confirm": "confirmed",
+        "edit": "pending",
+        "evidence_only": "evidence_only",
+        "restrict_scope": "restricted",
+        "mark_stale": "stale",
+        "reject": "rejected",
+        "dispute": "disputed",
+        "supersede": "superseded",
+    }
+    try:
+        return mapping[action]
+    except KeyError as e:
+        raise ValueError(f"invalid review action {action!r}") from e
 
 
 def _require_str(data: dict[str, Any], key: str) -> str:
