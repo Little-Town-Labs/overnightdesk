@@ -8,6 +8,11 @@ from .config import Config
 from .db import PROVENANCE_VALUES, USE_POLICY_VALUES, Store
 from .embeddings import OpenRouterClient
 from .guard import Guard, GuardRejection
+from .judge_contracts import (
+    validate_action_proposal,
+    validate_judge_decision,
+    validate_recall_request,
+)
 
 
 # Provenance values a worker may self-report on save_thought / supersede_thought.
@@ -324,13 +329,51 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient, guard: Guard) -> F
         return sorted(USE_POLICY_VALUES)
 
     @mcp.tool()
+    async def judge_recall(
+        request: dict[str, Any] = Field(
+            description="OpenBrain Judge recall request envelope."
+        ),
+    ) -> dict[str, Any]:
+        """Return scoped, provenance-labeled, use-policy-aware memory for judges."""
+        recall = validate_recall_request(request)
+        query = recall["query"]
+        limits = recall["limits"]
+        policy = recall["policy"]
+        rows = await store.search(
+            embedding=await embed.embed(query["summary"]),
+            top_k=limits["max_items"],
+            category=None,
+            include_inactive=False,
+            min_provenance=None,
+            allowed_use_policies=policy["allowed_use_policies"],
+            task_id=recall.get("task_id"),
+        )
+        return {
+            "schema_version": "openbrain.judge.recall_response.v1",
+            "request_id": recall["request_id"],
+            "memories": [
+                _row_to_recall_memory(
+                    row,
+                    workspace_id=recall["workspace_id"],
+                    project_id=recall.get("project_id"),
+                    visibility=recall["scope"]["visibility"],
+                )
+                for row in rows
+                if _is_recall_eligible(row, policy["allowed_use_policies"])
+            ],
+            "policy_hits": [],
+            "warnings": _recall_warnings(recall),
+        }
+
+    @mcp.tool()
     async def save_action_proposal(
         proposal: dict[str, Any] = Field(
             description="OpenBrain Judge action proposal envelope."
         ),
     ) -> dict[str, Any]:
         """Store an action proposal envelope idempotently by idempotency_key."""
-        row = await store.insert_action_proposal(proposal)
+        validated = validate_action_proposal(proposal)
+        row = await store.insert_action_proposal(validated)
         return _action_proposal_to_payload(row)
 
     @mcp.tool()
@@ -340,7 +383,8 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient, guard: Guard) -> F
         ),
     ) -> dict[str, Any]:
         """Store a judge decision envelope idempotently by idempotency_key."""
-        row = await store.insert_judge_decision(decision)
+        validated = validate_judge_decision(decision)
+        row = await store.insert_judge_decision(validated)
         return _judge_decision_to_payload(row)
 
     @mcp.tool()
@@ -423,6 +467,106 @@ def _judge_decision_to_payload(row: dict[str, Any]) -> dict[str, Any]:
         "requires_review": row.get("requires_review"),
         "created_at": _iso(row.get("created_at")),
     }
+
+
+def _row_to_recall_memory(
+    row: dict[str, Any],
+    *,
+    workspace_id: str,
+    project_id: str | None,
+    visibility: str,
+) -> dict[str, Any]:
+    source_value = row.get("source")
+    return {
+        "memory_id": str(row["id"]),
+        "summary": _memory_summary(row),
+        "content": row.get("content") or "",
+        "source": {
+            "kind": "manual_entry" if source_value else "system_event",
+            "uri": source_value,
+            "title": None,
+            "timestamp": _iso(row.get("created_at")),
+        },
+        "provenance": {
+            "status": row.get("provenance"),
+            "confidence": row.get("confidence"),
+            "created_by": _created_by_for_provenance(row.get("provenance")),
+            "model": row.get("reasoning_model"),
+            "runtime": row.get("runtime"),
+        },
+        "use_policy": {
+            "policy": row.get("use_policy"),
+            "reason": _use_policy_reason(row.get("use_policy"), row.get("provenance")),
+        },
+        "freshness": {
+            "created_at": _iso(row.get("created_at")),
+            "last_confirmed_at": _iso(row.get("user_confirmed_at")),
+            "stale_after": None,
+        },
+        "scope": {
+            "workspace_id": workspace_id,
+            "project_id": project_id,
+            "visibility": visibility,
+        },
+    }
+
+
+def _is_recall_eligible(row: dict[str, Any], allowed_use_policies: list[str]) -> bool:
+    if not row.get("is_active", True):
+        return False
+    if row.get("supersedes_id") is not None:
+        # A row with supersedes_id is the replacement, not the old inactive row.
+        return row.get("use_policy") in allowed_use_policies
+    return row.get("use_policy") in allowed_use_policies
+
+
+def _recall_warnings(recall: dict[str, Any]) -> list[dict[str, str]]:
+    warnings: list[dict[str, str]] = []
+    scope = recall["scope"]
+    if not scope.get("include_unconfirmed", False):
+        warnings.append(
+            {
+                "code": "UNCONFIRMED_EXCLUDED",
+                "message": "Unconfirmed future-facing memories are excluded by default.",
+            }
+        )
+    if not scope.get("include_disputed", False):
+        warnings.append(
+            {
+                "code": "DISPUTED_EXCLUDED",
+                "message": "Disputed memories are not injected automatically.",
+            }
+        )
+    return warnings
+
+
+def _memory_summary(row: dict[str, Any]) -> str:
+    content = str(row.get("content") or "")
+    if len(content) <= 120:
+        return content
+    return content[:117].rstrip() + "..."
+
+
+def _created_by_for_provenance(provenance: Any) -> str:
+    if provenance == "confirmed":
+        return "user"
+    if provenance in {"generated", "inferred"}:
+        return "agent"
+    if provenance == "imported":
+        return "import"
+    return "system"
+
+
+def _use_policy_reason(use_policy: Any, provenance: Any) -> str | None:
+    if use_policy == "can_use_as_instruction":
+        return "instruction-grade provenance" if provenance != "confirmed" else "human confirmed"
+    if use_policy == "can_use_as_evidence":
+        return "evidence only"
+    if use_policy == "requires_confirmation":
+        return "requires review before instruction use"
+    if use_policy == "do_not_inject_automatically":
+        return "restricted from automatic injection"
+    return None
 
 
 def _iso(dt: Any) -> str | None:

@@ -2,6 +2,10 @@
 
 MCP server exposing Ace's long-term memory (`ace_memory` schema in tenet0-postgres) over Streamable HTTP. Implements the Open Brain pattern: every entry carries provenance metadata so consumers can distinguish **evidence** from **instruction**.
 
+Process note: [OB1 Judge Extender Process](../docs/ob1-judge-extender-process.md)
+captures the next-step design for governed judge recall, decision write-back,
+review queue, and memory inspector behavior.
+
 ## Trust model (provenance)
 
 Every entry is labeled with a provenance value and an explicit use policy.
@@ -58,9 +62,15 @@ Every `save_thought` / `supersede_thought` call passes through a guard before em
 | `memory_stats` | Counts incl. `by_provenance` breakdown. |
 | `list_provenance_values` | Returns the allowed provenance enum values. |
 | `list_use_policy_values` | Returns the allowed memory use-policy enum values. |
+| `judge_recall` | Returns scoped, use-policy-aware memory for a judge before an action decision. |
 | `save_action_proposal` | Stores an OpenBrain Judge action proposal envelope idempotently. |
 | `record_judge_decision` | Stores an OpenBrain Judge decision envelope idempotently. |
 | `get_judge_decision` | Reads back one judge decision by `decision_id`. |
+
+Judge envelopes are validated at the MCP boundary. `judge_recall` defaults to
+`can_use_as_instruction`; action proposals and decisions must use the V1 schema
+and may not include raw transcripts, model reasoning traces, or full tool
+arguments without a controlled reference.
 
 ## Schema
 

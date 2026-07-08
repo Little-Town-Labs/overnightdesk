@@ -29,6 +29,8 @@ class FakeStore:
         self.confirmed_ids: list[int] = []
         self.superseded: list[dict[str, Any]] = []
         self.forgotten: list[tuple[int, bool]] = []
+        self.action_proposals: list[dict[str, Any]] = []
+        self.judge_decisions: list[dict[str, Any]] = []
         self._next_id = 100
 
     async def insert_entry(self, **kwargs):
@@ -138,6 +140,7 @@ class FakeStore:
         }
 
     async def insert_action_proposal(self, proposal):
+        self.action_proposals.append(proposal)
         action = proposal.get("action") or {}
         tool = proposal.get("tool") or {}
         return {
@@ -158,6 +161,7 @@ class FakeStore:
         }
 
     async def insert_judge_decision(self, decision_doc):
+        self.judge_decisions.append(decision_doc)
         judge = decision_doc.get("judge") or {}
         provenance = decision_doc.get("provenance") or {}
         return {
@@ -435,6 +439,120 @@ async def test_list_use_policy_values():
     ]
 
 
+def _valid_action_proposal(**overrides):
+    proposal = {
+        "schema_version": "openbrain.judge.action_proposal.v1",
+        "workspace_id": "ws",
+        "project_id": "ob1-mcp",
+        "task_id": "task-1",
+        "flow_id": "flow-1",
+        "action_id": "act-1",
+        "idempotency_key": "idem-proposal",
+        "runtime": {"name": "codex", "version": None, "adapter": "local"},
+        "actor": {
+            "agent_id": "codex",
+            "role": "coding-agent",
+            "provider": "openai",
+            "model": "gpt-5",
+        },
+        "tool": {"name": "gmail.send", "kind": "api", "target_system": "gmail"},
+        "action": {
+            "risk_class": "external_side_effect",
+            "description": "Send an approved email",
+            "target": "gmail",
+            "arguments_digest": "sha256:abc",
+            "full_arguments_ref": None,
+        },
+        "authorization": {
+            "claimed_user_authorization": "User approved",
+            "user_authorization_refs": [
+                {
+                    "kind": "user_message",
+                    "uri": None,
+                    "quote_or_summary": "send it",
+                    "timestamp": "2026-07-08T00:00:00Z",
+                }
+            ],
+        },
+        "evidence": {
+            "source_refs": [
+                {
+                    "kind": "message",
+                    "uri": None,
+                    "title": "User request",
+                    "timestamp": "2026-07-08T00:00:00Z",
+                    "summary": "User approved the send",
+                }
+            ]
+        },
+        "expected_consequence": {
+            "summary": "Email is sent externally",
+            "external_recipients": ["customer@example.com"],
+            "data_exposed": [],
+            "systems_changed": ["gmail"],
+            "persistence": "external",
+        },
+        "rollback": {
+            "is_reversible": False,
+            "rollback_plan": None,
+            "rollback_owner": None,
+        },
+        "sensitivity": {
+            "contains_secret_like_data": False,
+            "contains_customer_data": False,
+            "contains_private_personal_data": False,
+            "contains_financial_or_legal_data": False,
+            "contains_production_system_access": False,
+        },
+    }
+    proposal.update(overrides)
+    return proposal
+
+
+def _valid_judge_decision(**overrides):
+    decision = {
+        "schema_version": "openbrain.judge.decision.v1",
+        "workspace_id": "ws",
+        "project_id": "ob1-mcp",
+        "task_id": "task-1",
+        "flow_id": "flow-1",
+        "action_id": "act-1",
+        "decision_id": "dec-1",
+        "proposal_id": "act-1",
+        "idempotency_key": "idem-decision",
+        "decision": "allow",
+        "reasoning_summary": "Authorized and supported",
+        "confidence": "high",
+        "judge": {
+            "kind": "rule",
+            "provider": None,
+            "model": None,
+            "policy_version": "judge-v1",
+        },
+        "checks": {
+            "authorization_check": "pass",
+            "evidence_check": "pass",
+            "policy_check": "pass",
+            "sensitivity_check": "pass",
+            "reversibility_check": "not_applicable",
+            "quality_check": "pass",
+        },
+        "required_revision": {"summary": None, "revised_action_constraints": []},
+        "escalation": {"required": False, "reason": None, "owner": None, "due_at": None},
+        "memory_used": [{"memory_id": "1", "used_as": "instruction"}],
+        "memory_to_write": {
+            "decisions": [],
+            "lessons": [],
+            "failures": [],
+            "constraints": [],
+            "open_questions": [],
+        },
+        "provenance": {"default_status": "observed", "requires_review": False},
+    }
+    decision.update(overrides)
+    return decision
+
+
 @pytest.mark.asyncio
 async def test_save_action_proposal_records_envelope():
     store, embed = FakeStore(), FakeEmbed()
@@ -442,18 +560,27 @@ async def test_save_action_proposal_records_envelope():
     out = await _call(
         mcp,
         "save_action_proposal",
-        proposal={
-            "schema_version": "openbrain.judge.action_proposal.v1",
-            "workspace_id": "ws",
-            "action_id": "act-1",
-            "idempotency_key": "idem-proposal",
-            "action": {"risk_class": "external_side_effect"},
-            "tool": {"name": "gmail.send", "target_system": "gmail"},
-        },
+        proposal=_valid_action_proposal(),
     )
     assert out["proposal_id"] == "act-1"
     assert out["risk_class"] == "external_side_effect"
     assert out["tool_name"] == "gmail.send"
+
+
+@pytest.mark.asyncio
+async def test_save_action_proposal_rejects_invalid_envelope_before_store():
+    store, embed = FakeStore(), FakeEmbed()
+    mcp = build(_cfg(), store, embed, FakeGuard())
+    with pytest.raises(Exception) as exc_info:
+        await _call(
+            mcp,
+            "save_action_proposal",
+            proposal=_valid_action_proposal(
+                action={**_valid_action_proposal()["action"], "risk_class": "surprise"}
+            ),
+        )
+    assert "risk_class" in str(exc_info.value)
+    assert store.action_proposals == []
 
 
 @pytest.mark.asyncio
@@ -463,17 +590,7 @@ async def test_record_and_get_judge_decision():
     out = await _call(
         mcp,
         "record_judge_decision",
-        decision={
-            "schema_version": "openbrain.judge.decision.v1",
-            "workspace_id": "ws",
-            "action_id": "act-1",
-            "decision_id": "dec-1",
-            "idempotency_key": "idem-decision",
-            "decision": "allow",
-            "confidence": "high",
-            "judge": {"kind": "rule"},
-            "provenance": {"requires_review": False},
-        },
+        decision=_valid_judge_decision(),
     )
     assert out["decision_id"] == "dec-1"
     assert out["decision"] == "allow"
@@ -486,6 +603,72 @@ async def test_record_and_get_judge_decision():
 
     missing = await _call(mcp, "get_judge_decision", decision_id="missing")
     assert missing == {"decision_id": "missing", "found": False}
+
+
+@pytest.mark.asyncio
+async def test_record_judge_decision_rejects_invalid_envelope_before_store():
+    store, embed = FakeStore(), FakeEmbed()
+    mcp = build(_cfg(), store, embed, FakeGuard())
+    with pytest.raises(Exception) as exc_info:
+        await _call(
+            mcp,
+            "record_judge_decision",
+            decision=_valid_judge_decision(decision="approve-ish"),
+        )
+    assert "decision" in str(exc_info.value)
+    assert store.judge_decisions == []
+
+
+@pytest.mark.asyncio
+async def test_judge_recall_defaults_to_instruction_grade_policy():
+    store, embed = FakeStore(), FakeEmbed()
+    mcp = build(_cfg(), store, embed, FakeGuard())
+    out = await _call(
+        mcp,
+        "judge_recall",
+        request={
+            "schema_version": "openbrain.judge.recall.v1",
+            "request_id": "recall-1",
+            "workspace_id": "ws",
+            "project_id": "ob1-mcp",
+            "task_id": "task-1",
+            "flow_id": "flow-1",
+            "action_id": "act-1",
+            "query": {
+                "summary": "Agent wants to send an email",
+                "action_type": "external_side_effect",
+                "tool_name": "gmail.send",
+                "target_system": "gmail",
+            },
+            "entities": {
+                "people": [],
+                "orgs": [],
+                "repos": [],
+                "files": [],
+                "customers": [],
+                "systems": ["gmail"],
+                "topics": ["email"],
+            },
+            "scope": {
+                "visibility": "project",
+                "include_unconfirmed": False,
+                "include_disputed": False,
+                "include_stale": False,
+            },
+            "limits": {"max_items": 3, "max_tokens": 1000, "recency_days": 30},
+            "policy": {"require_source_refs": True},
+        },
+    )
+    assert embed.calls == ["Agent wants to send an email"]
+    call = store.search_calls[0]
+    assert call["top_k"] == 3
+    assert call["include_inactive"] is False
+    assert call["task_id"] == "task-1"
+    assert call["allowed_use_policies"] == ["can_use_as_instruction"]
+    assert out["schema_version"] == "openbrain.judge.recall_response.v1"
+    assert out["request_id"] == "recall-1"
+    assert out["memories"][0]["memory_id"] == "1"
+    assert out["memories"][0]["use_policy"]["policy"] == "can_use_as_instruction"
 
 
 # --- Trust-layer enforcement on memory writes ---------------------------------
