@@ -481,6 +481,32 @@ def build(cfg: Config, store: Store, embed: OpenRouterClient, guard: Guard) -> F
         payload["found"] = True
         return payload
 
+    @mcp.tool()
+    async def inspect_memory(
+        memory_id: int = Field(description="Memory entry id to inspect."),
+    ) -> dict[str, Any]:
+        """Explain one memory's source, trust status, usage, and injection eligibility."""
+        row = await store.get_entry(memory_id)
+        if row is None:
+            return {"memory_id": memory_id, "found": False}
+        used_by = await store.get_memory_decision_usage(memory_id)
+        review_rows = await store.get_review_candidates_for_memory(memory_id)
+        superseded_by = await store.get_superseding_entries(memory_id)
+        warnings = _memory_inspector_warnings(row, superseded_by)
+        return {
+            "memory_id": memory_id,
+            "found": True,
+            "memory": _row_to_payload(row),
+            "source": _memory_source(row),
+            "created_by_decision": review_rows[0]["source_decision_id"] if review_rows else None,
+            "used_by_decisions": [_memory_usage_to_payload(item) for item in used_by],
+            "review": _review_candidate_to_payload(review_rows[0]) if review_rows else None,
+            "supersedes": row.get("supersedes_id"),
+            "superseded_by": [_row_to_payload(item) for item in superseded_by],
+            "warnings": warnings,
+            "automatic_injection_eligible": not warnings,
+        }
+
     return mcp
 
 
@@ -613,6 +639,50 @@ def _validate_review_inputs(
         )
     if new_scope is not None and new_scope not in REVIEW_SCOPES:
         raise ValueError(f"new_scope={new_scope!r} not allowed; allowed: {sorted(REVIEW_SCOPES)}")
+
+
+def _memory_source(row: dict[str, Any]) -> dict[str, Any]:
+    source = row.get("source")
+    if isinstance(source, str) and source.startswith("review_candidate:"):
+        return {"kind": "review_candidate", "uri": source}
+    if source:
+        return {"kind": "manual_entry", "uri": source}
+    return {"kind": "system_event", "uri": None}
+
+
+def _memory_usage_to_payload(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "decision_id": row.get("decision_id"),
+        "action_id": row.get("action_id"),
+        "decision": row.get("decision"),
+        "used_as": row.get("used_as"),
+        "created_at": _iso(row.get("created_at")),
+    }
+
+
+def _memory_inspector_warnings(
+    row: dict[str, Any], superseded_by: list[dict[str, Any]]
+) -> list[dict[str, str]]:
+    warnings: list[dict[str, str]] = []
+    if not row.get("is_active", True):
+        warnings.append({"code": "INACTIVE", "message": "Memory is inactive."})
+    if superseded_by:
+        warnings.append({"code": "SUPERSEDED", "message": "A newer memory supersedes this one."})
+    if row.get("use_policy") != "can_use_as_instruction":
+        warnings.append(
+            {
+                "code": "NOT_INSTRUCTION_GRADE",
+                "message": "Memory use policy does not allow automatic instruction injection.",
+            }
+        )
+    if row.get("provenance") not in {"confirmed", "observed"}:
+        warnings.append(
+            {
+                "code": "UNCONFIRMED",
+                "message": "Memory provenance is not instruction-grade.",
+            }
+        )
+    return warnings
 
 
 def _row_to_recall_memory(

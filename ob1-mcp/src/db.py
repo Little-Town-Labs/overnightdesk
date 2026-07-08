@@ -604,6 +604,62 @@ class Store:
             await conn.commit()
         return row
 
+    async def get_memory_decision_usage(self, entry_id: int) -> list[dict[str, Any]]:
+        memory_id = str(entry_id)
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT decision_id, action_id, decision, created_at, used.value->>'used_as' AS used_as
+                    FROM ace_memory.judge_decisions jd
+                    CROSS JOIN LATERAL jsonb_array_elements(jd.memory_used) AS used(value)
+                    WHERE used.value->>'memory_id' = %s
+                    ORDER BY jd.created_at DESC
+                    """,
+                    (memory_id,),
+                )
+                return list(await cur.fetchall())
+
+    async def get_review_candidates_for_memory(
+        self, entry_id: int
+    ) -> list[dict[str, Any]]:
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT id, candidate_id, source_decision_id, workspace_id,
+                           project_id, task_id, flow_id, candidate_kind,
+                           proposed_content, proposed_category, proposed_tags,
+                           provenance_status, confidence, suggested_use_policy,
+                           visibility_scope, review_status, review_priority,
+                           reason, created_at, reviewed_at, reviewed_by,
+                           result_memory_id
+                    FROM ace_memory.review_candidates
+                    WHERE result_memory_id = %s
+                    ORDER BY reviewed_at DESC NULLS LAST, created_at DESC
+                    """,
+                    (entry_id,),
+                )
+                return list(await cur.fetchall())
+
+    async def get_superseding_entries(self, entry_id: int) -> list[dict[str, Any]]:
+        async with self._pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    SELECT id, category, content, tags, is_active,
+                           provenance, source, runtime, reasoning_model,
+                           channel, task_id, confidence, use_policy,
+                           user_confirmed_at, supersedes_id, created_at,
+                           updated_at
+                    FROM ace_memory.entries
+                    WHERE supersedes_id = %s
+                    ORDER BY created_at DESC, id DESC
+                    """,
+                    (entry_id,),
+                )
+                return list(await cur.fetchall())
+
     async def get_judge_decision(self, decision_id: str) -> dict[str, Any] | None:
         async with self._pool.connection() as conn:
             async with conn.cursor() as cur:

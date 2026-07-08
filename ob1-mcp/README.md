@@ -68,6 +68,7 @@ Every `save_thought` / `supersede_thought` call passes through a guard before em
 | `get_judge_decision` | Reads back one judge decision by `decision_id`. |
 | `list_review_queue` | Lists generated or inferred memory candidates awaiting review. |
 | `review_memory_candidate` | Applies a review action; only `confirm` creates instruction-grade memory. |
+| `inspect_memory` | Explains memory source, review status, decision usage, supersession, and injection eligibility. |
 
 Judge envelopes are validated at the MCP boundary. `judge_recall` defaults to
 `can_use_as_instruction`; action proposals and decisions must use the V1 schema
@@ -79,6 +80,9 @@ queue candidates. Review actions include `confirm`, `edit`, `evidence_only`,
 `restrict_scope`, `mark_stale`, `reject`, `dispute`, and `supersede`. Pending,
 evidence-only, restricted, stale, disputed, rejected, and superseded candidates
 are not instruction-grade; only `confirm` writes a confirmed memory entry.
+`inspect_memory` is the operator trust surface for a single memory record: it
+shows source, review linkage, judge-decision usage, supersession, warnings, and
+whether the memory is eligible for automatic instruction injection.
 
 ## Schema
 

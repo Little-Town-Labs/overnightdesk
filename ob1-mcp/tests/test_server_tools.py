@@ -33,6 +33,9 @@ class FakeStore:
         self.judge_decisions: list[dict[str, Any]] = []
         self.review_candidates: list[dict[str, Any]] = []
         self.review_actions: list[dict[str, Any]] = []
+        self.entries: dict[int, dict[str, Any]] = {}
+        self.memory_usage: dict[int, list[dict[str, Any]]] = {}
+        self.superseding_entries: dict[int, list[dict[str, Any]]] = {}
         self._next_id = 100
 
     async def insert_entry(self, **kwargs):
@@ -102,6 +105,9 @@ class FakeStore:
             "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
             "updated_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
         }
+
+    async def get_entry(self, entry_id):
+        return self.entries.get(entry_id)
 
     async def supersede(self, **kwargs):
         if kwargs["old_id"] < 0:
@@ -290,6 +296,19 @@ class FakeStore:
             }
         )
         return candidate
+
+    async def get_memory_decision_usage(self, entry_id):
+        return self.memory_usage.get(entry_id, [])
+
+    async def get_review_candidates_for_memory(self, entry_id):
+        return [
+            candidate
+            for candidate in self.review_candidates
+            if candidate.get("result_memory_id") == entry_id
+        ]
+
+    async def get_superseding_entries(self, entry_id):
+        return self.superseding_entries.get(entry_id, [])
 
     async def get_judge_decision(self, decision_id):
         if decision_id == "missing":

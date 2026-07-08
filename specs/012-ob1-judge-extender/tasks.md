@@ -111,14 +111,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T032 [P] [US4] Create inspector tests in `ob1-mcp/tests/test_memory_inspector.py`
+- [x] T032 [P] [US4] Create inspector tests in `ob1-mcp/tests/test_memory_inspector.py`
 
 ### Implementation for User Story 4
 
-- [ ] T033 [US4] Add store methods for memory usage by decisions and review links in `ob1-mcp/src/db.py`
-- [ ] T034 [US4] Add inspector payload builder in `ob1-mcp/src/server.py`
-- [ ] T035 [US4] Add `inspect_memory` MCP tool in `ob1-mcp/src/server.py`
-- [ ] T036 [US4] Mark inactive, superseded, disputed, stale, restricted, and non-instruction-grade memories as ineligible for automatic injection in `ob1-mcp/src/server.py`
+- [x] T033 [US4] Add store methods for memory usage by decisions and review links in `ob1-mcp/src/db.py`
+- [x] T034 [US4] Add inspector payload builder in `ob1-mcp/src/server.py`
+- [x] T035 [US4] Add `inspect_memory` MCP tool in `ob1-mcp/src/server.py`
+- [x] T036 [US4] Mark inactive, superseded, disputed, stale, restricted, and non-instruction-grade memories as ineligible for automatic injection in `ob1-mcp/src/server.py`
 
 **Checkpoint**: Operators can inspect memory trust without reading raw tables.
 
