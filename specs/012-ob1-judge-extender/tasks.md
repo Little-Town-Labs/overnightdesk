@@ -148,11 +148,11 @@
 
 **Purpose**: Documentation and full verification.
 
-- [ ] T041 Update `ob1-mcp/README.md` with final new MCP tools, review queue behavior, inspector behavior, and quickstart commands
-- [ ] T042 Update `docs/ob1-judge-extender-process.md` if implementation decisions differ from the seed process
+- [x] T041 Update `ob1-mcp/README.md` with final new MCP tools, review queue behavior, inspector behavior, and quickstart commands
+- [x] T042 Update `docs/ob1-judge-extender-process.md` if implementation decisions differ from the seed process
 - [x] T043 Run `ob1-mcp/.venv/bin/pytest -q ob1-mcp/tests`
 - [x] T044 Run `python3 -m py_compile ob1-mcp/src/*.py`
-- [ ] T045 Review `specs/012-ob1-judge-extender/quickstart.md` against final commands
+- [x] T045 Review `specs/012-ob1-judge-extender/quickstart.md` against final commands
 
 ---
 
