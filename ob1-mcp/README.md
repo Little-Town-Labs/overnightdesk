@@ -66,11 +66,25 @@ Every `save_thought` / `supersede_thought` call passes through a guard before em
 | `save_action_proposal` | Stores an OpenBrain Judge action proposal envelope idempotently. |
 | `record_judge_decision` | Stores an OpenBrain Judge decision envelope idempotently. |
 | `get_judge_decision` | Reads back one judge decision by `decision_id`. |
+| `list_review_queue` | Lists generated or inferred memory candidates awaiting review. |
+| `review_memory_candidate` | Applies a review action; only `confirm` creates instruction-grade memory. |
+| `inspect_memory` | Explains memory source, review status, decision usage, supersession, and injection eligibility. |
 
 Judge envelopes are validated at the MCP boundary. `judge_recall` defaults to
 `can_use_as_instruction`; action proposals and decisions must use the V1 schema
 and may not include raw transcripts, model reasoning traces, or full tool
 arguments without a controlled reference.
+
+Judge decisions with `memory_to_write` and `requires_review=true` create review
+queue candidates. Review actions include `confirm`, `edit`, `evidence_only`,
+`restrict_scope`, `mark_stale`, `reject`, `dispute`, and `supersede`. Pending,
+evidence-only, restricted, stale, disputed, rejected, and superseded candidates
+are not instruction-grade; only `confirm` writes a confirmed memory entry.
+`inspect_memory` is the operator trust surface for a single memory record: it
+shows source, review linkage, judge-decision usage, supersession, warnings, and
+whether the memory is eligible for automatic instruction injection.
+Local golden harness tests cover Code Review Memory and TaskFlow Work Log flows
+without requiring production runtime adapters.
 
 ## Schema
 
@@ -80,6 +94,8 @@ Live schema: `ace_memory` in tenet0-postgres.
 - `embeddings(entry_id, embedding vector, model)`
 - `action_proposals(...)` stores compact Judge V1 action proposal envelopes.
 - `judge_decisions(...)` stores allow/block/revise/escalate decision write-back records.
+- `review_candidates(...)` stores future-facing judge memory candidates pending review.
+- `review_actions(...)` stores the review audit trail for those candidates.
 
 Migrations live under `migrations/`. Apply with `psql` against tenet0-postgres after `pg_dump -n ace_memory`. Numbered, idempotent (`IF NOT EXISTS` everywhere) — safe to re-run.
 

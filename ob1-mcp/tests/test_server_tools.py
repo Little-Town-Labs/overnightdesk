@@ -31,6 +31,11 @@ class FakeStore:
         self.forgotten: list[tuple[int, bool]] = []
         self.action_proposals: list[dict[str, Any]] = []
         self.judge_decisions: list[dict[str, Any]] = []
+        self.review_candidates: list[dict[str, Any]] = []
+        self.review_actions: list[dict[str, Any]] = []
+        self.entries: dict[int, dict[str, Any]] = {}
+        self.memory_usage: dict[int, list[dict[str, Any]]] = {}
+        self.superseding_entries: dict[int, list[dict[str, Any]]] = {}
         self._next_id = 100
 
     async def insert_entry(self, **kwargs):
@@ -100,6 +105,9 @@ class FakeStore:
             "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
             "updated_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
         }
+
+    async def get_entry(self, entry_id):
+        return self.entries.get(entry_id)
 
     async def supersede(self, **kwargs):
         if kwargs["old_id"] < 0:
@@ -184,6 +192,123 @@ class FakeStore:
             "requires_review": provenance.get("requires_review", True),
             "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
         }
+
+    async def create_review_candidates_for_decision(self, decision_row):
+        memory_to_write = decision_row.get("memory_to_write") or {}
+        created = []
+        kind_map = {
+            "decisions": "decision",
+            "lessons": "lesson",
+            "failures": "failure",
+            "constraints": "constraint",
+            "open_questions": "open_question",
+        }
+        for field, kind in kind_map.items():
+            for index, content in enumerate(memory_to_write.get(field) or []):
+                candidate = {
+                    "candidate_id": f"{decision_row['decision_id']}:{field}:{index}",
+                    "source_decision_id": decision_row["decision_id"],
+                    "workspace_id": decision_row["workspace_id"],
+                    "project_id": decision_row.get("project_id"),
+                    "task_id": decision_row.get("task_id"),
+                    "flow_id": decision_row.get("flow_id"),
+                    "candidate_kind": kind,
+                    "proposed_content": content,
+                    "proposed_category": f"judge_{kind}",
+                    "proposed_tags": ["judge", kind],
+                    "provenance_status": "generated",
+                    "confidence": None,
+                    "suggested_use_policy": "requires_confirmation",
+                    "visibility_scope": "project",
+                    "review_status": "pending",
+                    "review_priority": "normal",
+                    "reason": "judge_decision_memory_to_write",
+                    "created_at": datetime(2026, 5, 9, tzinfo=timezone.utc),
+                    "reviewed_at": None,
+                    "reviewed_by": None,
+                    "result_memory_id": None,
+                }
+                self.review_candidates.append(candidate)
+                created.append(candidate)
+        return created
+
+    async def list_review_candidates(self, workspace_id, project_id, status, limit):
+        rows = [
+            c
+            for c in self.review_candidates
+            if c["workspace_id"] == workspace_id
+            and (project_id is None or c.get("project_id") == project_id)
+            and (status is None or c["review_status"] == status)
+        ]
+        return rows[:limit]
+
+    async def get_review_candidate(self, candidate_id):
+        for candidate in self.review_candidates:
+            if candidate["candidate_id"] == candidate_id:
+                return candidate
+        return None
+
+    async def apply_review_action(
+        self,
+        *,
+        candidate_id,
+        action,
+        reviewer,
+        note,
+        edited_content,
+        new_use_policy,
+        new_scope,
+        result_memory_id,
+    ):
+        candidate = await self.get_review_candidate(candidate_id)
+        if candidate is None:
+            return None
+        status = {
+            "confirm": "confirmed",
+            "edit": "pending",
+            "evidence_only": "evidence_only",
+            "restrict_scope": "restricted",
+            "mark_stale": "stale",
+            "reject": "rejected",
+            "dispute": "disputed",
+            "supersede": "superseded",
+        }[action]
+        candidate["review_status"] = status
+        candidate["reviewed_by"] = reviewer
+        candidate["reviewed_at"] = datetime(2026, 5, 9, tzinfo=timezone.utc)
+        candidate["result_memory_id"] = result_memory_id
+        if edited_content is not None:
+            candidate["proposed_content"] = edited_content
+        if new_use_policy is not None:
+            candidate["suggested_use_policy"] = new_use_policy
+        if new_scope is not None:
+            candidate["visibility_scope"] = new_scope
+        self.review_actions.append(
+            {
+                "candidate_id": candidate_id,
+                "action": action,
+                "reviewer": reviewer,
+                "note": note,
+                "edited_content": edited_content,
+                "new_use_policy": new_use_policy,
+                "new_scope": new_scope,
+                "result_memory_id": result_memory_id,
+            }
+        )
+        return candidate
+
+    async def get_memory_decision_usage(self, entry_id):
+        return self.memory_usage.get(entry_id, [])
+
+    async def get_review_candidates_for_memory(self, entry_id):
+        return [
+            candidate
+            for candidate in self.review_candidates
+            if candidate.get("result_memory_id") == entry_id
+        ]
+
+    async def get_superseding_entries(self, entry_id):
+        return self.superseding_entries.get(entry_id, [])
 
     async def get_judge_decision(self, decision_id):
         if decision_id == "missing":

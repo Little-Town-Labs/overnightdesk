@@ -87,17 +87,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Create review queue tests in `ob1-mcp/tests/test_judge_review_queue.py`
-- [ ] T025 [P] [US3] Add migration shape assertions or SQL smoke checks for review tables in `ob1-mcp/tests/test_judge_review_queue.py`
+- [x] T024 [P] [US3] Create review queue tests in `ob1-mcp/tests/test_judge_review_queue.py`
+- [x] T025 [P] [US3] Add migration shape assertions or SQL smoke checks for review tables in `ob1-mcp/tests/test_judge_review_queue.py`
 
 ### Implementation for User Story 3
 
-- [ ] T026 [US3] Add migration `ob1-mcp/migrations/003_judge_extender_review.sql` with `review_candidates` and `review_actions`
-- [ ] T027 [US3] Add review candidate/action store methods in `ob1-mcp/src/db.py`
-- [ ] T028 [US3] Materialize review candidates from `record_judge_decision` when `memory_to_write` contains future-facing entries in `ob1-mcp/src/server.py`
-- [ ] T029 [US3] Add `list_review_queue` MCP tool in `ob1-mcp/src/server.py`
-- [ ] T030 [US3] Add `review_memory_candidate` MCP tool in `ob1-mcp/src/server.py`
-- [ ] T031 [US3] Ensure confirm review action uses guarded memory write semantics and non-confirm actions never create instruction-grade memory in `ob1-mcp/src/server.py`
+- [x] T026 [US3] Add migration `ob1-mcp/migrations/003_judge_extender_review.sql` with `review_candidates` and `review_actions`
+- [x] T027 [US3] Add review candidate/action store methods in `ob1-mcp/src/db.py`
+- [x] T028 [US3] Materialize review candidates from `record_judge_decision` when `memory_to_write` contains future-facing entries in `ob1-mcp/src/server.py`
+- [x] T029 [US3] Add `list_review_queue` MCP tool in `ob1-mcp/src/server.py`
+- [x] T030 [US3] Add `review_memory_candidate` MCP tool in `ob1-mcp/src/server.py`
+- [x] T031 [US3] Ensure confirm review action uses guarded memory write semantics and non-confirm actions never create instruction-grade memory in `ob1-mcp/src/server.py`
 
 **Checkpoint**: Review gating prevents generated lessons from becoming hidden instructions.
 
@@ -111,14 +111,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T032 [P] [US4] Create inspector tests in `ob1-mcp/tests/test_memory_inspector.py`
+- [x] T032 [P] [US4] Create inspector tests in `ob1-mcp/tests/test_memory_inspector.py`
 
 ### Implementation for User Story 4
 
-- [ ] T033 [US4] Add store methods for memory usage by decisions and review links in `ob1-mcp/src/db.py`
-- [ ] T034 [US4] Add inspector payload builder in `ob1-mcp/src/server.py`
-- [ ] T035 [US4] Add `inspect_memory` MCP tool in `ob1-mcp/src/server.py`
-- [ ] T036 [US4] Mark inactive, superseded, disputed, stale, restricted, and non-instruction-grade memories as ineligible for automatic injection in `ob1-mcp/src/server.py`
+- [x] T033 [US4] Add store methods for memory usage by decisions and review links in `ob1-mcp/src/db.py`
+- [x] T034 [US4] Add inspector payload builder in `ob1-mcp/src/server.py`
+- [x] T035 [US4] Add `inspect_memory` MCP tool in `ob1-mcp/src/server.py`
+- [x] T036 [US4] Mark inactive, superseded, disputed, stale, restricted, and non-instruction-grade memories as ineligible for automatic injection in `ob1-mcp/src/server.py`
 
 **Checkpoint**: Operators can inspect memory trust without reading raw tables.
 
@@ -132,13 +132,13 @@
 
 ### Tests for User Story 5
 
-- [ ] T037 [P] [US5] Create Code Review Memory harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
-- [ ] T038 [P] [US5] Create TaskFlow Work Log harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T037 [P] [US5] Create Code Review Memory harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T038 [P] [US5] Create TaskFlow Work Log harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
 
 ### Implementation for User Story 5
 
-- [ ] T039 [US5] Add reusable harness helpers for recall/proposal/decision flow in `ob1-mcp/tests/test_judge_harnesses.py`
-- [ ] T040 [US5] Assert harnesses cover allow, block, revise, and escalate outcomes in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T039 [US5] Add reusable harness helpers for recall/proposal/decision flow in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T040 [US5] Assert harnesses cover allow, block, revise, and escalate outcomes in `ob1-mcp/tests/test_judge_harnesses.py`
 
 **Checkpoint**: Contract is proven portable without hard-coding one runtime.
 
@@ -148,11 +148,11 @@
 
 **Purpose**: Documentation and full verification.
 
-- [ ] T041 Update `ob1-mcp/README.md` with final new MCP tools, review queue behavior, inspector behavior, and quickstart commands
-- [ ] T042 Update `docs/ob1-judge-extender-process.md` if implementation decisions differ from the seed process
+- [x] T041 Update `ob1-mcp/README.md` with final new MCP tools, review queue behavior, inspector behavior, and quickstart commands
+- [x] T042 Update `docs/ob1-judge-extender-process.md` if implementation decisions differ from the seed process
 - [x] T043 Run `ob1-mcp/.venv/bin/pytest -q ob1-mcp/tests`
 - [x] T044 Run `python3 -m py_compile ob1-mcp/src/*.py`
-- [ ] T045 Review `specs/012-ob1-judge-extender/quickstart.md` against final commands
+- [x] T045 Review `specs/012-ob1-judge-extender/quickstart.md` against final commands
 
 ---
 
