@@ -83,6 +83,8 @@ are not instruction-grade; only `confirm` writes a confirmed memory entry.
 `inspect_memory` is the operator trust surface for a single memory record: it
 shows source, review linkage, judge-decision usage, supersession, warnings, and
 whether the memory is eligible for automatic instruction injection.
+Local golden harness tests cover Code Review Memory and TaskFlow Work Log flows
+without requiring production runtime adapters.
 
 ## Schema
 

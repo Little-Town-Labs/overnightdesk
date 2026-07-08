@@ -132,13 +132,13 @@
 
 ### Tests for User Story 5
 
-- [ ] T037 [P] [US5] Create Code Review Memory harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
-- [ ] T038 [P] [US5] Create TaskFlow Work Log harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T037 [P] [US5] Create Code Review Memory harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T038 [P] [US5] Create TaskFlow Work Log harness fixture in `ob1-mcp/tests/test_judge_harnesses.py`
 
 ### Implementation for User Story 5
 
-- [ ] T039 [US5] Add reusable harness helpers for recall/proposal/decision flow in `ob1-mcp/tests/test_judge_harnesses.py`
-- [ ] T040 [US5] Assert harnesses cover allow, block, revise, and escalate outcomes in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T039 [US5] Add reusable harness helpers for recall/proposal/decision flow in `ob1-mcp/tests/test_judge_harnesses.py`
+- [x] T040 [US5] Assert harnesses cover allow, block, revise, and escalate outcomes in `ob1-mcp/tests/test_judge_harnesses.py`
 
 **Checkpoint**: Contract is proven portable without hard-coding one runtime.
 
