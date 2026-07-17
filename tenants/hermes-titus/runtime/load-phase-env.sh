@@ -46,6 +46,7 @@ fetch_path() {
 fetch_path /agents/hermes-titus/runtime "$work_dir/core.json"
 fetch_path /agents/hermes-titus/overnightdesk "$work_dir/control-tower.json"
 fetch_path /agents/hermes-titus/teams "$work_dir/teams.json"
+fetch_path /agents/hermes-titus/matrix "$work_dir/matrix.json"
 
 jq -e '
   (keys - ["AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID", "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY"] | length) == 0
@@ -59,6 +60,13 @@ jq -e '
     "TEAMS_PORT", "TEAMS_TEAM_ID", "TEAMS_TENANT_ID"
   ] | length) == 0
 ' "$work_dir/teams.json" >/dev/null || die 'unexpected key in Titus Teams Phase path'
+jq -e '
+  (keys - [
+    "MATRIX_ACCESS_TOKEN", "MATRIX_ALLOWED_ROOMS", "MATRIX_ALLOWED_USERS",
+    "MATRIX_DEVICE_ID", "MATRIX_ENABLED", "MATRIX_HOMESERVER", "MATRIX_RECOVERY_KEY",
+    "MATRIX_USER_ID"
+  ] | length) == 0
+' "$work_dir/matrix.json" >/dev/null || die 'unexpected key in Titus Matrix Phase path'
 
 require_value() {
   local file=$1
@@ -76,6 +84,8 @@ for key in \
   require_value "$work_dir/core.json" "$key"
 done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN
+jq -e '.HERMES_DEFAULT_MODEL == "x-ai/grok-4.3"' "$work_dir/core.json" >/dev/null || \
+  die 'Titus default model does not match the approved route'
 
 jq -s '.[0] * .[1]' "$work_dir/core.json" "$work_dir/control-tower.json" >"$work_dir/merged.json"
 
@@ -101,11 +111,39 @@ else
   cp "$work_dir/merged.json" "$work_dir/final.json"
 fi
 
+matrix_state=disabled
+matrix_enabled=$(jq -r '.MATRIX_ENABLED // "false"' "$work_dir/matrix.json")
+case "$matrix_enabled" in
+  false)
+    ;;
+  true)
+    for key in \
+      MATRIX_ACCESS_TOKEN MATRIX_ALLOWED_ROOMS MATRIX_ALLOWED_USERS MATRIX_DEVICE_ID \
+      MATRIX_HOMESERVER MATRIX_RECOVERY_KEY MATRIX_USER_ID; do
+      require_value "$work_dir/matrix.json" "$key"
+    done
+    jq -e '
+      .MATRIX_HOMESERVER == "https://matrix-client.matrix.org" and
+      .MATRIX_USER_ID == "@hermes-titus:matrix.org" and
+      .MATRIX_DEVICE_ID == "HERMESTITUS01" and
+      .MATRIX_ALLOWED_USERS == "@frozensolo:matrix.org" and
+      .MATRIX_ALLOWED_ROOMS == "!LuLWlULPVgtogXtKbP:matrix.org"
+    ' "$work_dir/matrix.json" >/dev/null || die 'Titus Matrix identity or allowlist does not match the approved channel'
+    jq -s '.[0] * .[1]' "$work_dir/final.json" "$work_dir/matrix.json" >"$work_dir/matrix-final.json"
+    mv "$work_dir/matrix-final.json" "$work_dir/final.json"
+    matrix_state=ready
+    ;;
+  *)
+    die 'MATRIX_ENABLED must be true or false'
+    ;;
+esac
+
 {
   jq -r 'to_entries[] | "\(.key)=\(.value | @sh)"' "$work_dir/final.json"
   printf 'TITUS_TEAMS_STATE=%q\n' "$teams_state"
+  printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
 } >"$work_dir/runtime.env"
 
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
-printf 'hermes-titus phase load: core=ready teams=%s\n' "$teams_state"
+printf 'hermes-titus phase load: core=ready teams=%s matrix=%s\n' "$teams_state" "$matrix_state"

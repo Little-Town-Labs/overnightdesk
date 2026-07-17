@@ -3,10 +3,20 @@ model:
   provider: openrouter
   base_url: "https://openrouter.ai/api/v1"
 
+agent:
+  reasoning_effort: medium
+
+delegation:
+  provider: openrouter
+  model: "x-ai/grok-build-0.1"
+
 memory:
   memory_enabled: true
   user_profile_enabled: true
   provider: memory_tencentdb
+
+display:
+  busy_input_mode: queue
 
 mcp_servers:
   agentmail:
@@ -20,8 +30,15 @@ mcp_servers:
 platform_toolsets:
   cli: [hermes-cli]
   teams: [hermes-teams]
+  matrix: [hermes-cli]
 
 platforms:
+  matrix:
+    enabled: false
+    extra:
+      require_mention: false
+      session_scope: room
+      auto_thread: false
   teams:
     enabled: false
     extra:

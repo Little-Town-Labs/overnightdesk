@@ -27,6 +27,7 @@ grep -Eq -- '--cap-drop ALL' runtime/run-container.sh
 grep -Eq 'no-new-privileges' runtime/run-container.sh
 grep -Eq '/agents/hermes-titus/email' runtime/load-phase-config.sh
 grep -Eq 'AGENTMAIL_APPROVAL_SIGNING_SECRET' runtime/load-phase-config.sh
+grep -Eq 'x-ai/grok-4\.3' runtime/load-phase-config.sh
 grep -Eq '^exec docker run --rm' runtime/initialize-container.sh
 grep -Eq '^exec docker run --rm' runtime/run-once-container.sh
 grep -Eq 'systemctl stop titus-email-poller.service' scripts/deploy-aegis.sh
