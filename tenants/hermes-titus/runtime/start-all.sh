@@ -21,16 +21,21 @@ fi
 gateway_pid=$!
 /opt/hermes/.venv/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open &
 dashboard_pid=$!
+/opt/hermes/.venv/bin/python /opt/data/bin/agentmail_poller.py run &
+poller_pid=$!
 
-printf 'hermes-titus started: gateway=%s dashboard=%s\n' "$gateway_pid" "$dashboard_pid"
+printf 'hermes-titus started: gateway=%s dashboard=%s poller=%s\n' "$gateway_pid" "$dashboard_pid" "$poller_pid"
 
 shutdown() {
-  kill "$gateway_pid" "$dashboard_pid" 2>/dev/null || true
-  wait "$gateway_pid" "$dashboard_pid" 2>/dev/null || true
+  kill "$gateway_pid" "$dashboard_pid" "$poller_pid" 2>/dev/null || true
+  wait "$gateway_pid" "$dashboard_pid" "$poller_pid" 2>/dev/null || true
 }
 trap shutdown EXIT INT TERM
 
-while kill -0 "$gateway_pid" 2>/dev/null && kill -0 "$dashboard_pid" 2>/dev/null; do
+while \
+  kill -0 "$gateway_pid" 2>/dev/null && \
+  kill -0 "$dashboard_pid" 2>/dev/null && \
+  kill -0 "$poller_pid" 2>/dev/null; do
   sleep 5
 done
 

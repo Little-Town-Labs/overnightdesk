@@ -42,6 +42,10 @@ drizzle/meta/
 .docs/
 .herenow/
 
+# python test artifacts
+__pycache__/
+*.py[cod]
+
 # sibling/nested standards repository; commit inside its own repo
 overnightdesk-platform-standard/
 overnightdesk-operations-audit/

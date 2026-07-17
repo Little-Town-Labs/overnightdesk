@@ -22,6 +22,10 @@ require_pattern() {
 
 runtime_files=(
   "$tenant_root/runtime/load-phase-env.sh"
+  "$tenant_root/runtime/agentmail_policy.py"
+  "$tenant_root/runtime/agentmail_poller.py"
+  "$tenant_root/runtime/agentmail_transport.py"
+  "$tenant_root/runtime/agentmail-poller-health.sh"
   "$tenant_root/runtime/prepare-volume.sh"
   "$tenant_root/runtime/start-all.sh"
   "$tenant_root/runtime/start-with-secrets.sh"
@@ -42,11 +46,14 @@ bash -n \
   "$tenant_root/runtime/prepare-volume.sh" \
   "$tenant_root/runtime/start-all.sh" \
   "$tenant_root/runtime/start-with-secrets.sh" \
+  "$tenant_root/runtime/agentmail-poller-health.sh" \
   "$tenant_root/scripts/deploy-aegis.sh"
 
 require_pattern '/agents/hermes-titus/runtime' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/overnightdesk' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/teams' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern '/agents/hermes-titus/email' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'AGENTMAIL_APPROVAL_SIGNING_SECRET' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'NOT_CONFIGURED' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TEAMS_ALLOW_ALL_USERS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TEAMS_ALLOWED_USERS' "$tenant_root/runtime/load-phase-env.sh"
@@ -75,6 +82,7 @@ require_pattern 'ExecStartPre=.*/load-phase-env\.sh' "$tenant_root/runtime/herme
 require_pattern 'ExecStart=.*/run-container\.sh' "$tenant_root/runtime/hermes-titus.service"
 require_pattern 'ExecStop=.*/stop-container\.sh' "$tenant_root/runtime/hermes-titus.service"
 require_pattern 'dashboard --host 127\.0\.0\.1' "$tenant_root/runtime/start-all.sh"
+require_pattern 'agentmail_poller\.py run' "$tenant_root/runtime/start-all.sh"
 
 require_pattern 'explicit human approval' "$tenant_root/skills/agentmail-email/SKILL.md"
 require_pattern 'never request, print, log, persist, or pass the key' "$tenant_root/skills/agentmail-email/SKILL.md"
@@ -84,11 +92,15 @@ require_pattern '--network overnightdesk_overnightdesk' "$tenant_root/runtime/ru
 require_pattern '--cap-drop ALL' "$tenant_root/runtime/run-container.sh"
 require_pattern 'no-new-privileges' "$tenant_root/runtime/run-container.sh"
 require_pattern 'hermes-titus-data:/opt/data' "$tenant_root/runtime/run-container.sh"
+require_pattern 'agentmail-poller-health\.sh' "$tenant_root/runtime/run-container.sh"
 require_pattern '/run/hermes-titus/runtime.env:/run/secrets/hermes-titus-runtime:ro' "$tenant_root/runtime/run-container.sh"
 require_pattern 'restart_runtime' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'rollback_runtime' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'initialize_poller' "$tenant_root/scripts/deploy-aegis.sh"
 
-if grep -ERq '(sk-or-v1-|am_[A-Za-z0-9]{16,}|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,}|TEAMS_CLIENT_SECRET=[^N$])' \
+python -m unittest discover -s "$tenant_root/tests" -p 'test_*.py' >/dev/null
+
+if grep -ERq --exclude-dir=__pycache__ '(sk-or-v1-|am_[A-Za-z0-9]{16,}|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,}|TEAMS_CLIENT_SECRET=[^N$])' \
   "$tenant_root/config" "$tenant_root/runtime" "$tenant_root/skills" "$tenant_root/README.md"; then
   fail 'possible credential literal found in tenant source'
 fi
