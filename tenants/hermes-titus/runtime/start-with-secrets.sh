@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+secret_file=${TITUS_SECRET_FILE:-/run/secrets/hermes-titus-runtime}
+test -r "$secret_file" || { printf 'hermes-titus: runtime secret file unavailable\n' >&2; exit 1; }
+
+set -a
+# shellcheck disable=SC1090
+. "$secret_file"
+set +a
+
+for key in OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL CONTROL_TOWER_TOKEN; do
+  value=${!key:-}
+  test -n "$value" && test "$value" != NOT_CONFIGURED || {
+    printf 'hermes-titus: required runtime value unavailable: %s\n' "$key" >&2
+    exit 1
+  }
+done
+
+export HOME=/opt/data
+export HERMES_HOME=/opt/data
+export XDG_CACHE_HOME=/opt/data/.cache
+export PYTHONPATH=/opt/data/python-packages:/opt/hermes
+export TDAI_LLM_API_KEY=$OPENROUTER_API_KEY
+export TDAI_LLM_BASE_URL=https://openrouter.ai/api/v1
+export TDAI_LLM_MODEL=$HERMES_DEFAULT_MODEL
+export TDAI_DATA_DIR=/opt/data/memory-tencentdb/data
+export MEMORY_TENCENTDB_GATEWAY_HOST=127.0.0.1
+export MEMORY_TENCENTDB_GATEWAY_PORT=8420
+export MEMORY_TENCENTDB_LOG_DIR=/opt/data/logs/memory_tencentdb
+memory_root=/opt/data/.memory-tencentdb/tdai-memory-openclaw-plugin
+export MEMORY_TENCENTDB_GATEWAY_CMD="sh -c 'cd $memory_root && exec node --import tsx src/gateway/server.ts'"
+export TDAI_GATEWAY_API_KEY
+TDAI_GATEWAY_API_KEY=$(/opt/hermes/.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')
+export MEMORY_TENCENTDB_GATEWAY_API_KEY=$TDAI_GATEWAY_API_KEY
+
+install -d -m 0700 /opt/data/.cache /opt/data/logs/memory_tencentdb /opt/data/memory-tencentdb/data
+
+/opt/hermes/.venv/bin/python - <<'PY'
+import os
+from pathlib import Path
+import yaml
+
+path = Path('/opt/data/config.yaml')
+config = yaml.safe_load(path.read_text()) or {}
+config.setdefault('model', {})['default'] = os.environ['HERMES_DEFAULT_MODEL']
+config['model']['provider'] = 'openrouter'
+config['model']['base_url'] = 'https://openrouter.ai/api/v1'
+config.setdefault('memory', {})['provider'] = 'memory_tencentdb'
+teams = config.setdefault('platforms', {}).setdefault('teams', {})
+teams['enabled'] = os.environ.get('TITUS_TEAMS_STATE') == 'ready'
+extra = teams.setdefault('extra', {})
+extra['port'] = int(os.environ.get('TEAMS_PORT', '3978'))
+extra['allow_all_users'] = False
+path.write_text(yaml.safe_dump(config, sort_keys=False))
+PY
+
+(
+  cd "$memory_root"
+  exec node --import tsx src/gateway/server.ts
+) >>/opt/data/logs/memory_tencentdb/gateway.stdout.log \
+  2>>/opt/data/logs/memory_tencentdb/gateway.stderr.log &
+
+memory_pid=$!
+for _ in $(seq 1 30); do
+  if /opt/hermes/.venv/bin/python - <<'PY' >/dev/null 2>&1
+import urllib.request
+with urllib.request.urlopen('http://127.0.0.1:8420/health', timeout=1) as response:
+    assert response.status == 200
+PY
+  then
+    exec /opt/data/bin/start-all.sh
+  fi
+  kill -0 "$memory_pid" 2>/dev/null || {
+    printf 'hermes-titus: memory gateway exited during startup\n' >&2
+    exit 1
+  }
+  sleep 1
+done
+
+printf 'hermes-titus: memory gateway did not become healthy\n' >&2
+exit 1

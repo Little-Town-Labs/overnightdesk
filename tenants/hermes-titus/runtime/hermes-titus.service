@@ -1,0 +1,25 @@
+[Unit]
+Description=OvernightDesk Hermes Titus agent
+Requires=docker.service
+After=docker.service network-online.target control-tower.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hermes-titus
+Group=hermes-titus
+SupplementaryGroups=docker
+ExecStartPre=+/opt/hermes-titus/bin/load-phase-env.sh
+ExecStartPre=+/opt/hermes-titus/bin/prepare-volume.sh
+ExecStart=/opt/hermes-titus/bin/run-container.sh
+ExecStop=+/opt/hermes-titus/bin/stop-container.sh
+Restart=always
+RestartSec=10
+TimeoutStartSec=600
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
