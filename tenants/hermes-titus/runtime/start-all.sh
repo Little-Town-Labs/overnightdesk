@@ -30,7 +30,9 @@ shutdown() {
 }
 trap shutdown EXIT INT TERM
 
-while kill -0 "$gateway_pid" 2>/dev/null && kill -0 "$dashboard_pid" 2>/dev/null; do
+while \
+  kill -0 "$gateway_pid" 2>/dev/null && \
+  kill -0 "$dashboard_pid" 2>/dev/null; do
   sleep 5
 done
 

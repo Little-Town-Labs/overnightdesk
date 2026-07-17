@@ -88,7 +88,7 @@ require_pattern '/run/hermes-titus/runtime.env:/run/secrets/hermes-titus-runtime
 require_pattern 'restart_runtime' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'rollback_runtime' "$tenant_root/scripts/deploy-aegis.sh"
 
-if grep -ERq '(sk-or-v1-|am_[A-Za-z0-9]{16,}|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,}|TEAMS_CLIENT_SECRET=[^N$])' \
+if grep -ERq --exclude-dir=__pycache__ '(sk-or-v1-|am_[A-Za-z0-9]{16,}|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,}|TEAMS_CLIENT_SECRET=[^N$])' \
   "$tenant_root/config" "$tenant_root/runtime" "$tenant_root/skills" "$tenant_root/README.md"; then
   fail 'possible credential literal found in tenant source'
 fi

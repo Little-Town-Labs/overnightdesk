@@ -70,7 +70,9 @@ require_value() {
   ' "$file" >/dev/null || die "required Phase key is unavailable: $key"
 }
 
-for key in OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL; do
+for key in \
+  OPENROUTER_API_KEY AGENTMAIL_API_KEY AGENTMAIL_EMAIL_ADDRESS \
+  AGENTMAIL_INBOX_ID HERMES_DEFAULT_MODEL; do
   require_value "$work_dir/core.json" "$key"
 done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN
