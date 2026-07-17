@@ -53,7 +53,7 @@
   trusted behavior and intake, and prove approval-queue behavior in contract tests
 - [x] T025 Sync `overnightdesk-platform-standard`, refresh its Aegis copy,
   restart `overnightdesk-ops` if required, and append `deploys.log`
-- [ ] T026 Commit, push, open/merge the PR as authorized, and verify production
+- [x] T026 Commit, push, open/merge the PR as authorized, and verify production
   matches merged `main`
 
 ## Dependencies
