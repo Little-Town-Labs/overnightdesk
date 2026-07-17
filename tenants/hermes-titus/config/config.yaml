@@ -1,0 +1,29 @@
+model:
+  default: "__FROM_PHASE__"
+  provider: openrouter
+  base_url: "https://openrouter.ai/api/v1"
+
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  provider: memory_tencentdb
+
+mcp_servers:
+  agentmail:
+    url: "https://mcp.agentmail.to/mcp"
+    headers:
+      x-api-key: "${AGENTMAIL_API_KEY}"
+    skip_preflight: true
+    connect_timeout: 60
+    timeout: 120
+
+platform_toolsets:
+  cli: [hermes-cli]
+  teams: [hermes-teams]
+
+platforms:
+  teams:
+    enabled: false
+    extra:
+      port: 3978
+      allow_all_users: false
