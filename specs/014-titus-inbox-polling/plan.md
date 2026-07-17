@@ -2,145 +2,126 @@
 
 **Branch**: `014-titus-inbox-polling` | **Date**: 2026-07-17 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/014-titus-inbox-polling/spec.md`
-
 ## Summary
 
-Add a supervised, email-only polling worker to the existing Hermes Titus
-container. The worker reads AgentMail through its REST API, auto-replies only to
-the two exact pre-approved operator addresses, and creates a durable AgentMail
-draft plus email approval request for every other sender. Incoming email is
-sent to OpenRouter through a separate tool-free and memory-free completion
-request. SQLite state on the existing named volume provides restart safety,
-keyed one-time approvals, and idempotent state transitions.
+Build `titus-email-poller` as a standalone Go service in its own hardened Docker
+container on `overnightdesk_overnightdesk`. It reads the existing Titus
+AgentMail and OpenRouter values plus polling policy from Phase through a
+host-materialized read-only JSON secret. It auto-replies only to Gary and
+Austin, queues every other valid human sender as an immutable AgentMail draft,
+and accepts one-time approve/reject commands from those same operators.
 
-The production rollout is fail-closed: Phase configuration starts disabled,
-the existing mailbox is initialized as preexisting, worker health is verified,
-the AgentMail receive allowlist is removed, and polling is then enabled.
+The Go service—not the Hermes container—owns polling, the durable queue, API
+retry/reconciliation, and health. Hermes Titus remains the named agent and
+configured model identity. Incoming email never enters the Hermes tool loop,
+plugins, or memory.
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 in `overnightdesk/hermes-agent:0.18.0-coder`
+**Language/Version**: Go 1.24, static `CGO_ENABLED=0` binary
 
-**Primary Dependencies**: Python standard library; AgentMail REST API;
-OpenRouter OpenAI-compatible chat-completions API; Phase CLI on the host
+**Primary Dependencies**: Go standard library; AgentMail REST API; OpenRouter
+OpenAI-compatible chat-completions API; Phase CLI on the host
 
-**Storage**: SQLite at `/opt/data/agentmail-poller/state.db` on
-`hermes-titus-data`; AgentMail drafts hold proposed external replies
+**Storage**: Atomic JSON state at `/data/state.json` on the dedicated
+`titus-email-poller-data` Docker volume; AgentMail holds reply drafts
 
-**Testing**: Python `unittest`, shell syntax/contract qualification, controlled
-production initialization and health verification
+**Testing**: `go test ./...`, shell qualification, container build/smoke tests,
+controlled production initialization and health verification
 
-**Target Platform**: Rootless-in-container Linux runtime managed by systemd and
-Docker on `aegis-prod`
+**Target Platform**: Separate Docker container managed by
+`titus-email-poller.service` on `aegis-prod`
 
-**Project Type**: Supervised background worker inside an existing tenant runtime
+**Project Type**: Single Go background-worker command
 
 **Performance Goals**: New mail classified within two 60-second polling
-intervals; at most 20 new messages and ten mailbox pages inspected per cycle
+intervals; at most 20 new messages processed and 10 pages inspected per cycle
 
-**Constraints**: No published ports; read-only root filesystem; one CPU/two GiB
-container budget; no original email bodies or plaintext approval tokens in
-durable state or logs; no model tools or memory; bounded 15-second API calls;
-polling disabled by default
+**Constraints**: No published ports; read-only root filesystem; non-root UID;
+capabilities dropped; no original bodies or plaintext approval tokens in state
+or logs; no Hermes tools/memory; 2 MB HTTP response cap; 15-second API timeout;
+disabled by default
 
 **Scale/Scope**: One Titus inbox, two trusted senders/approvers, low-volume MVP
 
 ## Constitution Check
 
-*GATE: Passed before research and re-checked after design.*
-
-- **Spec Kit lifecycle**: PASS. Specification, clarification record, research,
-  data model, contracts, tasks, and analysis precede implementation.
-- **Repository boundary**: PASS. Titus-owned runtime, tests, skill, and runbook
-  changes remain under `tenants/hermes-titus/`; platform facts are synchronized
-  separately in `overnightdesk-platform-standard` after deployment.
-- **Approval boundary**: PASS. The user's standing approval is limited to exact
-  auto-replies to Gary and Austin. Every other sender needs a one-time decision
-  from one of those addresses.
-- **Secret handling**: PASS. Phase injects credentials at runtime; source, logs,
-  state, approval notices, and tests contain no credential values.
-- **Durable enforcement**: PASS. Exact sender checks, SQLite uniqueness/state
-  transitions, one-time token hashes, and draft verification enforce policy in
-  code rather than prompt text.
-- **External integration safety**: PASS. Incoming content cannot reach Hermes
-  tools or memory. AgentMail and OpenRouter calls use bounded timeouts, stable
-  client identifiers, and metadata-only error evidence.
-- **Observability**: PASS. Structured events plus a freshness file expose
-  disabled, healthy, and stale states without email content.
-- **Validation**: PASS. TDD covers classification, approval, idempotency,
-  persistence, and API orchestration before production rollout.
+- **Spec Kit lifecycle**: PASS. The architecture change is recorded before Go
+  implementation and tasks remain traceable to user stories.
+- **Repository boundary**: PASS. Code and runtime live under
+  `tenants/hermes-titus/email-poller/`; the container is still Titus-owned.
+- **Approval boundary**: PASS. Only exact Gary/Austin mail is pre-approved for
+  automatic replies. Every other valid human sender needs a one-time decision.
+- **Secret handling**: PASS. The host reads Phase; the container receives a
+  read-only JSON file. Docker config, source, logs, state, and tests contain no
+  secret values.
+- **Durable enforcement**: PASS. Exact parsed addresses, atomic state
+  transitions, HMAC tokens, deterministic client IDs, and live draft digests
+  enforce policy in Go.
+- **External integration safety**: PASS. Email becomes bounded model input only;
+  no tool, plugin, memory, link, attachment, or infrastructure execution path
+  exists.
+- **Observability**: PASS. Structured metadata-only events and a local freshness
+  file drive Docker/systemd health.
+- **Complexity limits**: PASS. Go files remain under 800 lines and functions
+  under 50 lines; transport, policy/state, and orchestration are separated.
 
 ## Project Structure
 
-### Documentation (this feature)
-
 ```text
-specs/014-titus-inbox-polling/
-├── spec.md
-├── plan.md
-├── research.md
-├── data-model.md
-├── quickstart.md
-├── contracts/
-│   └── email-polling.md
-├── checklists/
-│   └── requirements.md
-└── tasks.md
-```
-
-### Source Code (repository root)
-
-```text
-tenants/hermes-titus/
+tenants/hermes-titus/email-poller/
+├── Dockerfile
+├── go.mod
+├── cmd/titus-email-poller/main.go
+├── internal/config/config.go
+├── internal/policy/policy.go
+├── internal/state/store.go
+├── internal/transport/agentmail.go
+├── internal/transport/openrouter.go
+├── internal/worker/worker.go
+├── internal/.../*_test.go
 ├── runtime/
-│   ├── agentmail_policy.py
-│   ├── agentmail_poller.py
-│   ├── agentmail_transport.py
-│   ├── agentmail-poller-health.sh
-│   ├── load-phase-env.sh
+│   ├── load-phase-config.sh
 │   ├── prepare-volume.sh
 │   ├── run-container.sh
-│   └── start-all.sh
-├── tests/
-│   ├── test_agentmail_policy.py
-│   └── test_agentmail_poller.py
-├── skills/agentmail-email/SKILL.md
-├── scripts/qualify.sh
-└── README.md
+│   ├── stop-container.sh
+│   └── titus-email-poller.service
+└── scripts/
+    ├── deploy-aegis.sh
+    └── qualify.sh
 ```
 
-**Structure Decision**: Extend the existing tenant runtime rather than create a
-new service or image. Pure policy/state logic is separated from transport and
-poll-loop orchestration so security decisions are directly testable.
+**Structure Decision**: The service is an independent process and container,
+but remains in the Titus tenant directory because it owns only Titus's mailbox
+policy. The Hermes runtime no longer starts or health-checks a poller.
 
 ## Design Decisions
 
-1. **Tool-free reply generation**: Call OpenRouter directly with a fixed system
-   policy and no tools, plugins, agent memory, or conversation history. This is
-   a hard execution boundary for untrusted email content.
-2. **Draft-before-approval**: Create an AgentMail reply draft for untrusted mail,
-   notify both approvers with its exact text, and send only that verified draft.
-3. **Strict email command**: Accept only a complete first non-empty line matching
-   `APPROVE|REJECT <QUEUE_ID> <TOKEN>` from an exact authorized mailbox.
-4. **State before side effect**: Reserve deterministic client identifiers and
-   durable states before remote creates/sends. Reconciliation can recover remote
-   success after a local timeout without issuing a different side effect.
-5. **Safe bootstrap**: Initialization records all currently visible messages as
-   `preexisting`; activation is never the first operation against a live inbox.
+1. **Standalone execution boundary**: Go directly calls AgentMail and OpenRouter;
+   the container has no Hermes CLI, MCP tools, memory, or Control Tower token.
+2. **Atomic JSON state**: One worker owns a compact state document and writes
+   `fsync` plus atomic rename. This avoids CGO/database dependencies at MVP
+   scale while preserving restart-safe transitions.
+3. **Endpoint-specific idempotency**: Trusted replies use deterministic
+   `Idempotency-Key` headers. External responses and approval notices use stable
+   drafts from deterministic client IDs, then deterministic send keys.
+4. **One-time email approval**: A Phase-held HMAC secret derives 256-bit tokens;
+   only digests persist, and the first valid operator decision is terminal.
+5. **Fail-closed rollout**: Build and deploy disabled, initialize all visible
+   mail as preexisting, verify zero sends, remove the provider receive allowlist,
+   then enable and restart only the Go service.
 
 ## Rollout and Rollback
 
-1. Create `/agents/hermes-titus/email` in Phase with polling disabled.
-2. Deploy source/runtime changes and verify the existing container remains
-   healthy with `poller_state=disabled`.
-3. Run the one-shot initialization command inside Titus and verify zero sends.
-4. Remove the two AgentMail receive-allow entries so outside mail can be queued.
-5. Enable polling in Phase, restart only `hermes-titus.service`, and verify
-   worker freshness and provider/model health.
-6. Perform a trusted-sender smoke test and inspect queue behavior with a
-   non-delivering fixture if no authorized third-party test address is supplied.
+1. Keep `AGENTMAIL_POLLING_ENABLED=false` in Phase.
+2. Build/install `titus-email-poller`, verify disabled health, no ports, the
+   OvernightDesk network, non-root execution, and a dedicated volume.
+3. Run `initialize` and verify `sends=0` for the current mailbox.
+4. Remove the Python poller from Hermes supervision and re-verify Hermes health.
+5. Remove AgentMail's receive allowlist so arbitrary senders reach the Go queue.
+6. Set polling true, restart only `titus-email-poller.service`, and verify
+   freshness, trusted auto-reply behavior, and approval-queue behavior.
 
-Rollback sets `AGENTMAIL_POLLING_ENABLED=false`, restarts Titus, verifies a
-healthy disabled state, and may restore the AgentMail receive allowlist. SQLite
-state and AgentMail drafts are preserved for operator review.
+Rollback sets polling false, restarts only the Go service, and optionally
+restores AgentMail's receive allowlist. Preserve both dedicated state and remote
+drafts for review.

@@ -9,7 +9,7 @@ remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 
 usage() {
-  printf 'usage: %s {prepare|install|verify|status|initialize-poller|restart|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {prepare|install|verify|status|restart|stop|rollback}\n' "$0" >&2
   exit 2
 }
 
@@ -104,39 +104,11 @@ PY
       grep -q "Tools discovered:" "$agentmail_test"
       rm -f "$agentmail_test"
       printf "agentmail_mcp=healthy\\n"
-      /opt/data/bin/agentmail-poller-health.sh
-      /opt/hermes/.venv/bin/python - <<"PY"
-import json
-from pathlib import Path
-path = Path("/opt/data/agentmail-poller/health.json")
-payload = json.loads(path.read_text())
-print("agentmail_poller_state=" + str(payload.get("state", "unknown")))
-PY
       printf "teams_state=%s\n" "${TITUS_TEAMS_STATE:-pending}"
     '\''
     echo "hermes_titus=healthy"
     echo "published_ports=none"
     echo "memory_tencentdb=healthy"
-  '
-}
-
-initialize_poller() {
-  leave_latest=${TITUS_INITIALIZE_LEAVE_LATEST_TRUSTED:-false}
-  test "$leave_latest" = false || test "$leave_latest" = true
-  initialize_flag=
-  if test "$leave_latest" = true; then
-    initialize_flag=--leave-latest-trusted
-  fi
-  "${ssh_cmd[@]}" '
-    set -eu
-    sudo systemctl is-active --quiet hermes-titus.service
-    sudo docker exec hermes-titus /usr/bin/bash -lc '\''
-      set -a
-      . /run/secrets/hermes-titus-runtime
-      set +a
-      test "${AGENTMAIL_POLLING_ENABLED:-}" = false
-      /opt/hermes/.venv/bin/python /opt/data/bin/agentmail_poller.py initialize '"$initialize_flag"'
-    '\''
   '
 }
 
@@ -162,7 +134,6 @@ case "$action" in
   install) install_runtime ;;
   verify) verify ;;
   status) status ;;
-  initialize-poller) initialize_poller ;;
   restart) restart_runtime ;;
   stop) stop_runtime ;;
   rollback) rollback_runtime ;;

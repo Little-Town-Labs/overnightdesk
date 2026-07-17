@@ -22,7 +22,7 @@ exec docker run --rm \
   --pids-limit 512 \
   --cpus 1 \
   --memory 2g \
-  --health-cmd '/opt/hermes/.venv/bin/python -c "import urllib.request; [urllib.request.urlopen(u, timeout=2).read() for u in (\"http://127.0.0.1:9119/api/status\", \"http://127.0.0.1:8420/health\")]" && /opt/data/bin/agentmail-poller-health.sh' \
+  --health-cmd '/opt/hermes/.venv/bin/python -c "import urllib.request; [urllib.request.urlopen(u, timeout=2).read() for u in (\"http://127.0.0.1:9119/api/status\", \"http://127.0.0.1:8420/health\")]"' \
   --health-interval 30s \
   --health-timeout 5s \
   --health-retries 3 \

@@ -46,7 +46,6 @@ fetch_path() {
 fetch_path /agents/hermes-titus/runtime "$work_dir/core.json"
 fetch_path /agents/hermes-titus/overnightdesk "$work_dir/control-tower.json"
 fetch_path /agents/hermes-titus/teams "$work_dir/teams.json"
-fetch_path /agents/hermes-titus/email "$work_dir/email.json"
 
 jq -e '
   (keys - ["AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID", "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY"] | length) == 0
@@ -60,13 +59,6 @@ jq -e '
     "TEAMS_PORT", "TEAMS_TEAM_ID", "TEAMS_TENANT_ID"
   ] | length) == 0
 ' "$work_dir/teams.json" >/dev/null || die 'unexpected key in Titus Teams Phase path'
-jq -e '
-  keys == [
-    "AGENTMAIL_APPROVAL_ALLOWED_SENDERS", "AGENTMAIL_APPROVAL_SIGNING_SECRET",
-    "AGENTMAIL_AUTO_REPLY_ALLOWED_SENDERS", "AGENTMAIL_MAX_MESSAGES_PER_CYCLE",
-    "AGENTMAIL_POLLING_ENABLED", "AGENTMAIL_POLL_INTERVAL_SECONDS"
-  ]
-' "$work_dir/email.json" >/dev/null || die 'unexpected key in Titus email Phase path'
 
 require_value() {
   local file=$1
@@ -85,23 +77,7 @@ for key in \
 done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN
 
-for key in \
-  AGENTMAIL_APPROVAL_ALLOWED_SENDERS AGENTMAIL_APPROVAL_SIGNING_SECRET \
-  AGENTMAIL_AUTO_REPLY_ALLOWED_SENDERS AGENTMAIL_MAX_MESSAGES_PER_CYCLE \
-  AGENTMAIL_POLLING_ENABLED AGENTMAIL_POLL_INTERVAL_SECONDS; do
-  require_value "$work_dir/email.json" "$key"
-done
-
-jq -e '
-  .AGENTMAIL_POLLING_ENABLED == "false" or .AGENTMAIL_POLLING_ENABLED == "true"
-' "$work_dir/email.json" >/dev/null || die 'invalid AgentMail polling enabled value'
-jq -e '
-  (.AGENTMAIL_APPROVAL_SIGNING_SECRET | length) >= 32
-' "$work_dir/email.json" >/dev/null || die 'AgentMail approval signing secret is too short'
-
-jq -s '.[0] * .[1] * .[2]' \
-  "$work_dir/core.json" "$work_dir/control-tower.json" "$work_dir/email.json" \
-  >"$work_dir/merged.json"
+jq -s '.[0] * .[1]' "$work_dir/core.json" "$work_dir/control-tower.json" >"$work_dir/merged.json"
 
 teams_state=pending
 teams_ready=true

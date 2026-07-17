@@ -21,10 +21,10 @@ start. Credentials continue to come from `/agents/hermes-titus/runtime`.
 ## Worker commands
 
 ```text
-agentmail_poller.py initialize
-agentmail_poller.py run
-agentmail_poller.py run-once
-agentmail_poller.py health
+titus-email-poller initialize --config /run/secrets/runtime.json [--replay-message-id <id>]
+titus-email-poller run --config /run/secrets/runtime.json
+titus-email-poller run-once --config /run/secrets/runtime.json
+titus-email-poller health --health /data/health.json --max-age 180s
 ```
 
 - `initialize`: list all currently visible inbound messages and insert
@@ -53,21 +53,23 @@ sent, spam, trash, and drafts from source-message classification. Inspecting
 multiple pages prevents already-processed recent messages from starving older
 unprocessed mail after a burst.
 
-### Create reply draft
+### Create external review draft
 
 ```http
 POST /inboxes/{inbox_id}/drafts
 Content-Type: application/json
 
 {
-  "in_reply_to": "<source-message-id>",
+  "to": ["<normalized external sender>"],
+  "subject": "Re: <header-safe source subject>",
   "text": "<bounded proposed reply>",
+  "html": "<escaped visible HTML equivalent>",
   "client_id": "titus-approval-draft-<deterministic digest>"
 }
 ```
 
-Record `draft_id`, derived `to`, `in_reply_to`, and text. The worker accepts
-only a single recipient matching the normalized source sender.
+Record `draft_id`, explicit `to`, subject, and text. The worker accepts only a
+single recipient matching the normalized source sender and no reply reference.
 
 ### Get and send draft
 
@@ -76,20 +78,23 @@ Before approval send:
 ```http
 GET /inboxes/{inbox_id}/drafts/{draft_id}
 POST /inboxes/{inbox_id}/drafts/{draft_id}/send
+Idempotency-Key: titus-draft-send-<deterministic digest>
 Content-Type: application/json
 
 {}
 ```
 
-The GET response must match stored recipient, source message, and draft digest.
-A 409 or ambiguous timeout triggers reconciliation, not a different send.
+The GET response must match stored recipient, subject, text, and draft digest.
+An ambiguous timeout retries the same endpoint and idempotency key. A 409 fails
+closed; it is never treated as proof that a send succeeded.
 
 ### Trusted reply and approval notice
 
-Trusted replies use the documented message reply endpoint with deterministic
-`client_id` when supported by the endpoint contract. Approval notices are sent
-to both approvers with one deterministic client ID and contain no source body,
-attachment, secret, or full header set.
+Trusted replies use `POST /inboxes/{inbox_id}/messages/{message_id}/reply` with
+both visible text/HTML bodies and a deterministic `Idempotency-Key`. Approval
+notices are drafts addressed to both approvers, sent with a deterministic
+idempotency key, and contain no source body, attachment, secret, or full header
+set.
 
 ## OpenRouter call
 

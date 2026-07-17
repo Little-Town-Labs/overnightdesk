@@ -4,55 +4,43 @@
 
 ```bash
 cd /home/frosted639/src/overnightdesk-suite/overnightdesk
-python -m unittest discover -s tenants/hermes-titus/tests -p 'test_*.py'
+tenants/hermes-titus/email-poller/scripts/qualify.sh
 tenants/hermes-titus/scripts/qualify.sh
 git diff --check
 ```
 
-Tests use fake AgentMail/OpenRouter transports and temporary SQLite files. They
-must not require or read production credentials.
+Go tests use in-memory fake AgentMail/OpenRouter transports and temporary atomic
+state files. They do not require or read production credentials.
 
 ## Production preflight
 
 ```bash
-tenants/hermes-titus/scripts/deploy-aegis.sh status
 tenants/hermes-titus/scripts/deploy-aegis.sh verify
+tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh status
 ```
 
-Confirm `hermes-titus` is healthy, on `overnightdesk_overnightdesk`, has no
-published ports, and still has Teams disabled.
+Hermes Titus and the Go poller are separate containers on
+`overnightdesk_overnightdesk`. Neither publishes a port. Teams remains disabled.
 
 ## Controlled deployment
 
-1. Populate `/agents/hermes-titus/email` in Phase with polling disabled and the
-   exact Gary/Austin sender and approver sets.
-2. Run `tenants/hermes-titus/scripts/deploy-aegis.sh install`.
-3. Run the deployment script's poller initialization action. Confirm its output
-   reports zero sends and a nonzero/zero preexisting count as appropriate.
-4. Verify the disabled health state and inspect metadata-only logs.
-5. Remove the AgentMail receive allowlist entries only now.
-6. Set `AGENTMAIL_POLLING_ENABLED=true` in Phase and restart Titus.
-7. Verify enabled poller freshness and perform controlled smoke checks.
+1. Keep `/agents/hermes-titus/email` at `AGENTMAIL_POLLING_ENABLED=false`.
+2. Run `tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh install`.
+3. Verify `titus_email_poller=disabled` and hardened container attributes.
+4. Run `tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh initialize`.
+   Confirm its JSON reports `"sends":0`.
+5. Remove AgentMail receive-allow entries only now.
+6. Update the existing Phase flag to `true` through stdin and restart only the
+   Go service.
+7. Verify enabled freshness and controlled trusted/approval-queue smoke checks.
 
-Never paste Phase, AgentMail, OpenRouter, or approval token values into a shell
-command captured in history, a log, an issue, or this repository.
-
-For the explicitly authorized transition where only the newest unread trusted
-message must remain eligible, use:
-
-```bash
-TITUS_INITIALIZE_LEAVE_LATEST_TRUSTED=true \
-  tenants/hermes-titus/scripts/deploy-aegis.sh initialize-poller
-```
-
-This fails closed unless the newest inbound message is unread and from one of
-the exact trusted addresses. It still reports zero sends; activation is a
-separate step.
+Never paste Phase, AgentMail, OpenRouter, signing-secret, or approval-token
+values into shell history, logs, issues, or this repository.
 
 ## Rollback
 
 1. Set `AGENTMAIL_POLLING_ENABLED=false` in Phase.
-2. Restart only `hermes-titus.service` and verify disabled health.
-3. Restore the AgentMail receive allowlist if external intake must be stopped at
-   the provider boundary.
-4. Preserve `/opt/data/agentmail-poller/state.db` and pending drafts for review.
+2. Restart only `titus-email-poller.service` and verify disabled health.
+3. Restore AgentMail receive-allow entries if external intake must stop at the
+   provider boundary.
+4. Preserve `titus-email-poller-data` and pending AgentMail drafts for review.

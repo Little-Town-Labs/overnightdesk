@@ -45,6 +45,7 @@ drizzle/meta/
 # python test artifacts
 __pycache__/
 *.py[cod]
+/tenants/hermes-titus/email-poller/titus-email-poller
 
 # sibling/nested standards repository; commit inside its own repo
 overnightdesk-platform-standard/

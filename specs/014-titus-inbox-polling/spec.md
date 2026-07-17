@@ -193,11 +193,11 @@ reflects worker freshness.
   messages and records every currently visible message as preexisting.
 - **SC-005**: A valid approval or rejection from either operator reaches a
   terminal state within two polling intervals under healthy dependencies.
-- **SC-006**: Runtime logs and the SQLite state database contain no original
+- **SC-006**: Runtime logs and the durable state file contain no original
   message body, plaintext approval token, API credential, or model credential.
-- **SC-007**: Production verification confirms email polling healthy, all other
-  Titus communication channels disabled, and the container on the existing
-  OvernightDesk network with no published ports.
+- **SC-007**: Production verification confirms the standalone Go polling
+  container healthy on the existing OvernightDesk network with no published
+  ports, while all non-email Titus communication channels remain disabled.
 
 ## Assumptions
 

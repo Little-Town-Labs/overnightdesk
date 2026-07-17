@@ -20,10 +20,6 @@ docker run --rm \
     install -d -m 0755 /opt/data/bin /opt/data/skills /opt/data/plugins
     install -m 0755 /source/runtime/start-all.sh /opt/data/bin/start-all.sh
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
-    install -m 0755 /source/runtime/agentmail_poller.py /opt/data/bin/agentmail_poller.py
-    install -m 0644 /source/runtime/agentmail_policy.py /opt/data/bin/agentmail_policy.py
-    install -m 0644 /source/runtime/agentmail_transport.py /opt/data/bin/agentmail_transport.py
-    install -m 0755 /source/runtime/agentmail-poller-health.sh /opt/data/bin/agentmail-poller-health.sh
     install -m 0644 /source/config/config.yaml /opt/data/config.yaml
     cp -a /source/skills/. /opt/data/skills/
 
@@ -59,7 +55,7 @@ docker run --rm \
     node -e "Promise.all([import(\"sqlite-vec\"), import(\"tsx\")]).catch(() => process.exit(1))"
     PYTHONPATH=/opt/data/python-packages:/opt/hermes /opt/hermes/.venv/bin/python -c "import aiohttp, microsoft_teams"
 
-    install -d -m 0750 /opt/data/memory-tencentdb/data /opt/data/logs/memory_tencentdb /opt/data/agentmail-poller
+    install -d -m 0750 /opt/data/memory-tencentdb/data /opt/data/logs/memory_tencentdb
     chown -R 10000:10000 /opt/data
     printf "hermes-titus volume: dependencies ready (node=%s)\n" "$node_version"
   '

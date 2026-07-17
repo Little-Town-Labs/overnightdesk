@@ -2,9 +2,10 @@
 
 ## AgentMail transport
 
-**Decision**: Use the documented REST endpoints for listing messages, creating
-reply drafts, reading drafts, sending drafts, replying, and managing inbox list
-entries. Authenticate with the Phase-injected AgentMail key.
+**Decision**: Use the documented REST endpoints for listing messages, immediate
+idempotent replies to trusted senders, plain review drafts for external senders,
+reading/sending drafts, and inbox list management. Authenticate with the
+Phase-injected AgentMail key.
 
 **Rationale**: The polling worker needs deterministic request construction,
 timeouts, status handling, and client identifiers. The hosted AgentMail MCP
@@ -15,12 +16,16 @@ idempotency boundary for a daemon.
 
 - Message listing supports pagination and inclusion of blocked and
   unauthenticated messages.
-- Creating a draft with `in_reply_to` derives recipients, subject, and thread
-  relationship from the source message.
+- Trusted replies use the message-reply endpoint with both text and HTML bodies.
+- External approval items use plain drafts with explicit recipient and subject;
+  this keeps the reviewed remote object immutable without depending on the
+  inbox's unavailable reply-draft route.
 - Draft creation accepts `client_id`; AgentMail documents client IDs as the
   idempotency mechanism for create operations.
 - Sending a draft changes the existing draft into a message and returns its
   message and thread identifiers.
+- Reply and draft-send operations use a deterministic `Idempotency-Key`; a 409
+  fails closed because it can indicate key reuse with a different request.
 - Receive and reply list policies are separate. The existing receive allowlist
   must be removed for arbitrary senders to reach the application queue.
 - Explicit sender-authentication failures may be dropped by AgentMail before
@@ -51,10 +56,10 @@ safe draft for approval-queued mail.
 
 ## Authorization and approval protocol
 
-**Decision**: Parse exactly one sender mailbox with Python's standards-aware
-email parser and lowercase it. Trust only exact equality with the two configured
+**Decision**: Parse exactly one sender mailbox with Go's standards-aware email
+parser and lowercase it. Trust only exact equality with the two configured
 addresses. Use a 256-bit HMAC token derived with a dedicated Phase-held signing
-secret and store only its SHA-256 digest in SQLite.
+secret and store only its SHA-256 digest in the atomic state document.
 
 **Rationale**: Display names and substring checks are spoofable. A high-entropy
 one-time secret prevents queue identifiers alone from authorizing sends. Email
@@ -79,24 +84,25 @@ terminal.
 ## Persistence and idempotency
 
 **Decision**: Store processing records, approval records, and poller metadata in
-SQLite on the Titus named volume. Never store the source email body or plaintext
-approval token. Use deterministic client IDs derived from source message ID and
-side-effect type.
+a versioned atomic JSON document on a dedicated Go-service volume. Never store
+the source email body or plaintext approval token. Use deterministic client IDs
+derived from source message ID and side-effect type.
 
-**Rationale**: SQLite transactions and unique constraints provide simple local
-durability at the expected single-worker scale. Deterministic remote identifiers
-allow recovery after ambiguous request timeouts.
+**Rationale**: A single Go worker owns a small state set, so atomic replace and
+explicit state validation provide sufficient MVP durability without CGO or a
+database dependency. Deterministic remote identifiers allow recovery after
+ambiguous request timeouts.
 
 ## Supervision and health
 
-**Decision**: Start the poller as a third supervised process in `start-all.sh`.
-When enabled, write an atomic JSON heartbeat after every completed cycle. The
-container health check requires a fresh heartbeat; when disabled it verifies
-the worker's explicit disabled state.
+**Decision**: Run the poller in a separate scratch-based container supervised by
+`titus-email-poller.service`. When enabled, write an atomic JSON heartbeat after
+every completed cycle. The container health check requires a fresh heartbeat;
+when disabled it verifies the worker's explicit disabled state.
 
-**Rationale**: A dead poller must make the existing container unhealthy rather
-than silently leaving email unprocessed. It should not make a deliberately
-disabled deployment unhealthy.
+**Rationale**: A dead poller must make its dedicated container unhealthy rather
+than silently leaving email unprocessed. It must not affect Hermes health or
+make a deliberately disabled deployment unhealthy.
 
 ## Polling rather than webhooks
 

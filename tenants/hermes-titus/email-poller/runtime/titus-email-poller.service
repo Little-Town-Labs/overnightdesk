@@ -1,0 +1,25 @@
+[Unit]
+Description=OvernightDesk Titus email polling service
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=titus-email-poller
+Group=titus-email-poller
+SupplementaryGroups=docker
+ExecStartPre=+/opt/titus-email-poller/bin/load-phase-config.sh
+ExecStartPre=+/opt/titus-email-poller/bin/prepare-volume.sh
+ExecStart=/opt/titus-email-poller/bin/run-container.sh
+ExecStop=+/opt/titus-email-poller/bin/stop-container.sh
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
