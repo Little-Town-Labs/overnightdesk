@@ -25,6 +25,17 @@ TTS Teams preparation:
 
 - `/agents/hermes-titus/teams`: `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, `TEAMS_TENANT_ID`, `TEAMS_ALLOWED_USERS`, `TEAMS_ALLOWED_USER_EMAILS`, `TEAMS_ALLOW_ALL_USERS`, `TEAMS_PORT`, `TEAMS_HOME_CHANNEL`, `TEAMS_HOME_CHANNEL_NAME`, `TEAMS_DELIVERY_MODE`, `TEAMS_TEAM_ID`, `TEAMS_CHANNEL_ID`
 
+Matrix channel:
+
+- `/agents/hermes-titus/matrix`: `MATRIX_ENABLED`, `MATRIX_HOMESERVER`, `MATRIX_ACCESS_TOKEN`, `MATRIX_DEVICE_ID`, `MATRIX_USER_ID`, `MATRIX_ALLOWED_USERS`, `MATRIX_ALLOWED_ROOMS`, `MATRIX_RECOVERY_KEY`
+
+The active Matrix contract is `https://matrix-client.matrix.org`, bot
+`@hermes-titus:matrix.org`, operator `@frozensolo:matrix.org`, and encrypted
+room `!LuLWlULPVgtogXtKbP:matrix.org`. Phase paths are case-sensitive; all eight
+records must remain under the lowercase `matrix` path. The access token and
+recovery key are secret values and must never be printed, logged, committed, or
+placed in Docker configuration.
+
 Email polling:
 
 - `/agents/hermes-titus/email`: `AGENTMAIL_POLLING_ENABLED`, `AGENTMAIL_POLL_INTERVAL_SECONDS`, `AGENTMAIL_AUTO_REPLY_ALLOWED_SENDERS`, `AGENTMAIL_APPROVAL_ALLOWED_SENDERS`, `AGENTMAIL_MAX_MESSAGES_PER_CYCLE`, `AGENTMAIL_APPROVAL_SIGNING_SECRET`
@@ -43,14 +54,51 @@ into the Hermes container.
 
 The `agentmail` MCP server connects directly to `https://mcp.agentmail.to/mcp` and interpolates `AGENTMAIL_API_KEY` from the Titus process; its configuration never embeds the key. Titus must use `skills/agentmail-email/SKILL.md` for inbox discovery, read-only triage, draft preparation, and approval-gated mailbox mutations.
 
-The standalone `titus-email-poller` Go container is Titus's only active
-communications channel. It calls OpenRouter directly without Hermes tools or
-memory, sends automatic replies only to the exact Gary/Austin addresses, and
+The standalone `titus-email-poller` Go container remains Titus's asynchronous
+email fallback. It calls OpenRouter directly without Hermes tools or memory,
+sends automatic replies only to the exact Gary/Austin addresses, and
 creates an immutable approval draft for every other sender. Both operators
 receive the draft. The first valid
 `APPROVE <QUEUE_ID> <TOKEN>` sends it once; `REJECT <QUEUE_ID> <TOKEN>` closes it
 without a sender reply. Interactive/manual mail mutations remain separately
 approval-gated.
+
+## Matrix
+
+Matrix is Titus's primary interactive channel and uses Hermes's native Matrix
+adapter, so authorized room messages enter the normal Hermes reasoning, tools,
+memory, session, and approval pipeline. No public ingress port is required.
+
+Titus's approved default route is OpenRouter model `x-ai/grok-4.3` with Hermes
+`agent.reasoning_effort` set to `medium`. The Phase-backed
+`HERMES_DEFAULT_MODEL` is shared by the interactive gateway and standalone email
+poller; reasoning effort applies to Hermes agent turns.
+The gateway exports `HERMES_INFERENCE_MODEL` from that Phase value so the
+approved route has process-level precedence over mutable dashboard or restored-
+session model selections.
+
+Hermes sub-agent delegation uses OpenRouter model `x-ai/grok-build-0.1`.
+The vision/image-analysis auxiliary slot remains on its existing route until a
+compatible image-input/text-output model is approved; xAI's Grok Imagine image
+quality model is an image generation/editing route, not a vision-analysis slot.
+
+The repository fixes the channel policy at required E2EE, one exact operator,
+one exact shared room, room-scoped sessions, queue-mode busy input, requester-
+bound approvals, no room-mention expansion, no Matrix administration tools,
+and a 10 MiB media limit. The native adapter also accepts direct messages from
+the exact authorized operator; those DMs are a separate room-scoped session and
+do not authorize any other user or shared room.
+
+Activation is fail closed. `MATRIX_ENABLED=false` omits token and recovery-key
+values from the container runtime and leaves the platform disabled. When all
+identity, allowlist, token, and recovery records are valid, set the flag to
+`true`, restart only `hermes-titus.service`, and run `deploy-aegis.sh verify`.
+Verification proves the exact bot identity, encrypted-room membership, crypto
+store initialization, container hardening, email-poller continuity, and absence
+of Matrix secrets from Docker inspect output.
+
+Volume preparation refuses to run while the `hermes-titus` container is active;
+configuration and identity updates must use the controlled service restart path.
 
 Poller state is stored at `/data/state.json` on the dedicated
 `titus-email-poller-data` volume; the original email body and plaintext approval
@@ -61,6 +109,17 @@ the existing mailbox has been initialized as preexisting.
 ## Control Tower
 
 Titus uses `skills/control-tower-hermes/SKILL.md`. It must call `/v1/session` first and treat the returned agent, workspace, profile, and capability IDs as authoritative. It never connects directly to Azure or broadens authority from a prompt.
+
+Tool shells do not receive `CONTROL_TOWER_TOKEN` directly. Titus runs the
+fixed-purpose `/opt/data/bin/control-tower-session` helper, which sources the
+protected runtime mount internally, calls only the private `/v1/session`
+endpoint, validates the exact read-only authority boundary, and returns only
+safe session metadata. The bearer token never appears in the agent command or
+its output.
+
+Titus's durable identity prompt is source-owned at `config/SOUL.md` and copied
+to `/opt/data/SOUL.md`. It identifies the agent as Titus while explicitly
+leaving Control Tower's returned session and capability profile authoritative.
 
 ## TTS Microsoft Teams activation
 

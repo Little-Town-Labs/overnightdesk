@@ -7,6 +7,10 @@ source_root=${TITUS_SOURCE_ROOT:-/opt/hermes-titus/source}
 
 test "$(id -u)" -eq 0 || { printf 'hermes-titus volume preparation must run as root\n' >&2; exit 1; }
 test -d "$source_root" || { printf 'hermes-titus source is unavailable\n' >&2; exit 1; }
+if test "$(docker inspect -f '{{.State.Running}}' hermes-titus 2>/dev/null || true)" = true; then
+  printf 'hermes-titus volume preparation refused while the gateway is running\n' >&2
+  exit 1
+fi
 
 docker volume inspect "$volume" >/dev/null 2>&1 || docker volume create "$volume" >/dev/null
 
@@ -20,9 +24,11 @@ docker run --rm \
     install -d -m 0755 /opt/data/bin /opt/data/skills /opt/data/plugins
     install -m 0755 /source/runtime/start-all.sh /opt/data/bin/start-all.sh
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
+    install -m 0755 /source/runtime/control-tower-session.sh /opt/data/bin/control-tower-session
     rm -f /opt/data/bin/agentmail_poller.py /opt/data/bin/agentmail_policy.py \
       /opt/data/bin/agentmail_transport.py /opt/data/bin/agentmail-poller-health.sh
     install -m 0644 /source/config/config.yaml /opt/data/config.yaml
+    install -m 0644 /source/config/SOUL.md /opt/data/SOUL.md
     cp -a /source/skills/. /opt/data/skills/
 
     memory_root=/opt/data/.memory-tencentdb/tdai-memory-openclaw-plugin

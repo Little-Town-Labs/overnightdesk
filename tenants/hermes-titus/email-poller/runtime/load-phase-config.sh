@@ -43,6 +43,7 @@ jq -s '.[0] * .[1]' "$work_dir/core.json" "$work_dir/email.json" >"$work_dir/run
 jq -e '
   all(.[]; type == "string" and length > 0) and
   (.AGENTMAIL_POLLING_ENABLED == "true" or .AGENTMAIL_POLLING_ENABLED == "false") and
+  (.HERMES_DEFAULT_MODEL == "x-ai/grok-4.3") and
   (.AGENTMAIL_APPROVAL_SIGNING_SECRET | length >= 32)
 ' "$work_dir/runtime.json" >/dev/null || die 'invalid runtime value'
 

@@ -172,9 +172,11 @@ verify() {
     sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" titus-email-poller | grep -q no-new-privileges
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" titus-email-poller | grep -q overnightdesk_overnightdesk
     ! sudo docker inspect -f "{{json .Config.Env}}" titus-email-poller | grep -Eq "(AGENTMAIL|OPENROUTER|SIGNING_SECRET)"
+    sudo jq -e ".HERMES_DEFAULT_MODEL == \"x-ai/grok-4.3\"" /run/titus-email-poller/runtime.json >/dev/null
     sudo docker exec titus-email-poller /app/titus-email-poller health --health /data/health.json --max-age 180s
     sudo docker volume inspect titus-email-poller-data >/dev/null
     echo titus_email_poller=healthy
+    echo model_route=x-ai/grok-4.3
     echo published_ports=none
   '
 }

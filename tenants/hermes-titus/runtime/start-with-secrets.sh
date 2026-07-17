@@ -19,6 +19,7 @@ done
 
 export HOME=/opt/data
 export HERMES_HOME=/opt/data
+export HERMES_INFERENCE_MODEL=$HERMES_DEFAULT_MODEL
 export XDG_CACHE_HOME=/opt/data/.cache
 export PYTHONPATH=/opt/data/python-packages:/opt/hermes
 export TDAI_LLM_API_KEY=$OPENROUTER_API_KEY
@@ -33,6 +34,25 @@ export MEMORY_TENCENTDB_GATEWAY_CMD="sh -c 'cd $memory_root && exec node --impor
 export TDAI_GATEWAY_API_KEY
 TDAI_GATEWAY_API_KEY=$(/opt/hermes/.venv/bin/python -c 'import secrets; print(secrets.token_urlsafe(32))')
 export MEMORY_TENCENTDB_GATEWAY_API_KEY=$TDAI_GATEWAY_API_KEY
+export MATRIX_ALLOW_ALL_USERS=false
+export MATRIX_HOME_ROOM=${MATRIX_ALLOWED_ROOMS:-}
+export MATRIX_E2EE_MODE=required
+export MATRIX_REQUIRE_MENTION=false
+export MATRIX_SESSION_SCOPE=room
+export MATRIX_AUTO_THREAD=false
+export MATRIX_DM_AUTO_THREAD=false
+export MATRIX_DM_MENTION_THREADS=false
+export MATRIX_REACTIONS=true
+export MATRIX_APPROVAL_REQUIRE_SENDER=true
+export MATRIX_ALLOW_ROOM_MENTIONS=false
+export MATRIX_ALLOW_PUBLIC_ROOMS=false
+export MATRIX_PROCESS_NOTICES=false
+export MATRIX_TOOLS_ALLOW_REDACTION=false
+export MATRIX_TOOLS_ALLOW_INVITES=false
+export MATRIX_TOOLS_ALLOW_ROOM_CREATE=false
+export MATRIX_TOOLS_ALLOW_CROSS_ROOM=false
+export MATRIX_TOOLS_ALLOW_CROSS_ROOM_DESTRUCTIVE=false
+export MATRIX_MAX_MEDIA_BYTES=10485760
 
 install -d -m 0700 /opt/data/.cache /opt/data/logs/memory_tencentdb /opt/data/memory-tencentdb/data
 
@@ -47,6 +67,12 @@ config.setdefault('model', {})['default'] = os.environ['HERMES_DEFAULT_MODEL']
 config['model']['provider'] = 'openrouter'
 config['model']['base_url'] = 'https://openrouter.ai/api/v1'
 config.setdefault('memory', {})['provider'] = 'memory_tencentdb'
+matrix = config.setdefault('platforms', {}).setdefault('matrix', {})
+matrix['enabled'] = os.environ.get('TITUS_MATRIX_STATE') == 'ready'
+matrix_extra = matrix.setdefault('extra', {})
+matrix_extra['require_mention'] = False
+matrix_extra['session_scope'] = 'room'
+matrix_extra['auto_thread'] = False
 teams = config.setdefault('platforms', {}).setdefault('teams', {})
 teams['enabled'] = os.environ.get('TITUS_TEAMS_STATE') == 'ready'
 extra = teams.setdefault('extra', {})
