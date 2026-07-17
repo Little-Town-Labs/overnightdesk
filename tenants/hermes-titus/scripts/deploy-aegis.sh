@@ -63,9 +63,11 @@ verify() {
     sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" hermes-titus | grep -q no-new-privileges
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
     ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY)"
-    sudo systemctl is-active --quiet titus-email-poller.service
     sudo docker volume inspect hermes-titus-data >/dev/null
-    sudo docker volume inspect titus-email-poller-data >/dev/null
+    for route in titus agent mitchel; do
+      sudo systemctl is-active --quiet "hermes-email-intake@$route.service"
+      sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null
+    done
     sudo docker exec hermes-titus /usr/bin/bash -lc '\''
       set -euo pipefail
       set -a
@@ -87,7 +89,8 @@ def get(url, token=None):
     with urllib.request.urlopen(request, timeout=10) as response:
         return json.loads(response.read())
 
-get("http://127.0.0.1:8420/health")
+memory_health = get("http://127.0.0.1:8420/health")
+assert memory_health.get("stores", {}).get("vectorStore") is True, "memory vector store unavailable"
 get("http://127.0.0.1:9119/api/status")
 session_response = get("http://control-tower:8080/v1/session", os.environ["CONTROL_TOWER_TOKEN"])
 session = session_response.get("data") or session_response
@@ -115,6 +118,13 @@ assert (config.get("delegation") or {}).get("model") == "x-ai/grok-build-0.1", "
 print("effective_model_route=x-ai/grok-4.3")
 print("reasoning_effort=medium")
 print("delegation_route=x-ai/grok-build-0.1")
+embedding_enabled = os.environ.get("MEMORY_TENCENTDB_EMBEDDING_ENABLED") == "true"
+assert memory_health.get("stores", {}).get("embeddingService") is embedding_enabled, "unexpected memory embedding health"
+assert os.environ.get("MEMORY_TENCENTDB_EMBEDDING_MODEL") == "perplexity/pplx-embed-v1-4b", "unexpected memory embedding model"
+assert os.environ.get("MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS") == "1536", "unexpected memory embedding dimensions"
+assert (pid1_env.get("TDAI_GATEWAY_CONFIG") == "/opt/data/config/tdai-gateway.yaml") == embedding_enabled, "unexpected memory gateway config state"
+print("memory_embedding=" + ("perplexity/pplx-embed-v1-4b" if embedding_enabled else "disabled"))
+print("memory_embedding_dimensions=1536")
 matrix_config = (config.get("platforms") or {}).get("matrix") or {}
 assert bool(matrix_config.get("enabled")) == (matrix_state == "ready")
 if matrix_state == "ready":
@@ -179,7 +189,7 @@ status() {
 }
 
 stop_runtime() {
-  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; sudo docker volume inspect titus-email-poller-data >/dev/null; echo "hermes-titus stopped; Matrix state and email poller volume preserved"'
+  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done; echo "hermes-titus stopped; Matrix state and routed email-intake volumes preserved"'
 }
 
 restart_runtime() {
@@ -188,7 +198,7 @@ restart_runtime() {
 }
 
 rollback_runtime() {
-  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; sudo docker volume inspect titus-email-poller-data >/dev/null; echo "hermes-titus runtime rolled back; Matrix state and email poller volume preserved"'
+  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done; echo "hermes-titus runtime rolled back; Matrix state and routed email-intake volumes preserved"'
 }
 
 case "$action" in

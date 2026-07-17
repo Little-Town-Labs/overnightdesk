@@ -1,54 +1,54 @@
 package worker
 
 import (
-	"crypto/hmac"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"time"
 
 	"overnightdesk/titus-email-poller/internal/config"
 	"overnightdesk/titus-email-poller/internal/policy"
 	"overnightdesk/titus-email-poller/internal/state"
+	"overnightdesk/titus-email-poller/internal/store"
 	"overnightdesk/titus-email-poller/internal/transport"
 )
-
-const fallbackReply = "Thank you. I received your email and will follow up shortly.\n\nBest,\nTitus"
 
 type AgentMail interface {
 	ListMessages(pageToken string, limit int) (transport.ListResponse, error)
 	GetMessage(messageID string) (transport.Message, error)
-	Reply(messageID, text string) (transport.SendResult, error)
-	CreateDraft(request transport.CreateDraftRequest) (transport.Draft, error)
-	GetDraft(draftID string) (transport.Draft, error)
-	SendDraft(draftID string) (transport.SendResult, error)
+	Reply(messageID, text, purpose string) (transport.SendResult, error)
 }
 
-type Model interface {
-	GenerateReply(subject, text string) (string, error)
+type Hermes interface {
+	SubmitRun(input, sessionID, sessionKey, idempotency string) (transport.HermesRun, error)
+	GetRun(runID string) (transport.HermesRun, error)
 }
 
 type Worker struct {
-	config    config.Config
-	store     *state.Store
-	agentmail AgentMail
-	model     Model
-	health    string
+	config     config.Config
+	state      *state.Store
+	repository store.Repository
+	agentmail  AgentMail
+	hermes     Hermes
+	health     string
 }
 
 type Result struct {
 	State         string `json:"state"`
-	Processed     int    `json:"processed,omitempty"`
+	Landed        int    `json:"landed,omitempty"`
+	Claimed       int    `json:"claimed,omitempty"`
 	Preexisting   int    `json:"preexisting,omitempty"`
 	ReplayPending bool   `json:"replay_pending,omitempty"`
 	Sends         int    `json:"sends"`
 }
 
-func New(configuration config.Config, store *state.Store, agentmail AgentMail, model Model, healthPath string) *Worker {
-	return &Worker{config: configuration, store: store, agentmail: agentmail, model: model, health: healthPath}
+func New(configuration config.Config, stateStore *state.Store, repository store.Repository, agentmail AgentMail, hermes Hermes, healthPath string) *Worker {
+	return &Worker{config: configuration, state: stateStore, repository: repository, agentmail: agentmail, hermes: hermes, health: healthPath}
 }
 
 func (worker *Worker) Initialize(replayMessageID string) (Result, error) {
@@ -66,17 +66,22 @@ func (worker *Worker) Initialize(replayMessageID string) (Result, error) {
 			replayPending = true
 			continue
 		}
-		record := worker.messageRecord(message, "preexisting")
-		inserted, err := worker.store.ReserveMessage(record)
+		inserted, err := worker.state.ReserveMessage(state.MessageRecord{
+			MessageID: message.MessageID, ThreadID: message.ThreadID, Classification: "preexisting",
+		})
 		if err != nil {
 			return Result{}, err
 		}
 		if inserted {
 			count++
-			_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.State = "preexisting" })
+			if err := worker.state.UpdateMessage(message.MessageID, "preexisting"); err != nil {
+				return Result{}, err
+			}
 		}
 	}
-	_ = worker.store.SetMetadata("initialized_at", timestamp())
+	if err := worker.state.SetMetadata("initialized_at", timestamp()); err != nil {
+		return Result{}, err
+	}
 	healthState := "initialized"
 	if !worker.config.Enabled {
 		healthState = "disabled"
@@ -84,282 +89,291 @@ func (worker *Worker) Initialize(replayMessageID string) (Result, error) {
 	if err := WriteHealth(worker.health, healthState, ""); err != nil {
 		return Result{}, err
 	}
-	emit("poller.initialize", "ok", map[string]any{"count": count})
 	if replayMessageID != "" && !replayPending {
 		return Result{}, errors.New("requested replay message was not found among inbound messages")
 	}
-	return Result{State: healthState, Preexisting: count, ReplayPending: replayPending, Sends: 0}, nil
+	worker.emit("intake.initialize", "ok", map[string]any{"count": count, "attempt": 1})
+	return Result{State: healthState, Preexisting: count, ReplayPending: replayPending}, nil
 }
 
 func (worker *Worker) RunOnce() (Result, error) {
 	if !worker.config.Enabled {
-		_ = worker.store.SetMetadata("enabled", "false")
+		if err := worker.state.SetMetadata("enabled", "false"); err != nil {
+			return Result{}, err
+		}
 		if err := WriteHealth(worker.health, "disabled", ""); err != nil {
 			return Result{}, err
 		}
-		return Result{State: "disabled", Sends: 0}, nil
+		return Result{State: "disabled"}, nil
 	}
-	_ = worker.store.SetMetadata("enabled", "true")
-	messages, err := worker.listMessages(200, 10)
+	ctx := context.Background()
+	if err := worker.state.SetMetadata("enabled", "true"); err != nil {
+		return worker.failCycle(err)
+	}
+	sends, err := worker.recoverDeliveries(ctx)
 	if err != nil {
 		return worker.failCycle(err)
 	}
-	processed := 0
-	sends := 0
+	landed, err := worker.landMessages(ctx)
+	if err != nil {
+		return worker.failCycle(err)
+	}
+	claimed, err := worker.claimClean(ctx)
+	if err != nil {
+		return worker.failCycle(err)
+	}
+	if err := worker.state.SetMetadata("last_success_at", timestamp()); err != nil {
+		return worker.failCycle(err)
+	}
+	if err := WriteHealth(worker.health, "healthy", ""); err != nil {
+		return Result{}, err
+	}
+	worker.emit("intake.cycle", "ok", map[string]any{"landed": landed, "claimed": claimed, "sends": sends, "attempt": 1})
+	return Result{State: "healthy", Landed: landed, Claimed: claimed, Sends: sends}, nil
+}
+
+func (worker *Worker) landMessages(ctx context.Context) (int, error) {
+	messages, err := worker.listCandidateMessages(worker.config.MaxMessages, 100)
+	if err != nil {
+		return 0, err
+	}
+	landed := 0
 	for _, summary := range messages {
-		if processed >= worker.config.MaxMessages || !worker.shouldProcess(summary) {
+		if !worker.shouldProcess(summary) {
 			continue
 		}
 		message, err := worker.agentmail.GetMessage(summary.MessageID)
 		if err != nil {
-			return worker.failCycle(err)
+			return landed, err
 		}
-		didProcess, messageSends, err := worker.processMessage(message)
-		if err != nil {
-			return worker.failCycle(err)
+		if message.MessageID != summary.MessageID || message.InboxID != worker.config.InboxID {
+			return landed, errors.New("AgentMail message inbox did not match configured route")
 		}
-		if didProcess {
-			processed++
-		}
-		sends += messageSends
-	}
-	_ = worker.store.SetMetadata("last_success_at", timestamp())
-	if err := WriteHealth(worker.health, "healthy", ""); err != nil {
-		return Result{}, err
-	}
-	emit("poller.cycle", "ok", map[string]any{"count": processed})
-	return Result{State: "healthy", Processed: processed, Sends: sends}, nil
-}
-
-func (worker *Worker) processMessage(message transport.Message) (bool, int, error) {
-	sender, senderOK := policy.NormalizeAddress(message.From)
-	if !senderOK || policy.IsAutomated(message.Headers) {
-		classification := "invalid_sender"
-		if senderOK {
+		sender, senderValid := policy.NormalizeAddress(message.From)
+		authorized := senderValid && contains(worker.config.AllowedSenders, sender) && !policy.IsAutomated(message.Headers)
+		classification := "unauthorized"
+		if authorized {
+			classification = "authorized"
+		} else if policy.IsAutomated(message.Headers) {
 			classification = "automated"
+		} else if !senderValid {
+			classification = "invalid_sender"
 		}
-		processed, err := worker.suppress(message, classification)
-		return processed, 0, err
-	}
-	command, commandOK := policy.ParseApprovalCommand(message.BodyExcerpt(6000))
-	if commandOK && contains(worker.config.Approvers, sender) {
-		return worker.processApproval(message, sender, command)
-	}
-	classification := "external"
-	if contains(worker.config.TrustedSenders, sender) {
-		classification = "trusted"
-	}
-	existing, exists := worker.store.Message(message.MessageID)
-	if exists && existing.State != "processing" {
-		return false, 0, nil
-	}
-	if !exists {
-		if _, err := worker.store.ReserveMessage(worker.messageRecord(message, classification)); err != nil {
-			return false, 0, err
-		}
-	}
-	if classification == "trusted" {
-		sends, err := worker.processTrusted(message)
-		return true, sends, err
-	}
-	sends, err := worker.processExternal(message, sender)
-	return true, sends, err
-}
-
-func (worker *Worker) processTrusted(message transport.Message) (int, error) {
-	record, _ := worker.store.Message(message.MessageID)
-	reply := record.ReplyText
-	if reply == "" {
-		reply = worker.generateReply(message)
-		_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.ReplyText = reply })
-	}
-	result, err := worker.agentmail.Reply(message.MessageID, reply)
-	if err != nil {
-		return 0, err
-	}
-	_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.State, value.RemoteID = "replied", result.MessageID })
-	emit("message.reply", "sent", map[string]any{"message_id_hash": policy.QueueID(message.MessageID), "classification": "trusted"})
-	return 1, nil
-}
-
-func (worker *Worker) processExternal(message transport.Message, sender string) (int, error) {
-	queueID := policy.QueueID(message.MessageID)
-	approval, exists := worker.store.Approval(queueID)
-	if exists && terminalApproval(approval.State) {
-		return 0, nil
-	}
-	token, err := policy.ApprovalToken(queueID, worker.config.SigningSecret)
-	if err != nil {
-		return 0, err
-	}
-	if !exists {
-		reply := worker.generateReply(message)
-		approval = newApproval(message, sender, queueID, token, reply)
-		if _, err := worker.store.CreateApproval(approval); err != nil {
-			return 0, err
-		}
-	}
-	if approval.DraftID == "" {
-		approval, err = worker.createReplyDraft(message, approval)
-		if err != nil {
-			return 0, err
-		}
-	}
-	if approval.NotificationDraftID == "" {
-		approval, err = worker.createNoticeDraft(message, approval, token)
-		if err != nil {
-			return 0, err
-		}
-	}
-	if _, err := worker.agentmail.SendDraft(approval.NotificationDraftID); err != nil {
-		return 0, err
-	}
-	_ = worker.store.UpdateApproval(queueID, func(value *state.ApprovalRecord) { value.State = "pending" })
-	_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.State, value.RemoteID = "pending_approval", approval.DraftID })
-	emit("message.queue", "pending", map[string]any{"queue_id": queueID, "classification": "external"})
-	return 1, nil
-}
-
-func (worker *Worker) createReplyDraft(message transport.Message, approval state.ApprovalRecord) (state.ApprovalRecord, error) {
-	draft, err := worker.agentmail.CreateDraft(transport.CreateDraftRequest{
-		To: []string{approval.Recipient}, Subject: approval.DraftSubject,
-		Text: approval.DraftText, ClientID: approval.DraftClientID,
-	})
-	if err != nil {
-		return approval, err
-	}
-	if err := verifyPlainDraft(draft, approval.Recipient, approval.DraftSubject, approval.DraftText); err != nil {
-		return approval, err
-	}
-	approval.DraftID = draft.DraftID
-	err = worker.store.UpdateApproval(approval.QueueID, func(value *state.ApprovalRecord) { value.DraftID = draft.DraftID })
-	return approval, err
-}
-
-func (worker *Worker) createNoticeDraft(message transport.Message, approval state.ApprovalRecord, token string) (state.ApprovalRecord, error) {
-	recipients := keys(worker.config.Approvers)
-	draft, err := worker.agentmail.CreateDraft(transport.CreateDraftRequest{
-		To: recipients, Subject: fmt.Sprintf("[Titus approval %s] Reply requested: %s", approval.QueueID, safeSubject(message.Subject, 120)),
-		Text: approvalNotice(approval, token, message.Subject), ClientID: approval.NotificationClientID,
-	})
-	if err != nil {
-		return approval, err
-	}
-	if !sameRecipients(draft.To, worker.config.Approvers) {
-		return approval, errDraftMismatch
-	}
-	approval.NotificationDraftID = draft.DraftID
-	err = worker.store.UpdateApproval(approval.QueueID, func(value *state.ApprovalRecord) { value.NotificationDraftID = draft.DraftID })
-	return approval, err
-}
-
-func (worker *Worker) processApproval(message transport.Message, sender string, command policy.ApprovalCommand) (bool, int, error) {
-	existingMessage, exists := worker.store.Message(message.MessageID)
-	if exists && existingMessage.State != "processing" {
-		return false, 0, nil
-	}
-	if !exists {
-		_, _ = worker.store.ReserveMessage(worker.messageRecord(message, "approval_command"))
-	}
-	approval, found := worker.store.Approval(command.QueueID)
-	if !found || !worker.validApprovalToken(command, approval) || !worker.claimOrResume(command, approval, sender, message.MessageID) {
-		_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) {
-			value.State, value.LastErrorCode = "command_processed", "invalid_command"
+		inserted, err := worker.state.ReserveMessage(state.MessageRecord{
+			MessageID: message.MessageID, ThreadID: message.ThreadID, Classification: classification,
 		})
-		return true, 0, nil
-	}
-	if command.Decision == "reject" {
-		_ = worker.store.UpdateApproval(command.QueueID, func(value *state.ApprovalRecord) { value.State = "rejected" })
-		_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.State = "command_processed" })
-		return true, 0, nil
-	}
-	approval, _ = worker.store.Approval(command.QueueID)
-	result, err := worker.sendApprovedDraft(approval)
-	if errors.Is(err, errDraftMismatch) {
-		_ = worker.store.UpdateApproval(command.QueueID, func(value *state.ApprovalRecord) { value.State = "failed" })
-		_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) {
-			value.State, value.LastErrorCode = "command_processed", "draft_mismatch"
+		if err != nil || !inserted {
+			if err != nil {
+				return landed, err
+			}
+			continue
+		}
+		receivedAt := time.Now().UTC()
+		if parsed, err := time.Parse(time.RFC3339, message.Timestamp); err == nil {
+			receivedAt = parsed
+		}
+		wasLanded, err := worker.repository.LandDirty(ctx, store.DirtyEmail{
+			RouteID: worker.config.RouteID, InboxID: worker.config.InboxID, TargetAgent: worker.config.TargetAgent,
+			ProviderMessageID: message.MessageID, ThreadID: message.ThreadID, InReplyTo: message.InReplyTo,
+			Body: message.BodyExcerpt(50_000), Sender: sender, Subject: safeSubject(message.Subject, 500),
+			ReceivedAt: receivedAt, SenderAuthorized: authorized,
 		})
-		return true, 0, nil
-	}
-	if err != nil {
-		return true, 0, err
-	}
-	_ = worker.store.UpdateApproval(command.QueueID, func(value *state.ApprovalRecord) { value.State, value.SentMessageID = "approved", result.MessageID })
-	_ = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.State = "command_processed" })
-	return true, 1, nil
-}
-
-func (worker *Worker) sendApprovedDraft(approval state.ApprovalRecord) (transport.SendResult, error) {
-	if approval.State == "approving" {
-		draft, err := worker.agentmail.GetDraft(approval.DraftID)
 		if err != nil {
-			return transport.SendResult{}, err
+			return landed, err
 		}
-		if verifyPlainDraft(draft, approval.Recipient, approval.DraftSubject, approval.DraftText) != nil ||
-			!hmac.Equal([]byte(approval.DraftDigest), []byte(policy.DraftDigest(
-				approval.Recipient, approval.InReplyTo, approval.DraftSubject, draft.Text,
-			))) {
-			return transport.SendResult{}, errDraftMismatch
+		if err := worker.state.UpdateMessage(message.MessageID, "landed"); err != nil {
+			return landed, err
 		}
-		_ = worker.store.UpdateApproval(approval.QueueID, func(value *state.ApprovalRecord) { value.State = "sending" })
-	}
-	return worker.agentmail.SendDraft(approval.DraftID)
-}
-
-func (worker *Worker) validApprovalToken(command policy.ApprovalCommand, approval state.ApprovalRecord) bool {
-	expected, err := policy.ApprovalToken(command.QueueID, worker.config.SigningSecret)
-	return err == nil && hmac.Equal([]byte(expected), []byte(command.Token)) &&
-		hmac.Equal([]byte(approval.TokenDigest), []byte(policy.TokenDigest(command.Token)))
-}
-
-func (worker *Worker) claimOrResume(command policy.ApprovalCommand, approval state.ApprovalRecord, sender, messageID string) bool {
-	claimed, _ := worker.store.ClaimDecision(command.QueueID, command.Decision, sender, messageID)
-	if claimed {
-		return true
-	}
-	resumable := approval.State == "rejecting"
-	if command.Decision == "approve" {
-		resumable = approval.State == "approving" || approval.State == "sending"
-	}
-	return resumable && approval.DecidedBy == sender && approval.DecisionMessageID == messageID
-}
-
-func (worker *Worker) suppress(message transport.Message, classification string) (bool, error) {
-	if _, exists := worker.store.Message(message.MessageID); exists {
-		return false, nil
-	}
-	inserted, err := worker.store.ReserveMessage(worker.messageRecord(message, classification))
-	if err != nil || !inserted {
-		return inserted, err
-	}
-	err = worker.store.UpdateMessage(message.MessageID, func(value *state.MessageRecord) { value.State = "suppressed" })
-	return true, err
-}
-
-func (worker *Worker) generateReply(message transport.Message) string {
-	value, err := worker.model.GenerateReply(safeSubject(message.Subject, 300), message.BodyExcerpt(6000))
-	if err == nil {
-		if validated, ok := policy.ValidateReply(value); ok {
-			return validated
+		if wasLanded {
+			landed++
 		}
 	}
-	return fallbackReply
+	return landed, nil
+}
+
+func (worker *Worker) claimClean(ctx context.Context) (int, error) {
+	emails, err := worker.repository.ClaimClean(ctx, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, worker.config.MaxCleanClaims)
+	if err != nil {
+		return 0, err
+	}
+	for _, email := range emails {
+		if strings.TrimSpace(email.SafeContent) == "" || len([]rune(email.SafeContent)) > 50_000 {
+			failed, failErr := worker.repository.Fail(ctx, email.ID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, "invalid_clean_content")
+			if failErr != nil || !failed {
+				if failErr == nil {
+					failErr = errors.New("invalid clean content lost route ownership")
+				}
+				return 0, failErr
+			}
+			continue
+		}
+		created, err := worker.state.CreateDelivery(state.DeliveryRecord{
+			CleanID: email.ID, ProviderMessageID: email.ProviderMessageID, ThreadID: email.ThreadID,
+			State: "submitting",
+		})
+		if err != nil || !created {
+			if err == nil {
+				err = errors.New("clean delivery already exists")
+			}
+			_, _ = worker.repository.Fail(ctx, email.ID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, "state_persist_failed")
+			return 0, err
+		}
+		session := sessionID(worker.config.RouteID, email.ThreadID, email.ProviderMessageID)
+		run, err := worker.hermes.SubmitRun(email.SafeContent, session, session, "clean:"+email.ID)
+		if err != nil {
+			_, _ = worker.repository.Fail(ctx, email.ID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, transport.ErrorCode(err))
+			_ = worker.state.RemoveDelivery(email.ID)
+			return 0, err
+		}
+		if err := worker.state.AttachRun(email.ID, run.RunID, run.Status); err != nil {
+			return 0, err
+		}
+		worker.emit("hermes.run", "submitted", map[string]any{"clean_id_hash": digestID(email.ID), "run_id_hash": digestID(run.RunID), "attempt": 1})
+	}
+	return len(emails), nil
+}
+
+func (worker *Worker) recoverDeliveries(ctx context.Context) (int, error) {
+	sends := 0
+	for _, delivery := range worker.state.Deliveries() {
+		if delivery.RunID == "" {
+			failed, err := worker.repository.Fail(ctx, delivery.CleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, "ambiguous_run_submission")
+			if err != nil || !failed {
+				if err == nil {
+					err = errors.New("ambiguous delivery lost route ownership")
+				}
+				return sends, err
+			}
+			if err := worker.state.RemoveDelivery(delivery.CleanID); err != nil {
+				return sends, err
+			}
+			continue
+		}
+		run, err := worker.hermes.GetRun(delivery.RunID)
+		if err != nil {
+			return sends, err
+		}
+		switch run.Status {
+		case "queued", "running", "stopping":
+			if err := worker.state.UpdateDelivery(delivery.CleanID, run.Status); err != nil {
+				return sends, err
+			}
+		case "waiting_for_approval":
+			if !delivery.ApprovalNotified {
+				notice := approvalNotice(worker.config.TargetAgent, run.RunID)
+				if _, err := worker.agentmail.Reply(delivery.ProviderMessageID, notice, "approval-"+run.RunID); err != nil {
+					return sends, err
+				}
+				if err := worker.state.MarkApprovalNotified(delivery.CleanID); err != nil {
+					return sends, err
+				}
+			}
+			if err := worker.state.UpdateDelivery(delivery.CleanID, run.Status); err != nil {
+				return sends, err
+			}
+		case "completed":
+			reply, ok := policy.ValidateReply(run.Output)
+			if !ok {
+				failed, err := worker.repository.Fail(ctx, delivery.CleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, "invalid_hermes_output")
+				if err != nil || !failed {
+					if err == nil {
+						err = errors.New("invalid output delivery lost route ownership")
+					}
+					return sends, err
+				}
+				if err := worker.state.RemoveDelivery(delivery.CleanID); err != nil {
+					return sends, err
+				}
+				continue
+			}
+			if _, err := worker.agentmail.Reply(delivery.ProviderMessageID, reply, "final-"+delivery.CleanID); err != nil {
+				return sends, err
+			}
+			if err := worker.state.UpdateDelivery(delivery.CleanID, "replied"); err != nil {
+				return sends, err
+			}
+			completed, err := worker.repository.Complete(ctx, delivery.CleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent)
+			if err != nil || !completed {
+				if err == nil {
+					err = errors.New("clean email completion lost route ownership")
+				}
+				return sends, err
+			}
+			if err := worker.state.RemoveDelivery(delivery.CleanID); err != nil {
+				return sends, err
+			}
+			sends++
+			worker.emit("email.reply", "sent", map[string]any{"clean_id_hash": digestID(delivery.CleanID), "attempt": 1})
+		case "failed", "cancelled":
+			code := "hermes_" + run.Status
+			failed, err := worker.repository.Fail(ctx, delivery.CleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, code)
+			if err != nil || !failed {
+				if err == nil {
+					err = errors.New("failed delivery lost route ownership")
+				}
+				return sends, err
+			}
+			if err := worker.state.RemoveDelivery(delivery.CleanID); err != nil {
+				return sends, err
+			}
+		default:
+			return sends, errors.New("unknown Hermes run status")
+		}
+	}
+	return sends, nil
 }
 
 func (worker *Worker) listMessages(maximum, maxPages int) ([]transport.Message, error) {
 	result := make([]transport.Message, 0, maximum)
 	pageToken := ""
+	seenTokens := make(map[string]struct{})
 	for page := 0; page < maxPages && len(result) < maximum; page++ {
 		response, err := worker.agentmail.ListMessages(pageToken, min(20, maximum-len(result)))
 		if err != nil {
 			return nil, err
+		}
+		remaining := maximum - len(result)
+		if len(response.Messages) > remaining {
+			response.Messages = response.Messages[:remaining]
 		}
 		result = append(result, response.Messages...)
 		pageToken = response.NextPageToken
 		if pageToken == "" {
 			break
 		}
+		if _, duplicate := seenTokens[pageToken]; duplicate {
+			return nil, errors.New("AgentMail pagination token repeated")
+		}
+		seenTokens[pageToken] = struct{}{}
+	}
+	return result, nil
+}
+
+func (worker *Worker) listCandidateMessages(maximum, maxPages int) ([]transport.Message, error) {
+	result := make([]transport.Message, 0, maximum)
+	pageToken := ""
+	seenTokens := make(map[string]struct{})
+	for page := 0; page < maxPages && len(result) < maximum; page++ {
+		response, err := worker.agentmail.ListMessages(pageToken, 20)
+		if err != nil {
+			return nil, err
+		}
+		for _, message := range response.Messages {
+			if worker.shouldProcess(message) {
+				result = append(result, message)
+				if len(result) == maximum {
+					break
+				}
+			}
+		}
+		pageToken = response.NextPageToken
+		if pageToken == "" {
+			break
+		}
+		if _, duplicate := seenTokens[pageToken]; duplicate {
+			return nil, errors.New("AgentMail pagination token repeated")
+		}
+		seenTokens[pageToken] = struct{}{}
 	}
 	return result, nil
 }
@@ -368,7 +382,7 @@ func (worker *Worker) shouldProcess(message transport.Message) bool {
 	if !worker.isInbound(message) || message.MessageID == "" {
 		return false
 	}
-	record, exists := worker.store.Message(message.MessageID)
+	record, exists := worker.state.Message(message.MessageID)
 	return !exists || record.State == "processing"
 }
 
@@ -383,71 +397,24 @@ func (worker *Worker) isInbound(message transport.Message) bool {
 	return sender != worker.config.InboxAddress
 }
 
-func (worker *Worker) messageRecord(message transport.Message, classification string) state.MessageRecord {
-	sender, _ := policy.NormalizeAddress(message.From)
-	return state.MessageRecord{
-		MessageID: message.MessageID, ThreadID: message.ThreadID, Sender: sender,
-		Subject: safeSubject(message.Subject, 300), Classification: classification,
-		ClientID: policy.ClientID(classification, message.MessageID),
-	}
-}
-
 func (worker *Worker) failCycle(err error) (Result, error) {
 	errorCode := transport.ErrorCode(err)
-	if errors.Is(err, errDraftMismatch) {
-		errorCode = "draft_mismatch"
-	}
 	_ = WriteHealth(worker.health, "error", errorCode)
-	emit("poller.cycle", "error", map[string]any{"error_code": errorCode})
+	worker.emit("intake.cycle", "error", map[string]any{"error_code": errorCode, "attempt": 1})
 	return Result{}, err
 }
 
-func newApproval(message transport.Message, sender, queueID, token, reply string) state.ApprovalRecord {
-	subject := replySubject(message.Subject)
-	return state.ApprovalRecord{
-		QueueID: queueID, SourceMessageID: message.MessageID,
-		DraftClientID:        policy.ClientID("approval-draft", message.MessageID),
-		NotificationClientID: policy.ClientID("approval-notice", message.MessageID),
-		Recipient:            sender, InReplyTo: message.MessageID, DraftSubject: subject, DraftText: reply,
-		DraftDigest: policy.DraftDigest(sender, message.MessageID, subject, reply),
-		TokenDigest: policy.TokenDigest(token), State: "preparing",
+func sessionID(routeID, threadID, messageID string) string {
+	if threadID == "" {
+		threadID = messageID
 	}
+	digest := sha256.Sum256([]byte(routeID + "\x00" + threadID))
+	return "email-" + routeID + "-" + hex.EncodeToString(digest[:16])
 }
 
-func verifyPlainDraft(draft transport.Draft, recipient, subject, text string) error {
-	if len(draft.To) != 1 || draft.InReplyTo != "" || draft.Subject != subject || draft.Text != text {
-		return errDraftMismatch
-	}
-	actual, ok := policy.NormalizeAddress(draft.To[0])
-	if !ok || actual != recipient {
-		return errDraftMismatch
-	}
-	return nil
-}
-
-func replySubject(subject string) string {
-	subject = safeSubject(subject, 180)
-	if strings.HasPrefix(strings.ToLower(subject), "re:") {
-		return subject
-	}
-	return "Re: " + subject
-}
-
-func approvalNotice(approval state.ApprovalRecord, token, subject string) string {
-	return fmt.Sprintf("Titus queued a reply for approval.\n\nFrom: %s\nSubject: %s\nQueue: %s\n\nProposed reply:\n---\n%s\n---\n\nReply with exactly one of these as the first non-empty line:\nAPPROVE %s %s\nREJECT %s %s", approval.Recipient, safeSubject(subject, 200), approval.QueueID, approval.DraftText, approval.QueueID, token, approval.QueueID, token)
-}
-
-func terminalApproval(value string) bool {
-	return value == "pending" || value == "approved" || value == "rejected" || value == "failed"
-}
-
-func keys(values map[string]struct{}) []string {
-	result := make([]string, 0, len(values))
-	for value := range values {
-		result = append(result, value)
-	}
-	sort.Strings(result)
-	return result
+func digestID(value string) string {
+	digest := sha256.Sum256([]byte(value))
+	return hex.EncodeToString(digest[:8])
 }
 
 func contains(values map[string]struct{}, value string) bool {
@@ -455,36 +422,21 @@ func contains(values map[string]struct{}, value string) bool {
 	return ok
 }
 
-func sameRecipients(actual []string, expected map[string]struct{}) bool {
-	if len(actual) != len(expected) {
-		return false
-	}
-	found := make(map[string]struct{}, len(actual))
-	for _, value := range actual {
-		normalized, ok := policy.NormalizeAddress(value)
-		if !ok {
-			return false
-		}
-		found[normalized] = struct{}{}
-	}
-	return policy.EqualAddressSets(found, expected)
-}
-
 func safeSubject(value string, limit int) string {
 	value = strings.TrimSpace(strings.NewReplacer("\r", " ", "\n", " ").Replace(value))
-	return bounded(value, limit)
+	return policy.BoundText(value, limit)
 }
 
-func bounded(value string, limit int) string {
-	if len(value) > limit {
-		return value[:limit]
+func approvalNotice(targetAgent, runID string) string {
+	return fmt.Sprintf("This task is waiting for approval. No action has been approved by email.\n\nIn %s's existing Matrix or Telegram channel, ask the agent to run:\n/opt/data/bin/hermes-email-run-approval %s once\n\nApprove that fixed helper through the channel's normal approval prompt. Replying to this email does not grant approval.", targetAgent, runID)
+}
+
+func (worker *Worker) emit(event, status string, fields map[string]any) {
+	payload := map[string]any{
+		"timestamp": timestamp(), "event": event, "status": status,
+		"route_id": worker.config.RouteID, "target_agent": worker.config.TargetAgent,
 	}
-	return value
-}
-
-func emit(event, status string, fields map[string]any) {
-	payload := map[string]any{"timestamp": timestamp(), "event": event, "status": status}
-	for _, key := range []string{"message_id_hash", "queue_id", "classification", "error_code", "count"} {
+	for _, key := range []string{"clean_id_hash", "run_id_hash", "error_code", "count", "landed", "claimed", "sends", "attempt"} {
 		if value, ok := fields[key]; ok {
 			payload[key] = value
 		}
@@ -493,6 +445,4 @@ func emit(event, status string, fields map[string]any) {
 	_, _ = fmt.Fprintln(os.Stdout, string(raw))
 }
 
-func timestamp() string {
-	return time.Now().UTC().Format(time.RFC3339Nano)
-}
+func timestamp() string { return time.Now().UTC().Format(time.RFC3339Nano) }

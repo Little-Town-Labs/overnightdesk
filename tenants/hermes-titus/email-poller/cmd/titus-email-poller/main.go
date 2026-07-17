@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,13 +12,13 @@ import (
 
 	"overnightdesk/titus-email-poller/internal/config"
 	"overnightdesk/titus-email-poller/internal/state"
+	"overnightdesk/titus-email-poller/internal/store"
 	"overnightdesk/titus-email-poller/internal/transport"
 	"overnightdesk/titus-email-poller/internal/worker"
 )
 
 const (
-	agentMailBaseURL  = "https://api.agentmail.to/v0"
-	openRouterBaseURL = "https://openrouter.ai/api/v1"
+	agentMailBaseURL = "https://api.agentmail.to/v0"
 )
 
 func main() {
@@ -56,13 +57,27 @@ func workerCommand(command string, arguments []string) error {
 	if err != nil {
 		return fmt.Errorf("load configuration: %w", err)
 	}
-	store, err := state.Open(*statePath)
+	stateStore, err := state.Open(*statePath)
 	if err != nil {
 		return fmt.Errorf("open state: %w", err)
 	}
+	var repository store.Repository
+	if configuration.Enabled {
+		postgres, err := store.Open(context.Background(), configuration.DatabaseURL)
+		if err != nil {
+			return fmt.Errorf("open intake database: %w", err)
+		}
+		defer postgres.Close()
+		repository = postgres
+	}
 	agentmail := transport.NewAgentMailClient(agentMailBaseURL, configuration.AgentMailAPIKey, configuration.InboxID, 15*time.Second)
-	model := transport.NewOpenRouterClient(openRouterBaseURL, configuration.OpenRouterKey, configuration.Model, 15*time.Second)
-	poller := worker.New(configuration, store, agentmail, model, *healthPath)
+	hermes := transport.NewHermesClient(configuration.HermesBaseURL, configuration.HermesAPIKey, configuration.RunTimeout)
+	if configuration.Enabled {
+		if err := hermes.CheckCapabilities(); err != nil {
+			return fmt.Errorf("check Hermes capabilities: %w", err)
+		}
+	}
+	poller := worker.New(configuration, stateStore, repository, agentmail, hermes, *healthPath)
 	if command == "initialize" {
 		if configuration.Enabled {
 			return fmt.Errorf("initialization requires polling disabled")

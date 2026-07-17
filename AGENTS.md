@@ -61,5 +61,5 @@ not as a replacement for Spec Kit artifacts.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/015-titus-matrix-channel/plan.md`
+`specs/016-hermes-email-intake/plan.md`
 <!-- SPECKIT END -->

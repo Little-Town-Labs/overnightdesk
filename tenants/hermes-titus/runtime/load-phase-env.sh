@@ -47,6 +47,8 @@ fetch_path /agents/hermes-titus/runtime "$work_dir/core.json"
 fetch_path /agents/hermes-titus/overnightdesk "$work_dir/control-tower.json"
 fetch_path /agents/hermes-titus/teams "$work_dir/teams.json"
 fetch_path /agents/hermes-titus/matrix "$work_dir/matrix.json"
+fetch_path /agents/hermes-titus/memory "$work_dir/memory.json"
+fetch_path /agents/hermes-email-intake/titus "$work_dir/email-intake.json"
 
 jq -e '
   (keys - ["AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID", "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY"] | length) == 0
@@ -67,6 +69,18 @@ jq -e '
     "MATRIX_USER_ID"
   ] | length) == 0
 ' "$work_dir/matrix.json" >/dev/null || die 'unexpected key in Titus Matrix Phase path'
+jq -e '
+  keys == [
+    "MEMORY_TENCENTDB_EMBEDDING_BASE_URL",
+    "MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS",
+    "MEMORY_TENCENTDB_EMBEDDING_ENABLED",
+    "MEMORY_TENCENTDB_EMBEDDING_MODEL",
+    "MEMORY_TENCENTDB_EMBEDDING_PROVIDER",
+    "MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS"
+  ]
+' "$work_dir/memory.json" >/dev/null || die 'unexpected key in Titus memory Phase path'
+jq -e 'has("HERMES_API_KEY") and (.HERMES_API_KEY | type == "string" and length >= 32)' \
+  "$work_dir/email-intake.json" >/dev/null || die 'Titus API server key is unavailable'
 
 require_value() {
   local file=$1
@@ -86,8 +100,20 @@ done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN
 jq -e '.HERMES_DEFAULT_MODEL == "x-ai/grok-4.3"' "$work_dir/core.json" >/dev/null || \
   die 'Titus default model does not match the approved route'
+jq -e '
+  (.MEMORY_TENCENTDB_EMBEDDING_ENABLED == "true" or
+   .MEMORY_TENCENTDB_EMBEDDING_ENABLED == "false") and
+  .MEMORY_TENCENTDB_EMBEDDING_PROVIDER == "openrouter" and
+  .MEMORY_TENCENTDB_EMBEDDING_BASE_URL == "https://openrouter.ai/api/v1" and
+  .MEMORY_TENCENTDB_EMBEDDING_MODEL == "perplexity/pplx-embed-v1-4b" and
+  .MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS == "1536" and
+  .MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS == "true"
+' "$work_dir/memory.json" >/dev/null || die 'Titus memory embedding route does not match the approved contract'
 
 jq -s '.[0] * .[1]' "$work_dir/core.json" "$work_dir/control-tower.json" >"$work_dir/merged.json"
+jq -s '.[0] * {HERMES_API_KEY: .[1].HERMES_API_KEY}' \
+  "$work_dir/merged.json" "$work_dir/email-intake.json" >"$work_dir/api-merged.json"
+mv "$work_dir/api-merged.json" "$work_dir/merged.json"
 
 teams_state=pending
 teams_ready=true
@@ -109,6 +135,13 @@ if "$teams_ready"; then
   jq -s '.[0] * .[1]' "$work_dir/merged.json" "$work_dir/teams.json" >"$work_dir/final.json"
 else
   cp "$work_dir/merged.json" "$work_dir/final.json"
+fi
+
+jq -s '.[0] * .[1]' "$work_dir/final.json" "$work_dir/memory.json" >"$work_dir/memory-final.json"
+mv "$work_dir/memory-final.json" "$work_dir/final.json"
+memory_state=disabled
+if test "$(jq -r '.MEMORY_TENCENTDB_EMBEDDING_ENABLED' "$work_dir/memory.json")" = true; then
+  memory_state=ready
 fi
 
 matrix_state=disabled
@@ -142,8 +175,10 @@ esac
   jq -r 'to_entries[] | "\(.key)=\(.value | @sh)"' "$work_dir/final.json"
   printf 'TITUS_TEAMS_STATE=%q\n' "$teams_state"
   printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
+  printf 'TITUS_MEMORY_EMBEDDING_STATE=%q\n' "$memory_state"
 } >"$work_dir/runtime.env"
 
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
-printf 'hermes-titus phase load: core=ready teams=%s matrix=%s\n' "$teams_state" "$matrix_state"
+printf 'hermes-titus phase load: core=ready teams=%s matrix=%s memory_embedding=%s\n' \
+  "$teams_state" "$matrix_state" "$memory_state"

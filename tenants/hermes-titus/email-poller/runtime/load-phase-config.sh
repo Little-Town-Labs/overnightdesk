@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+instance=${1:?route instance required}
+case "$instance" in titus|agent|mitchel) ;; *) printf 'invalid route instance\n' >&2; exit 2 ;; esac
+
 phase_bin=${PHASE_BIN:-/usr/bin/phase}
 token_file=${PHASE_TOKEN_FILE:-/opt/control-tower/secrets/phase-service-token}
-runtime_dir=${TITUS_EMAIL_POLLER_RUNTIME_DIR:-/run/titus-email-poller}
-output_file=${TITUS_EMAIL_POLLER_RUNTIME_CONFIG:-/run/titus-email-poller/runtime.json}
-phase_app=${TITUS_PHASE_APP:-azure-ops}
-phase_env=${TITUS_PHASE_ENVIRONMENT:-production}
+runtime_dir=${EMAIL_INTAKE_RUNTIME_ROOT:-/run/hermes-email-intake}/$instance
+output_file=$runtime_dir/runtime.json
+phase_app=${EMAIL_INTAKE_PHASE_APP:-azure-ops}
+phase_env=${EMAIL_INTAKE_PHASE_ENVIRONMENT:-production}
+phase_path=/agents/hermes-email-intake/$instance
 
-die() { printf 'titus email poller phase load: %s\n' "$*" >&2; exit 1; }
+die() { printf 'hermes email intake %s phase load: %s\n' "$instance" "$*" >&2; exit 1; }
 
 test "$(id -u)" -eq 0 || die 'must run as root'
 test -x "$phase_bin" || die 'Phase CLI unavailable'
@@ -28,25 +32,22 @@ chmod 0700 "$work_dir"
 PHASE_SERVICE_TOKEN=$(<"$token_file")
 export PHASE_SERVICE_TOKEN
 test -n "$PHASE_SERVICE_TOKEN" || die 'Phase token is empty'
-
 timeout 30 "$phase_bin" secrets export --app "$phase_app" --env "$phase_env" \
-  --path /agents/hermes-titus/runtime --format json >"$work_dir/core.json"
-timeout 30 "$phase_bin" secrets export --app "$phase_app" --env "$phase_env" \
-  --path /agents/hermes-titus/email --format json >"$work_dir/email.json"
-
-jq -e 'keys == ["AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID", "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY"]' \
-  "$work_dir/core.json" >/dev/null || die 'unexpected core key set'
-jq -e 'keys == ["AGENTMAIL_APPROVAL_ALLOWED_SENDERS", "AGENTMAIL_APPROVAL_SIGNING_SECRET", "AGENTMAIL_AUTO_REPLY_ALLOWED_SENDERS", "AGENTMAIL_MAX_MESSAGES_PER_CYCLE", "AGENTMAIL_POLLING_ENABLED", "AGENTMAIL_POLL_INTERVAL_SECONDS"]' \
-  "$work_dir/email.json" >/dev/null || die 'unexpected email key set'
-
-jq -s '.[0] * .[1]' "$work_dir/core.json" "$work_dir/email.json" >"$work_dir/runtime.json"
-jq -e '
-  all(.[]; type == "string" and length > 0) and
-  (.AGENTMAIL_POLLING_ENABLED == "true" or .AGENTMAIL_POLLING_ENABLED == "false") and
-  (.HERMES_DEFAULT_MODEL == "x-ai/grok-4.3") and
-  (.AGENTMAIL_APPROVAL_SIGNING_SECRET | length >= 32)
-' "$work_dir/runtime.json" >/dev/null || die 'invalid runtime value'
-
+  --path "$phase_path" --format json >"$work_dir/runtime.json"
 unset PHASE_SERVICE_TOKEN
+
+jq -e 'keys == [
+  "AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID",
+  "AGENTMAIL_MAX_MESSAGES_PER_CYCLE", "AGENTMAIL_POLLING_ENABLED",
+  "AGENTMAIL_POLL_INTERVAL_SECONDS", "DATABASE_URL", "EMAIL_ALLOWED_SENDERS",
+  "EMAIL_MAX_CLEAN_CLAIMS_PER_CYCLE", "EMAIL_ROUTE_ID", "HERMES_API_KEY",
+  "HERMES_BASE_URL", "HERMES_RUN_TIMEOUT_SECONDS", "HERMES_TARGET_AGENT"
+]' "$work_dir/runtime.json" >/dev/null || die 'unexpected runtime key set'
+jq -e --arg route "$instance" '
+  all(.[]; type == "string" and length > 0) and
+  .EMAIL_ROUTE_ID == $route and
+  (.AGENTMAIL_POLLING_ENABLED == "true" or .AGENTMAIL_POLLING_ENABLED == "false")
+' "$work_dir/runtime.json" >/dev/null || die 'runtime must be complete and route-consistent'
+
 install -o root -g 10002 -m 0440 "$work_dir/runtime.json" "$output_file"
-printf 'titus email poller phase load: ready\n'
+printf 'hermes email intake %s phase load: ready\n' "$instance"

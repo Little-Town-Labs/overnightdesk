@@ -2,7 +2,6 @@ package worker
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 	"time"
@@ -53,5 +52,3 @@ func Health(path string, now time.Time, maximumAge time.Duration) (bool, string)
 	}
 	return false, "stale"
 }
-
-var errDraftMismatch = errors.New("draft mismatch")
