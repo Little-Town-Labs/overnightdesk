@@ -6,6 +6,9 @@ set -e
 export HERMES_HOME="${HERMES_HOME:-/opt/data}"
 export HERMES_WEB_DIST="/opt/hermes/hermes_cli/web_dist"
 export PYTHONUNBUFFERED=1
+export API_SERVER_ENABLED=true
+export API_SERVER_HOST=0.0.0.0
+export API_SERVER_PORT=8642
 
 source /opt/hermes/.venv/bin/activate
 

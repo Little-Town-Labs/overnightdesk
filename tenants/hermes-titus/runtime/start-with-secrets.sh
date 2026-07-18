@@ -9,13 +9,42 @@ set -a
 . "$secret_file"
 set +a
 
-for key in OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL CONTROL_TOWER_TOKEN; do
+for key in OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL CONTROL_TOWER_TOKEN HERMES_API_KEY; do
   value=${!key:-}
   test -n "$value" && test "$value" != NOT_CONFIGURED || {
     printf 'hermes-titus: required runtime value unavailable: %s\n' "$key" >&2
     exit 1
   }
 done
+
+for key in \
+  MEMORY_TENCENTDB_EMBEDDING_ENABLED MEMORY_TENCENTDB_EMBEDDING_PROVIDER \
+  MEMORY_TENCENTDB_EMBEDDING_BASE_URL MEMORY_TENCENTDB_EMBEDDING_MODEL \
+  MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS; do
+  value=${!key:-}
+  test -n "$value" || {
+    printf 'hermes-titus: required memory configuration unavailable: %s\n' "$key" >&2
+    exit 1
+  }
+done
+
+case "$MEMORY_TENCENTDB_EMBEDDING_ENABLED" in
+  true)
+    export TDAI_GATEWAY_CONFIG=/opt/data/config/tdai-gateway.yaml
+    ;;
+  false)
+    unset TDAI_GATEWAY_CONFIG
+    ;;
+  *)
+    printf 'hermes-titus: memory embedding enable flag must be true or false\n' >&2
+    exit 1
+    ;;
+esac
+
+export API_SERVER_ENABLED=true
+export API_SERVER_HOST=0.0.0.0
+export API_SERVER_PORT=8642
+export API_SERVER_KEY=$HERMES_API_KEY
 
 export HOME=/opt/data
 export HERMES_HOME=/opt/data
@@ -55,6 +84,10 @@ export MATRIX_TOOLS_ALLOW_CROSS_ROOM_DESTRUCTIVE=false
 export MATRIX_MAX_MEDIA_BYTES=10485760
 
 install -d -m 0700 /opt/data/.cache /opt/data/logs/memory_tencentdb /opt/data/memory-tencentdb/data
+test -x /opt/data/bin/hermes-email-run-approval || {
+  printf 'hermes-titus: email run approval helper unavailable\n' >&2
+  exit 1
+}
 
 /opt/hermes/.venv/bin/python - <<'PY'
 import os

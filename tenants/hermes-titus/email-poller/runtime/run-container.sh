@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-name=titus-email-poller
-image=${TITUS_EMAIL_POLLER_IMAGE:-overnightdesk/titus-email-poller:0.1.0}
+instance=${1:?route instance required}
+case "$instance" in titus|agent|mitchel) ;; *) exit 2 ;; esac
+name=hermes-email-intake-$instance
+image=${HERMES_EMAIL_INTAKE_IMAGE:-overnightdesk/hermes-email-intake:0.2.0}
 
 if docker container inspect "$name" >/dev/null 2>&1; then
-  test "$(docker inspect -f '{{.State.Running}}' "$name")" = false || {
-    printf '%s is already running\n' "$name" >&2
-    exit 1
-  }
+  test "$(docker inspect -f '{{.State.Running}}' "$name")" = false || exit 1
   docker rm "$name" >/dev/null
 fi
 
 exec docker run --rm \
   --name "$name" \
-  --hostname titus-email-poller \
+  --hostname "$name" \
   --user 10002:10002 \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=32m \
@@ -24,6 +23,6 @@ exec docker run --rm \
   --pids-limit 128 \
   --cpus 0.5 \
   --memory 256m \
-  --volume titus-email-poller-data:/data \
-  --volume /run/titus-email-poller/runtime.json:/run/secrets/runtime.json:ro \
+  --volume "hermes-email-intake-$instance-data:/data" \
+  --volume "/run/hermes-email-intake/$instance/runtime.json:/run/secrets/runtime.json:ro" \
   "$image" run --config /run/secrets/runtime.json --state /data/state.json --health /data/health.json

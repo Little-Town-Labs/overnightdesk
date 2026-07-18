@@ -12,6 +12,12 @@
 - Service manager: `hermes-titus.service`
 - Memory: TencentDB Agent Memory 0.3.6 with private local SQLite/sqlite-vec storage
 
+Semantic recall uses OpenRouter model `perplexity/pplx-embed-v1-4b` at 1,536
+dimensions. The model's Matryoshka representation keeps the existing vector
+width while its 32K model context permits a guarded 32,000-character gateway
+input cap. Embedding input leaves the host for OpenRouter; SQLite records and
+vectors remain in the private `hermes-titus-data` volume.
+
 Titus does not receive the Phase service-account token or Azure credentials. The host loader reads exact Phase paths and materializes downstream values only under `/run/hermes-titus`. The file is mounted read-only and sourced by the container entrypoint; Docker configuration contains no secret values.
 
 ## Phase records
@@ -20,6 +26,13 @@ Core runtime:
 
 - `/agents/hermes-titus/runtime`: `OPENROUTER_API_KEY`, `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID`, `AGENTMAIL_EMAIL_ADDRESS`, `HERMES_DEFAULT_MODEL`
 - `/agents/hermes-titus/overnightdesk`: `CONTROL_TOWER_TOKEN`
+- `/agents/hermes-titus/memory`: `MEMORY_TENCENTDB_EMBEDDING_ENABLED`, `MEMORY_TENCENTDB_EMBEDDING_PROVIDER`, `MEMORY_TENCENTDB_EMBEDDING_BASE_URL`, `MEMORY_TENCENTDB_EMBEDDING_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS`, `MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS`
+
+The memory path is fail closed. With
+`MEMORY_TENCENTDB_EMBEDDING_ENABLED=false`, Titus keeps keyword/BM25 recall and
+does not load the remote embedding configuration. Activation requires the
+exact Perplexity 4B route, 1,536 dimensions, `sendDimensions=true`, and a controlled
+Titus-only restart.
 
 TTS Teams preparation:
 
@@ -36,17 +49,17 @@ records must remain under the lowercase `matrix` path. The access token and
 recovery key are secret values and must never be printed, logged, committed, or
 placed in Docker configuration.
 
-Email polling:
+Routed email intake:
 
-- `/agents/hermes-titus/email`: `AGENTMAIL_POLLING_ENABLED`, `AGENTMAIL_POLL_INTERVAL_SECONDS`, `AGENTMAIL_AUTO_REPLY_ALLOWED_SENDERS`, `AGENTMAIL_APPROVAL_ALLOWED_SENDERS`, `AGENTMAIL_MAX_MESSAGES_PER_CYCLE`, `AGENTMAIL_APPROVAL_SIGNING_SECRET`
+- `/agents/hermes-email-intake/titus`
+- `/agents/hermes-email-intake/agent`
+- `/agents/hermes-email-intake/mitchel`
 
-The automatic-reply and approval sets must contain exactly
-`garyb@timelesstechs.com,austin@timelesstechs.com`. The signing secret is a
-dedicated random value of at least 32 bytes and must never leave Phase. Polling
-must be created as `false`, initialized, and verified before activation.
-
-The email path is consumed only by the standalone Go poller. It is not loaded
-into the Hermes container.
+Each path contains the strict AgentMail identity, exact sender allowlist,
+least-privilege database URL, route ID, target Hermes private API, API key,
+limits, and enabled flag. New paths start disabled. The Titus Hermes loader
+reads only the Titus API key from this path to authenticate its private Runs
+API; other intake credentials never enter the Hermes container.
 
 `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, `TEAMS_TENANT_ID`, and `TEAMS_ALLOWED_USERS` remain `NOT_CONFIGURED` until the TTS app is created. `TEAMS_ALLOW_ALL_USERS` must remain `false`. Email addresses are onboarding references; populate `TEAMS_ALLOWED_USERS` with the corresponding Entra/AAD object IDs before activation.
 
@@ -54,14 +67,14 @@ into the Hermes container.
 
 The `agentmail` MCP server connects directly to `https://mcp.agentmail.to/mcp` and interpolates `AGENTMAIL_API_KEY` from the Titus process; its configuration never embeds the key. Titus must use `skills/agentmail-email/SKILL.md` for inbox discovery, read-only triage, draft preparation, and approval-gated mailbox mutations.
 
-The standalone `titus-email-poller` Go container remains Titus's asynchronous
-email fallback. It calls OpenRouter directly without Hermes tools or memory,
-sends automatic replies only to the exact Gary/Austin addresses, and
-creates an immutable approval draft for every other sender. Both operators
-receive the draft. The first valid
-`APPROVE <QUEUE_ID> <TOKEN>` sends it once; `REJECT <QUEUE_ID> <TOKEN>` closes it
-without a sender reply. Interactive/manual mail mutations remain separately
-approval-gated.
+The shared Go email intake runs as three isolated systemd template instances.
+It lands every newly observed message in `content_staging` as dirty input and
+never calls a model with that raw body. SecurityTeam alone produces
+`ingested_messages.safe_content`; the exact route instance atomically claims an
+approved clean row and submits it to the mapped Hermes `/v1/runs` API. Hermes
+retains its normal tools, memory, model routing, and Matrix/Telegram approval
+channel. Intake cannot approve actions. A completed result is replied once in
+the original AgentMail thread.
 
 ## Matrix
 
@@ -100,11 +113,10 @@ of Matrix secrets from Docker inspect output.
 Volume preparation refuses to run while the `hermes-titus` container is active;
 configuration and identity updates must use the controlled service restart path.
 
-Poller state is stored at `/data/state.json` on the dedicated
-`titus-email-poller-data` volume; the original email body and plaintext approval
-token are not persisted. Health is written to `/data/health.json`. The receive
-allowlist must not be removed until the disabled Go container is deployed and
-the existing mailbox has been initialized as preexisting.
+Per-route recovery state is stored at `/data/state.json` on
+`hermes-email-intake-<route>-data`; message content is not persisted there.
+Health is written to `/data/health.json`. Initialize each disabled route before
+activation so historical inbox messages remain checkpointed.
 
 ## Control Tower
 
@@ -150,33 +162,28 @@ tenants/hermes-titus/scripts/deploy-aegis.sh rollback
 
 tenants/hermes-titus/email-poller/scripts/qualify.sh
 tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh install
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh verify
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh initialize
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh run-once
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh audit-mailbox
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh open-intake
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh close-intake
+tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh initialize all
+tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh verify all
+tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh enable titus
+tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh enable agent
 tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh status
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh restart
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh stop
-tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh rollback
+tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh rollback all
 ```
 
-The Hermes `stop` action preserves `hermes-titus-data`; the poller `stop` action
-preserves `titus-email-poller-data`. Do not delete either volume during routine
-stop, rollback, credential repair, or Teams activation.
+The Hermes and intake stop/rollback actions preserve all named volumes. Do not
+delete them during routine recovery or credential repair.
 
 Safe activation order:
 
-1. Populate the Phase email path with `AGENTMAIL_POLLING_ENABLED=false`.
-2. Install and verify `titus_email_poller=disabled`.
-3. Run the Go deploy script's `initialize` action and confirm its JSON reports
-   `"sends":0`.
-4. Deploy Hermes without the retired Python poller and verify Hermes health.
-5. Remove the AgentMail receive allowlist so other senders can reach the queue.
-6. Change polling to `true`, restart only `titus-email-poller.service`, and
-   verify `titus_email_poller=healthy`.
+1. Populate all three strict Phase paths with polling disabled.
+2. Verify each mapped Hermes API privately with authentication.
+3. Install the shared image and initialize all historical inbox messages with
+   zero sends.
+4. Activate and verify Titus first, then Hermes Agent for
+   `netgleb@gmail.com`.
+5. Activate Hermes Mitchel for `mitchelcbrown88@gmail.com` after verifying the
+   exact Phase allowlist.
 
 Rollback sets polling to `false`, restarts only the Go service, verifies
-disabled health, and optionally restores the AgentMail receive allowlist. Keep
-the dedicated volume and drafts for review.
+disabled health, and restores the legacy Titus poller when Titus is rolled
+back. Keep the dedicated volume and database rows for reconciliation.

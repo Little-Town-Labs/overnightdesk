@@ -21,13 +21,15 @@ docker run --rm \
   --volume "$source_root:/source:ro" \
   --entrypoint /usr/bin/bash \
   "$image" -euo pipefail -c '
-    install -d -m 0755 /opt/data/bin /opt/data/skills /opt/data/plugins
+    install -d -m 0755 /opt/data/bin /opt/data/config /opt/data/skills /opt/data/plugins
     install -m 0755 /source/runtime/start-all.sh /opt/data/bin/start-all.sh
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
     install -m 0755 /source/runtime/control-tower-session.sh /opt/data/bin/control-tower-session
+    install -m 0755 /source/runtime/email-run-approval.sh /opt/data/bin/hermes-email-run-approval
     rm -f /opt/data/bin/agentmail_poller.py /opt/data/bin/agentmail_policy.py \
       /opt/data/bin/agentmail_transport.py /opt/data/bin/agentmail-poller-health.sh
     install -m 0644 /source/config/config.yaml /opt/data/config.yaml
+    install -m 0644 /source/config/tdai-gateway.yaml /opt/data/config/tdai-gateway.yaml
     install -m 0644 /source/config/SOUL.md /opt/data/SOUL.md
     cp -a /source/skills/. /opt/data/skills/
 

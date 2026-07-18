@@ -26,8 +26,10 @@ runtime_files=(
   "$tenant_root/runtime/start-all.sh"
   "$tenant_root/runtime/start-with-secrets.sh"
   "$tenant_root/runtime/control-tower-session.sh"
+  "$tenant_root/runtime/email-run-approval.sh"
   "$tenant_root/runtime/hermes-titus.service"
   "$tenant_root/config/config.yaml"
+  "$tenant_root/config/tdai-gateway.yaml"
   "$tenant_root/config/SOUL.md"
   "$tenant_root/scripts/deploy-aegis.sh"
   "$tenant_root/README.md"
@@ -45,12 +47,16 @@ bash -n \
   "$tenant_root/runtime/start-all.sh" \
   "$tenant_root/runtime/start-with-secrets.sh" \
   "$tenant_root/runtime/control-tower-session.sh" \
+  "$tenant_root/runtime/email-run-approval.sh" \
   "$tenant_root/scripts/deploy-aegis.sh"
 
 require_pattern '/agents/hermes-titus/runtime' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/overnightdesk' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/teams' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/matrix' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern '/agents/hermes-titus/memory' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'MEMORY_TENCENTDB_EMBEDDING_MODEL' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'perplexity/pplx-embed-v1-4b' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'NOT_CONFIGURED' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TEAMS_ALLOW_ALL_USERS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TEAMS_ALLOWED_USERS' "$tenant_root/runtime/load-phase-env.sh"
@@ -69,6 +75,8 @@ require_pattern 'reasoning_effort: medium' "$tenant_root/config/config.yaml"
 require_pattern 'model: "x-ai/grok-build-0\.1"' "$tenant_root/config/config.yaml"
 require_pattern 'x-ai/grok-4\.3' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'HERMES_INFERENCE_MODEL' "$tenant_root/runtime/start-with-secrets.sh"
+require_pattern 'TDAI_GATEWAY_CONFIG' "$tenant_root/runtime/start-with-secrets.sh"
+require_pattern 'MEMORY_TENCENTDB_EMBEDDING_ENABLED' "$tenant_root/runtime/start-with-secrets.sh"
 require_pattern 'x-ai/grok-4\.3' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'x-ai/grok-build-0\.1' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'You are Titus' "$tenant_root/config/SOUL.md"
@@ -105,6 +113,8 @@ require_pattern 'npm pkg delete scripts\.postinstall' "$tenant_root/runtime/prep
 require_pattern 'microsoft-teams-apps==2\.0\.13\.4' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'aiohttp==3\.14\.1' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'memory_tencentdb' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/source/config/tdai-gateway.yaml' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/opt/data/config/tdai-gateway.yaml' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern '/source/config/SOUL.md' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern '/opt/data/SOUL.md' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'volume preparation refused while the gateway is running' "$tenant_root/runtime/prepare-volume.sh"
@@ -123,6 +133,8 @@ require_pattern '/run/secrets/hermes-titus-runtime' "$tenant_root/runtime/contro
 require_pattern 'http://control-tower:8080/v1/session' "$tenant_root/runtime/control-tower-session.sh"
 require_pattern 'observe.monitoring-summary.read' "$tenant_root/runtime/control-tower-session.sh"
 require_pattern '/source/runtime/control-tower-session.sh' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/source/runtime/email-run-approval.sh' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/v1/runs/.*/approval' "$tenant_root/runtime/email-run-approval.sh"
 
 require_pattern '--network overnightdesk_overnightdesk' "$tenant_root/runtime/run-container.sh"
 require_pattern '--cap-drop ALL' "$tenant_root/runtime/run-container.sh"
@@ -137,7 +149,16 @@ require_pattern '_matrix/client/v3/account/whoami' "$tenant_root/scripts/deploy-
 require_pattern '_matrix/client/v3/joined_rooms' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'm\.room\.encryption' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'TITUS_MATRIX_STATE' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'titus-email-poller-data' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'hermes-email-intake-.*-data' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'embeddingService' "$tenant_root/scripts/deploy-aegis.sh"
+
+require_pattern 'provider: "\$\{MEMORY_TENCENTDB_EMBEDDING_PROVIDER\}"' "$tenant_root/config/tdai-gateway.yaml"
+require_pattern 'baseUrl: "\$\{MEMORY_TENCENTDB_EMBEDDING_BASE_URL\}"' "$tenant_root/config/tdai-gateway.yaml"
+require_pattern 'apiKey: "\$\{OPENROUTER_API_KEY\}"' "$tenant_root/config/tdai-gateway.yaml"
+require_pattern 'model: "\$\{MEMORY_TENCENTDB_EMBEDDING_MODEL\}"' "$tenant_root/config/tdai-gateway.yaml"
+require_pattern 'dimensions: 1536' "$tenant_root/config/tdai-gateway.yaml"
+require_pattern 'sendDimensions: true' "$tenant_root/config/tdai-gateway.yaml"
+require_pattern 'maxInputChars: 32000' "$tenant_root/config/tdai-gateway.yaml"
 
 if grep -ERq --exclude-dir=__pycache__ '(sk-or-v1-|am_[A-Za-z0-9]{16,}|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,}|TEAMS_CLIENT_SECRET=[^N$])' \
   "$tenant_root/config" "$tenant_root/runtime" "$tenant_root/skills" "$tenant_root/README.md"; then

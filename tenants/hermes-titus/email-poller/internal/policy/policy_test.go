@@ -3,6 +3,7 @@ package policy
 import (
 	"strings"
 	"testing"
+	"unicode/utf8"
 )
 
 func TestNormalizeAddress(t *testing.T) {
@@ -35,34 +36,6 @@ func TestAddressSetRequiresBareNormalizedAddresses(t *testing.T) {
 	}
 }
 
-func TestQueueTokenAndCommand(t *testing.T) {
-	queue := QueueID("private-message-id")
-	if !strings.HasPrefix(queue, "TITUS-") || strings.Contains(strings.ToLower(queue), "private") {
-		t.Fatalf("unsafe queue id: %s", queue)
-	}
-	token, err := ApprovalToken(queue, strings.Repeat("s", 32))
-	if err != nil || len(token) != 43 {
-		t.Fatalf("token failed: %v", err)
-	}
-	command, ok := ParseApprovalCommand("\nAPPROVE " + queue + " " + token + "\nquoted")
-	if !ok || command.Decision != "approve" || command.QueueID != queue {
-		t.Fatalf("valid command rejected: %#v", command)
-	}
-	if _, ok := ParseApprovalCommand("> APPROVE " + queue + " " + token); ok {
-		t.Fatal("quoted command accepted")
-	}
-}
-
-func TestDraftDigestBindsAllFields(t *testing.T) {
-	base := DraftDigest("outside@example.net", "m-1", "Re: Question", "Hello")
-	if base == DraftDigest("other@example.net", "m-1", "Re: Question", "Hello") ||
-		base == DraftDigest("outside@example.net", "m-2", "Re: Question", "Hello") ||
-		base == DraftDigest("outside@example.net", "m-1", "Changed", "Hello") ||
-		base == DraftDigest("outside@example.net", "m-1", "Re: Question", "Changed") {
-		t.Fatal("draft digest did not bind all immutable fields")
-	}
-}
-
 func TestValidateReplyAndAutomatedHeaders(t *testing.T) {
 	if got, ok := ValidateReply("  Hello Gary.\n\nTitus  "); !ok || got != "Hello Gary.\n\nTitus" {
 		t.Fatalf("valid reply rejected: %q", got)
@@ -76,5 +49,11 @@ func TestValidateReplyAndAutomatedHeaders(t *testing.T) {
 		!IsAutomated(map[string]string{"Precedence": "bulk"}) ||
 		IsAutomated(map[string]string{"Auto-Submitted": "no"}) {
 		t.Fatal("automatic message policy failed")
+	}
+}
+
+func TestBoundTextPreservesValidUTF8(t *testing.T) {
+	if got := BoundText("ab🙂cd", 4); got != "ab🙂c" || !utf8.ValidString(got) {
+		t.Fatalf("unsafe Unicode bound: %q", got)
 	}
 }

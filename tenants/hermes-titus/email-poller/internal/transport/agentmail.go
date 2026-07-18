@@ -30,10 +30,7 @@ type Message struct {
 func (message Message) BodyExcerpt(limit int) string {
 	for _, value := range []string{message.ExtractedText, message.Text, message.Preview} {
 		if value != "" {
-			if len(value) > limit {
-				return value[:limit]
-			}
-			return value
+			return boundText(value, limit)
 		}
 	}
 	return ""
@@ -43,26 +40,6 @@ type ListResponse struct {
 	Count         int       `json:"count"`
 	Messages      []Message `json:"messages"`
 	NextPageToken string    `json:"next_page_token"`
-}
-
-type Draft struct {
-	DraftID    string   `json:"draft_id"`
-	ClientID   string   `json:"client_id"`
-	To         []string `json:"to"`
-	Subject    string   `json:"subject"`
-	Text       string   `json:"text"`
-	HTML       string   `json:"html"`
-	InReplyTo  string   `json:"in_reply_to"`
-	SendStatus string   `json:"send_status"`
-}
-
-type CreateDraftRequest struct {
-	To        []string `json:"to,omitempty"`
-	Subject   string   `json:"subject,omitempty"`
-	Text      string   `json:"text"`
-	HTML      string   `json:"html,omitempty"`
-	InReplyTo string   `json:"in_reply_to,omitempty"`
-	ClientID  string   `json:"client_id"`
 }
 
 type SendResult struct {
@@ -99,24 +76,7 @@ func (client *AgentMailClient) GetMessage(messageID string) (Message, error) {
 	return result, err
 }
 
-func (client *AgentMailClient) CreateDraft(request CreateDraftRequest) (Draft, error) {
-	if request.HTML == "" && request.Text != "" {
-		request.HTML = plainTextHTML(request.Text)
-	}
-	path := fmt.Sprintf("/inboxes/%s/drafts", client.inboxID)
-	payload := request
-	if request.InReplyTo != "" {
-		path = fmt.Sprintf(
-			"/inboxes/%s/messages/%s/draft-reply", client.inboxID, url.PathEscape(request.InReplyTo),
-		)
-		payload.InReplyTo = ""
-	}
-	var result Draft
-	err := client.api.do(http.MethodPost, path, payload, &result)
-	return result, err
-}
-
-func (client *AgentMailClient) Reply(messageID, text string) (SendResult, error) {
+func (client *AgentMailClient) Reply(messageID, text, purpose string) (SendResult, error) {
 	payload := struct {
 		Text string `json:"text"`
 		HTML string `json:"html"`
@@ -126,24 +86,23 @@ func (client *AgentMailClient) Reply(messageID, text string) (SendResult, error)
 		http.MethodPost,
 		fmt.Sprintf("/inboxes/%s/messages/%s/reply", client.inboxID, url.PathEscape(messageID)),
 		payload, &result,
-		map[string]string{"Idempotency-Key": idempotencyKey("reply", client.inboxID, messageID)},
+		map[string]string{"Idempotency-Key": idempotencyKey("reply-"+purpose, client.inboxID, messageID)},
 	)
+	if err == nil && result.MessageID == "" {
+		err = fmt.Errorf("invalid AgentMail reply response")
+	}
 	return result, err
 }
 
-func (client *AgentMailClient) GetDraft(draftID string) (Draft, error) {
-	var result Draft
-	err := client.api.do(http.MethodGet, fmt.Sprintf("/inboxes/%s/drafts/%s", client.inboxID, url.PathEscape(draftID)), nil, &result)
-	return result, err
-}
-
-func (client *AgentMailClient) SendDraft(draftID string) (SendResult, error) {
-	var result SendResult
-	err := client.api.doWithHeaders(
-		http.MethodPost, fmt.Sprintf("/inboxes/%s/drafts/%s/send", client.inboxID, url.PathEscape(draftID)),
-		struct{}{}, &result, map[string]string{"Idempotency-Key": idempotencyKey("draft-send", client.inboxID, draftID)},
-	)
-	return result, err
+func boundText(value string, maximum int) string {
+	if maximum < 1 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= maximum {
+		return value
+	}
+	return string(runes[:maximum])
 }
 
 func idempotencyKey(kind, inboxID, remoteID string) string {

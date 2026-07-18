@@ -1,5 +1,5 @@
 [Unit]
-Description=OvernightDesk Titus email polling service
+Description=OvernightDesk Hermes email intake (%i)
 Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
@@ -9,10 +9,10 @@ Type=simple
 User=titus-email-poller
 Group=titus-email-poller
 SupplementaryGroups=docker
-ExecStartPre=+/opt/titus-email-poller/bin/load-phase-config.sh
-ExecStartPre=+/opt/titus-email-poller/bin/prepare-volume.sh
-ExecStart=/opt/titus-email-poller/bin/run-container.sh
-ExecStop=+/opt/titus-email-poller/bin/stop-container.sh
+ExecStartPre=+/opt/hermes-email-intake/bin/load-phase-config.sh %i
+ExecStartPre=+/opt/hermes-email-intake/bin/prepare-volume.sh %i
+ExecStart=/opt/hermes-email-intake/bin/run-container.sh %i
+ExecStop=+/opt/hermes-email-intake/bin/stop-container.sh %i
 Restart=always
 RestartSec=10
 TimeoutStartSec=300

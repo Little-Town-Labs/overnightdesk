@@ -1,0 +1,16 @@
+memory:
+  storeBackend: sqlite
+  recall:
+    strategy: hybrid
+  embedding:
+    enabled: true
+    provider: "${MEMORY_TENCENTDB_EMBEDDING_PROVIDER}"
+    baseUrl: "${MEMORY_TENCENTDB_EMBEDDING_BASE_URL}"
+    apiKey: "${OPENROUTER_API_KEY}"
+    model: "${MEMORY_TENCENTDB_EMBEDDING_MODEL}"
+    dimensions: 1536
+    sendDimensions: true
+    maxInputChars: 32000
+    timeoutMs: 10000
+    recallTimeoutMs: 5000
+    captureTimeoutMs: 10000

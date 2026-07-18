@@ -1,67 +1,53 @@
 package worker
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"overnightdesk/titus-email-poller/internal/config"
-	"overnightdesk/titus-email-poller/internal/policy"
 	"overnightdesk/titus-email-poller/internal/state"
+	"overnightdesk/titus-email-poller/internal/store"
 	"overnightdesk/titus-email-poller/internal/transport"
 )
 
-var trusted = map[string]struct{}{
-	"garyb@timelesstechs.com":  {},
-	"austin@timelesstechs.com": {},
-}
-
 func testConfig(enabled bool) config.Config {
 	return config.Config{
-		Enabled: enabled, InboxID: "titus-inbox", InboxAddress: "titus@example.agentmail.to",
-		TrustedSenders: trusted, Approvers: trusted, SigningSecret: "ssssssssssssssssssssssssssssssss",
-		Interval: time.Minute, MaxMessages: 20,
+		Enabled: enabled, InboxID: "inbox-titus", InboxAddress: "titus-operations@agentmail.to",
+		AllowedSenders: map[string]struct{}{"garyb@timelesstechs.com": {}, "austin@timelesstechs.com": {}},
+		RouteID:        "titus", TargetAgent: "hermes-titus", MaxMessages: 20, MaxCleanClaims: 10,
+		Interval: time.Minute,
 	}
 }
 
-func message(id, sender, subject, body string) transport.Message {
-	return transport.Message{
-		MessageID: id, ThreadID: "thread-" + id, From: sender,
-		To: []string{"titus@example.agentmail.to"}, Subject: subject,
-		ExtractedText: body, Labels: []string{"received", "unread"},
-	}
+func message(id, sender, body string) transport.Message {
+	return transport.Message{InboxID: "inbox-titus", MessageID: id, ThreadID: "thread-" + id,
+		From: sender, To: []string{"titus-operations@agentmail.to"}, Subject: "Instructions",
+		ExtractedText: body, Labels: []string{"received", "unread"}, Timestamp: "2026-07-17T12:00:00Z"}
 }
 
 type fakeAgentMail struct {
-	messages      []transport.Message
-	drafts        map[string]transport.Draft
-	draftByClient map[string]string
-	sent          []string
-	listCalls     int
-	nextID        int
-	failSendID    string
-	failedSend    bool
-	replied       map[string]string
-}
-
-func newFakeAgentMail(messages ...transport.Message) *fakeAgentMail {
-	return &fakeAgentMail{
-		messages: messages, drafts: make(map[string]transport.Draft),
-		draftByClient: make(map[string]string), replied: make(map[string]string), nextID: 1,
-	}
+	messages   []transport.Message
+	pages      map[string]transport.ListResponse
+	replies    map[string]string
+	listCalls  int
+	replyCalls []string
 }
 
 func (fake *fakeAgentMail) ListMessages(page string, limit int) (transport.ListResponse, error) {
 	fake.listCalls++
-	items := fake.messages
-	if len(items) > limit {
-		items = items[:limit]
+	if response, ok := fake.pages[page]; ok {
+		return response, nil
 	}
-	return transport.ListResponse{Messages: items}, nil
+	messages := fake.messages
+	if len(messages) > limit {
+		messages = messages[:limit]
+	}
+	return transport.ListResponse{Messages: messages}, nil
 }
-
 func (fake *fakeAgentMail) GetMessage(id string) (transport.Message, error) {
 	for _, item := range fake.messages {
 		if item.MessageID == id {
@@ -70,257 +56,241 @@ func (fake *fakeAgentMail) GetMessage(id string) (transport.Message, error) {
 	}
 	return transport.Message{}, errors.New("not found")
 }
-
-func (fake *fakeAgentMail) CreateDraft(request transport.CreateDraftRequest) (transport.Draft, error) {
-	if id, ok := fake.draftByClient[request.ClientID]; ok {
-		return fake.drafts[id], nil
+func (fake *fakeAgentMail) Reply(id, text, purpose string) (transport.SendResult, error) {
+	if fake.replies == nil {
+		fake.replies = make(map[string]string)
 	}
-	id := "draft-" + string(rune('0'+fake.nextID))
-	fake.nextID++
-	recipients := request.To
-	if request.InReplyTo != "" {
-		source, _ := fake.GetMessage(request.InReplyTo)
-		recipients = []string{source.From}
-	}
-	draft := transport.Draft{DraftID: id, ClientID: request.ClientID, To: recipients, Subject: request.Subject, Text: request.Text, HTML: request.HTML, InReplyTo: request.InReplyTo}
-	fake.drafts[id], fake.draftByClient[request.ClientID] = draft, id
-	return draft, nil
+	fake.replies[id] = text
+	fake.replyCalls = append(fake.replyCalls, id+":"+purpose)
+	return transport.SendResult{MessageID: "reply-" + id}, nil
 }
 
-func (fake *fakeAgentMail) Reply(messageID, text string) (transport.SendResult, error) {
-	id := "reply-" + messageID
-	if _, exists := fake.replied[messageID]; !exists {
-		fake.replied[messageID] = text
-		fake.sent = append(fake.sent, id)
-	}
-	if id == fake.failSendID && !fake.failedSend {
-		fake.failedSend = true
-		return transport.SendResult{}, errors.New("ambiguous timeout")
-	}
-	return transport.SendResult{MessageID: "sent-" + id}, nil
+type fakeRepository struct {
+	dirty      []store.DirtyEmail
+	clean      []store.CleanEmail
+	completed  []string
+	completeOK []bool
+	failed     []string
 }
 
-func (fake *fakeAgentMail) GetDraft(id string) (transport.Draft, error) {
-	draft, ok := fake.drafts[id]
-	if !ok {
-		return transport.Draft{}, errors.New("not found")
+func (fake *fakeRepository) LandDirty(_ context.Context, email store.DirtyEmail) (bool, error) {
+	fake.dirty = append(fake.dirty, email)
+	return true, nil
+}
+func (fake *fakeRepository) ClaimClean(_ context.Context, route, inbox, target string, limit int) ([]store.CleanEmail, error) {
+	result := fake.clean
+	fake.clean = nil
+	return result, nil
+}
+func (fake *fakeRepository) Complete(_ context.Context, id, route, inbox, target string) (bool, error) {
+	fake.completed = append(fake.completed, id)
+	if len(fake.completeOK) > 0 {
+		ok := fake.completeOK[0]
+		fake.completeOK = fake.completeOK[1:]
+		return ok, nil
 	}
-	return draft, nil
+	return true, nil
+}
+func (fake *fakeRepository) Fail(_ context.Context, id, route, inbox, target, code string) (bool, error) {
+	fake.failed = append(fake.failed, id+":"+code)
+	return true, nil
 }
 
-func (fake *fakeAgentMail) SendDraft(id string) (transport.SendResult, error) {
-	draft := fake.drafts[id]
-	if draft.SendStatus != "sent" {
-		draft.SendStatus = "sent"
-		fake.drafts[id] = draft
-		fake.sent = append(fake.sent, id)
+type fakeHermes struct {
+	runs      map[string]transport.HermesRun
+	submitted []string
+}
+
+func (fake *fakeHermes) SubmitRun(input, session, key, idempotency string) (transport.HermesRun, error) {
+	fake.submitted = append(fake.submitted, input)
+	run := transport.HermesRun{RunID: "run-1", Status: "queued"}
+	if fake.runs == nil {
+		fake.runs = make(map[string]transport.HermesRun)
 	}
-	if id == fake.failSendID && !fake.failedSend {
-		fake.failedSend = true
-		return transport.SendResult{}, errors.New("ambiguous timeout")
-	}
-	return transport.SendResult{MessageID: "sent-" + id}, nil
+	fake.runs[run.RunID] = run
+	return run, nil
 }
+func (fake *fakeHermes) GetRun(id string) (transport.HermesRun, error) { return fake.runs[id], nil }
 
-type fakeModel struct {
-	reply string
-	calls int
-}
-
-func (fake *fakeModel) GenerateReply(subject, text string) (string, error) {
-	fake.calls++
-	return fake.reply, nil
-}
-
-func newWorker(t *testing.T, enabled bool, messages ...transport.Message) (*Worker, *fakeAgentMail, *fakeModel, *state.Store) {
+func newWorker(t *testing.T, enabled bool, messages ...transport.Message) (*Worker, *fakeAgentMail, *fakeRepository, *fakeHermes, *state.Store) {
 	t.Helper()
-	directory := t.TempDir()
-	store, err := state.Open(filepath.Join(directory, "state.json"))
+	stateStore, err := state.Open(filepath.Join(t.TempDir(), "state.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	agentmail := newFakeAgentMail(messages...)
-	model := &fakeModel{reply: "Thanks for your email. I will follow up shortly.\n\nTitus"}
-	worker := New(testConfig(enabled), store, agentmail, model, filepath.Join(directory, "health.json"))
-	return worker, agentmail, model, store
+	agentmail := &fakeAgentMail{messages: messages, replies: make(map[string]string)}
+	repository := &fakeRepository{}
+	hermes := &fakeHermes{runs: make(map[string]transport.HermesRun)}
+	worker := New(testConfig(enabled), stateStore, repository, agentmail, hermes, filepath.Join(t.TempDir(), "health.json"))
+	return worker, agentmail, repository, hermes, stateStore
 }
 
-func TestTrustedMessageRepliesExactlyOnce(t *testing.T) {
-	source := message("trusted-1", "Gary <garyb@timelesstechs.com>", "Hello", "Please reply")
-	worker, agentmail, model, store := newWorker(t, true, source)
+func TestAuthorizedEmailLandsDirtyAndNeverCallsHermesDirectly(t *testing.T) {
+	worker, _, repository, hermes, _ := newWorker(t, true, message("m-1", "Gary <garyb@timelesstechs.com>", "raw instructions"))
 	result, err := worker.RunOnce()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Sends != 1 {
-		t.Fatalf("trusted reply send count = %d, want 1", result.Sends)
+	if result.Landed != 1 || len(repository.dirty) != 1 || len(hermes.submitted) != 0 {
+		t.Fatalf("wrong intake behavior: %#v dirty=%#v submitted=%#v", result, repository.dirty, hermes.submitted)
 	}
-	if _, err := worker.RunOnce(); err != nil {
-		t.Fatal(err)
+	if repository.dirty[0].Body != "raw instructions" || !repository.dirty[0].SenderAuthorized {
+		t.Fatalf("dirty email malformed: %#v", repository.dirty[0])
 	}
-	record, _ := store.Message("trusted-1")
-	if record.State != "replied" || len(agentmail.sent) != 1 || model.calls != 1 {
-		t.Fatalf("trusted reply was not idempotent: %#v sent=%v calls=%d", record, agentmail.sent, model.calls)
-	}
-}
-
-func TestDisplayNameSpoofQueuesApproval(t *testing.T) {
-	source := message("spoof-1", `"garyb@timelesstechs.com" <attacker@example.net>`, "Question", "Please reply")
-	worker, agentmail, _, store := newWorker(t, true, source)
-	_, _ = worker.RunOnce()
-	approval, ok := store.Approval(policy.QueueID("spoof-1"))
-	if !ok || approval.Recipient != "attacker@example.net" || approval.State != "pending" {
-		t.Fatalf("spoof was not queued: %#v", approval)
-	}
-	if len(agentmail.sent) != 1 {
-		t.Fatalf("expected approval notice only, sent=%v", agentmail.sent)
-	}
-	notice := agentmail.drafts[agentmail.sent[0]]
-	if len(notice.To) != 2 {
-		t.Fatalf("approval notice did not target both operators: %#v", notice.To)
+	if _, err := worker.RunOnce(); err != nil || len(repository.dirty) != 1 {
+		t.Fatal("duplicate poll produced another dirty write")
 	}
 }
 
-func TestApprovalSendsUnchangedDraftAndRejectIsTerminal(t *testing.T) {
-	source := message("external-1", "pat@example.net", "Question", "Please reply")
-	worker, agentmail, _, store := newWorker(t, true, source)
-	_, _ = worker.RunOnce()
-	queue := policy.QueueID("external-1")
-	token, _ := policy.ApprovalToken(queue, testConfig(true).SigningSecret)
-	command := message("approve-1", "garyb@timelesstechs.com", "Re: approval", "APPROVE "+queue+" "+token)
-	agentmail.messages = append(agentmail.messages, command)
-	if _, err := worker.RunOnce(); err != nil {
-		t.Fatal(err)
+func TestLandingPaginatesPastAlreadyCheckpointedMessages(t *testing.T) {
+	old := make([]transport.Message, 0, 20)
+	worker, agentmail, repository, _, stateStore := newWorker(t, true)
+	for index := range 20 {
+		item := message(fmt.Sprintf("old-%02d", index), "garyb@timelesstechs.com", "old")
+		old = append(old, item)
+		_, _ = stateStore.ReserveMessage(state.MessageRecord{MessageID: item.MessageID})
+		_ = stateStore.UpdateMessage(item.MessageID, "landed")
 	}
-	approval, _ := store.Approval(queue)
-	if approval.State != "approved" || agentmail.drafts[approval.DraftID].Text != approval.DraftText {
-		t.Fatalf("approval failed: %#v", approval)
+	newMessage := message("new-21", "garyb@timelesstechs.com", "new work")
+	agentmail.messages = append(append([]transport.Message{}, old...), newMessage)
+	agentmail.pages = map[string]transport.ListResponse{
+		"":       {Messages: old, NextPageToken: "page-2"},
+		"page-2": {Messages: []transport.Message{newMessage}},
 	}
-	if _, err := worker.RunOnce(); err != nil {
-		t.Fatal(err)
-	}
-	if count(agentmail.sent, approval.DraftID) != 1 {
-		t.Fatal("approved draft was sent more than once")
+
+	result, err := worker.RunOnce()
+	if err != nil || result.Landed != 1 || len(repository.dirty) != 1 || agentmail.listCalls != 2 {
+		t.Fatalf("backlog message starved: result=%#v err=%v calls=%d dirty=%#v", result, err, agentmail.listCalls, repository.dirty)
 	}
 }
 
-func TestApprovalRecoversFromAmbiguousSendWithoutDuplicate(t *testing.T) {
-	source := message("external-ambiguous", "pat@example.net", "Question", "Please reply")
-	worker, agentmail, _, store := newWorker(t, true, source)
-	if _, err := worker.RunOnce(); err != nil {
-		t.Fatal(err)
-	}
-	queue := policy.QueueID(source.MessageID)
-	approval, _ := store.Approval(queue)
-	agentmail.failSendID = approval.DraftID
-	token, _ := policy.ApprovalToken(queue, testConfig(true).SigningSecret)
-	agentmail.messages = append(agentmail.messages, message(
-		"approve-ambiguous", "austin@timelesstechs.com", "Approval", "APPROVE "+queue+" "+token,
-	))
+func TestInboxMismatchFailsBeforeDatabaseOrHermes(t *testing.T) {
+	source := message("m-wrong", "garyb@timelesstechs.com", "instructions")
+	source.InboxID = "other-inbox"
+	worker, _, repository, hermes, _ := newWorker(t, true, source)
 	if _, err := worker.RunOnce(); err == nil {
-		t.Fatal("expected the first send result to be ambiguous")
+		t.Fatal("inbox mismatch was accepted")
+	}
+	if len(repository.dirty) != 0 || len(hermes.submitted) != 0 {
+		t.Fatal("inbox mismatch reached a downstream boundary")
+	}
+}
+
+func TestSpoofedAndAutomatedSendersLandButCannotBeClaimedByRoute(t *testing.T) {
+	spoof := message("m-2", `"garyb@timelesstechs.com" <attacker@example.net>`, "spoof")
+	automated := message("m-3", "garyb@timelesstechs.com", "automatic")
+	automated.Headers = map[string]string{"Auto-Submitted": "auto-replied"}
+	worker, _, repository, _, _ := newWorker(t, true, spoof, automated)
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(repository.dirty) != 2 || repository.dirty[0].SenderAuthorized || repository.dirty[1].SenderAuthorized {
+		t.Fatalf("unsafe sender was authorized: %#v", repository.dirty)
+	}
+}
+
+func TestOnlyCleanClaimIsSubmittedToHermes(t *testing.T) {
+	worker, _, repository, hermes, _ := newWorker(t, true)
+	repository.clean = []store.CleanEmail{{ID: "clean-1", ProviderMessageID: "m-1", ThreadID: "thread-1", SafeContent: "clean instructions"}}
+	result, err := worker.RunOnce()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Claimed != 1 || len(hermes.submitted) != 1 || hermes.submitted[0] != "clean instructions" {
+		t.Fatalf("clean input was not dispatched: %#v %#v", result, hermes.submitted)
+	}
+}
+
+func TestInvalidCleanContentFailsWithoutHermesSubmission(t *testing.T) {
+	worker, _, repository, hermes, _ := newWorker(t, true)
+	repository.clean = []store.CleanEmail{{ID: "clean-empty", ProviderMessageID: "m-1", SafeContent: " \n\t "}}
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(hermes.submitted) != 0 || len(repository.failed) != 1 || repository.failed[0] != "clean-empty:invalid_clean_content" {
+		t.Fatalf("invalid clean content escaped: submitted=%#v failed=%#v", hermes.submitted, repository.failed)
+	}
+}
+
+func TestCompletedHermesRunRepliesInThreadAndCompletesRow(t *testing.T) {
+	worker, agentmail, repository, hermes, stateStore := newWorker(t, true)
+	_, _ = stateStore.CreateDelivery(state.DeliveryRecord{CleanID: "clean-1", ProviderMessageID: "m-1", RunID: "run-1", State: "running"})
+	hermes.runs["run-1"] = transport.HermesRun{RunID: "run-1", Status: "completed", Output: "Completed the instructions."}
+	result, err := worker.RunOnce()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Sends != 1 || agentmail.replies["m-1"] != "Completed the instructions." || len(repository.completed) != 1 {
+		t.Fatalf("completion was not delivered: %#v replies=%#v completed=%#v", result, agentmail.replies, repository.completed)
+	}
+	if len(stateStore.Deliveries()) != 0 {
+		t.Fatal("completed delivery remained in recovery state")
+	}
+}
+
+func TestCompletionReconcilesAfterDatabaseAcknowledgementLoss(t *testing.T) {
+	worker, agentmail, repository, hermes, stateStore := newWorker(t, true)
+	repository.completeOK = []bool{false, true}
+	_, _ = stateStore.CreateDelivery(state.DeliveryRecord{CleanID: "clean-1", ProviderMessageID: "m-1", RunID: "run-1", State: "running"})
+	hermes.runs["run-1"] = transport.HermesRun{RunID: "run-1", Status: "completed", Output: "Done."}
+	if _, err := worker.RunOnce(); err == nil {
+		t.Fatal("lost completion acknowledgement did not fail the cycle")
 	}
 	if _, err := worker.RunOnce(); err != nil {
 		t.Fatal(err)
 	}
-	approval, _ = store.Approval(queue)
-	if approval.State != "approved" || count(agentmail.sent, approval.DraftID) != 1 {
-		t.Fatalf("ambiguous send was not reconciled exactly once: %#v sent=%v", approval, agentmail.sent)
+	if len(repository.completed) != 2 || len(stateStore.Deliveries()) != 0 ||
+		len(agentmail.replyCalls) != 2 || agentmail.replyCalls[0] != agentmail.replyCalls[1] {
+		t.Fatalf("completion did not reconcile idempotently: completed=%#v replies=%#v", repository.completed, agentmail.replyCalls)
 	}
 }
 
-func TestChangedDraftFailsClosed(t *testing.T) {
-	source := message("external-2", "pat@example.net", "Question", "Please reply")
-	worker, agentmail, _, store := newWorker(t, true, source)
-	_, _ = worker.RunOnce()
-	queue := policy.QueueID("external-2")
-	approval, _ := store.Approval(queue)
-	draft := agentmail.drafts[approval.DraftID]
-	draft.Text = "changed"
-	agentmail.drafts[approval.DraftID] = draft
-	token, _ := policy.ApprovalToken(queue, testConfig(true).SigningSecret)
-	agentmail.messages = append(agentmail.messages, message("approve-2", "austin@timelesstechs.com", "Approval", "APPROVE "+queue+" "+token))
-	_, _ = worker.RunOnce()
-	approval, _ = store.Approval(queue)
-	if approval.State != "failed" || count(agentmail.sent, approval.DraftID) != 0 {
-		t.Fatalf("changed draft did not fail closed: %#v", approval)
-	}
-}
-
-func TestDisabledAndInitializeHaveNoOutboundActivity(t *testing.T) {
-	source := message("old-1", "garyb@timelesstechs.com", "Old", "Old body")
-	worker, agentmail, model, store := newWorker(t, false, source)
+func TestApprovalWaitDoesNotSendEmailOrApprove(t *testing.T) {
+	worker, agentmail, _, hermes, stateStore := newWorker(t, true)
+	_, _ = stateStore.CreateDelivery(state.DeliveryRecord{CleanID: "clean-1", ProviderMessageID: "m-1", RunID: "run-1", State: "running"})
+	hermes.runs["run-1"] = transport.HermesRun{RunID: "run-1", Status: "waiting_for_approval"}
 	result, err := worker.RunOnce()
-	if err != nil || result.State != "disabled" || agentmail.listCalls != 0 {
-		t.Fatalf("disabled worker touched network: %#v %v", result, err)
+	if err != nil || result.Sends != 0 || len(agentmail.replies) != 1 || stateStore.Deliveries()[0].State != "waiting_for_approval" || !stateStore.Deliveries()[0].ApprovalNotified {
+		t.Fatalf("approval wait escaped its channel: %#v %v", result, err)
 	}
-	result, err = worker.Initialize("")
-	if err != nil || result.Preexisting != 1 || result.Sends != 0 || len(agentmail.sent) != 0 || model.calls != 0 {
-		t.Fatalf("unsafe initialization: %#v %v", result, err)
+	if _, err := worker.RunOnce(); err != nil || len(agentmail.replyCalls) != 1 {
+		t.Fatal("approval notification was not idempotent")
 	}
-	record, _ := store.Message("old-1")
-	if record.State != "preexisting" {
-		t.Fatalf("old message not marked: %#v", record)
-	}
-}
-
-func TestInitializeLeavesOnlyExplicitReplayPending(t *testing.T) {
-	old := message("old-1", "garyb@timelesstechs.com", "Old", "Old body")
-	replay := message("replay-1", "garyb@timelesstechs.com", "Instructions", "New body")
-	worker, agentmail, model, store := newWorker(t, false, old, replay)
-	result, err := worker.Initialize(replay.MessageID)
-	if err != nil || result.Preexisting != 1 || !result.ReplayPending || result.Sends != 0 {
-		t.Fatalf("unsafe replay initialization: %#v %v", result, err)
-	}
-	if _, exists := store.Message(old.MessageID); !exists {
-		t.Fatal("older inbound message was not checkpointed")
-	}
-	if _, exists := store.Message(replay.MessageID); exists {
-		t.Fatal("explicit replay message was checkpointed")
-	}
-	if len(agentmail.sent) != 0 || model.calls != 0 {
-		t.Fatal("initialization performed outbound activity")
+	hermes.runs["run-1"] = transport.HermesRun{RunID: "run-1", Status: "completed", Output: "Approved completion."}
+	if _, err := worker.RunOnce(); err != nil || len(agentmail.replyCalls) != 2 || agentmail.replyCalls[0] == agentmail.replyCalls[1] {
+		t.Fatal("approval notice and final reply did not use distinct idempotency purposes")
 	}
 }
 
-func TestInitializeRejectsMissingReplayMessage(t *testing.T) {
-	worker, _, _, _ := newWorker(t, false, message("old-1", "garyb@timelesstechs.com", "Old", "Body"))
-	if _, err := worker.Initialize("missing"); err == nil {
-		t.Fatal("missing replay message was accepted")
+func TestAmbiguousPreSubmissionStateFailsClosedWithoutHermesRetry(t *testing.T) {
+	worker, _, repository, hermes, stateStore := newWorker(t, true)
+	_, _ = stateStore.CreateDelivery(state.DeliveryRecord{
+		CleanID: "clean-ambiguous", ProviderMessageID: "m-1", State: "submitting",
+	})
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(hermes.submitted) != 0 || len(repository.failed) != 1 || repository.failed[0] != "clean-ambiguous:ambiguous_run_submission" {
+		t.Fatalf("ambiguous run was retried or not quarantined: submitted=%#v failed=%#v", hermes.submitted, repository.failed)
 	}
 }
 
-func TestAutomatedMessageSuppressed(t *testing.T) {
-	source := message("auto-1", "garyb@timelesstechs.com", "Auto", "Automated")
-	source.Headers = map[string]string{"Auto-Submitted": "auto-replied"}
-	worker, agentmail, model, store := newWorker(t, true, source)
-	_, _ = worker.RunOnce()
-	record, _ := store.Message("auto-1")
-	if record.State != "suppressed" || len(agentmail.sent) != 0 || model.calls != 0 {
-		t.Fatalf("automatic message not suppressed: %#v", record)
+func TestDisabledWorkerPerformsNoNetworkOrDatabaseWork(t *testing.T) {
+	worker, agentmail, repository, hermes, _ := newWorker(t, false, message("m-1", "garyb@timelesstechs.com", "body"))
+	result, err := worker.RunOnce()
+	if err != nil || result.State != "disabled" || agentmail.listCalls != 0 || len(repository.dirty) != 0 || len(hermes.submitted) != 0 {
+		t.Fatalf("disabled worker performed work: %#v %v", result, err)
 	}
 }
 
-func TestAutomatedMessageCannotCarryApprovalCommand(t *testing.T) {
-	queue := "TITUS-ABCDEF123456"
-	token, _ := policy.ApprovalToken(queue, testConfig(true).SigningSecret)
-	source := message("auto-command", "garyb@timelesstechs.com", "Auto", "APPROVE "+queue+" "+token)
-	source.Headers = map[string]string{"Auto-Submitted": "auto-replied"}
-	worker, _, _, store := newWorker(t, true, source)
-	_, _ = worker.RunOnce()
-	record, _ := store.Message("auto-command")
-	if record.Classification != "automated" || record.State != "suppressed" {
-		t.Fatalf("automated command was not suppressed: %#v", record)
+func TestInitializeCheckpointsHistoryWithoutDatabaseOrHermes(t *testing.T) {
+	worker, _, repository, hermes, stateStore := newWorker(t, false, message("old", "garyb@timelesstechs.com", "old body"))
+	result, err := worker.Initialize("")
+	if err != nil || result.Preexisting != 1 || len(repository.dirty) != 0 || len(hermes.submitted) != 0 {
+		t.Fatalf("unsafe initialize: %#v %v", result, err)
 	}
-}
-
-func TestApprovalSubjectIsHeaderSafe(t *testing.T) {
-	source := message("subject-injection", "pat@example.net", "Question\r\nBcc: bad@example.net", "Body")
-	worker, agentmail, _, _ := newWorker(t, true, source)
-	_, _ = worker.RunOnce()
-	notice := agentmail.drafts[agentmail.sent[0]]
-	if strings.ContainsAny(notice.Subject, "\r\n") {
-		t.Fatalf("unsafe subject created: %q", notice.Subject)
+	if record, ok := stateStore.Message("old"); !ok || record.State != "preexisting" {
+		t.Fatalf("history not checkpointed: %#v", record)
 	}
 }
 
@@ -338,14 +308,4 @@ func TestHealthDisabledFreshAndStale(t *testing.T) {
 	if ok, _ := Health(path, time.Now().Add(5*time.Minute), time.Minute); ok {
 		t.Fatal("stale enabled health accepted")
 	}
-}
-
-func count(values []string, target string) int {
-	total := 0
-	for _, value := range values {
-		if value == target {
-			total++
-		}
-	}
-	return total
 }

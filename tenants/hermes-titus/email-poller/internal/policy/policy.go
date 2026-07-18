@@ -1,10 +1,6 @@
 package policy
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"net/mail"
 	"regexp"
@@ -14,19 +10,12 @@ import (
 const MaxReplyCharacters = 1200
 
 var (
-	commandPattern = regexp.MustCompile(`^(APPROVE|REJECT) (TITUS-[A-F0-9]{12}) ([A-Za-z0-9_-]{43})$`)
 	secretPatterns = []*regexp.Regexp{
 		regexp.MustCompile(`(?i)authorization\s*:\s*bearer\s+\S{12,}`),
 		regexp.MustCompile(`(?i)\b` + "sk-or-" + `v1-[A-Za-z0-9_-]{12,}\b`),
 		regexp.MustCompile(`(?i)\b` + "am" + `_[A-Za-z0-9_-]{12,}\b`),
 	}
 )
-
-type ApprovalCommand struct {
-	Decision string
-	QueueID  string
-	Token    string
-}
 
 func NormalizeAddress(value string) (string, bool) {
 	if value == "" || strings.ContainsAny(value, "\r\n") {
@@ -60,62 +49,6 @@ func ParseAddressSet(raw string) (map[string]struct{}, error) {
 	return result, nil
 }
 
-func EqualAddressSets(first, second map[string]struct{}) bool {
-	if len(first) != len(second) {
-		return false
-	}
-	for value := range first {
-		if _, ok := second[value]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func QueueID(messageID string) string {
-	digest := sha256.Sum256([]byte(messageID))
-	return "TITUS-" + strings.ToUpper(hex.EncodeToString(digest[:6]))
-}
-
-func ClientID(kind, messageID string) string {
-	digest := sha256.Sum256([]byte(kind + "\x00" + messageID))
-	return "titus-" + kind + "-" + hex.EncodeToString(digest[:12])
-}
-
-func ApprovalToken(queueID, signingSecret string) (string, error) {
-	if len([]byte(signingSecret)) < 32 {
-		return "", errors.New("approval signing secret is too short")
-	}
-	mac := hmac.New(sha256.New, []byte(signingSecret))
-	_, _ = mac.Write([]byte("titus-agentmail-approval-v1\x00" + queueID))
-	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil)), nil
-}
-
-func TokenDigest(token string) string {
-	digest := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(digest[:])
-}
-
-func ParseApprovalCommand(text string) (ApprovalCommand, bool) {
-	first := ""
-	for _, line := range strings.Split(text, "\n") {
-		if trimmed := strings.TrimSpace(line); trimmed != "" {
-			first = trimmed
-			break
-		}
-	}
-	match := commandPattern.FindStringSubmatch(first)
-	if len(match) != 4 {
-		return ApprovalCommand{}, false
-	}
-	return ApprovalCommand{Decision: strings.ToLower(match[1]), QueueID: match[2], Token: match[3]}, true
-}
-
-func DraftDigest(recipient, sourceMessageID, subject, text string) string {
-	digest := sha256.Sum256([]byte(recipient + "\x00" + sourceMessageID + "\x00" + subject + "\x00" + text))
-	return hex.EncodeToString(digest[:])
-}
-
 func ValidateReply(value string) (string, bool) {
 	value = strings.TrimSpace(strings.ReplaceAll(value, "\x00", ""))
 	if value == "" || len([]rune(value)) > MaxReplyCharacters {
@@ -127,6 +60,19 @@ func ValidateReply(value string) (string, bool) {
 		}
 	}
 	return value, true
+}
+
+// BoundText limits external text by Unicode code points without splitting a
+// UTF-8 sequence. Callers still apply their own semantic validation.
+func BoundText(value string, maximum int) string {
+	if maximum < 1 {
+		return ""
+	}
+	runes := []rune(value)
+	if len(runes) <= maximum {
+		return value
+	}
+	return string(runes[:maximum])
 }
 
 func IsAutomated(headers map[string]string) bool {
