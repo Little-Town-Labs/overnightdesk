@@ -51,6 +51,7 @@ bash -n \
   "$tenant_root/scripts/deploy-aegis.sh"
 
 require_pattern '/agents/hermes-titus/runtime' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'phase_app=\$\{TITUS_PHASE_APP:-timeless-tech-solutions\}' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/overnightdesk' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/teams' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/matrix' "$tenant_root/runtime/load-phase-env.sh"

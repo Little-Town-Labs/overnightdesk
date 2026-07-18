@@ -23,6 +23,14 @@ routes() {
   esac
 }
 
+phase_app_for_route() {
+  case "$1" in
+    titus) printf '%s\n' timeless-tech-solutions ;;
+    agent|mitchel) printf '%s\n' overnightdesk ;;
+    *) usage ;;
+  esac
+}
+
 prepare() {
   "$root/scripts/qualify.sh"
   "${ssh_cmd[@]}" 'install -d -m 0700 /tmp/hermes-email-intake-deploy'
@@ -119,14 +127,17 @@ REMOTE
 
 set_enabled() {
   local value=$1
+  local phase_app
   while IFS= read -r route <&3; do
-    "${ssh_cmd[@]}" sudo bash -s -- "$route" "$value" <<'REMOTE'
+    phase_app=${EMAIL_INTAKE_PHASE_APP:-$(phase_app_for_route "$route")}
+    "${ssh_cmd[@]}" sudo bash -s -- "$route" "$value" "$phase_app" <<'REMOTE'
 set -euo pipefail
 route=$1
 value=$2
+phase_app=$3
 export PHASE_SERVICE_TOKEN=$(</opt/control-tower/secrets/phase-service-token)
 printf '%s' "$value" | phase secrets update AGENTMAIL_POLLING_ENABLED \
-  --app azure-ops --env production --path "/agents/hermes-email-intake/$route" >/dev/null
+  --app "$phase_app" --env production --path "/agents/hermes-email-intake/$route" >/dev/null
 unset PHASE_SERVICE_TOKEN
 systemctl restart "hermes-email-intake@$route.service"
 REMOTE

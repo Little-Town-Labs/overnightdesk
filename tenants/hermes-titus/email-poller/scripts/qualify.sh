@@ -30,7 +30,12 @@ grep -Fq 'read -r route <&3' scripts/deploy-aegis.sh
 grep -Fq 'disable --now titus-email-poller.service' scripts/deploy-aegis.sh
 grep -Fq 'instance=mitchel set_enabled true' scripts/deploy-aegis.sh
 grep -Fq 'instance=mitchel set_enabled false || true' scripts/deploy-aegis.sh
-grep -Eq 'titus\|agent\|mitchel' runtime/load-phase-config.sh
+grep -Fq 'titus) default_phase_app=timeless-tech-solutions' runtime/load-phase-config.sh
+grep -Fq 'agent|mitchel) default_phase_app=overnightdesk' runtime/load-phase-config.sh
+grep -Fq 'phase_app=${EMAIL_INTAKE_PHASE_APP:-$default_phase_app}' runtime/load-phase-config.sh
+grep -Fq 'phase_app_for_route()' scripts/deploy-aegis.sh
+grep -Fq "titus) printf '%s\\n' timeless-tech-solutions" scripts/deploy-aegis.sh
+grep -Fq "agent|mitchel) printf '%s\\n' overnightdesk" scripts/deploy-aegis.sh
 ! grep -R -Eq -- '--publish|-p [0-9]' runtime scripts
 
 for route in titus agent mitchel; do

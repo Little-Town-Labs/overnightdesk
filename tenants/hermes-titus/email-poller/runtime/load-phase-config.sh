@@ -2,13 +2,17 @@
 set -euo pipefail
 
 instance=${1:?route instance required}
-case "$instance" in titus|agent|mitchel) ;; *) printf 'invalid route instance\n' >&2; exit 2 ;; esac
+case "$instance" in
+  titus) default_phase_app=timeless-tech-solutions ;;
+  agent|mitchel) default_phase_app=overnightdesk ;;
+  *) printf 'invalid route instance\n' >&2; exit 2 ;;
+esac
 
 phase_bin=${PHASE_BIN:-/usr/bin/phase}
 token_file=${PHASE_TOKEN_FILE:-/opt/control-tower/secrets/phase-service-token}
 runtime_dir=${EMAIL_INTAKE_RUNTIME_ROOT:-/run/hermes-email-intake}/$instance
 output_file=$runtime_dir/runtime.json
-phase_app=${EMAIL_INTAKE_PHASE_APP:-azure-ops}
+phase_app=${EMAIL_INTAKE_PHASE_APP:-$default_phase_app}
 phase_env=${EMAIL_INTAKE_PHASE_ENVIRONMENT:-production}
 phase_path=/agents/hermes-email-intake/$instance
 
