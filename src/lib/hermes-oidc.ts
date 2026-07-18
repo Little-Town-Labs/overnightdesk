@@ -276,7 +276,7 @@ export async function authorizeHermesOidcOwner(
   const context = await gateway.findByClientId(clientId);
   const queryScopes = (query.get("scope") ?? "").split(" ").filter(Boolean);
   const state = query.get("state") ?? "";
-  const nonce = query.get("nonce") ?? "";
+  const nonce = query.get("nonce");
   const challenge = query.get("code_challenge") ?? "";
 
   if (
@@ -287,8 +287,7 @@ export async function authorizeHermesOidcOwner(
     queryScopes.join(" ") !== input.scopes.join(" ") ||
     state.length === 0 ||
     state.length > 512 ||
-    nonce.length === 0 ||
-    nonce.length > 512 ||
+    (nonce !== null && (nonce.length === 0 || nonce.length > 512)) ||
     query.get("code_challenge_method") !== "S256" ||
     !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)
   ) {
