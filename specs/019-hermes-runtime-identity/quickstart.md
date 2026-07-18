@@ -28,6 +28,28 @@ artifacts. Before production activation:
 Do not place values or fragments in this file, Git, terminal output, or
 `deploys.log`.
 
+Current disposition: **owner approval pending**. Source preparation is allowed;
+Phase and production activation are blocked.
+
+## Source qualification evidence — 2026-07-18
+
+- Parent intake qualification: PASS (Go tests, race tests, vet, build, shell
+  syntax, exact four-route fixtures, hardening assertions, and diff check).
+- SecurityTeam: 35 files passed; 677 tests passed and 11 skipped; typecheck and
+  build passed. Exact Walter and Agent rollback tuples passed; a Walter route
+  targeting Agent remained wrapped/untrusted.
+- Engine: `go test ./...` passed, including explicit Walter OIDC canary mapping
+  and restart-restore behavior.
+- Ops: 16 files and 128 tests passed; TypeScript build passed; cron JSON parsed.
+- Operations audit: `go test ./...` passed with Walter default/upstream,
+  collection, and exception changes.
+- Platform standard: all 12 `WHAT/*.yaml` files parsed and `git diff --check`
+  passed.
+- No dependency versions changed. Existing lockfile audits reported known
+  findings; dependency remediation is outside this identity-only change.
+- Read-only Aegis preflight found Titus and Mitchel healthy and unchanged. No
+  Phase or production selector was written during source preparation.
+
 ## Phase preparation
 
 1. Use the installed `overnightdesk` service-account token.

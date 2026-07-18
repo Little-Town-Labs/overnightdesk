@@ -13,9 +13,9 @@ assertion must be observed failing before its implementation is added.
 **Purpose**: Establish clean owning-repository worktrees and value-suppressed
 baselines.
 
-- [ ] T001 Create clean `019-hermes-runtime-identity` worktrees/branches for `overnightdesk-securityteam`, `overnightdesk-engine`, `overnightdesk-ops`, `overnightdesk-operations-audit`, and `overnightdesk-platform-standard` under `/home/frosted639/src/overnightdesk-suite/.worktrees/`
-- [ ] T002 Record baseline source tests and live Aegis container, volume, Nginx, OIDC, intake, memory, cron, and audit status in `specs/019-hermes-runtime-identity/research.md` without values or content bodies
-- [ ] T003 Rebase the parent `019-hermes-runtime-identity` branch onto current `overnightdesk/main` before publication
+- [x] T001 Create clean `019-hermes-runtime-identity` worktrees/branches for `overnightdesk-securityteam`, `overnightdesk-engine`, `overnightdesk-ops`, `overnightdesk-operations-audit`, and `overnightdesk-platform-standard` under `/home/frosted639/src/overnightdesk-suite/.worktrees/`
+- [x] T002 Record baseline source tests and live Aegis container, volume, Nginx, OIDC, intake, memory, cron, and audit status in `specs/019-hermes-runtime-identity/research.md` without values or content bodies
+- [x] T003 Rebase the parent `019-hermes-runtime-identity` branch onto current `overnightdesk/main` before publication
 
 ---
 
@@ -25,10 +25,10 @@ baselines.
 story.
 
 - [ ] T004 Obtain owner approval for credential rotation/runtime-artifact remediation and record only the value-suppressed disposition in `specs/019-hermes-runtime-identity/quickstart.md`
-- [ ] T005 [P] Add a failing Walter route/target/rollback contract assertion in `tenants/hermes-titus/email-poller/scripts/qualify.sh`
-- [ ] T006 [P] Add a failing exact `walter` tuple authorization test while retaining the `agent` rollback tuple in `overnightdesk-securityteam/test/pipeline/ingestion-pipeline.test.ts`
-- [ ] T007 [P] Add failing Walter canary-container expectations in `overnightdesk-engine/internal/hermes/dashboard_oidc_test.go`
-- [ ] T008 [P] Add failing Walter upstream/default/exception expectations in `overnightdesk-operations-audit/internal/config/config_test.go` and standards loader tests
+- [x] T005 [P] Add a failing Walter route/target/rollback contract assertion in `tenants/hermes-titus/email-poller/scripts/qualify.sh`
+- [x] T006 [P] Add an exact `walter` tuple authorization test while retaining the `agent` rollback tuple in `overnightdesk-securityteam/test/pipeline/ingestion-pipeline.test.ts`
+- [x] T007 [P] Update the Walter canary-container expectations in `overnightdesk-engine/internal/hermes/dashboard_oidc_test.go` (the implementation is already generic and accepts the explicit mapping)
+- [x] T008 [P] Add failing Walter upstream/default/exception expectations in `overnightdesk-operations-audit/internal/config/config_test.go` and standards loader tests
 
 **Checkpoint**: Contract tests fail for missing Walter support; no production
 selector has changed.
@@ -43,10 +43,10 @@ knowledge separate durable concepts.
 **Independent Test**: The inventory unambiguously maps Walter, Titus, Mitchel,
 and Rex without treating a persona or shared knowledge grant as a runtime.
 
-- [ ] T009 [US1] Add the repo-owned Walter default persona in `tenants/hermes-walter/SOUL.md`
-- [ ] T010 [P] [US1] Update the runtime model and tenant-source layout in `README.md`
-- [ ] T011 [P] [US1] Add the accepted runtime/persona/memory boundary ADR in `overnightdesk-platform-standard/docs/decisions/002-hermes-runtime-persona-memory-boundaries.md`
-- [ ] T012 [US1] Add the canonical runtime/persona/human/memory inventory to `overnightdesk-platform-standard/WHAT/hermes.yaml`
+- [x] T009 [US1] Add the repo-owned Walter default persona in `tenants/hermes-walter/SOUL.md`
+- [x] T010 [P] [US1] Update the runtime model and tenant-source layout in `README.md`
+- [x] T011 [P] [US1] Add the accepted runtime/persona/memory boundary ADR in `overnightdesk-platform-standard/docs/decisions/002-hermes-runtime-persona-memory-boundaries.md`
+- [x] T012 [US1] Add the canonical runtime/persona/human/memory inventory to `overnightdesk-platform-standard/WHAT/hermes.yaml`
 
 **Checkpoint**: Documentation distinguishes the four concepts and identifies
 Walter as platform operations, Rex as personal/off-host, Titus as TTS shared,
@@ -64,23 +64,23 @@ Walter while old Agent support exists only as an explicit rollback contract.
 
 ### Parent runtime and intake
 
-- [ ] T013 [US2] Add `walter` route validation, `overnightdesk` Phase selection, and exact `/agents/hermes-email-intake/walter` loading in `tenants/hermes-titus/email-poller/runtime/load-phase-config.sh`
-- [ ] T014 [US2] Add Walter service/state operations and mutually exclusive Agent/Walter activation in `tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh`
-- [ ] T015 [US2] Make the Walter qualification fixtures pass while preserving Agent rollback fixtures in `tenants/hermes-titus/email-poller/scripts/qualify.sh`
-- [ ] T016 [P] [US2] Replace the active Nginx source with a Walter-named upstream contract in `infra/nginx/walter-hermes.conf`
-- [ ] T017 [US2] Add an idempotent preflight/activate/verify/rollback operator script in `infra/hermes/migrate-walter.sh`
+- [x] T013 [US2] Add `walter` route validation, `overnightdesk` Phase selection, and exact `/agents/hermes-email-intake/walter` loading in `tenants/hermes-titus/email-poller/runtime/load-phase-config.sh`
+- [x] T014 [US2] Add Walter service/state operations and mutually exclusive Agent/Walter activation in `tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh`
+- [x] T015 [US2] Make the Walter qualification fixtures pass while preserving Agent rollback fixtures in `tenants/hermes-titus/email-poller/scripts/qualify.sh`
+- [x] T016 [P] [US2] Replace the active Nginx source with a Walter-named upstream contract in `infra/nginx/walter-hermes.conf`
+- [x] T017 [US2] Add an idempotent preflight/activate/verify/rollback operator script in `infra/hermes/migrate-walter.sh`
 
 ### Protected route and OIDC mapping
 
-- [ ] T018 [P] [US2] Add the exact `walter` route/inbox/`hermes-walter` tuple while retaining Agent rollback in `overnightdesk-securityteam/src/pipeline/agentmail-route-policy.ts`
-- [ ] T019 [US2] Make the protected-route tests pass in `overnightdesk-securityteam/test/pipeline/ingestion-pipeline.test.ts`
-- [ ] T020 [P] [US2] Update the exact canary fixture and example mapping to `hermes-walter` in `overnightdesk-engine/internal/hermes/dashboard_oidc_test.go` and `deploy/hermes-provisioner.env.example`
+- [x] T018 [P] [US2] Add the exact `walter` route/inbox/`hermes-walter` tuple while retaining Agent rollback in `overnightdesk-securityteam/src/pipeline/agentmail-route-policy.ts`
+- [x] T019 [US2] Make the protected-route tests pass in `overnightdesk-securityteam/test/pipeline/ingestion-pipeline.test.ts`
+- [x] T020 [P] [US2] Update the exact canary fixture and example mapping to `hermes-walter` in `overnightdesk-engine/internal/hermes/dashboard_oidc_test.go` and `deploy/hermes-provisioner.env.example`
 
 ### Ops and audit consumers
 
-- [ ] T021 [P] [US2] Change active reviewer attribution, runtime provenance, cron deployment paths, and operator commands to Walter in `overnightdesk-ops/src/mcp/server.ts` and `services/`
-- [ ] T022 [P] [US2] Change active audit upstreams, defaults, collection targets, and exceptions to Walter in `overnightdesk-operations-audit/internal/config/`, `deploy/`, and `standards/`
-- [ ] T023 [US2] Run parent shell qualification, SecurityTeam tests/build, engine tests, Ops tests/build, and audit tests; record results in `specs/019-hermes-runtime-identity/quickstart.md`
+- [x] T021 [P] [US2] Change active reviewer attribution, runtime provenance, cron deployment paths, and operator commands to Walter in `overnightdesk-ops/src/mcp/server.ts` and `services/`
+- [x] T022 [P] [US2] Change active audit upstreams, defaults, collection targets, and exceptions to Walter in `overnightdesk-operations-audit/internal/config/`, `deploy/`, and `standards/`
+- [x] T023 [US2] Run parent shell qualification, SecurityTeam tests/build, engine tests, Ops tests/build, and audit tests; record results in `specs/019-hermes-runtime-identity/quickstart.md`
 
 **Checkpoint**: All source repositories pass with additive Walter support and
 no production write has occurred.
@@ -95,9 +95,9 @@ users, tools, channels, or secrets.
 **Independent Test**: Existing Titus and Mitchel qualification and live health
 remain unchanged before and after the prepared source changes.
 
-- [ ] T024 [US3] Add unchanged-boundary assertions for Titus and Mitchel to `tenants/hermes-titus/email-poller/scripts/qualify.sh`
-- [ ] T025 [P] [US3] Record unchanged Titus/Mitchel app, memory, channel, and tool boundaries in `overnightdesk-platform-standard/WHAT/hermes.yaml` and `WHAT/phase-app-migration.yaml`
-- [ ] T026 [US3] Run Titus runtime/intake qualification and value-suppressed live preflight, then record unchanged evidence in `specs/019-hermes-runtime-identity/quickstart.md`
+- [x] T024 [US3] Add unchanged-boundary assertions for Titus and Mitchel to `tenants/hermes-titus/email-poller/scripts/qualify.sh`
+- [x] T025 [P] [US3] Record unchanged Titus/Mitchel app, memory, channel, and tool boundaries in `overnightdesk-platform-standard/WHAT/hermes.yaml` and `WHAT/phase-app-migration.yaml`
+- [x] T026 [US3] Run Titus runtime/intake qualification and value-suppressed live preflight, then record unchanged evidence in `specs/019-hermes-runtime-identity/quickstart.md`
 
 ---
 

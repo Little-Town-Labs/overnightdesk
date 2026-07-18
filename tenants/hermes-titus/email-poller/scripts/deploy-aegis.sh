@@ -9,16 +9,18 @@ ssh_key=${AEGIS_SSH_KEY:-/home/frosted639/.ssh/ssh-key-2026-03-15}
 remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 image=${HERMES_EMAIL_INTAKE_IMAGE:-overnightdesk/hermes-email-intake:0.2.0}
+active_platform_route=walter
+rollback_platform_route=agent
 
 usage() {
-  printf 'usage: %s {prepare|install|initialize|verify|enable|disable|rollout|status|stop|rollback} [titus|agent|mitchel|all] [replay-message-id]\n' "$0" >&2
+  printf 'usage: %s {prepare|install|initialize|verify|enable|disable|rollout|activate-platform|status|stop|rollback} [titus|agent|walter|mitchel|all] [replay-message-id]\n' "$0" >&2
   exit 2
 }
 
 routes() {
   case "$instance" in
-    titus|agent|mitchel) printf '%s\n' "$instance" ;;
-    all) printf '%s\n' titus agent mitchel ;;
+    titus|agent|walter|mitchel) printf '%s\n' "$instance" ;;
+    all) printf '%s\n' titus walter mitchel ;;
     *) usage ;;
   esac
 }
@@ -26,7 +28,7 @@ routes() {
 phase_app_for_route() {
   case "$1" in
     titus) printf '%s\n' timeless-tech-solutions ;;
-    agent|mitchel) printf '%s\n' overnightdesk ;;
+    agent|walter|mitchel) printf '%s\n' overnightdesk ;;
     *) usage ;;
   esac
 }
@@ -34,7 +36,7 @@ phase_app_for_route() {
 phase_token_file_for_route() {
   case "$1" in
     titus) printf '%s\n' /opt/control-tower/secrets/phase-service-token ;;
-    agent|mitchel) printf '%s\n' /opt/overnightdesk/secrets/phase-service-token ;;
+    agent|walter|mitchel) printf '%s\n' /opt/overnightdesk/secrets/phase-service-token ;;
     *) usage ;;
   esac
 }
@@ -53,7 +55,11 @@ for script in load-phase-config.sh initialize-container.sh prepare-volume.sh run
 done
 install -o root -g root -m 0644 /opt/hermes-email-intake/source/runtime/hermes-email-intake@.service /etc/systemd/system/hermes-email-intake@.service
 docker build --pull -t "$image" /opt/hermes-email-intake/source
-for name in hermes-agent hermes-titus hermes-mitchel; do
+platform_name=hermes-agent
+if docker container inspect hermes-walter >/dev/null 2>&1; then
+  platform_name=hermes-walter
+fi
+for name in "$platform_name" hermes-titus hermes-mitchel; do
   docker container inspect "$name" >/dev/null
   docker cp /opt/hermes-email-intake/source/runtime/email-run-approval.sh "$name:/opt/data/bin/hermes-email-run-approval"
   volume_root=$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/opt/data"}}{{.Source}}{{end}}{{end}}' "$name")
@@ -82,11 +88,36 @@ fi
 getent group titus-email-poller >/dev/null || groupadd --system --gid 10002 titus-email-poller
 id titus-email-poller >/dev/null 2>&1 || useradd --system --uid 10002 --gid 10002 --home-dir /nonexistent --shell /usr/sbin/nologin titus-email-poller
 usermod -aG docker titus-email-poller
-for route in titus agent mitchel; do
-  systemctl enable --now "hermes-email-intake@$route.service"
-done
+for route in titus mitchel; do systemctl enable --now "hermes-email-intake@$route.service"; done
+platform_route=agent
+rollback_route=walter
+if docker container inspect hermes-walter >/dev/null 2>&1; then
+  platform_route=walter
+  rollback_route=agent
+fi
+systemctl disable --now "hermes-email-intake@$rollback_route.service" 2>/dev/null || true
+systemctl enable --now "hermes-email-intake@$platform_route.service"
 REMOTE
-  instance=all verify
+  instance=titus verify
+  instance=mitchel verify
+  if "${ssh_cmd[@]}" sudo docker container inspect hermes-walter >/dev/null 2>&1; then
+    instance=walter verify
+  else
+    instance=agent verify
+  fi
+}
+
+assert_platform_route_exclusive() {
+  "${ssh_cmd[@]}" sudo bash -s -- "$active_platform_route" "$rollback_platform_route" <<'REMOTE'
+set -euo pipefail
+active=$1
+rollback=$2
+active_state=$(systemctl is-active "hermes-email-intake@$active.service" 2>/dev/null || true)
+rollback_state=$(systemctl is-active "hermes-email-intake@$rollback.service" 2>/dev/null || true)
+test "$active_state" = active
+test "$rollback_state" != active
+printf 'platform_route=%s rollback_route=%s rollback_state=%s\n' "$active" "$rollback" "$rollback_state"
+REMOTE
 }
 
 verify_one() {
@@ -138,6 +169,15 @@ set_enabled() {
   local phase_app
   local phase_token_file
   while IFS= read -r route <&3; do
+    if test "$value" = true && { test "$route" = "$active_platform_route" || test "$route" = "$rollback_platform_route"; }; then
+      local other_route=$active_platform_route
+      test "$route" = "$active_platform_route" && other_route=$rollback_platform_route
+      "${ssh_cmd[@]}" sudo bash -s -- "$other_route" <<'REMOTE'
+set -euo pipefail
+other_route=$1
+test "$(systemctl is-active "hermes-email-intake@$other_route.service" 2>/dev/null || true)" != active
+REMOTE
+    fi
     phase_app=${EMAIL_INTAKE_PHASE_APP:-$(phase_app_for_route "$route")}
     phase_token_file=${EMAIL_INTAKE_PHASE_TOKEN_FILE:-$(phase_token_file_for_route "$route")}
     "${ssh_cmd[@]}" sudo bash -s -- "$route" "$value" "$phase_app" "$phase_token_file" <<'REMOTE'
@@ -163,7 +203,10 @@ REMOTE
 }
 
 rollout() {
-  instance=all initialize
+  "${ssh_cmd[@]}" sudo docker container inspect hermes-walter >/dev/null
+  instance=titus initialize
+  instance=mitchel initialize
+  instance=walter initialize
   "${ssh_cmd[@]}" sudo systemctl disable --now titus-email-poller.service
   instance=titus
   if ! set_enabled true; then
@@ -171,8 +214,8 @@ rollout() {
     "${ssh_cmd[@]}" sudo systemctl enable --now titus-email-poller.service
     return 1
   fi
-  if ! instance=agent set_enabled true; then
-    instance=agent set_enabled false || true
+  if ! activate_platform; then
+    instance=walter set_enabled false || true
     return 1
   fi
   if ! instance=mitchel set_enabled true; then
@@ -181,7 +224,24 @@ rollout() {
   fi
 }
 
+activate_platform() {
+  "${ssh_cmd[@]}" sudo docker container inspect hermes-walter >/dev/null
+  instance=$rollback_platform_route set_enabled false
+  "${ssh_cmd[@]}" sudo systemctl disable --now "hermes-email-intake@$rollback_platform_route.service"
+  instance=$active_platform_route initialize
+  instance=$active_platform_route set_enabled true
+  assert_platform_route_exclusive
+}
+
 rollback() {
+  if test "$instance" = walter || test "$instance" = all; then
+    instance=$active_platform_route set_enabled false
+    "${ssh_cmd[@]}" sudo systemctl disable --now "hermes-email-intake@$active_platform_route.service"
+    instance=$rollback_platform_route initialize
+    instance=$rollback_platform_route set_enabled true
+    active_platform_route=agent rollback_platform_route=walter assert_platform_route_exclusive
+    return
+  fi
   local restore_titus=false
   case "$instance" in titus|all) restore_titus=true ;; esac
   set_enabled false
@@ -193,7 +253,7 @@ rollback() {
 status() {
   "${ssh_cmd[@]}" sudo bash -s <<'REMOTE'
 set -euo pipefail
-for route in titus agent mitchel; do
+for route in titus agent walter mitchel; do
   systemctl is-active "hermes-email-intake@$route.service" || true
   docker ps --filter "name=^/hermes-email-intake-$route$" --format '{{.Names}} {{.Status}}'
 done
@@ -214,6 +274,7 @@ case "$action" in
   enable) set_enabled true ;;
   disable) set_enabled false ;;
   rollout) rollout ;;
+  activate-platform) activate_platform ;;
   status) status ;;
   stop) stop_runtime ;;
   rollback) rollback ;;

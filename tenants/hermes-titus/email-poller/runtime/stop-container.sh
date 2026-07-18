@@ -2,7 +2,7 @@
 set -euo pipefail
 
 instance=${1:?route instance required}
-case "$instance" in titus|agent|mitchel) ;; *) exit 2 ;; esac
+case "$instance" in titus|agent|walter|mitchel) ;; *) exit 2 ;; esac
 name=hermes-email-intake-$instance
 if docker container inspect "$name" >/dev/null 2>&1; then
   docker stop --time 20 "$name" >/dev/null || true

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 instance=${1:?route instance required}
-case "$instance" in titus|agent|mitchel) ;; *) exit 2 ;; esac
+case "$instance" in titus|agent|walter|mitchel) ;; *) exit 2 ;; esac
 image=${HERMES_EMAIL_INTAKE_IMAGE:-overnightdesk/hermes-email-intake:0.2.0}
 
 exec docker run --rm \
