@@ -86,9 +86,14 @@ exception.
 | `iat`, `exp` | Maximum 900-second lifetime |
 | `nonce` | Echoes and binds the authorization transaction |
 
-Tokens use RS256 and a `kid` present in the published JWKS. No instance secret,
-role elevation, machine API key, subscription detail, or platform admin claim
-is issued.
+Tokens use RS256 and a `kid` present in the published JWKS. Signing keys rotate
+every 30 days and prior public keys remain published for a one-hour grace
+period. No instance secret, role elevation, machine API key, subscription
+detail, or platform admin claim is issued.
+
+Hermes binds `hermes_session_at` to the access-token TTL, so the dashboard
+session expires after 900 seconds. `POST /auth/logout` clears the dashboard auth
+cookies; OvernightDesk global logout coordination remains out of scope.
 
 ## Error and audit contract
 

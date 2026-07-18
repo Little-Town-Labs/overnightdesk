@@ -267,7 +267,9 @@ durable data.
   high-impact configuration and API-key pages, because tenant ownership is the
   administrative boundary.
 - A short-lived Hermes session independent of the longer OvernightDesk session
-  is acceptable; coordinated global logout is deferred.
+  is acceptable; Hermes binds its dashboard cookie to the provider access-token
+  TTL and clears it through its own logout endpoint, while coordinated global
+  logout is deferred.
 - OvernightDesk's existing identity, email verification, session, tenant
   ownership, reverse proxy, and instance lifecycle records remain authoritative.
 - Each production tenant has one stable HTTPS dashboard hostname and one exact

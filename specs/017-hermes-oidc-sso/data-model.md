@@ -58,9 +58,9 @@ supported schema.
 
 Better Auth JWT key table containing the public/private serialized key material,
 creation time, and optional expiry. The private key is never returned by public
-endpoints or included in logs. RS256 is configured explicitly. Rotation creates
-a new active key while retaining the previous public key until the maximum
-token lifetime and in-flight authorization window have elapsed.
+endpoints or included in logs. RS256 is configured explicitly. Keys rotate
+every 30 days and old public keys remain discoverable for a one-hour grace
+period, exceeding the maximum token lifetime, code lifetime, and clock skew.
 
 ### `platformAuditLog`
 

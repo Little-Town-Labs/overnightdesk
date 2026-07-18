@@ -40,8 +40,8 @@ regression checkpoint.
 - [ ] T005 Add failing schema assertions for OAuth client, token, consent, JWKS, and instance-link constraints in src/db/__tests__/schema-constraints.test.ts
 - [ ] T006 Add the Better Auth OAuth/JWKS tables, dashboard-auth enum, nullable unique instance client link, status, timestamp, and relations in src/db/schema.ts
 - [ ] T007 Generate and inspect the additive Drizzle migration and metadata in drizzle/ for the Phase 2 schema
-- [ ] T008 Add failing provider-configuration tests for RS256, 120-second codes, 900-second access/ID tokens, exact scopes, no refresh grant, no dynamic registration, and denied client CRUD in src/lib/__tests__/auth-oidc-config.test.ts
-- [ ] T009 Configure Better Auth JWT and OAuth provider plugins with the Phase 2 security defaults in src/lib/auth.ts
+- [ ] T008 Add failing provider-configuration and time-controlled overlap tests for RS256, 30-day rotation, one-hour old/new key grace, 120-second codes, 900-second access/ID tokens, exact scopes, no refresh grant, no dynamic registration, disabled generic JWT surfaces, and denied client CRUD in src/lib/__tests__/auth-oidc-config.test.ts and src/lib/__tests__/auth-oidc-rotation.test.ts
+- [ ] T009 Configure Better Auth JWT and OAuth provider plugins with the tested rotation, expiry, surface-reduction, and protocol defaults in src/lib/auth.ts
 - [ ] T010 Add failing route tests for issuer-path OpenID discovery and root OAuth authorization-server metadata in src/app/api/auth/__tests__/oidc-metadata.test.ts
 - [ ] T011 Implement the explicit Next.js well-known metadata routes under src/app/api/auth/.well-known/ and src/app/.well-known/oauth-authorization-server/api/auth/
 - [ ] T012 Add `oauthProviderClient()` to src/lib/auth-client.ts and a regression test proving signed `oauth_query` is forwarded by email/password sign-in in src/lib/__tests__/auth-client-oidc.test.ts
@@ -73,14 +73,14 @@ credential prompt.
 
 ### Implementation for User Story 1
 
-- [ ] T019 [US1] Implement canonical issuer/callback builders and server-only public-client creation payloads in src/lib/hermes-oidc.ts
+- [ ] T019 [US1] Implement canonical issuer/callback builders plus idempotent server-only ensure and activate primitives for public clients in src/lib/hermes-oidc.ts
 - [ ] T020 [US1] Preserve the signed OAuth continuation and safe callback destination through email/password login in src/app/(auth)/sign-in/page.tsx
-- [ ] T021 [US1] Extend the typed platform-to-provisioner request with `dashboardAuth` in src/lib/provisioner.ts and wire it into src/app/api/wizard/complete/route.ts
+- [ ] T021 [US1] Ensure the instance client before extending the typed platform-to-provisioner request with `dashboardAuth` in src/lib/provisioner.ts and src/app/api/wizard/complete/route.ts
 - [ ] T022 [US1] Implement bounded URL, issuer, callback, client-ID, and scope validation plus atomic YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc.go
 - [ ] T023 [US1] Extend the engine provision request and apply dashboard OIDC before container start in ../overnightdesk-engine/internal/hermes/provisioner.go
 - [ ] T024 [US1] Remove insecure dashboard startup while retaining the authenticated bind and forwarded public URL behavior in ../overnightdesk-engine/internal/hermes/provisioner.go
 - [ ] T025 [US1] Return the tenant root only for active OIDC linkage and retain the protected `/login` fallback otherwise in src/lib/hermes-dashboard.ts and src/app/(protected)/dashboard/page.tsx
-- [ ] T026 [US1] Run the US1 Jest and Go targets and validate the independent owner journey against specs/017-hermes-oidc-sso/contracts/oidc-provider.md
+- [ ] T026 [US1] Run the US1 Jest and Go targets, measure a healthy launch under 10 seconds, prove the 900-second Hermes cookie lifetime, and prove Hermes logout clears dashboard-auth cookies against specs/017-hermes-oidc-sso/contracts/oidc-provider.md
 
 **Checkpoint**: The owner-only happy path can establish a native Hermes session
 and no existing tenant is switched automatically.
@@ -98,7 +98,7 @@ tokens, Hermes sessions, or tenant content.
 
 ### Tests for User Story 2
 
-- [ ] T027 [P] [US2] Add failing authorization-policy tests for non-owner, unverified owner, wrong client link, non-running instance, inactive linkage, disabled client, malformed metadata, callback mismatch, and scope escalation in src/lib/__tests__/hermes-oidc-authorization.test.ts
+- [ ] T027 [P] [US2] Add failing authorization and exchange tests for non-owner, unverified owner, wrong client link, non-running instance, inactive linkage, disabled client, malformed metadata, callback/scope escalation, altered or missing state/nonce, replayed code, missing or mismatched verifier, and non-S256 PKCE in src/lib/__tests__/hermes-oidc-authorization.test.ts and src/lib/__tests__/hermes-oidc-protocol.test.ts
 - [ ] T028 [P] [US2] Add failing token-time tests for ownership or lifecycle changes between code issuance and ID-token creation in src/lib/__tests__/hermes-oidc-token.test.ts
 - [ ] T029 [P] [US2] Add failing route tests proving wrong-host and copied-link requests remain denied by src/app/api/auth/verify-tenant/__tests__/route.test.ts
 - [ ] T030 [P] [US2] Add failing tests for redaction of state, nonce, code, verifier, tokens, cookies, email, and private keys in src/lib/__tests__/hermes-oidc-audit.test.ts
@@ -136,14 +136,14 @@ configuration, and verify the data directory is unchanged.
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Implement idempotent server-only ensure, activate, disable, and recover operations in src/lib/hermes-oidc.ts
+- [ ] T042 [US3] Extend the US1 lifecycle primitives with idempotent disable, error, revoke, and recover operations in src/lib/hermes-oidc.ts
 - [ ] T043 [US3] Wire client disable before suspension, cancellation, account deletion, and deprovision paths in src/lib/stripe-webhook-handlers.ts and src/app/api/account/delete/route.ts
 - [ ] T044 [US3] Add authenticated `POST /dashboard-auth` registration and handler code in ../overnightdesk-engine/internal/hermes/handlers.go
 - [ ] T045 [US3] Add `configureDashboardAuth()` and safe timeout/error mapping to src/lib/provisioner.ts
 - [ ] T046 [US3] Wire provisioner callback status to pending/active/error dashboard-auth transitions in src/app/api/provisioner/callback/route.ts
 - [ ] T047 [US3] Add safe customer launch-unavailable states and operator recovery detail in src/app/(protected)/dashboard/page.tsx and existing fleet event surfaces
-- [ ] T048 [US3] Add the canary activation, revocation, key rotation, restart, and five-minute rollback procedure to ../overnightdesk-platform-standard/HOW/tenant-provisioning.md
-- [ ] T049 [US3] Replace the basic-auth/insecure dashboard note with the staged OIDC contract in ../overnightdesk-platform-standard/WHAT/hermes.yaml
+- [ ] T048 [US3] Draft the canary activation, revocation, key rotation, restart, and five-minute rollback procedure as not-yet-live guidance in ../overnightdesk-platform-standard/HOW/tenant-provisioning.md
+- [ ] T049 [US3] Add the OIDC contract as planned/canary state while retaining Basic Auth as the verified live state in ../overnightdesk-platform-standard/WHAT/hermes.yaml
 - [ ] T050 [US3] Run US3 lifecycle suites and a filesystem-level engine test proving rollback does not delete or replace the tenant data directory
 
 **Checkpoint**: All three stories are locally/preview complete; production
@@ -160,7 +160,7 @@ and build before the required quality review.
 - [ ] T052 Run the full Jest suite, TypeScript type check, production Next.js build, dependency audit, and migration inspection from package.json and drizzle/
 - [ ] T053 Run the full Go test suite, Go build, vet/static checks, and diff checks in ../overnightdesk-engine/
 - [ ] T054 Inspect repository diffs, generated artifacts, logs, and test fixtures for secrets or protocol artifacts in overnightdesk/ and ../overnightdesk-engine/
-- [ ] T055 Perform an approved isolated production canary and rollback using the aegis-ssh skill, then append the production record to /home/frosted639/src/overnightdesk-suite/deploys.log
+- [ ] T055 Perform an approved isolated production canary and rollback using the aegis-ssh skill; explicitly verify launch timing, cookie expiry, logout, key overlap, replay denial, process/log redaction, and data preservation before promoting ../overnightdesk-platform-standard/ to verified live state and appending /home/frosted639/src/overnightdesk-suite/deploys.log
 - [ ] T056 Update task checkboxes and requirement checklist evidence in specs/017-hermes-oidc-sso/tasks.md and specs/017-hermes-oidc-sso/checklists/requirements.md
 - [ ] T057 Apply the `code-review-and-quality` gateway to all repository diffs and evidence, record it in specs/017-hermes-oidc-sso/quality-review.md, and resolve every Critical or Required finding before merge readiness
 

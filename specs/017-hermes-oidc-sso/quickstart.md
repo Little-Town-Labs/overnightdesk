@@ -43,9 +43,16 @@ With a test instance and test client only:
 5. Sign in as the owner and confirm one code is returned.
 6. Exchange the code once and verify RS256 signature, `iss`, `aud`, `nonce`,
    `sub`, `email`, `name`, and at most 900 seconds of lifetime.
-7. Repeat as a non-owner, with the wrong host/client/callback/scope, without
-   PKCE, with a stale signed query, and with a disabled client. Confirm no code
-   or session is created.
+7. Replay the code and repeat with altered or missing state/nonce, a missing or
+   mismatched verifier, plain PKCE, a stale signed query, and a disabled client.
+   Confirm no second token or session is created.
+8. Repeat as a non-owner and with the wrong host/client/callback/scope. Confirm
+   no code, token, session, or tenant content is created.
+9. Rotate the signing key, confirm the old and new public keys overlap for one
+   hour, verify an unexpired old token and a new token, then confirm the old key
+   ages out after the grace period in a time-controlled test.
+10. Confirm `hermes_session_at` expires with the 900-second access token and
+    `POST /auth/logout` clears every dashboard-auth cookie.
 
 Never paste returned codes, tokens, cookies, verifiers, private keys, or full
 authorization URLs into tickets, logs, test snapshots, or deployment evidence.
@@ -62,11 +69,18 @@ operation.
 - Apply the canary config and restart only that tenant.
 - Activate its linkage and launch the tenant root as the owner.
 - Exercise all native dashboard sections and inspect browser/server errors.
-- Verify expiry and silent reauthentication after 15 minutes.
+- Measure owner launch and silent reauthentication; each must complete within
+  10 seconds under healthy conditions.
+- Verify `hermes_session_at` expiry and silent reauthentication after 15
+  minutes, then verify Hermes logout clears all dashboard-auth cookies.
 - Verify non-owner, copied-link, disabled-client, and callback abuse cases.
 - Rotate a test signing key with the documented overlap.
+- Inspect the canary process listing and captured metadata-only evidence for
+  prohibited credentials or protocol artifacts without printing secret values.
 - Disable and restore the client, then run the rollback within five minutes.
 - Prove the tenant data directory and named volumes are unchanged.
+- Only after successful qualification, promote the platform standard from
+  planned/canary status to verified live state and append `deploys.log`.
 
 ## 5. Required quality gate
 

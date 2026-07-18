@@ -40,9 +40,11 @@ authorization checks use indexed point lookups; revocation blocks new sessions
 within one minute
 
 **Constraints**: Owner-only; full upstream Hermes UI; independent 15-minute
-Hermes tokens; no client secret; no dynamic registration; exact callback and
-issuer; S256 only; RS256 only; no tokens or private keys in logs; canary before
-broad rollout; production changes require the `aegis-ssh` workflow
+Hermes cookie bound to the 15-minute provider access-token TTL; no client
+secret; no dynamic registration; exact callback and issuer; S256 only; RS256
+only; 30-day signing-key rotation with one-hour verification grace; no tokens
+or private keys in logs; canary before broad rollout; production changes
+require the `aegis-ssh` workflow
 
 **Scale/Scope**: One client per Hermes tenant, initially one owner per instance;
 three repositories and one production standard; no team authorization or
@@ -158,7 +160,8 @@ for production qualification. No feature code is placed in `overnightdesk-ops`.
 ### Phase B — Authorization and lifecycle
 
 - Add the pre-code and token-time canonical owner checks.
-- Add idempotent ensure, activate, disable, and revoke services and redacted
+- Add idempotent ensure and activate primitives with the US1 launch path, then
+  add disable, revoke, and recovery lifecycle wiring with US3 and redacted
   events.
 - Wire provisioning, cancellation, deletion, and launch behavior without
   broadening the browser API-key surface.

@@ -73,12 +73,16 @@ becoming a valid Hermes session if ownership or lifecycle changes mid-flow.
 ## Decision 4: Use RS256 with database-backed rotation
 
 **Decision**: Enable Better Auth's JWT plugin with RS256 explicitly, store key
-pairs through its JWKS schema, publish discovery/JWKS at the issuer path, and
-retain an overlap window during rotation.
+pairs through its JWKS schema, publish discovery/JWKS at the issuer path, rotate
+keys every 30 days, and retain prior verification keys for a one-hour grace
+period.
 
 **Rationale**: Hermes accepts RS256 or ES256 and verifies against discovered
 JWKS with pinned issuer and audience. Better Auth otherwise defaults to EdDSA,
-which is outside Hermes' documented accepted algorithms.
+which is outside Hermes' documented accepted algorithms. Its supported
+`rotationInterval` and `gracePeriod` settings keep old public keys discoverable;
+one hour exceeds the 15-minute token lifetime, two-minute code lifetime, and
+reasonable clock skew.
 
 **Alternatives rejected**:
 
@@ -96,11 +100,16 @@ which is outside Hermes' documented accepted algorithms.
 
 **Decision**: Set authorization codes to 120 seconds and access/ID tokens to
 900 seconds. Advertise and permit only `openid profile email`; do not allow
-`offline_access` or the refresh-token grant for Hermes clients.
+`offline_access` or the refresh-token grant for Hermes clients. Qualify that
+Hermes sets `hermes_session_at` to the access-token lifetime and that
+`POST /auth/logout` clears all dashboard-auth cookies.
 
 **Rationale**: The user accepted a short-lived independent Hermes session. A
 valid OvernightDesk browser session can silently repeat SSO, while revocation
 and ownership changes converge quickly without long-lived browser credentials.
+The official Hermes dashboard contract confirms the dashboard cookie uses the
+token TTL, so the 900-second provider token produces the requested short-lived
+Hermes session rather than merely a short-lived exchange artifact.
 
 **Alternatives rejected**:
 
@@ -110,6 +119,8 @@ and ownership changes converge quickly without long-lived browser credentials.
   little user benefit in a browser SSO flow.
 - Coordinated global logout: useful later, but explicitly out of scope for the
   first release.
+
+**Source**: [Hermes dashboard authentication and cookies](https://hermes-agent.nousresearch.com/docs/user-guide/features/web-dashboard)
 
 ## Decision 6: Keep nginx authorization and machine API auth separate
 
