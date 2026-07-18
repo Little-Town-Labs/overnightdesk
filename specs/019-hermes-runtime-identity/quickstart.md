@@ -28,8 +28,18 @@ artifacts. Before production activation:
 Do not place values or fragments in this file, Git, terminal output, or
 `deploys.log`.
 
-Current disposition: **owner approval pending**. Source preparation is allowed;
-Phase and production activation are blocked.
+Current disposition: **owner approval recorded; remediation in progress**. The
+live Communication Module database credential has been rotated across its
+consumers, the obsolete tenant-0 database secret has been removed, and the
+historical Hermes Agent artifact scan is clean after value-suppressed
+redaction. A valid replacement OpenRouter key was already staged consistently
+across the active Phase consumers and has now replaced the invalid legacy
+copies in the Hermes Agent/Walter and Mitchel runtime stores. Their primary,
+fallback, delegation, and currently configured compression routes use separate
+Codex OAuth subscription state; Walter's on-demand Fusion reference route uses
+the valid Phase-backed OpenRouter credential. Replacement and revocation of
+the still-valid GitHub coder credential remains the final credential gate
+before main runtime activation.
 
 ## Source qualification evidence — 2026-07-18
 
@@ -62,6 +72,49 @@ Phase and production activation are blocked.
 
 Phase's official CLI documents path-specific export/import:
 https://docs.phase.dev/cli/commands
+
+## Activation evidence — 2026-07-18
+
+- Owner approval for credential rotation and runtime-artifact remediation was
+  recorded before the first credential write.
+- Rotated the live Communication Module database role and updated the four
+  Phase consumers plus the protected Ops environment. Communication Module and
+  SecurityTeam are healthy, Ops is running, all protected fingerprints agree,
+  and an authenticated query passed.
+- Removed the obsolete tenant-0 database secret and its unused Walter runtime
+  copy after confirming the retired database host no longer exists.
+- Redacted 565 detected credential occurrences in 188 historical memory,
+  session, backup, cron-output, and log artifacts. The bounded rescan found zero
+  remaining matches; unrelated content, file ownership/modes, and JSON/JSONL
+  validity were preserved.
+- A valid OpenRouter inference key was already staged in `/ob1` and matched the
+  active email-fetch, newsletter-curator, and SecurityTeam Phase consumers by
+  protected fingerprint. The different legacy keys in the Hermes Agent and
+  Mitchel runtime stores returned unauthorized. Both runtimes were stopped one
+  at a time, updated from Phase across their `.env` and Hermes credential-pool
+  copies, restarted, and verified with healthy intake services.
+- The active Hermes Agent/Walter route uses Codex OAuth for `gpt-5.6-sol`, the
+  Codex OAuth `gpt-5.5` fallback, and Codex OAuth `gpt-5.6-luna` delegation.
+  Mitchel independently uses Codex OAuth for its primary, fallback, and
+  delegation routes. Compression is enabled on both runtimes and the current
+  active auxiliary compression route is Codex OAuth `gpt-5.4-mini`; Walter's
+  optional Fusion preset uses `openrouter/fusion` as its reference model.
+- GitHub personal access token replacement/revocation likewise requires the
+  provider console. The still-valid Phase value matches the active GitHub CLI,
+  Hermes credential-pool, and container-environment copies by protected
+  fingerprint. No value or fragment was recorded in source or evidence.
+- Prepared `/agents/hermes-email-intake/walter` with the same 14-key protected
+  route contract as Agent, except for the explicit Walter route, target, base
+  URL, and disabled polling state. The Agent source path remains unchanged.
+- Deployed and verified SecurityTeam's dual Agent/Walter route policy. The
+  initial deployment reused stale compiled output; an explicit source build
+  corrected it while Agent remained active.
+- Deployed Walter-capable intake and initialized its state with polling
+  disabled. Agent remains healthy and polling; Walter is healthy but disabled,
+  and the platform polling-exclusivity check passes.
+- No `hermes-walter` main runtime container exists yet. Nginx, OIDC, and the
+  active main runtime remain on `hermes-agent` until the credential gate is
+  complete.
 
 ## Read-only production preflight
 
