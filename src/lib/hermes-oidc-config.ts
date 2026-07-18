@@ -3,6 +3,29 @@ import type { JwtOptions } from "better-auth/plugins";
 
 export const HERMES_OIDC_SCOPES = ["openid", "profile", "email"] as const;
 
+export function isHermesOidcProvisioningEnabled(): boolean {
+  return process.env.HERMES_DASHBOARD_OIDC_ENABLED === "true";
+}
+
+export function isHermesOidcCanaryTenant(tenantId: string): boolean {
+  if (isHermesOidcProvisioningEnabled()) return true;
+  return (process.env.HERMES_DASHBOARD_OIDC_CANARY_TENANT_IDS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .includes(tenantId);
+}
+
+export function hasForbiddenOAuthResourceIndicator(
+  path: string,
+  body: unknown
+): boolean {
+  if (path !== "/oauth2/token" || !body || typeof body !== "object") {
+    return false;
+  }
+  return Object.prototype.hasOwnProperty.call(body, "resource");
+}
+
 export const HERMES_JWT_OPTIONS = {
   jwks: {
     keyPairConfig: {

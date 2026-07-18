@@ -6,6 +6,7 @@ import {
   buildHermesDashboardAuthConfig,
   ensureHermesOidcClient,
 } from "@/lib/hermes-oidc";
+import { isHermesOidcProvisioningEnabled } from "@/lib/hermes-oidc-config";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,13 @@ export async function POST(_request: NextRequest) {
       success: false,
       error: `Instance is already in ${inst.status} status`,
     }, { status: 400 });
+  }
+
+  if (!isHermesOidcProvisioningEnabled()) {
+    return NextResponse.json(
+      { success: false, error: "Dashboard provisioning is temporarily unavailable" },
+      { status: 503 }
+    );
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://overnightdesk.com";

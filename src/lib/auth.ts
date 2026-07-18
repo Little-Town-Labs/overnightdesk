@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { APIError } from "better-auth/api";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { jwt } from "better-auth/plugins";
@@ -17,21 +17,55 @@ import { isAdmin, isInvitedEmail } from "@/lib/billing";
 import {
   HERMES_JWT_OPTIONS,
   HERMES_OAUTH_PROVIDER_OPTIONS,
+  hasForbiddenOAuthResourceIndicator,
 } from "@/lib/hermes-oidc-config";
 import {
   authorizeHermesOidcOwner,
   authorizeHermesOidcToken,
 } from "@/lib/hermes-oidc";
+import { recordHermesOidcAuditEvent } from "@/lib/hermes-oidc-audit";
 
 async function requireHermesAuthorization(
   user: { id: string; emailVerified: boolean },
-  scopes: string[]
+  scopes: string[],
+  requestId?: string,
+  recordAudit = true
 ): Promise<string> {
+  let clientId: string | undefined;
   try {
     const state = await getOAuthProviderState();
     if (!state?.query) throw new Error("missing provider state");
-    return await authorizeHermesOidcOwner({ user, scopes, query: state.query });
+    clientId = new URLSearchParams(state.query).get("client_id") ?? undefined;
+    if (recordAudit) {
+      await recordHermesOidcAuditEvent({
+        category: "start",
+        clientId,
+        requestId,
+      }).catch(() => undefined);
+    }
+    const instanceId = await authorizeHermesOidcOwner({
+      user,
+      scopes,
+      query: state.query,
+    });
+    if (recordAudit) {
+      await recordHermesOidcAuditEvent({
+        category: "success",
+        instanceId,
+        clientId,
+        requestId,
+      }).catch(() => undefined);
+    }
+    return instanceId;
   } catch {
+    if (recordAudit) {
+      await recordHermesOidcAuditEvent({
+        category: "denied",
+        reason: "invalid_client",
+        clientId,
+        requestId,
+      }).catch(() => undefined);
+    }
     throw new APIError("FORBIDDEN", {
       error: "access_denied",
       error_description: "Access denied",
@@ -129,18 +163,33 @@ export const auth = betterAuth({
     },
   },
 
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (hasForbiddenOAuthResourceIndicator(ctx.path, ctx.body)) {
+        throw new APIError("BAD_REQUEST", {
+          error: "invalid_request",
+          error_description: "Resource indicators are not supported",
+        });
+      }
+    }),
+  },
+
   plugins: [
     jwt(HERMES_JWT_OPTIONS),
     oauthProvider({
       ...HERMES_OAUTH_PROVIDER_OPTIONS,
       postLogin: {
         page: "/sign-in",
-        shouldRedirect: async ({ user, scopes }) => {
-          await requireHermesAuthorization(user, scopes);
+        shouldRedirect: async ({ headers, user, scopes }) => {
+          await requireHermesAuthorization(
+            user,
+            scopes,
+            headers.get("x-request-id") ?? undefined
+          );
           return false;
         },
         consentReferenceId: ({ user, scopes }) =>
-          requireHermesAuthorization(user, scopes),
+          requireHermesAuthorization(user, scopes, undefined, false),
       },
       customIdTokenClaims: async ({ user, scopes, metadata }) => {
         try {

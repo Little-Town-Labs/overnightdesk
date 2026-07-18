@@ -7,6 +7,7 @@ import {
 describe("Hermes OIDC owner authorization", () => {
   const query = new URLSearchParams({
     client_id: "public-client-id",
+    response_type: "code",
     redirect_uri: "https://tenant-a.overnightdesk.com/auth/callback",
     scope: "openid profile email",
     state: "state-value",
@@ -103,6 +104,7 @@ describe("Hermes OIDC owner authorization", () => {
 
   it.each([
     ["callback", { redirect_uri: "https://other.overnightdesk.com/auth/callback" }],
+    ["response type", { response_type: "token" }],
     ["scope", { scope: "openid profile email admin" }],
     ["state", { state: "" }],
     ["nonce", { nonce: "" }],

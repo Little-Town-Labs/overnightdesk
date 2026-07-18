@@ -6,7 +6,10 @@ import { eq } from "drizzle-orm";
 import { updateInstanceStatus } from "@/lib/instance";
 import { sendProvisioningEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/config";
-import { activateHermesOidcClient } from "@/lib/hermes-oidc";
+import {
+  activateHermesOidcClient,
+  markHermesOidcClientError,
+} from "@/lib/hermes-oidc";
 
 export const dynamic = "force-dynamic";
 
@@ -67,13 +70,17 @@ export async function POST(request: NextRequest) {
   // Update instance status
   const details: Record<string, unknown> = {};
   if (containerId) details.containerId = containerId;
-  if (errorMsg) details.error = errorMsg;
+  if (errorMsg) details.error = "provisioning_failed";
 
   const extraFields: Record<string, unknown> = {};
   if (containerId) extraFields.containerId = containerId;
   if (phaseServiceToken) extraFields.phaseServiceToken = phaseServiceToken;
 
-  if (status === "running" && inst.hermesOidcClientId) {
+  if (
+    status === "running" &&
+    inst.hermesOidcClientId &&
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED === "true"
+  ) {
     if (!inst.subdomain) {
       return NextResponse.json(
         { success: false, error: "Dashboard authentication is unavailable" },
@@ -82,6 +89,31 @@ export async function POST(request: NextRequest) {
     }
     try {
       await activateHermesOidcClient({
+        instanceId: inst.id,
+        ownerId: inst.userId,
+        subdomain: inst.subdomain,
+      });
+    } catch {
+      await markHermesOidcClientError({
+        instanceId: inst.id,
+        ownerId: inst.userId,
+        subdomain: inst.subdomain,
+      }).catch(() => undefined);
+      await updateInstanceStatus(
+        tenantId,
+        "error",
+        { error: "dashboard_auth_activation_failed" },
+        extraFields
+      );
+      return NextResponse.json(
+        { success: false, error: "Dashboard authentication is unavailable" },
+        { status: 503 }
+      );
+    }
+  }
+  if (status === "error" && inst.hermesOidcClientId && inst.subdomain) {
+    try {
+      await markHermesOidcClientError({
         instanceId: inst.id,
         ownerId: inst.userId,
         subdomain: inst.subdomain,

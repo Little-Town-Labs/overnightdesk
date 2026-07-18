@@ -67,6 +67,11 @@ export interface HermesOidcLifecycleGateway {
     clientId: string,
     status: "pending" | "active" | "disabled" | "error"
   ): Promise<boolean>;
+  recordAuditEvent?(event: {
+    category: "callback_failure" | "revoked";
+    instanceId: string;
+    clientId: string;
+  }): Promise<void>;
 }
 
 function getHermesTenantOrigin(subdomain: string): string {
@@ -133,7 +138,6 @@ export function buildHermesOidcClientPayload({
     grant_types: ["authorization_code" as const],
     response_types: ["code" as const],
     type: "user-agent-based" as const,
-    disabled: true,
     skip_consent: true,
     require_pkce: true,
     metadata: {
@@ -277,7 +281,7 @@ export async function authorizeHermesOidcOwner(
   if (
     !context ||
     !isActiveAuthorizationContext(context, input.user, input.scopes) ||
-    query.get("response_type") !== "code" && query.has("response_type") ||
+    query.get("response_type") !== "code" ||
     query.get("redirect_uri") !== getHermesOidcCallbackUrl(context.instanceSubdomain) ||
     queryScopes.join(" ") !== input.scopes.join(" ") ||
     state.length === 0 ||
@@ -435,6 +439,12 @@ const defaultLifecycleGateway: HermesOidcLifecycleGateway = {
       .returning({ id: schema.instance.id });
     return rows.length === 1;
   },
+  async recordAuditEvent(event) {
+    const { recordHermesOidcAuditEvent } = await import(
+      "@/lib/hermes-oidc-audit"
+    );
+    await recordHermesOidcAuditEvent(event);
+  },
 };
 
 export async function ensureHermesOidcClient(
@@ -454,6 +464,10 @@ export async function ensureHermesOidcClient(
   if (created.clientSecret) {
     await gateway.removeClient(created.clientId);
     throw new Error("Hermes dashboard public client invariant failed");
+  }
+  if (!(await gateway.setClientDisabled(created.clientId, true))) {
+    await gateway.removeClient(created.clientId);
+    throw new Error("Hermes dashboard client is unavailable");
   }
 
   if (await gateway.linkPending(input.instanceId, created.clientId)) {
@@ -494,6 +508,75 @@ export async function activateHermesOidcClient(
     await gateway.setClientDisabled(client.clientId, true);
     throw new Error("Hermes dashboard client activation failed");
   }
+}
+
+async function transitionHermesOidcClientDisabled(
+  input: HermesOidcInstanceInput,
+  status: "pending" | "disabled" | "error",
+  gateway: HermesOidcLifecycleGateway
+): Promise<string | null> {
+  const instance = await requireCanonicalInstance(input, gateway);
+  if (!instance.hermesOidcClientId) {
+    return null;
+  }
+  const client = await gateway.findClient(instance.hermesOidcClientId);
+  if (!client) {
+    throw new Error("Hermes dashboard client transition failed");
+  }
+  if (!(await gateway.setClientDisabled(client.clientId, true))) {
+    throw new Error("Hermes dashboard client transition failed");
+  }
+  if (!(await gateway.setInstanceAuthStatus(input.instanceId, client.clientId, status))) {
+    throw new Error("Hermes dashboard client transition failed");
+  }
+  return client.clientId;
+}
+
+export async function disableHermesOidcClient(
+  input: HermesOidcInstanceInput,
+  gateway: HermesOidcLifecycleGateway = defaultLifecycleGateway
+): Promise<void> {
+  const clientId = await transitionHermesOidcClientDisabled(
+    input,
+    "disabled",
+    gateway
+  );
+  if (clientId && gateway.recordAuditEvent) {
+    await gateway
+      .recordAuditEvent({
+        category: "revoked",
+        instanceId: input.instanceId,
+        clientId,
+      })
+      .catch(() => undefined);
+  }
+}
+
+export async function markHermesOidcClientError(
+  input: HermesOidcInstanceInput,
+  gateway: HermesOidcLifecycleGateway = defaultLifecycleGateway
+): Promise<void> {
+  const clientId = await transitionHermesOidcClientDisabled(
+    input,
+    "error",
+    gateway
+  );
+  if (clientId && gateway.recordAuditEvent) {
+    await gateway
+      .recordAuditEvent({
+        category: "callback_failure",
+        instanceId: input.instanceId,
+        clientId,
+      })
+      .catch(() => undefined);
+  }
+}
+
+export async function recoverHermesOidcClient(
+  input: HermesOidcInstanceInput,
+  gateway: HermesOidcLifecycleGateway = defaultLifecycleGateway
+): Promise<void> {
+  await transitionHermesOidcClientDisabled(input, "pending", gateway);
 }
 
 export function buildHermesDashboardAuthConfig({

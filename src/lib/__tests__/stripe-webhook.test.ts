@@ -50,6 +50,12 @@ jest.mock("@/lib/instance", () => ({
   createInstance: (...args: unknown[]) => mockCreateInstance(...args),
 }));
 
+const mockDisableHermesOidcClient = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/hermes-oidc", () => ({
+  disableHermesOidcClient: (...args: unknown[]) =>
+    mockDisableHermesOidcClient(...args),
+}));
+
 // Mock email service
 const mockSendPaymentFailureEmail = jest.fn().mockResolvedValue({ success: true });
 jest.mock("@/lib/email", () => ({
@@ -201,6 +207,7 @@ describe("Stripe Webhook Handlers", () => {
       };
       mockSelectFromWhere
         .mockResolvedValueOnce([existingSub])  // subscription lookup
+        .mockResolvedValueOnce([]) // instance lookup
         .mockResolvedValueOnce([{ id: "user_123", email: "user@test.com", name: "Test User" }]); // user lookup
 
       await handleInvoicePaymentFailed("sub_xyz", 4999);
@@ -217,6 +224,7 @@ describe("Stripe Webhook Handlers", () => {
       };
       mockSelectFromWhere
         .mockResolvedValueOnce([existingSub])
+        .mockResolvedValueOnce([])
         .mockResolvedValueOnce([{ id: "user_123", email: "user@test.com", name: "Test User" }]);
 
       await handleInvoicePaymentFailed("sub_xyz", 4999);
@@ -263,6 +271,54 @@ describe("Stripe Webhook Handlers", () => {
 
       expect(db.update).not.toHaveBeenCalled();
     });
+
+    it("disables dashboard OIDC when a subscription is suspended", async () => {
+      mockSelectFromWhere
+        .mockResolvedValueOnce([{
+          id: "sub_1",
+          userId: "user_123",
+          stripeSubscriptionId: "sub_xyz",
+        }])
+        .mockResolvedValueOnce([{
+          id: "instance-1",
+          userId: "user_123",
+          status: "running",
+          subdomain: "tenant-a.overnightdesk.com",
+          hermesOidcClientId: "public-client-id",
+        }]);
+
+      await handleSubscriptionUpdated("sub_xyz", "past_due", "price_pro", 1719792000);
+
+      expect(mockDisableHermesOidcClient).toHaveBeenCalledWith({
+        instanceId: "instance-1",
+        ownerId: "user_123",
+        subdomain: "tenant-a.overnightdesk.com",
+      });
+    });
+
+    it("disables dashboard OIDC for a stopped linked instance", async () => {
+      mockSelectFromWhere
+        .mockResolvedValueOnce([{
+          id: "sub_1",
+          userId: "user_123",
+          stripeSubscriptionId: "sub_xyz",
+        }])
+        .mockResolvedValueOnce([{
+          id: "instance-1",
+          userId: "user_123",
+          status: "stopped",
+          subdomain: "tenant-a.overnightdesk.com",
+          hermesOidcClientId: "public-client-id",
+        }]);
+
+      await handleSubscriptionUpdated("sub_xyz", "past_due", "price_pro", 1719792000);
+
+      expect(mockDisableHermesOidcClient).toHaveBeenCalledWith({
+        instanceId: "instance-1",
+        ownerId: "user_123",
+        subdomain: "tenant-a.overnightdesk.com",
+      });
+    });
   });
 
   describe("handleSubscriptionDeleted()", () => {
@@ -299,6 +355,34 @@ describe("Stripe Webhook Handlers", () => {
       await handleSubscriptionDeleted("sub_nonexistent");
 
       expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it("disables dashboard OIDC before deprovisioning", async () => {
+      mockSelectFromWhere
+        .mockResolvedValueOnce([{
+          id: "sub_1",
+          userId: "user_123",
+          stripeSubscriptionId: "sub_xyz",
+        }])
+        .mockResolvedValueOnce([{
+          id: "instance-1",
+          userId: "user_123",
+          tenantId: "tenant-a",
+          subdomain: "tenant-a.overnightdesk.com",
+          status: "running",
+          hermesOidcClientId: "public-client-id",
+        }]);
+
+      await handleSubscriptionDeleted("sub_xyz");
+
+      expect(mockDisableHermesOidcClient).toHaveBeenCalledWith({
+        instanceId: "instance-1",
+        ownerId: "user_123",
+        subdomain: "tenant-a.overnightdesk.com",
+      });
+      expect(mockDisableHermesOidcClient.mock.invocationCallOrder[0]).toBeLessThan(
+        mockDeprovision.mock.invocationCallOrder[0]
+      );
     });
   });
 });

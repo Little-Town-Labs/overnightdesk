@@ -2,6 +2,7 @@ import {
   HERMES_JWT_OPTIONS,
   HERMES_OAUTH_PROVIDER_OPTIONS,
   HERMES_OIDC_SCOPES,
+  hasForbiddenOAuthResourceIndicator,
 } from "@/lib/hermes-oidc-config";
 
 describe("Hermes OIDC provider configuration", () => {
@@ -39,5 +40,26 @@ describe("Hermes OIDC provider configuration", () => {
         action: "create",
       })
     ).resolves.toBe(false);
+  });
+});
+
+describe("OAuth resource-indicator mitigation", () => {
+  it("rejects token resource indicators while allowing the fixed Hermes exchange", () => {
+    expect(
+      hasForbiddenOAuthResourceIndicator("/oauth2/token", {
+        grant_type: "authorization_code",
+        resource: "https://unexpected.example",
+      })
+    ).toBe(true);
+    expect(
+      hasForbiddenOAuthResourceIndicator("/oauth2/token", {
+        grant_type: "authorization_code",
+      })
+    ).toBe(false);
+    expect(
+      hasForbiddenOAuthResourceIndicator("/oauth2/authorize", {
+        resource: "https://unexpected.example",
+      })
+    ).toBe(false);
   });
 });

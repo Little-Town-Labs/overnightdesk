@@ -40,7 +40,7 @@ jest.mock("@/lib/hermes-oidc", () => ({
     subdomain: string;
   }) => ({
     provider: "self-hosted",
-    issuer: "https://overnightdesk.com/api/auth",
+    issuer: "https://www.overnightdesk.com/api/auth",
     clientId,
     publicUrl: `https://${subdomain}`,
     callbackUrl: `https://${subdomain}/auth/callback`,
@@ -158,6 +158,8 @@ describe("POST /api/wizard/write-step", () => {
 // --- complete route ---
 
 describe("POST /api/wizard/complete", () => {
+  const originalOidcEnabled = process.env.HERMES_DASHBOARD_OIDC_ENABLED;
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetSession.mockResolvedValue(SESSION);
@@ -168,6 +170,15 @@ describe("POST /api/wizard/complete", () => {
       clientId: "public-client-id",
       created: true,
     });
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED = "true";
+  });
+
+  afterAll(() => {
+    if (originalOidcEnabled === undefined) {
+      delete process.env.HERMES_DASHBOARD_OIDC_ENABLED;
+    } else {
+      process.env.HERMES_DASHBOARD_OIDC_ENABLED = originalOidcEnabled;
+    }
   });
 
   it("returns 401 if not authenticated", async () => {
@@ -194,7 +205,7 @@ describe("POST /api/wizard/complete", () => {
         tenantId: "alice",
         dashboardAuth: {
           provider: "self-hosted",
-          issuer: "https://overnightdesk.com/api/auth",
+          issuer: "https://www.overnightdesk.com/api/auth",
           clientId: "public-client-id",
           publicUrl: "https://alice.overnightdesk.com",
           callbackUrl: "https://alice.overnightdesk.com/auth/callback",
@@ -217,6 +228,18 @@ describe("POST /api/wizard/complete", () => {
     }));
 
     expect(res.status).toBe(503);
+    expect(mockProvision).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before creating a client when OIDC rollout is disabled", async () => {
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED = "false";
+    const { POST } = await import("@/app/api/wizard/complete/route");
+    const res = await POST(new NextRequest("http://localhost/api/wizard/complete", {
+      method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+    }));
+
+    expect(res.status).toBe(503);
+    expect(mockEnsureHermesOidcClient).not.toHaveBeenCalled();
     expect(mockProvision).not.toHaveBeenCalled();
   });
 

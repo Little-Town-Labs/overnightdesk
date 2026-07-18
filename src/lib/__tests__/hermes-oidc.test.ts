@@ -33,7 +33,7 @@ describe("Hermes OIDC contract builders", () => {
     );
   });
 
-  it("builds a disabled public client with the fixed Hermes contract", () => {
+  it("builds a secretless public client with the fixed Hermes contract", () => {
     expect(
       buildHermesOidcClientPayload({
         instanceId: "instance-1",
@@ -47,7 +47,6 @@ describe("Hermes OIDC contract builders", () => {
       grant_types: ["authorization_code"],
       response_types: ["code"],
       type: "user-agent-based",
-      disabled: true,
       skip_consent: true,
       require_pkce: true,
       metadata: {
@@ -118,10 +117,31 @@ describe("Hermes OIDC client lifecycle", () => {
     expect(lifecycle.createClient).toHaveBeenCalledWith(
       buildHermesOidcClientPayload(input)
     );
+    expect(lifecycle.setClientDisabled).toHaveBeenCalledWith(
+      "public-client-id",
+      true
+    );
+    expect(
+      (lifecycle.setClientDisabled as jest.Mock).mock.invocationCallOrder[0]
+    ).toBeLessThan(
+      (lifecycle.linkPending as jest.Mock).mock.invocationCallOrder[0]
+    );
     expect(lifecycle.linkPending).toHaveBeenCalledWith(
       "instance-1",
       "public-client-id"
     );
+  });
+
+  it("removes an unlinked client when persisted disablement fails", async () => {
+    const lifecycle = gateway({
+      setClientDisabled: jest.fn().mockResolvedValue(false),
+    });
+
+    await expect(ensureHermesOidcClient(input, lifecycle)).rejects.toThrow(
+      "unavailable"
+    );
+    expect(lifecycle.removeClient).toHaveBeenCalledWith("public-client-id");
+    expect(lifecycle.linkPending).not.toHaveBeenCalled();
   });
 
   it("reuses an exact linked client without creating another", async () => {
