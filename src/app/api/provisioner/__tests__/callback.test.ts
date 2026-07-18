@@ -5,6 +5,8 @@ const mockUpdateInstanceStatus = jest.fn().mockResolvedValue(undefined);
 const mockSelectFromWhere = jest.fn().mockResolvedValue([]);
 const mockInsertValues = jest.fn().mockResolvedValue(undefined);
 const mockSendProvisioningEmail = jest.fn().mockResolvedValue(undefined);
+const mockActivateHermesOidcClient = jest.fn().mockResolvedValue(undefined);
+const mockMarkHermesOidcClientError = jest.fn().mockResolvedValue(undefined);
 
 jest.mock("@/lib/instance", () => ({
   updateInstanceStatus: (...args: unknown[]) =>
@@ -34,6 +36,13 @@ jest.mock("@/lib/config", () => ({
   getAppUrl: () => "https://overnightdesk.com",
 }));
 
+jest.mock("@/lib/hermes-oidc", () => ({
+  activateHermesOidcClient: (...args: unknown[]) =>
+    mockActivateHermesOidcClient(...args),
+  markHermesOidcClientError: (...args: unknown[]) =>
+    mockMarkHermesOidcClientError(...args),
+}));
+
 const SECRET = "test-provisioner-secret";
 
 function makeRequest(body: object) {
@@ -53,8 +62,15 @@ describe("POST /api/provisioner/callback", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env = { ...originalEnv, PROVISIONER_SECRET: SECRET };
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED = "true";
     mockSelectFromWhere.mockResolvedValue([
-      { id: "inst_1", tenantId: "alice", userId: "user_1" },
+      {
+        id: "inst_1",
+        tenantId: "alice",
+        userId: "user_1",
+        subdomain: "alice.overnightdesk.com",
+        hermesOidcClientId: "public-client-id",
+      },
     ]);
   });
 
@@ -79,6 +95,50 @@ describe("POST /api/provisioner/callback", () => {
     const req = makeRequest({ tenantId: "alice", status: "running", containerId: "hermes-alice" });
     await POST(req);
 
+    expect(mockUpdateInstanceStatus).toHaveBeenCalledWith(
+      "alice",
+      "running",
+      expect.any(Object),
+      expect.objectContaining({ containerId: "hermes-alice" })
+    );
+    expect(mockActivateHermesOidcClient).toHaveBeenCalledWith({
+      instanceId: "inst_1",
+      ownerId: "user_1",
+      subdomain: "alice.overnightdesk.com",
+    });
+  });
+
+  it("does not expose a running instance when OIDC activation fails", async () => {
+    mockActivateHermesOidcClient.mockRejectedValueOnce(new Error("database failed"));
+
+    const res = await POST(makeRequest({
+      tenantId: "alice",
+      status: "running",
+      containerId: "hermes-alice",
+    }));
+
+    expect(res.status).toBe(503);
+    expect(mockMarkHermesOidcClientError).toHaveBeenCalled();
+    expect(mockUpdateInstanceStatus).toHaveBeenCalledWith(
+      "alice",
+      "error",
+      { error: "dashboard_auth_activation_failed" },
+      expect.objectContaining({ containerId: "hermes-alice" })
+    );
+    expect(mockSendProvisioningEmail).not.toHaveBeenCalled();
+  });
+
+  it("leaves a configured client pending when rollout activation is disabled", async () => {
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED = "false";
+
+    const res = await POST(makeRequest({
+      tenantId: "alice",
+      status: "running",
+      containerId: "hermes-alice",
+    }));
+
+    expect(res.status).toBe(200);
+    expect(mockActivateHermesOidcClient).not.toHaveBeenCalled();
     expect(mockUpdateInstanceStatus).toHaveBeenCalledWith(
       "alice",
       "running",
@@ -146,10 +206,18 @@ describe("POST /api/provisioner/callback", () => {
     expect(mockUpdateInstanceStatus).toHaveBeenCalledWith(
       "alice",
       "error",
-      expect.objectContaining({ error: "certbot failed" }),
+      expect.objectContaining({ error: "provisioning_failed" }),
       expect.any(Object)
     );
+    expect(JSON.stringify(mockUpdateInstanceStatus.mock.calls)).not.toContain(
+      "certbot failed"
+    );
     expect(mockSendProvisioningEmail).not.toHaveBeenCalled();
+    expect(mockMarkHermesOidcClientError).toHaveBeenCalledWith({
+      instanceId: "inst_1",
+      ownerId: "user_1",
+      subdomain: "alice.overnightdesk.com",
+    });
   });
 
   it("returns 404 if instance not found", async () => {

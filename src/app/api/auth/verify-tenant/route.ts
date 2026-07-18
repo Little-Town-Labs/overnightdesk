@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getInstanceForUser } from "@/lib/instance";
+import { recordHermesOidcAuditEvent } from "@/lib/hermes-oidc-audit";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,16 @@ export async function GET(request: NextRequest) {
   if (!instance || instance.status !== "running") return unauthorized();
 
   // Confirm the requested subdomain belongs to this user's instance
-  if (instance.subdomain !== host) return unauthorized();
+  if (instance.subdomain !== host) {
+    await recordHermesOidcAuditEvent({
+      category: "denied",
+      reason: "tenant_mismatch",
+      instanceId: instance.id,
+      clientId: instance.hermesOidcClientId ?? undefined,
+      requestId: request.headers.get("x-request-id") ?? undefined,
+    }).catch(() => undefined);
+    return unauthorized();
+  }
 
   return new NextResponse(null, { status: 200 });
 }

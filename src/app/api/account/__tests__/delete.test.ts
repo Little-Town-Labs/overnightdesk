@@ -80,6 +80,12 @@ jest.mock("@/lib/provisioner", () => ({
   },
 }));
 
+const mockDisableHermesOidcClient = jest.fn().mockResolvedValue(undefined);
+jest.mock("@/lib/hermes-oidc", () => ({
+  disableHermesOidcClient: (...args: unknown[]) =>
+    mockDisableHermesOidcClient(...args),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -292,6 +298,73 @@ describe("POST /api/account/delete", () => {
     expect(data.success).toBe(true);
     expect(stripeCancel).not.toHaveBeenCalled();
     expect((db.delete as jest.Mock)).toHaveBeenCalled();
+  });
+
+  it("disables dashboard OIDC before deprovisioning a running instance", async () => {
+    getSession.mockResolvedValueOnce(mockSession);
+    dbSelect.where
+      .mockResolvedValueOnce([
+        { id: "user_123", email: "test@example.com", password: "$2b$10$hashedpassword" },
+      ])
+      .mockResolvedValueOnce([]);
+    bcryptCompare.mockResolvedValueOnce(true);
+    mockGetInstanceForUser.mockResolvedValueOnce({
+      id: "instance-1",
+      userId: "user_123",
+      tenantId: "tenant-a",
+      subdomain: "tenant-a.overnightdesk.com",
+      status: "running",
+      hermesOidcClientId: "public-client-id",
+    });
+    mockDeprovision.mockResolvedValueOnce({ success: true });
+    dbInsert.returning.mockResolvedValueOnce([{ id: 1 }]);
+    dbDelete.where.mockResolvedValueOnce([{ id: "user_123" }]);
+
+    const response = await POST(
+      makeRequest({ password: "s3cur3Pa$$word!", confirmation: "DELETE" })
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockDisableHermesOidcClient).toHaveBeenCalledWith({
+      instanceId: "instance-1",
+      ownerId: "user_123",
+      subdomain: "tenant-a.overnightdesk.com",
+    });
+    expect(mockDisableHermesOidcClient.mock.invocationCallOrder[0]).toBeLessThan(
+      mockDeprovision.mock.invocationCallOrder[0]
+    );
+  });
+
+  it("disables dashboard OIDC for a stopped instance without deprovisioning", async () => {
+    getSession.mockResolvedValueOnce(mockSession);
+    dbSelect.where
+      .mockResolvedValueOnce([
+        { id: "user_123", email: "test@example.com", password: "$2b$10$hashedpassword" },
+      ])
+      .mockResolvedValueOnce([]);
+    bcryptCompare.mockResolvedValueOnce(true);
+    mockGetInstanceForUser.mockResolvedValueOnce({
+      id: "instance-1",
+      userId: "user_123",
+      tenantId: "tenant-a",
+      subdomain: "tenant-a.overnightdesk.com",
+      status: "stopped",
+      hermesOidcClientId: "public-client-id",
+    });
+    dbInsert.returning.mockResolvedValueOnce([{ id: 1 }]);
+    dbDelete.where.mockResolvedValueOnce([{ id: "user_123" }]);
+
+    const response = await POST(
+      makeRequest({ password: "s3cur3Pa$$word!", confirmation: "DELETE" })
+    );
+
+    expect(response.status).toBe(200);
+    expect(mockDisableHermesOidcClient).toHaveBeenCalledWith({
+      instanceId: "instance-1",
+      ownerId: "user_123",
+      subdomain: "tenant-a.overnightdesk.com",
+    });
+    expect(mockDeprovision).not.toHaveBeenCalled();
   });
 
   // -------------------------------------------------------------------------

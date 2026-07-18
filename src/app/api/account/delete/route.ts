@@ -9,6 +9,7 @@ import { eq, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { getInstanceForUser } from "@/lib/instance";
 import { provisionerClient } from "@/lib/provisioner";
+import { disableHermesOidcClient } from "@/lib/hermes-oidc";
 
 export const dynamic = "force-dynamic";
 
@@ -99,8 +100,24 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Deprovision running instance
+  // Revoke dashboard access before deleting the owner or infrastructure.
   const inst = await getInstanceForUser(session.user.id);
+  if (inst?.hermesOidcClientId && inst.subdomain) {
+    try {
+      await disableHermesOidcClient({
+        instanceId: inst.id,
+        ownerId: session.user.id,
+        subdomain: inst.subdomain,
+      });
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Failed to secure dashboard access" },
+        { status: 503 }
+      );
+    }
+  }
+
+  // Deprovision only infrastructure that is currently running.
   if (inst && inst.status === "running" && inst.tenantId) {
     try {
       await provisionerClient.deprovision(inst.tenantId);

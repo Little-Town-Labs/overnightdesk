@@ -1,8 +1,26 @@
+import { getCanonicalServiceOrigin } from "@/lib/config";
+
+export interface DashboardAuthParams {
+  provider: "self-hosted";
+  issuer: string;
+  clientId: string;
+  publicUrl: string;
+  callbackUrl: string;
+  scopes: readonly ["openid", "profile", "email"];
+}
+
 interface ProvisionParams {
   tenantId: string;
   subdomain: string;
   plan: "starter" | "pro";
   callbackUrl: string;
+  dashboardAuth: DashboardAuthParams;
+}
+
+export interface ConfigureDashboardAuthParams {
+  tenantId: string;
+  dashboardAuth: DashboardAuthParams;
+  restart: boolean;
 }
 
 export interface HermesMessage {
@@ -40,12 +58,17 @@ function getConfig() {
   };
 }
 
+function getProvisionerEndpoint(baseUrl: string, path: string): string {
+  const origin = getCanonicalServiceOrigin(baseUrl, "PROVISIONER_URL");
+  return new URL(path, `${origin}/`).toString();
+}
+
 export const provisionerClient = {
   async provision(params: ProvisionParams): Promise<ProvisionerResult> {
     const { url, secret } = getConfig();
 
     try {
-      const response = await fetch(`${url}/provision`, {
+      const response = await fetch(getProvisionerEndpoint(url, "/provision"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,7 +98,7 @@ export const provisionerClient = {
     const { url, secret } = getConfig();
 
     try {
-      const response = await fetch(`${url}/restart`, {
+      const response = await fetch(getProvisionerEndpoint(url, "/restart"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -101,11 +124,45 @@ export const provisionerClient = {
     }
   },
 
+  async configureDashboardAuth(
+    params: ConfigureDashboardAuthParams
+  ): Promise<ProvisionerResult> {
+    const { url, secret } = getConfig();
+
+    try {
+      const response = await fetch(
+        getProvisionerEndpoint(url, "/dashboard-auth"),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${secret}`,
+          },
+          body: JSON.stringify(params),
+          signal: AbortSignal.timeout(30_000),
+        }
+      );
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `Provisioner returned ${response.status}`,
+        };
+      }
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+
   async writeSecrets(params: WriteSecretsParams): Promise<ProvisionerResult> {
     const { url, secret } = getConfig();
 
     try {
-      const response = await fetch(`${url}/write-secrets`, {
+      const response = await fetch(getProvisionerEndpoint(url, "/write-secrets"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -128,10 +185,16 @@ export const provisionerClient = {
   async getSessions(containerId: string): Promise<{ sessions: HermesSession[] } | null> {
     const { url, secret } = getConfig();
     try {
-      const response = await fetch(`${url}/sessions?containerId=${encodeURIComponent(containerId)}`, {
-        headers: { Authorization: `Bearer ${secret}` },
-        signal: AbortSignal.timeout(15_000),
-      });
+      const response = await fetch(
+        getProvisionerEndpoint(
+          url,
+          `/sessions?containerId=${encodeURIComponent(containerId)}`
+        ),
+        {
+          headers: { Authorization: `Bearer ${secret}` },
+          signal: AbortSignal.timeout(15_000),
+        }
+      );
       if (!response.ok) return null;
       return await response.json();
     } catch {
@@ -143,7 +206,10 @@ export const provisionerClient = {
     const { url, secret } = getConfig();
     try {
       const response = await fetch(
-        `${url}/mitchel/prospecting/summary?containerId=${encodeURIComponent(containerId)}`,
+        getProvisionerEndpoint(
+          url,
+          `/mitchel/prospecting/summary?containerId=${encodeURIComponent(containerId)}`
+        ),
         {
           headers: { Authorization: `Bearer ${secret}` },
           signal: AbortSignal.timeout(15_000),
@@ -160,7 +226,7 @@ export const provisionerClient = {
     const { url, secret } = getConfig();
 
     try {
-      const response = await fetch(`${url}/deprovision`, {
+      const response = await fetch(getProvisionerEndpoint(url, "/deprovision"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

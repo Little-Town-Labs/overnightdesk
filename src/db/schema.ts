@@ -87,6 +87,11 @@ export const contentWorthinessEnum = pgEnum("content_worthiness", [
   "low",
 ]);
 
+export const hermesDashboardAuthStatusEnum = pgEnum(
+  "hermes_dashboard_auth_status",
+  ["legacy", "pending", "active", "disabled", "error"]
+);
+
 // ---------------------------------------------------------------------------
 // Better Auth tables
 // ---------------------------------------------------------------------------
@@ -170,6 +175,136 @@ export const verification = pgTable("verification", {
     .defaultNow(),
 });
 
+export const jwks = pgTable("jwks", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  publicKey: text("public_key").notNull(),
+  privateKey: text("private_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+});
+
+export const oauthClient = pgTable(
+  "oauth_client",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    clientId: text("client_id").notNull().unique(),
+    clientSecret: text("client_secret"),
+    disabled: boolean("disabled").notNull().default(false),
+    skipConsent: boolean("skip_consent"),
+    enableEndSession: boolean("enable_end_session"),
+    subjectType: text("subject_type"),
+    scopes: text("scopes").array(),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+    name: text("name"),
+    uri: text("uri"),
+    icon: text("icon"),
+    contacts: text("contacts").array(),
+    tos: text("tos"),
+    policy: text("policy"),
+    softwareId: text("software_id"),
+    softwareVersion: text("software_version"),
+    softwareStatement: text("software_statement"),
+    redirectUris: text("redirect_uris").array().notNull(),
+    postLogoutRedirectUris: text("post_logout_redirect_uris").array(),
+    tokenEndpointAuthMethod: text("token_endpoint_auth_method"),
+    grantTypes: text("grant_types").array(),
+    responseTypes: text("response_types").array(),
+    public: boolean("public"),
+    type: text("type"),
+    requirePKCE: boolean("require_pkce"),
+    referenceId: text("reference_id"),
+    metadata: jsonb("metadata").$type<Record<string, unknown> | null>(),
+  },
+  (table) => [index("oauth_client_user_id_idx").on(table.userId)]
+);
+
+export const oauthRefreshToken = pgTable(
+  "oauth_refresh_token",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    token: text("token").notNull().unique(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => session.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    referenceId: text("reference_id"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    revoked: timestamp("revoked", { withTimezone: true }),
+    authTime: timestamp("auth_time", { withTimezone: true }),
+    scopes: text("scopes").array().notNull(),
+  },
+  (table) => [
+    index("oauth_refresh_token_client_id_idx").on(table.clientId),
+    index("oauth_refresh_token_session_id_idx").on(table.sessionId),
+    index("oauth_refresh_token_user_id_idx").on(table.userId),
+  ]
+);
+
+export const oauthAccessToken = pgTable(
+  "oauth_access_token",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    token: text("token").notNull().unique(),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    sessionId: text("session_id").references(() => session.id, {
+      onDelete: "set null",
+    }),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    referenceId: text("reference_id"),
+    refreshId: text("refresh_id").references(() => oauthRefreshToken.id, {
+      onDelete: "set null",
+    }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    scopes: text("scopes").array().notNull(),
+  },
+  (table) => [
+    index("oauth_access_token_client_id_idx").on(table.clientId),
+    index("oauth_access_token_session_id_idx").on(table.sessionId),
+    index("oauth_access_token_user_id_idx").on(table.userId),
+    index("oauth_access_token_refresh_id_idx").on(table.refreshId),
+  ]
+);
+
+export const oauthConsent = pgTable(
+  "oauth_consent",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    clientId: text("client_id")
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    referenceId: text("reference_id"),
+    scopes: text("scopes").array().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("oauth_consent_client_id_idx").on(table.clientId),
+    index("oauth_consent_user_id_idx").on(table.userId),
+  ]
+);
+
 // ---------------------------------------------------------------------------
 // Platform tables
 // ---------------------------------------------------------------------------
@@ -213,6 +348,18 @@ export const instance = pgTable("instance", {
     .notNull()
     .default("not_configured"),
   subdomain: text("subdomain").unique(),
+  hermesOidcClientId: text("hermes_oidc_client_id")
+    .unique()
+    .references(() => oauthClient.clientId, { onDelete: "set null" }),
+  hermesDashboardAuthStatus: hermesDashboardAuthStatusEnum(
+    "hermes_dashboard_auth_status"
+  )
+    .notNull()
+    .default("legacy"),
+  hermesDashboardAuthUpdatedAt: timestamp(
+    "hermes_dashboard_auth_updated_at",
+    { withTimezone: true }
+  ),
   provisionedAt: timestamp("provisioned_at", { withTimezone: true }),
   deprovisionedAt: timestamp("deprovisioned_at", { withTimezone: true }),
   lastHealthCheck: timestamp("last_health_check", { withTimezone: true }),
@@ -321,6 +468,10 @@ export const userRelations = relations(user, ({ many }) => ({
   accounts: many(account),
   subscriptions: many(subscription),
   instances: many(instance),
+  oauthClients: many(oauthClient),
+  oauthAccessTokens: many(oauthAccessToken),
+  oauthRefreshTokens: many(oauthRefreshToken),
+  oauthConsents: many(oauthConsent),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -340,8 +491,72 @@ export const subscriptionRelations = relations(subscription, ({ one }) => ({
 
 export const instanceRelations = relations(instance, ({ one, many }) => ({
   user: one(user, { fields: [instance.userId], references: [user.id] }),
+  hermesOidcClient: one(oauthClient, {
+    fields: [instance.hermesOidcClientId],
+    references: [oauthClient.clientId],
+  }),
   fleetEvents: many(fleetEvent),
   usageMetrics: many(usageMetric),
+}));
+
+export const oauthClientRelations = relations(oauthClient, ({ one, many }) => ({
+  user: one(user, { fields: [oauthClient.userId], references: [user.id] }),
+  instance: one(instance),
+  accessTokens: many(oauthAccessToken),
+  refreshTokens: many(oauthRefreshToken),
+  consents: many(oauthConsent),
+}));
+
+export const oauthAccessTokenRelations = relations(
+  oauthAccessToken,
+  ({ one }) => ({
+    client: one(oauthClient, {
+      fields: [oauthAccessToken.clientId],
+      references: [oauthClient.clientId],
+    }),
+    session: one(session, {
+      fields: [oauthAccessToken.sessionId],
+      references: [session.id],
+    }),
+    user: one(user, {
+      fields: [oauthAccessToken.userId],
+      references: [user.id],
+    }),
+    refreshToken: one(oauthRefreshToken, {
+      fields: [oauthAccessToken.refreshId],
+      references: [oauthRefreshToken.id],
+    }),
+  })
+);
+
+export const oauthRefreshTokenRelations = relations(
+  oauthRefreshToken,
+  ({ one, many }) => ({
+    client: one(oauthClient, {
+      fields: [oauthRefreshToken.clientId],
+      references: [oauthClient.clientId],
+    }),
+    session: one(session, {
+      fields: [oauthRefreshToken.sessionId],
+      references: [session.id],
+    }),
+    user: one(user, {
+      fields: [oauthRefreshToken.userId],
+      references: [user.id],
+    }),
+    accessTokens: many(oauthAccessToken),
+  })
+);
+
+export const oauthConsentRelations = relations(oauthConsent, ({ one }) => ({
+  client: one(oauthClient, {
+    fields: [oauthConsent.clientId],
+    references: [oauthClient.clientId],
+  }),
+  user: one(user, {
+    fields: [oauthConsent.userId],
+    references: [user.id],
+  }),
 }));
 
 export const fleetEventRelations = relations(fleetEvent, ({ one }) => ({

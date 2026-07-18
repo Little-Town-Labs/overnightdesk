@@ -1,6 +1,44 @@
 import { sql } from "drizzle-orm";
+import { getTableConfig } from "drizzle-orm/pg-core";
 import { getTestDb, cleanupTestData, type TestDb } from "./test-db";
 import * as schema from "../schema";
+
+describe("Hermes OIDC schema definitions", () => {
+  it("defines the complete Better Auth OAuth and JWKS table set", () => {
+    expect(getTableConfig(schema.oauthClient).name).toBe("oauth_client");
+    expect(getTableConfig(schema.oauthAccessToken).name).toBe("oauth_access_token");
+    expect(getTableConfig(schema.oauthRefreshToken).name).toBe("oauth_refresh_token");
+    expect(getTableConfig(schema.oauthConsent).name).toBe("oauth_consent");
+    expect(getTableConfig(schema.jwks).name).toBe("jwks");
+  });
+
+  it("restricts dashboard auth to the documented lifecycle states", () => {
+    expect(schema.hermesDashboardAuthStatusEnum.enumValues).toEqual([
+      "legacy",
+      "pending",
+      "active",
+      "disabled",
+      "error",
+    ]);
+  });
+
+  it("links at most one OAuth client to an instance", () => {
+    const config = getTableConfig(schema.instance);
+    const clientColumn = config.columns.find(
+      (column) => column.name === "hermes_oidc_client_id"
+    );
+
+    expect(clientColumn).toBeDefined();
+    expect(clientColumn?.isUnique).toBe(true);
+    expect(
+      config.foreignKeys.some((foreignKey) =>
+        foreignKey.reference().foreignColumns.some(
+          (column) => column.name === "client_id"
+        )
+      )
+    ).toBe(true);
+  });
+});
 
 /**
  * Integration tests — require DATABASE_TEST_URL and migrated test database.
