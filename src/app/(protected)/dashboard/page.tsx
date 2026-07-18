@@ -17,6 +17,7 @@ import { ChatInterface } from "./chat/chat-interface";
 import { provisionerClient } from "@/lib/provisioner";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
+import { getHermesDashboardUrl } from "@/lib/hermes-dashboard";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -78,6 +79,10 @@ export default async function DashboardPage() {
 
   // ─── Hermes running: hero-first layout ──────────────────────────────────────
   if (hermesAgent && isRunning && inst) {
+    const hermesDashboardUrl = inst.subdomain
+      ? getHermesDashboardUrl(inst.subdomain)
+      : null;
+
     return (
       <>
         {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
@@ -120,17 +125,19 @@ export default async function DashboardPage() {
 
           {/* Primary CTAs */}
           <div className="flex flex-wrap gap-3 mb-8">
-            <a
-              href={`https://${inst.subdomain}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors btn-accent"
-            >
-              Launch Dashboard
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-              </svg>
-            </a>
+            {hermesDashboardUrl && (
+              <a
+                href={hermesDashboardUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors btn-accent"
+              >
+                Launch Dashboard
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+              </a>
+            )}
             <a
               href="/dashboard/chat"
               className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors"
