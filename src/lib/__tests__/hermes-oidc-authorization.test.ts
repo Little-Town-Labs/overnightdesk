@@ -68,6 +68,22 @@ describe("Hermes OIDC owner authorization", () => {
     ).resolves.toBe("instance-1");
   });
 
+  it("authorizes Hermes authorization-code PKCE requests without a nonce", async () => {
+    const hermesQuery = new URLSearchParams(query);
+    hermesQuery.delete("nonce");
+
+    await expect(
+      authorizeHermesOidcOwner(
+        {
+          user: { id: "owner-1", emailVerified: true },
+          scopes: ["openid", "profile", "email"],
+          query: hermesQuery.toString(),
+        },
+        gateway()
+      )
+    ).resolves.toBe("instance-1");
+  });
+
   it.each([
     ["unknown client", null],
     ["wrong owner", context({ instanceUserId: "owner-2" })],
