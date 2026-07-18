@@ -1,6 +1,6 @@
 # Implementation Plan: Phase App Consolidation
 
-**Branch**: `migration/aegis-phase-consumers` | **Date**: 2026-07-18 | **Spec**: [spec.md](spec.md)
+**Branch**: `018-phase-app-consolidation` | **Date**: 2026-07-18 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/018-phase-app-consolidation/spec.md`
 

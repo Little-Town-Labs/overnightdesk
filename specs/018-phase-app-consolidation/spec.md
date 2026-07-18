@@ -1,6 +1,6 @@
 # Feature Specification: Consolidate Phase Apps by Use Case
 
-**Feature Branch**: `migration/aegis-phase-consumers`
+**Feature Branch**: `018-phase-app-consolidation`
 
 **Created**: 2026-07-18
 
