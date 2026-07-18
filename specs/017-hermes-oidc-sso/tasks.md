@@ -100,16 +100,16 @@ tokens, Hermes sessions, or tenant content.
 
 - [ ] T027 [P] [US2] Add failing authorization and exchange tests for non-owner, unverified owner, wrong client link, non-running instance, inactive linkage, disabled client, malformed metadata, callback/scope escalation, altered or missing state/nonce, replayed code, missing or mismatched verifier, and non-S256 PKCE in src/lib/__tests__/hermes-oidc-authorization.test.ts and src/lib/__tests__/hermes-oidc-protocol.test.ts
 - [x] T028 [P] [US2] Add failing token-time tests for ownership or lifecycle changes between code issuance and ID-token creation in src/lib/__tests__/hermes-oidc-token.test.ts
-- [ ] T029 [P] [US2] Add failing route tests proving wrong-host and copied-link requests remain denied by src/app/api/auth/verify-tenant/__tests__/route.test.ts
-- [ ] T030 [P] [US2] Add failing tests for redaction of state, nonce, code, verifier, tokens, cookies, email, and private keys in src/lib/__tests__/hermes-oidc-audit.test.ts
+- [x] T029 [P] [US2] Add failing route tests proving wrong-host and copied-link requests remain denied by src/app/api/auth/verify-tenant/__tests__/route.test.ts
+- [x] T030 [P] [US2] Add failing tests for redaction of state, nonce, code, verifier, tokens, cookies, email, and private keys in src/lib/__tests__/hermes-oidc-audit.test.ts
 
 ### Implementation for User Story 2
 
 - [x] T031 [US2] Implement signed provider-state client resolution and canonical pre-code owner authorization in src/lib/hermes-oidc.ts
 - [x] T032 [US2] Add the token-time canonical owner/lifecycle check and minimum standard claims in src/lib/hermes-oidc.ts and src/lib/auth.ts
 - [x] T033 [US2] Keep client CRUD and dynamic registration unavailable to browser users and add safe OAuth denial mapping in src/lib/auth.ts
-- [ ] T034 [US2] Add redacted dashboard authorization event categories and fingerprints through src/lib/hermes-oidc-audit.ts and the existing platformAuditLog schema
-- [ ] T035 [US2] Preserve exact tenant-host ownership verification and generic denial responses in src/app/api/auth/verify-tenant/route.ts
+- [x] T034 [US2] Add redacted dashboard authorization event categories and fingerprints through src/lib/hermes-oidc-audit.ts and the existing platformAuditLog schema
+- [x] T035 [US2] Preserve exact tenant-host ownership verification and generic denial responses in src/app/api/auth/verify-tenant/route.ts
 - [ ] T036 [US2] Run the complete negative authorization matrix and inspect test/log output for prohibited protocol artifacts using specs/017-hermes-oidc-sso/quickstart.md
 
 **Checkpoint**: User Stories 1 and 2 both pass; no invalid test case can mint a
@@ -128,23 +128,23 @@ configuration, and verify the data directory is unchanged.
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] Add failing lifecycle tests for idempotent ensure, activate, disable, error, and recovery transitions in src/lib/__tests__/hermes-oidc-lifecycle.test.ts
-- [ ] T038 [P] [US3] Add failing cancellation and account-deletion tests proving client disable precedes asynchronous deprovision in src/lib/__tests__/stripe-webhook.test.ts and src/app/api/account/__tests__/delete.test.ts
-- [ ] T039 [P] [US3] Add failing authenticated `POST /dashboard-auth` handler tests for validation, idempotence, restart, and safe errors in ../overnightdesk-engine/internal/hermes/handlers_test.go
-- [ ] T040 [P] [US3] Add failing engine rollback tests proving config restoration and tenant data preservation in ../overnightdesk-engine/internal/hermes/dashboard_oidc_test.go
-- [ ] T041 [P] [US3] Add failing callback tests for activation success, configuration error, and redacted evidence in src/app/api/provisioner/__tests__/callback.test.ts
+- [x] T037 [P] [US3] Add failing lifecycle tests for idempotent ensure, activate, disable, error, and recovery transitions in src/lib/__tests__/hermes-oidc-lifecycle.test.ts
+- [x] T038 [P] [US3] Add failing cancellation and account-deletion tests proving client disable precedes asynchronous deprovision in src/lib/__tests__/stripe-webhook.test.ts and src/app/api/account/__tests__/delete.test.ts
+- [x] T039 [P] [US3] Add failing authenticated `POST /dashboard-auth` handler tests for validation, idempotence, restart, and safe errors in ../overnightdesk-engine/internal/hermes/handlers_test.go
+- [x] T040 [P] [US3] Add failing engine rollback tests proving config restoration and tenant data preservation in ../overnightdesk-engine/internal/hermes/dashboard_oidc_test.go
+- [x] T041 [P] [US3] Add failing callback tests for activation success, configuration error, and redacted evidence in src/app/api/provisioner/__tests__/callback.test.ts
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Extend the US1 lifecycle primitives with idempotent disable, error, revoke, and recover operations in src/lib/hermes-oidc.ts
-- [ ] T043 [US3] Wire client disable before suspension, cancellation, account deletion, and deprovision paths in src/lib/stripe-webhook-handlers.ts and src/app/api/account/delete/route.ts
-- [ ] T044 [US3] Add authenticated `POST /dashboard-auth` registration and handler code in ../overnightdesk-engine/internal/hermes/handlers.go
-- [ ] T045 [US3] Add `configureDashboardAuth()` and safe timeout/error mapping to src/lib/provisioner.ts
-- [ ] T046 [US3] Wire provisioner callback status to pending/active/error dashboard-auth transitions in src/app/api/provisioner/callback/route.ts
-- [ ] T047 [US3] Add safe customer launch-unavailable states and operator recovery detail in src/app/(protected)/dashboard/page.tsx and existing fleet event surfaces
-- [ ] T048 [US3] Draft the canary activation, revocation, key rotation, restart, and five-minute rollback procedure as not-yet-live guidance in ../overnightdesk-platform-standard/HOW/tenant-provisioning.md
-- [ ] T049 [US3] Add the OIDC contract as planned/canary state while retaining Basic Auth as the verified live state in ../overnightdesk-platform-standard/WHAT/hermes.yaml
-- [ ] T050 [US3] Run US3 lifecycle suites and a filesystem-level engine test proving rollback does not delete or replace the tenant data directory
+- [x] T042 [US3] Extend the US1 lifecycle primitives with idempotent disable, error, revoke, and recover operations in src/lib/hermes-oidc.ts
+- [x] T043 [US3] Wire client disable before suspension, cancellation, account deletion, and deprovision paths in src/lib/stripe-webhook-handlers.ts and src/app/api/account/delete/route.ts
+- [x] T044 [US3] Add authenticated `POST /dashboard-auth` registration and handler code in ../overnightdesk-engine/internal/hermes/handlers.go
+- [x] T045 [US3] Add `configureDashboardAuth()` and safe timeout/error mapping to src/lib/provisioner.ts
+- [x] T046 [US3] Wire provisioner callback status to pending/active/error dashboard-auth transitions in src/app/api/provisioner/callback/route.ts
+- [x] T047 [US3] Add safe customer launch-unavailable states and operator recovery detail in src/app/(protected)/dashboard/page.tsx and existing fleet event surfaces
+- [x] T048 [US3] Draft the canary activation, revocation, key rotation, restart, and five-minute rollback procedure as not-yet-live guidance in ../overnightdesk-platform-standard/HOW/tenant-provisioning.md
+- [x] T049 [US3] Add the OIDC contract as planned/canary state while retaining Basic Auth as the verified live state in ../overnightdesk-platform-standard/WHAT/hermes.yaml
+- [x] T050 [US3] Run US3 lifecycle suites and a filesystem-level engine test proving rollback does not delete or replace the tenant data directory
 
 **Checkpoint**: All three stories are locally/preview complete; production
 canary execution still requires an explicit production operation.
@@ -156,13 +156,13 @@ canary execution still requires an explicit production operation.
 **Purpose**: Verify the dependency upgrade, security boundary, documentation,
 and build before the required quality review.
 
-- [ ] T051 [P] Reconcile spec, plan, contracts, data model, ADR, and implementation wording across specs/017-hermes-oidc-sso/ and docs/decisions/002-hermes-dashboard-oidc-sso.md
-- [ ] T052 Run the full Jest suite, TypeScript type check, production Next.js build, dependency audit, and migration inspection from package.json and drizzle/
-- [ ] T053 Run the full Go test suite, Go build, vet/static checks, and diff checks in ../overnightdesk-engine/
-- [ ] T054 Inspect repository diffs, generated artifacts, logs, and test fixtures for secrets or protocol artifacts in overnightdesk/ and ../overnightdesk-engine/
+- [x] T051 [P] Reconcile spec, plan, contracts, data model, ADR, and implementation wording across specs/017-hermes-oidc-sso/ and docs/decisions/002-hermes-dashboard-oidc-sso.md
+- [x] T052 Run the full Jest suite, TypeScript type check, production Next.js build, dependency audit, and migration inspection from package.json and drizzle/
+- [x] T053 Run the full Go test suite, Go build, vet/static checks, and diff checks in ../overnightdesk-engine/
+- [x] T054 Inspect repository diffs, generated artifacts, logs, and test fixtures for secrets or protocol artifacts in overnightdesk/ and ../overnightdesk-engine/
 - [ ] T055 Perform an approved isolated production canary and rollback using the aegis-ssh skill; explicitly verify launch timing, cookie expiry, logout, key overlap, replay denial, process/log redaction, and data preservation before promoting ../overnightdesk-platform-standard/ to verified live state and appending /home/frosted639/src/overnightdesk-suite/deploys.log
-- [ ] T056 Update task checkboxes and requirement checklist evidence in specs/017-hermes-oidc-sso/tasks.md and specs/017-hermes-oidc-sso/checklists/requirements.md
-- [ ] T057 Apply the `code-review-and-quality` gateway to all repository diffs and evidence, record it in specs/017-hermes-oidc-sso/quality-review.md, and resolve every Critical or Required finding before merge readiness
+- [x] T056 Update task checkboxes and requirement checklist evidence in specs/017-hermes-oidc-sso/tasks.md and specs/017-hermes-oidc-sso/checklists/requirements.md
+- [x] T057 Apply the `code-review-and-quality` gateway to all repository diffs and evidence, record it in specs/017-hermes-oidc-sso/quality-review.md, and resolve every Critical or Required finding before merge readiness
 
 ---
 

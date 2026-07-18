@@ -71,7 +71,7 @@ Existing table used for redacted events. Allowed OIDC details are limited to:
   "instanceId": "internal instance id",
   "clientFingerprint": "non-reversible short fingerprint",
   "category": "start|success|denied|callback_failure|jwks_failure|revoked",
-  "reason": "owner_mismatch|inactive_instance|invalid_client|invalid_callback|invalid_scope|expired",
+  "reason": "owner_mismatch|inactive_instance|invalid_client|invalid_callback|invalid_scope|tenant_mismatch|expired",
   "requestId": "platform correlation id"
 }
 ```

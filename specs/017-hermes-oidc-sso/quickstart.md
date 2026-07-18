@@ -102,7 +102,46 @@ operation.
 
 ## 5. Required quality gate
 
-Run `code-review-and-quality` only after all automated and canary evidence is
-available. Record every finding by severity and review axis. Any Critical or
-Required finding blocks merge/readiness; fix it and rerun the affected tests and
-the gateway.
+Run `code-review-and-quality` after automated evidence is available and repeat
+it after canary evidence. Record every finding by severity and review axis. Any
+Critical or Required finding blocks the relevant merge or rollout decision;
+fix it and rerun the affected tests and the gateway.
+
+### Local qualification checkpoint — 2026-07-18
+
+- `npm test -- --runInBand`: 47 suites passed, 1 skipped; 645 tests passed,
+  22 skipped. The skipped set contains database-backed migration assertions
+  that require an isolated `DATABASE_TEST_URL`.
+- `npx tsc --noEmit`: passed; the production Next.js 15.5.18 build passed with
+  build-only placeholder configuration and emitted both OIDC metadata routes
+  plus the admin-only existing-tenant canary route.
+- `npm audit --json`: 0 critical, 0 high, 5 moderate. The direct OAuth-provider
+  resource-indicator advisory has no patched stable release; the token endpoint
+  rejects every `resource` parameter before exchange. The other four findings
+  are the non-production Drizzle CLI's old esbuild toolchain; no development
+  server is exposed and the suggested forced downgrade is not accepted.
+- `go test ./...`, `go vet ./...`, and `make build-hermes-provisioner`: passed.
+  `golangci-lint` was unavailable, so `go vet` is the recorded static check.
+- Additive migration, repository diffs, generated artifacts, and changed-file
+  secret/protocol-artifact boundaries were inspected; diff checks passed and
+  no credential material was found in the feature changes.
+- The code quality gate has no unresolved Critical or Required finding. This
+  approves the guarded branch for isolated database/preview qualification, not
+  OIDC production activation.
+
+## 6. Existing-tenant canary control
+
+Keep broad provisioning disabled and allowlist only the approved tenant:
+
+```text
+HERMES_DASHBOARD_OIDC_ENABLED=false
+HERMES_DASHBOARD_OIDC_CANARY_TENANT_IDS=hermes-agent
+```
+
+An authenticated platform administrator may then call
+`POST /api/admin/hermes/dashboard-auth` with metadata-only JSON
+`{"tenantId":"hermes-agent","action":"configure"}`. The route creates or
+recovers the disabled client, applies and restarts the exact tenant through the
+engine, and activates only after configuration succeeds. Use action `disable`
+before rollback. Do not record the admin session, authorization headers, OAuth
+queries, or returned cookies in evidence.

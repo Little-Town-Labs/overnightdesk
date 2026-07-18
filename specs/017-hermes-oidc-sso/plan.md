@@ -19,8 +19,8 @@ platform-standard repo records the production contract and rollback.
 
 **Language/Version**: TypeScript 5.7 on Node.js 22; Go 1.24 for the Hermes provisioner
 
-**Primary Dependencies**: Next.js 15.2, React 19, Better Auth 1.6.23,
-`@better-auth/oauth-provider` 1.6.23, Drizzle ORM 0.39, Echo 4, yaml.v3
+**Primary Dependencies**: Next.js 15.5.18, React 19, Better Auth 1.6.23,
+`@better-auth/oauth-provider` 1.6.23, Drizzle ORM 0.45.2, Echo 4, yaml.v3
 
 **Storage**: PostgreSQL/Neon for Better Auth clients, keys, tokens, consents,
 instance linkage, and redacted audit events; tenant-local Hermes `config.yaml`
@@ -71,8 +71,9 @@ No constitution exceptions are required.
 
 ## Architecture and Flow
 
-1. The platform creates or reuses a disabled-by-default per-instance OAuth
-   client through Better Auth's server-only API.
+1. The platform creates or reuses a secretless per-instance OAuth client
+   through Better Auth's server-only API, persistently disables it, verifies
+   that transition, and only then links it to the instance.
 2. The platform sends the non-secret issuer, client ID, callback, scopes, and
    public URL to the authenticated Hermes provisioner contract.
 3. The provisioner validates the issuer and tenant URLs, atomically merges the
@@ -187,6 +188,10 @@ for production qualification. No feature code is placed in `overnightdesk-ops`.
   path while linkage is null or not active.
 - The Better Auth dependency upgrade lands with the schema and full existing
   auth suite; no OIDC client is created merely by deploying code.
+- New-tenant provisioning remains fail-closed unless
+  `HERMES_DASHBOARD_OIDC_ENABLED=true`. Existing-tenant canary orchestration is
+  admin-only and requires an exact tenant ID in
+  `HERMES_DASHBOARD_OIDC_CANARY_TENANT_IDS`.
 - Canary activation order is issuer -> client -> tenant config -> discovery and
   callback verification -> active linkage -> root launch.
 - Rollback order is disable client -> restore prior protected Hermes dashboard

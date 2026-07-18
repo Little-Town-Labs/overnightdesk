@@ -38,3 +38,21 @@
 - Protocol and security terms state required externally observable behavior;
   package selection, schema fields, endpoints, and deployment mechanics are
   intentionally deferred to planning.
+
+## Implementation qualification — 2026-07-18
+
+- [x] Owner, instance, callback, scope, response type, state, nonce, and S256
+  authorization predicates have behavior tests
+- [x] Token-time owner and lifecycle changes fail closed
+- [x] Client creation persists disabled state before instance linkage
+- [x] Suspension, cancellation, deletion, and deprovision revoke every linked
+  client, including stopped instances
+- [x] New-tenant rollout is disabled by default; existing-tenant canary is
+  admin-only and exact-tenant allowlisted
+- [x] Callback, revocation, tenant mismatch, and JWKS failure evidence is
+  metadata-only and redaction-tested
+- [x] Full Jest, TypeScript, Next.js build, Go test, Go vet, Go build, audit,
+  migration inspection, artifact inspection, and diff checks completed
+- [ ] Isolated database migration and full code-exchange abuse matrix completed
+- [ ] Approved production canary proves native dashboard, timing, cookie expiry,
+  logout, key overlap, replay denial, rollback, and data preservation

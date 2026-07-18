@@ -39,6 +39,9 @@ for Hermes dashboards:
 - keep existing tenants on their current protected auth until an isolated
   canary proves discovery, callback, full dashboard, expiry, logout, denial,
   key rotation, restart, and rollback.
+- keep broad new-tenant provisioning disabled by default and permit an
+  existing-tenant canary only through an admin-authenticated operation plus an
+  exact tenant allowlist.
 
 The `overnightdesk` repository owns issuer and client lifecycle behavior.
 `overnightdesk-engine` owns non-secret Hermes configuration rendering and
