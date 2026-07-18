@@ -14,6 +14,7 @@ import {
   sendPasswordResetEmail,
 } from "@/lib/email";
 import { isAdmin, isInvitedEmail } from "@/lib/billing";
+import { getBetterAuthUrl } from "@/lib/config";
 import {
   HERMES_JWT_OPTIONS,
   HERMES_OAUTH_PROVIDER_OPTIONS,
@@ -75,7 +76,7 @@ async function requireHermesAuthorization(
 
 export const auth = betterAuth({
   appName: "OvernightDesk",
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: getBetterAuthUrl(),
   secret: process.env.BETTER_AUTH_SECRET,
   disabledPaths: ["/token"],
   trustedOrigins: [

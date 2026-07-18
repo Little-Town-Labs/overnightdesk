@@ -195,6 +195,27 @@ describe("Provisioner Client", () => {
         })
       ).resolves.toEqual({ success: false, error: "Provisioner returned 422" });
     });
+
+    it("rejects a provisioner URL with a hidden path before fetch", async () => {
+      process.env.PROVISIONER_URL = "https://api.overnightdesk.com/n";
+
+      const result = await provisionerClient.configureDashboardAuth({
+        tenantId: "tenant-a",
+        restart: true,
+        dashboardAuth: {
+          provider: "self-hosted",
+          issuer: "https://www.overnightdesk.com/api/auth",
+          clientId: "public-client-id",
+          publicUrl: "https://tenant-a.overnightdesk.com",
+          callbackUrl: "https://tenant-a.overnightdesk.com/auth/callback",
+          scopes: ["openid", "profile", "email"],
+        },
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("PROVISIONER_URL");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 
   describe("getMitchelProspectingSummary()", () => {
