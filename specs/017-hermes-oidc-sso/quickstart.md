@@ -125,9 +125,42 @@ fix it and rerun the affected tests and the gateway.
 - Additive migration, repository diffs, generated artifacts, and changed-file
   secret/protocol-artifact boundaries were inspected; diff checks passed and
   no credential material was found in the feature changes.
-- The code quality gate has no unresolved Critical or Required finding. This
-  approves the guarded branch for isolated database/preview qualification, not
-  OIDC production activation.
+- The initial code quality gate had no unresolved Critical or Required finding
+  and approved the guarded branch to proceed into isolated database/preview
+  qualification, not OIDC production activation.
+
+### Isolated Neon qualification checkpoint — 2026-07-18
+
+With `DATABASE_TEST_URL` loaded from the OvernightDesk Vercel Development
+environment and `DATABASE_URL` retaining its distinct normal endpoint, run:
+
+```bash
+npm run test:hermes-oidc-db
+```
+
+The command refuses a shared production/test URL, creates a uniquely named
+disposable database on the test branch, applies every migration, runs the
+database and provider matrices, and force-drops only that disposable database
+in a `finally` block. It does not print connection URLs or protocol artifacts.
+
+- The configured test endpoint was distinct from the normal application
+  endpoint and accepted read-write disposable-database operations.
+- Migrations `0000` through `0008` applied cleanly.
+- `src/db/__tests__/schema-constraints.test.ts`: 1 suite and all 22 assertions
+  passed, including the 19 database-backed assertions previously skipped.
+- `scripts/qualify-hermes-oidc.ts`: 25 real-provider checks passed, covering
+  one successful S256 code exchange, RS256 signature and claim validation,
+  state echo and nonce binding, 900-second token lifetime, no refresh token,
+  replay/missing/wrong verifier denial, rejected resource indicators,
+  callback/scope/state/nonce/PKCE and non-owner denial, and post-revocation
+  denial.
+- The run exposed and corrected a real integration defect: Better Auth's
+  administrative create-client API requires a privileged authenticated
+  session. Server-side lifecycle provisioning now writes the exact public
+  provider record through Drizzle with a 256-bit random client ID and
+  `disabled=true` atomically before instance linkage.
+- The disposable database was dropped after the successful run. No production
+  database migration or tenant activation occurred.
 
 ## 6. Existing-tenant canary control
 

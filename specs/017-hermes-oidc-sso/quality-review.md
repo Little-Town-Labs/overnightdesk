@@ -4,9 +4,9 @@
 
 **Gateway**: `code-review-and-quality`
 
-**Verdict**: Approve for merge behind disabled rollout controls and isolated
-database/preview qualification. Production OIDC activation remains blocked by
-the explicit canary tasks.
+**Verdict**: Approve for merge behind disabled rollout controls. Isolated
+database and real-provider exchange qualification pass. Production OIDC
+activation remains blocked by the explicit canary tasks.
 
 ## Context and scope
 
@@ -53,6 +53,18 @@ and owned by its existing repository.
 7. **Required — Security: authorization accepted an omitted response type at
    the local policy layer.** The owner policy now requires exact `code` response
    type in addition to exact callback, scopes, state, nonce, and S256 challenge.
+8. **Required — Correctness/Security: Better Auth's administrative client
+   creation API rejected the unauthenticated server-side lifecycle caller.**
+   The isolated real-provider matrix exposed this before rollout. Lifecycle
+   provisioning now persists the exact provider record through Drizzle with a
+   256-bit random client ID, no client secret, and `disabled=true` in the same
+   insert before instance linkage. The reproducible database harness refuses a
+   shared or non-disposable target and drops its unique database in `finally`.
+9. **Required — Security: a failed protocol assertion could have included its
+   unexpected value in qualification output.** Both harness layers now report
+   only an allowlisted stage name and error class. Assertion messages, response
+   bodies, connection URLs, cookies, codes, verifiers, and tokens are never
+   emitted.
 
 All Required findings were corrected and their affected tests rerun. No
 Critical or Required finding remains open.
@@ -68,9 +80,11 @@ Critical or Required finding remains open.
 - Engine validation is exact for issuer, host, callback, client ID and scopes;
   YAML replacement is atomic and restart failure restores the prior config
   without touching tenant data.
-- Full platform and engine automated suites pass. Actual code exchange, cookie
-  behavior and production dashboard navigation remain canary evidence, not
-  assumed results.
+- Full platform and engine automated suites pass. Real authorization-code
+  exchange, RS256 verification, claim/TTL checks, negative protocol cases and
+  revocation pass against an isolated provider database. Hermes cookie behavior
+  and production dashboard navigation remain canary evidence, not assumed
+  results.
 
 ### Readability and simplicity
 
@@ -94,6 +108,10 @@ Critical or Required finding remains open.
 - Public client, S256, RS256, exact issuer/audience/callback, short code/token
   lifetimes, no refresh grant, no dynamic registration, pre-code owner checks,
   and token-time rechecks are enforced.
+- Provider client creation is secretless and disabled atomically before the
+  client identifier can be linked to an instance. The qualification command
+  refuses the normal database name and never prints connection or protocol
+  credentials.
 - The known moderate OAuth resource-indicator advisory is mitigated by rejecting
   `resource` on the token endpoint before exchange. The remaining moderate npm
   findings are confined to the non-production Drizzle CLI toolchain.
@@ -112,7 +130,11 @@ Critical or Required finding remains open.
 
 ## Verification evidence
 
-- Platform: 47 Jest suites passed, 1 skipped; 645 tests passed, 22 skipped.
+- Platform: 47 Jest suites passed, 1 skipped; 645 tests passed, 22 skipped in
+  the database-free full-suite run.
+- Isolated Neon database: migrations `0000` through `0008` applied; all 22
+  schema assertions passed, including 19 database-backed assertions; 25 real
+  OIDC exchange/abuse checks passed; the disposable database was dropped.
 - TypeScript: `npx tsc --noEmit` passed.
 - Next.js: production build passed on 15.5.18 with build-only placeholders; no
   database was contacted.
@@ -120,17 +142,15 @@ Critical or Required finding remains open.
 - Dependencies: MIT licenses verified for the two new auth packages; audit is
   0 critical, 0 high, 5 moderate with the boundaries documented above.
 - Migration/diffs: additive SQL inspected; all three repository diff checks
-  passed. Database-backed migration assertions remain for an isolated database.
+  passed. The tracked qualification command reproduced the isolated migration,
+  provider exchange, and cleanup sequence without retaining secret artifacts.
 
-## Non-merge rollout blockers
+## Remaining rollout blockers
 
 - T026: healthy native dashboard launch timing, 900-second Hermes cookie and
-  logout clearing.
-- T027/T036: isolated full authorization-code exchange and negative replay /
-  verifier matrix.
+  logout clearing. The provider's 900-second token lifetime is now verified.
 - T055: approved production canary, key overlap, rollback timing and tenant-data
   preservation evidence.
 
 The rollout controls keep these missing runtime proofs from becoming customer
-exposure. Rerun this gateway after isolated database/preview work and again
-after the approved production canary.
+exposure. Rerun this gateway after the approved production canary.

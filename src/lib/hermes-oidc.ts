@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { HERMES_OIDC_SCOPES } from "@/lib/hermes-oidc-config";
 
 const HERMES_AUTH_PATH = "/api/auth";
@@ -368,11 +369,38 @@ const defaultLifecycleGateway: HermesOidcLifecycleGateway = {
     return rows[0] ?? null;
   },
   async createClient(payload) {
-    const { auth } = await import("@/lib/auth");
-    const created = await auth.api.adminCreateOAuthClient({ body: payload });
+    const [{ db }, schema] = await Promise.all([
+      import("@/db"),
+      import("@/db/schema"),
+    ]);
+    // Better Auth's admin endpoint still requires a privileged user session.
+    // Persist this fixed server-owned contract without enabling browser CRUD.
+    const clientId = randomBytes(32).toString("base64url");
+    const created = await db
+      .insert(schema.oauthClient)
+      .values({
+        clientId,
+        clientSecret: null,
+        disabled: true,
+        skipConsent: payload.skip_consent,
+        scopes: payload.scope.split(" "),
+        name: payload.client_name,
+        redirectUris: payload.redirect_uris,
+        tokenEndpointAuthMethod: payload.token_endpoint_auth_method,
+        grantTypes: payload.grant_types,
+        responseTypes: payload.response_types,
+        public: true,
+        type: payload.type,
+        requirePKCE: payload.require_pkce,
+        metadata: payload.metadata,
+      })
+      .returning({ clientId: schema.oauthClient.clientId });
+    if (created.length !== 1) {
+      throw new Error("Hermes dashboard client is unavailable");
+    }
     return {
-      clientId: created.client_id,
-      clientSecret: created.client_secret,
+      clientId: created[0].clientId,
+      clientSecret: null,
     };
   },
   async linkPending(instanceId, clientId) {

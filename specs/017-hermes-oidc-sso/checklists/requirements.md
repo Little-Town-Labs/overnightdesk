@@ -53,6 +53,6 @@
   metadata-only and redaction-tested
 - [x] Full Jest, TypeScript, Next.js build, Go test, Go vet, Go build, audit,
   migration inspection, artifact inspection, and diff checks completed
-- [ ] Isolated database migration and full code-exchange abuse matrix completed
+- [x] Isolated database migration and full code-exchange abuse matrix completed
 - [ ] Approved production canary proves native dashboard, timing, cookie expiry,
   logout, key overlap, replay denial, rollback, and data preservation

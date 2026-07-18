@@ -98,7 +98,7 @@ tokens, Hermes sessions, or tenant content.
 
 ### Tests for User Story 2
 
-- [ ] T027 [P] [US2] Add failing authorization and exchange tests for non-owner, unverified owner, wrong client link, non-running instance, inactive linkage, disabled client, malformed metadata, callback/scope escalation, altered or missing state/nonce, replayed code, missing or mismatched verifier, and non-S256 PKCE in src/lib/__tests__/hermes-oidc-authorization.test.ts and src/lib/__tests__/hermes-oidc-protocol.test.ts
+- [x] T027 [P] [US2] Add failing authorization and exchange tests for non-owner, unverified owner, wrong client link, non-running instance, inactive linkage, disabled client, malformed metadata, callback/scope escalation, altered or missing state/nonce, replayed code, missing or mismatched verifier, and non-S256 PKCE in src/lib/__tests__/hermes-oidc-authorization.test.ts and scripts/qualify-hermes-oidc.ts
 - [x] T028 [P] [US2] Add failing token-time tests for ownership or lifecycle changes between code issuance and ID-token creation in src/lib/__tests__/hermes-oidc-token.test.ts
 - [x] T029 [P] [US2] Add failing route tests proving wrong-host and copied-link requests remain denied by src/app/api/auth/verify-tenant/__tests__/route.test.ts
 - [x] T030 [P] [US2] Add failing tests for redaction of state, nonce, code, verifier, tokens, cookies, email, and private keys in src/lib/__tests__/hermes-oidc-audit.test.ts
@@ -110,7 +110,7 @@ tokens, Hermes sessions, or tenant content.
 - [x] T033 [US2] Keep client CRUD and dynamic registration unavailable to browser users and add safe OAuth denial mapping in src/lib/auth.ts
 - [x] T034 [US2] Add redacted dashboard authorization event categories and fingerprints through src/lib/hermes-oidc-audit.ts and the existing platformAuditLog schema
 - [x] T035 [US2] Preserve exact tenant-host ownership verification and generic denial responses in src/app/api/auth/verify-tenant/route.ts
-- [ ] T036 [US2] Run the complete negative authorization matrix and inspect test/log output for prohibited protocol artifacts using specs/017-hermes-oidc-sso/quickstart.md
+- [x] T036 [US2] Run the complete negative authorization matrix and inspect test/log output for prohibited protocol artifacts using specs/017-hermes-oidc-sso/quickstart.md
 
 **Checkpoint**: User Stories 1 and 2 both pass; no invalid test case can mint a
 usable Hermes identity token.
