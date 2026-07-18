@@ -1,8 +1,18 @@
+export interface DashboardAuthParams {
+  provider: "self-hosted";
+  issuer: string;
+  clientId: string;
+  publicUrl: string;
+  callbackUrl: string;
+  scopes: readonly ["openid", "profile", "email"];
+}
+
 interface ProvisionParams {
   tenantId: string;
   subdomain: string;
   plan: "starter" | "pro";
   callbackUrl: string;
+  dashboardAuth: DashboardAuthParams;
 }
 
 export interface HermesMessage {

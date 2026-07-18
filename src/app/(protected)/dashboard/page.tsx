@@ -80,7 +80,10 @@ export default async function DashboardPage() {
   // ─── Hermes running: hero-first layout ──────────────────────────────────────
   if (hermesAgent && isRunning && inst) {
     const hermesDashboardUrl = inst.subdomain
-      ? getHermesDashboardUrl(inst.subdomain)
+      ? getHermesDashboardUrl(inst.subdomain, {
+          authStatus: inst.hermesDashboardAuthStatus,
+          clientId: inst.hermesOidcClientId,
+        })
       : null;
 
     return (

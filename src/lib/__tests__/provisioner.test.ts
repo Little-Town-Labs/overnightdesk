@@ -26,6 +26,14 @@ describe("Provisioner Client", () => {
       subdomain: "a1b2c3d4e5f6.overnightdesk.com",
       plan: "starter" as const,
       callbackUrl: "https://overnightdesk.com/api/provisioner/callback",
+      dashboardAuth: {
+        provider: "self-hosted" as const,
+        issuer: "https://www.overnightdesk.com/api/auth",
+        clientId: "public-client-id",
+        publicUrl: "https://a1b2c3d4e5f6.overnightdesk.com",
+        callbackUrl: "https://a1b2c3d4e5f6.overnightdesk.com/auth/callback",
+        scopes: ["openid", "profile", "email"] as const,
+      },
     };
 
     it("sends tenantId, subdomain, plan, and callbackUrl in body", async () => {
@@ -38,6 +46,7 @@ describe("Provisioner Client", () => {
       expect(body.subdomain).toBe("a1b2c3d4e5f6.overnightdesk.com");
       expect(body.plan).toBe("starter");
       expect(body.callbackUrl).toBe("https://overnightdesk.com/api/provisioner/callback");
+      expect(body.dashboardAuth).toEqual(validParams.dashboardAuth);
     });
 
     it("does NOT send gatewayPort or dashboardTokenHash", async () => {
@@ -48,6 +57,7 @@ describe("Provisioner Client", () => {
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.gatewayPort).toBeUndefined();
       expect(body.dashboardTokenHash).toBeUndefined();
+      expect(body.dashboardAuth.clientSecret).toBeUndefined();
     });
 
     it("sends Bearer auth header", async () => {

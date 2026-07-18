@@ -65,21 +65,21 @@ credential prompt.
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Add failing unit tests for canonical issuer, exact callback, public-client payload, and root-versus-fallback launch URL in src/lib/__tests__/hermes-oidc.test.ts and src/lib/__tests__/hermes-dashboard.test.ts
+- [x] T014 [P] [US1] Add failing unit tests for canonical issuer, exact callback, public-client payload, and root-versus-fallback launch URL in src/lib/__tests__/hermes-oidc.test.ts and src/lib/__tests__/hermes-dashboard.test.ts
 - [ ] T015 [P] [US1] Add failing sign-in continuation tests for authenticated, unauthenticated, and expired signed OAuth queries in src/app/(auth)/sign-in/__tests__/page.test.tsx
-- [ ] T016 [P] [US1] Add failing provisioner contract tests for the non-secret `dashboardAuth` request in src/lib/__tests__/provisioner.test.ts
-- [ ] T017 [P] [US1] Add failing Go tests for strict dashboard-auth payload validation and atomic Hermes YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc_test.go
-- [ ] T018 [P] [US1] Add a failing Go test proving generated startup omits `--insecure` and retains `--host 0.0.0.0 --port 9119 --no-open` in ../overnightdesk-engine/internal/hermes/provisioner_test.go
+- [x] T016 [P] [US1] Add failing provisioner contract tests for the non-secret `dashboardAuth` request in src/lib/__tests__/provisioner.test.ts
+- [x] T017 [P] [US1] Add failing Go tests for strict dashboard-auth payload validation and atomic Hermes YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc_test.go
+- [x] T018 [P] [US1] Add a failing Go test proving generated startup omits `--insecure` and retains `--host 0.0.0.0 --port 9119 --no-open` in ../overnightdesk-engine/internal/hermes/provisioner_test.go
 
 ### Implementation for User Story 1
 
-- [ ] T019 [US1] Implement canonical issuer/callback builders plus idempotent server-only ensure and activate primitives for public clients in src/lib/hermes-oidc.ts
+- [x] T019 [US1] Implement canonical issuer/callback builders plus idempotent server-only ensure and activate primitives for public clients in src/lib/hermes-oidc.ts
 - [ ] T020 [US1] Preserve the signed OAuth continuation and safe callback destination through email/password login in src/app/(auth)/sign-in/page.tsx
-- [ ] T021 [US1] Ensure the instance client before extending the typed platform-to-provisioner request with `dashboardAuth` in src/lib/provisioner.ts and src/app/api/wizard/complete/route.ts
-- [ ] T022 [US1] Implement bounded URL, issuer, callback, client-ID, and scope validation plus atomic YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc.go
-- [ ] T023 [US1] Extend the engine provision request and apply dashboard OIDC before container start in ../overnightdesk-engine/internal/hermes/provisioner.go
-- [ ] T024 [US1] Remove insecure dashboard startup while retaining the authenticated bind and forwarded public URL behavior in ../overnightdesk-engine/internal/hermes/provisioner.go
-- [ ] T025 [US1] Return the tenant root only for active OIDC linkage and retain the protected `/login` fallback otherwise in src/lib/hermes-dashboard.ts and src/app/(protected)/dashboard/page.tsx
+- [x] T021 [US1] Ensure the instance client before extending the typed platform-to-provisioner request with `dashboardAuth` in src/lib/provisioner.ts and src/app/api/wizard/complete/route.ts
+- [x] T022 [US1] Implement bounded URL, issuer, callback, client-ID, and scope validation plus atomic YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc.go
+- [x] T023 [US1] Extend the engine provision request and apply dashboard OIDC before container start in ../overnightdesk-engine/internal/hermes/provisioner.go
+- [x] T024 [US1] Remove insecure dashboard startup while retaining the authenticated bind and forwarded public URL behavior in ../overnightdesk-engine/internal/hermes/provisioner.go
+- [x] T025 [US1] Return the tenant root only for active OIDC linkage and retain the protected `/login` fallback otherwise in src/lib/hermes-dashboard.ts and src/app/(protected)/dashboard/page.tsx
 - [ ] T026 [US1] Run the US1 Jest and Go targets, measure a healthy launch under 10 seconds, prove the 900-second Hermes cookie lifetime, and prove Hermes logout clears dashboard-auth cookies against specs/017-hermes-oidc-sso/contracts/oidc-provider.md
 
 **Checkpoint**: The owner-only happy path can establish a native Hermes session
