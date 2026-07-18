@@ -66,7 +66,7 @@ credential prompt.
 ### Tests for User Story 1
 
 - [x] T014 [P] [US1] Add failing unit tests for canonical issuer, exact callback, public-client payload, and root-versus-fallback launch URL in src/lib/__tests__/hermes-oidc.test.ts and src/lib/__tests__/hermes-dashboard.test.ts
-- [ ] T015 [P] [US1] Add failing sign-in continuation tests for authenticated, unauthenticated, and expired signed OAuth queries in src/app/(auth)/sign-in/__tests__/page.test.tsx
+- [x] T015 [P] [US1] Add failing sign-in continuation tests for authenticated, unauthenticated, and expired signed OAuth queries in src/app/(auth)/sign-in/__tests__/page.test.tsx
 - [x] T016 [P] [US1] Add failing provisioner contract tests for the non-secret `dashboardAuth` request in src/lib/__tests__/provisioner.test.ts
 - [x] T017 [P] [US1] Add failing Go tests for strict dashboard-auth payload validation and atomic Hermes YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc_test.go
 - [x] T018 [P] [US1] Add a failing Go test proving generated startup omits `--insecure` and retains `--host 0.0.0.0 --port 9119 --no-open` in ../overnightdesk-engine/internal/hermes/provisioner_test.go
@@ -74,7 +74,7 @@ credential prompt.
 ### Implementation for User Story 1
 
 - [x] T019 [US1] Implement canonical issuer/callback builders plus idempotent server-only ensure and activate primitives for public clients in src/lib/hermes-oidc.ts
-- [ ] T020 [US1] Preserve the signed OAuth continuation and safe callback destination through email/password login in src/app/(auth)/sign-in/page.tsx
+- [x] T020 [US1] Preserve the signed OAuth continuation and safe callback destination through email/password login in src/app/(auth)/sign-in/page.tsx
 - [x] T021 [US1] Ensure the instance client before extending the typed platform-to-provisioner request with `dashboardAuth` in src/lib/provisioner.ts and src/app/api/wizard/complete/route.ts
 - [x] T022 [US1] Implement bounded URL, issuer, callback, client-ID, and scope validation plus atomic YAML merge in ../overnightdesk-engine/internal/hermes/dashboard_oidc.go
 - [x] T023 [US1] Extend the engine provision request and apply dashboard OIDC before container start in ../overnightdesk-engine/internal/hermes/provisioner.go
@@ -99,15 +99,15 @@ tokens, Hermes sessions, or tenant content.
 ### Tests for User Story 2
 
 - [ ] T027 [P] [US2] Add failing authorization and exchange tests for non-owner, unverified owner, wrong client link, non-running instance, inactive linkage, disabled client, malformed metadata, callback/scope escalation, altered or missing state/nonce, replayed code, missing or mismatched verifier, and non-S256 PKCE in src/lib/__tests__/hermes-oidc-authorization.test.ts and src/lib/__tests__/hermes-oidc-protocol.test.ts
-- [ ] T028 [P] [US2] Add failing token-time tests for ownership or lifecycle changes between code issuance and ID-token creation in src/lib/__tests__/hermes-oidc-token.test.ts
+- [x] T028 [P] [US2] Add failing token-time tests for ownership or lifecycle changes between code issuance and ID-token creation in src/lib/__tests__/hermes-oidc-token.test.ts
 - [ ] T029 [P] [US2] Add failing route tests proving wrong-host and copied-link requests remain denied by src/app/api/auth/verify-tenant/__tests__/route.test.ts
 - [ ] T030 [P] [US2] Add failing tests for redaction of state, nonce, code, verifier, tokens, cookies, email, and private keys in src/lib/__tests__/hermes-oidc-audit.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] Implement signed provider-state client resolution and canonical pre-code owner authorization in src/lib/hermes-oidc.ts
-- [ ] T032 [US2] Add the token-time canonical owner/lifecycle check and minimum standard claims in src/lib/hermes-oidc.ts and src/lib/auth.ts
-- [ ] T033 [US2] Keep client CRUD and dynamic registration unavailable to browser users and add safe OAuth denial mapping in src/lib/auth.ts
+- [x] T031 [US2] Implement signed provider-state client resolution and canonical pre-code owner authorization in src/lib/hermes-oidc.ts
+- [x] T032 [US2] Add the token-time canonical owner/lifecycle check and minimum standard claims in src/lib/hermes-oidc.ts and src/lib/auth.ts
+- [x] T033 [US2] Keep client CRUD and dynamic registration unavailable to browser users and add safe OAuth denial mapping in src/lib/auth.ts
 - [ ] T034 [US2] Add redacted dashboard authorization event categories and fingerprints through src/lib/hermes-oidc-audit.ts and the existing platformAuditLog schema
 - [ ] T035 [US2] Preserve exact tenant-host ownership verification and generic denial responses in src/app/api/auth/verify-tenant/route.ts
 - [ ] T036 [US2] Run the complete negative authorization matrix and inspect test/log output for prohibited protocol artifacts using specs/017-hermes-oidc-sso/quickstart.md

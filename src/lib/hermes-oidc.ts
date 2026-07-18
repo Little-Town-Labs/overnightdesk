@@ -35,6 +35,24 @@ export interface HermesOidcInstanceRecord {
   hermesOidcClientId: string | null;
 }
 
+export interface HermesOidcAuthorizationContext {
+  instanceId: string;
+  instanceUserId: string;
+  instanceSubdomain: string;
+  instanceStatus: string;
+  dashboardAuthStatus: string;
+  linkedClientId: string | null;
+  client: HermesOidcClientRecord;
+}
+
+export interface HermesOidcAuthorizationGateway {
+  findByClientId(clientId: string): Promise<HermesOidcAuthorizationContext | null>;
+}
+
+export interface HermesOidcTokenGateway {
+  findByInstanceId(instanceId: string): Promise<HermesOidcAuthorizationContext | null>;
+}
+
 export interface HermesOidcLifecycleGateway {
   findInstance(instanceId: string): Promise<HermesOidcInstanceRecord | null>;
   findClient(clientId: string): Promise<HermesOidcClientRecord | null>;
@@ -149,6 +167,153 @@ function hasExactClientContract(
     client.metadata?.schemaVersion === expected.metadata.schemaVersion &&
     client.metadata?.instanceId === expected.metadata.instanceId
   );
+}
+
+function isActiveAuthorizationContext(
+  context: HermesOidcAuthorizationContext,
+  user: { id: string; emailVerified: boolean },
+  scopes: string[]
+): boolean {
+  const allowedScopes = new Set<string>(HERMES_OIDC_SCOPES);
+  return (
+    user.emailVerified &&
+    context.instanceUserId === user.id &&
+    context.instanceStatus === "running" &&
+    context.dashboardAuthStatus === "active" &&
+    context.linkedClientId === context.client.clientId &&
+    !context.client.disabled &&
+    scopes.length > 0 &&
+    scopes.includes("openid") &&
+    new Set(scopes).size === scopes.length &&
+    scopes.every((scope) => allowedScopes.has(scope)) &&
+    hasExactClientContract(context.client, {
+      instanceId: context.instanceId,
+      subdomain: context.instanceSubdomain,
+    })
+  );
+}
+
+async function selectAuthorizationContext(
+  by: "client" | "instance",
+  value: string
+): Promise<HermesOidcAuthorizationContext | null> {
+  const [{ db }, schema, { eq }] = await Promise.all([
+    import("@/db"),
+    import("@/db/schema"),
+    import("drizzle-orm"),
+  ]);
+  const rows = await db
+    .select({
+      instanceId: schema.instance.id,
+      instanceUserId: schema.instance.userId,
+      instanceSubdomain: schema.instance.subdomain,
+      instanceStatus: schema.instance.status,
+      dashboardAuthStatus: schema.instance.hermesDashboardAuthStatus,
+      linkedClientId: schema.instance.hermesOidcClientId,
+      client: {
+        clientId: schema.oauthClient.clientId,
+        clientSecret: schema.oauthClient.clientSecret,
+        disabled: schema.oauthClient.disabled,
+        redirectUris: schema.oauthClient.redirectUris,
+        scopes: schema.oauthClient.scopes,
+        tokenEndpointAuthMethod: schema.oauthClient.tokenEndpointAuthMethod,
+        grantTypes: schema.oauthClient.grantTypes,
+        responseTypes: schema.oauthClient.responseTypes,
+        public: schema.oauthClient.public,
+        type: schema.oauthClient.type,
+        requirePKCE: schema.oauthClient.requirePKCE,
+        skipConsent: schema.oauthClient.skipConsent,
+        metadata: schema.oauthClient.metadata,
+      },
+    })
+    .from(schema.instance)
+    .innerJoin(
+      schema.oauthClient,
+      eq(schema.instance.hermesOidcClientId, schema.oauthClient.clientId)
+    )
+    .where(
+      by === "client"
+        ? eq(schema.oauthClient.clientId, value)
+        : eq(schema.instance.id, value)
+    )
+    .limit(1);
+
+  const row = rows[0];
+  if (!row?.instanceSubdomain) return null;
+  return row as HermesOidcAuthorizationContext;
+}
+
+const defaultAuthorizationGateway: HermesOidcAuthorizationGateway = {
+  findByClientId: (clientId) => selectAuthorizationContext("client", clientId),
+};
+
+const defaultTokenGateway: HermesOidcTokenGateway = {
+  findByInstanceId: (instanceId) =>
+    selectAuthorizationContext("instance", instanceId),
+};
+
+function denyAuthorization(): never {
+  throw new Error("Hermes dashboard authorization denied");
+}
+
+export async function authorizeHermesOidcOwner(
+  input: {
+    user: { id: string; emailVerified: boolean };
+    scopes: string[];
+    query: string;
+  },
+  gateway: HermesOidcAuthorizationGateway = defaultAuthorizationGateway
+): Promise<string> {
+  const query = new URLSearchParams(input.query);
+  const clientId = query.get("client_id");
+  if (!clientId) denyAuthorization();
+
+  const context = await gateway.findByClientId(clientId);
+  const queryScopes = (query.get("scope") ?? "").split(" ").filter(Boolean);
+  const state = query.get("state") ?? "";
+  const nonce = query.get("nonce") ?? "";
+  const challenge = query.get("code_challenge") ?? "";
+
+  if (
+    !context ||
+    !isActiveAuthorizationContext(context, input.user, input.scopes) ||
+    query.get("response_type") !== "code" && query.has("response_type") ||
+    query.get("redirect_uri") !== getHermesOidcCallbackUrl(context.instanceSubdomain) ||
+    queryScopes.join(" ") !== input.scopes.join(" ") ||
+    state.length === 0 ||
+    state.length > 512 ||
+    nonce.length === 0 ||
+    nonce.length > 512 ||
+    query.get("code_challenge_method") !== "S256" ||
+    !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)
+  ) {
+    denyAuthorization();
+  }
+
+  return context.instanceId;
+}
+
+export async function authorizeHermesOidcToken(
+  input: {
+    user: { id: string; emailVerified: boolean };
+    scopes: string[];
+    metadata?: Record<string, unknown>;
+  },
+  gateway: HermesOidcTokenGateway = defaultTokenGateway
+): Promise<Record<string, never>> {
+  const instanceId =
+    input.metadata?.kind === "hermes-dashboard" &&
+    input.metadata?.schemaVersion === 1 &&
+    typeof input.metadata?.instanceId === "string"
+      ? input.metadata.instanceId
+      : null;
+  if (!instanceId) denyAuthorization();
+
+  const context = await gateway.findByInstanceId(instanceId);
+  if (!context || !isActiveAuthorizationContext(context, input.user, input.scopes)) {
+    denyAuthorization();
+  }
+  return {};
 }
 
 async function requireCanonicalInstance(

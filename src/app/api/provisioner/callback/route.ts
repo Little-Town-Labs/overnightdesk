@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { updateInstanceStatus } from "@/lib/instance";
 import { sendProvisioningEmail } from "@/lib/email";
 import { getAppUrl } from "@/lib/config";
+import { activateHermesOidcClient } from "@/lib/hermes-oidc";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,27 @@ export async function POST(request: NextRequest) {
   const extraFields: Record<string, unknown> = {};
   if (containerId) extraFields.containerId = containerId;
   if (phaseServiceToken) extraFields.phaseServiceToken = phaseServiceToken;
+
+  if (status === "running" && inst.hermesOidcClientId) {
+    if (!inst.subdomain) {
+      return NextResponse.json(
+        { success: false, error: "Dashboard authentication is unavailable" },
+        { status: 503 }
+      );
+    }
+    try {
+      await activateHermesOidcClient({
+        instanceId: inst.id,
+        ownerId: inst.userId,
+        subdomain: inst.subdomain,
+      });
+    } catch {
+      return NextResponse.json(
+        { success: false, error: "Dashboard authentication is unavailable" },
+        { status: 503 }
+      );
+    }
+  }
 
   await updateInstanceStatus(tenantId, status, details, extraFields);
 

@@ -3,7 +3,10 @@ import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { jwt } from "better-auth/plugins";
-import { oauthProvider } from "@better-auth/oauth-provider";
+import {
+  getOAuthProviderState,
+  oauthProvider,
+} from "@better-auth/oauth-provider";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import {
@@ -15,6 +18,26 @@ import {
   HERMES_JWT_OPTIONS,
   HERMES_OAUTH_PROVIDER_OPTIONS,
 } from "@/lib/hermes-oidc-config";
+import {
+  authorizeHermesOidcOwner,
+  authorizeHermesOidcToken,
+} from "@/lib/hermes-oidc";
+
+async function requireHermesAuthorization(
+  user: { id: string; emailVerified: boolean },
+  scopes: string[]
+): Promise<string> {
+  try {
+    const state = await getOAuthProviderState();
+    if (!state?.query) throw new Error("missing provider state");
+    return await authorizeHermesOidcOwner({ user, scopes, query: state.query });
+  } catch {
+    throw new APIError("FORBIDDEN", {
+      error: "access_denied",
+      error_description: "Access denied",
+    });
+  }
+}
 
 export const auth = betterAuth({
   appName: "OvernightDesk",
@@ -108,7 +131,28 @@ export const auth = betterAuth({
 
   plugins: [
     jwt(HERMES_JWT_OPTIONS),
-    oauthProvider(HERMES_OAUTH_PROVIDER_OPTIONS),
+    oauthProvider({
+      ...HERMES_OAUTH_PROVIDER_OPTIONS,
+      postLogin: {
+        page: "/sign-in",
+        shouldRedirect: async ({ user, scopes }) => {
+          await requireHermesAuthorization(user, scopes);
+          return false;
+        },
+        consentReferenceId: ({ user, scopes }) =>
+          requireHermesAuthorization(user, scopes),
+      },
+      customIdTokenClaims: async ({ user, scopes, metadata }) => {
+        try {
+          return await authorizeHermesOidcToken({ user, scopes, metadata });
+        } catch {
+          throw new APIError("FORBIDDEN", {
+            error: "access_denied",
+            error_description: "Access denied",
+          });
+        }
+      },
+    }),
     nextCookies(),
   ],
 });
