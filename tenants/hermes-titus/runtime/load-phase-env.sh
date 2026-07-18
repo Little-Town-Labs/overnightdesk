@@ -5,7 +5,7 @@ phase_bin=${PHASE_BIN:-/usr/bin/phase}
 token_file=${PHASE_TOKEN_FILE:-/opt/control-tower/secrets/phase-service-token}
 runtime_dir=${TITUS_RUNTIME_DIR:-/run/hermes-titus}
 output_file=${TITUS_RUNTIME_ENV:-/run/hermes-titus/runtime.env}
-phase_app=${TITUS_PHASE_APP:-azure-ops}
+phase_app=${TITUS_PHASE_APP:-timeless-tech-solutions}
 phase_env=${TITUS_PHASE_ENVIRONMENT:-production}
 
 die() {
