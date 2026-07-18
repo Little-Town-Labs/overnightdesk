@@ -49,6 +49,8 @@ grep -Fq 'rotate-github' "$migration_script"
 grep -Fq 'docker rename "$old_name" "$github_rotation_backup"' "$migration_script"
 grep -Fq -- '--env-file "$runtime_env_file"' "$migration_script"
 grep -Fq '.credential_pool.copilot' "$migration_script"
+grep -Fq 'oauth_token_count=' "$migration_script"
+grep -Fq '${line%%oauth_token:*}' "$migration_script"
 ! grep -R -Eq -- '--publish|-p [0-9]' runtime scripts
 
 for route in titus agent walter mitchel; do

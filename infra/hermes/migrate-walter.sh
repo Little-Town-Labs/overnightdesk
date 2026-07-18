@@ -144,6 +144,7 @@ rotate_github() {
   local volume_root hosts_file auth_file hosts_old auth_old hosts_new auth_new
   local replacement old_gh old_github image user workdir entrypoint network restart memory nano_cpus cpus revision
   local hosts_mode hosts_uid hosts_gid auth_mode auth_uid auth_gid
+  local oauth_token_count oauth_tokens_seen token_value prefix
   local created=false renamed=false success=false repo code
   temp_dir=$(mktemp -d /tmp/hermes-github-rotation.XXXXXX)
   chmod 0700 "$temp_dir"
@@ -199,6 +200,7 @@ rotate_github() {
   old_gh=$(awk -F= '$1=="GH_TOKEN" {sub(/^[^=]*=/, ""); print; exit}' "$current_env")
   old_github=$(awk -F= '$1=="GITHUB_TOKEN" {sub(/^[^=]*=/, ""); print; exit}' "$current_env")
   test -n "$old_gh" && test "$old_gh" = "$old_github" && test "$replacement" != "$old_gh"
+  printf 'github_rotation_stage=credential-shape status=pass\n'
   test "$(curl --silent --show-error --config "$curl_config" --output "$key_response" \
     --write-out '%{http_code}' https://api.github.com/user)" = 200
   for repo in "${github_repositories[@]}"; do
@@ -207,6 +209,8 @@ rotate_github() {
       "https://api.github.com/repos/Little-Town-Labs/$repo")
     test "$code" = 200 || { printf 'staged token cannot access %s\n' "$repo" >&2; return 1; }
   done
+  printf 'github_rotation_stage=staged-token-access status=pass repositories=%s\n' \
+    "${#github_repositories[@]}"
 
   local seen_gh=false seen_github=false line
   while IFS= read -r line || test -n "$line"; do
@@ -219,18 +223,34 @@ rotate_github() {
   test "$seen_gh" = true && test "$seen_github" = true
   install -m 0600 "$hosts_file" "$hosts_old"
   install -m 0600 "$auth_file" "$auth_old"
+  oauth_token_count=$(grep -c '^[[:space:]]*oauth_token:' "$hosts_file")
+  test "$oauth_token_count" -gt 0
+  while IFS= read -r token_value; do
+    test "$token_value" = "$old_gh" || {
+      printf 'GitHub CLI token entries do not match the active runtime credential\n' >&2
+      return 1
+    }
+  done < <(awk '$1=="oauth_token:" {print $2}' "$hosts_file")
+  oauth_tokens_seen=0
   while IFS= read -r line || test -n "$line"; do
     case "$line" in
-      *oauth_token:*) printf '    oauth_token: %s\n' "$replacement" ;;
+      *oauth_token:*)
+        prefix=${line%%oauth_token:*}
+        printf '%soauth_token: %s\n' "$prefix" "$replacement"
+        oauth_tokens_seen=$((oauth_tokens_seen + 1))
+        ;;
       *) printf '%s\n' "$line" ;;
     esac
   done <"$hosts_file" >"$hosts_new"
-  test "$(grep -c '^[[:space:]]*oauth_token:' "$hosts_new")" = 1
+  test "$oauth_tokens_seen" -eq "$oauth_token_count"
+  test "$(grep -c '^[[:space:]]*oauth_token:' "$hosts_new")" -eq "$oauth_token_count"
   jq --slurpfile phase "$phase_json" --arg key "$github_token_key" '
     .credential_pool.copilot |= map(.access_token = $phase[0][$key])
   ' "$auth_file" >"$auth_new"
   jq empty "$auth_new"
   test "$(jq '.credential_pool.copilot | length' "$auth_new")" -gt 0
+  printf 'github_rotation_stage=auth-transform status=pass gh_entries=%s\n' \
+    "$oauth_token_count"
 
   image=$(docker inspect -f '{{.Config.Image}}' "$old_name")
   user=$(docker inspect -f '{{.Config.User}}' "$old_name")
@@ -256,6 +276,7 @@ rotate_github() {
   install -o "$auth_uid" -g "$auth_gid" -m "$auth_mode" "$auth_new" "$auth_file"
   test "$(runtime_contract "$old_name" | sha256sum | cut -d' ' -f1)" = \
     "$(runtime_contract "$github_rotation_backup" | sha256sum | cut -d' ' -f1)"
+  printf 'github_rotation_stage=runtime-contract status=pass\n'
   docker start "$old_name" >/dev/null
   wait_for_running "$old_name"
   wait_for_public_status
@@ -266,6 +287,7 @@ rotate_github() {
   docker exec "$old_name" gh issue list --repo Little-Town-Labs/overnightdesk --limit 1 >/dev/null
   docker exec "$old_name" gh pr list --repo Little-Town-Labs/overnightdesk --limit 1 >/dev/null
   docker exec "$old_name" gh run list --repo Little-Town-Labs/overnightdesk --limit 1 >/dev/null
+  printf 'github_rotation_stage=runtime-verification status=pass\n'
   test "$(docker inspect -f '{{.State.Running}}' "$github_rotation_backup")" = false
   success=true
   cleanup_rotation
