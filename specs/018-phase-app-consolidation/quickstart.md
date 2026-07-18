@@ -9,6 +9,24 @@
    values.
 5. Confirm each consumer service account can export every target path.
 
+## Current access gate
+
+The live service-account inventory is:
+
+- `azure-ops` (`c2e504a1-37c9-43c4-a397-6a46684d9383`) has Azure Ops
+  Production only and owns the `control-tower` token used by Titus and intake.
+- `platform-cli-cloud` (`9fc6e9c1-fe51-4bf6-b5c4-bcf5d8b7a366`) has
+  Infrastructure Production only and owns the email-fetch token.
+- `AgentZero` (`fd6c52d5-249d-4035-bc2d-ba1e85ccedda`) has OvernightDesk
+  Production and owns the existing platform tokens.
+
+The existing service token can read service-account metadata but received HTTP
+403 when it attempted a declarative access update. An Owner/Admin Phase Console
+session or PAT must add OvernightDesk Production to the first two accounts
+while retaining their current grants. No production restart is allowed until
+both installed tokens complete value-suppressed exports from their target
+paths.
+
 ## Source qualification
 
 ```bash

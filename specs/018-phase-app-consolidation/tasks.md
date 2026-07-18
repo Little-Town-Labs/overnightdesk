@@ -25,8 +25,8 @@ fail before their associated loader or script changes are implemented.
 - [x] T004 Copy and fingerprint-verify the 14-entry Agent and Mitchel intake paths at their OvernightDesk destinations
 - [ ] T005 Verify target App and Production Environment grants for the email-fetch and intake service-account identities and record value-suppressed evidence in `specs/018-phase-app-consolidation/quickstart.md`
 
-**Checkpoint**: All target values exist and every target consumer identity can
-read its required path before source code or live selectors change.
+**Checkpoint**: All target values exist. Target-app grants remain an activation
+gate; source and test preparation may continue while the admin grant is pending.
 
 ---
 
@@ -39,12 +39,12 @@ one-shot live run completes while `Infrastructure:/` remains readable.
 
 ### Tests for User Story 1
 
-- [ ] T006 [US1] Add a failing contract assertion for the email-fetch app, environment, and path in `scripts/qualify-phase-app-consolidation.sh`
+- [x] T006 [US1] Add a failing contract assertion for the email-fetch app, environment, and path in `scripts/qualify-phase-app-consolidation.sh`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Add the source-owned `overnightdesk:/email-fetch` runner in `scripts/run-email-fetch.sh`
-- [ ] T008 [US1] Qualify the email-fetch selector with `scripts/qualify-phase-app-consolidation.sh` and `git diff --check`
+- [x] T007 [US1] Add the source-owned `overnightdesk:/email-fetch` runner in `scripts/run-email-fetch.sh`
+- [x] T008 [US1] Qualify the email-fetch selector with `scripts/qualify-phase-app-consolidation.sh` and `git diff --check`
 - [ ] T009 [US1] Back up and activate `/opt/overnightdesk/run-email-fetch.sh`, run one live fetch, and verify the completion event without emitting injected values
 
 **Checkpoint**: Email-fetch runs only from the target path and has an explicit
@@ -61,14 +61,14 @@ three live services load their exact 14-key payload and remain healthy.
 
 ### Tests for User Story 2
 
-- [ ] T010 [US2] Add failing Titus default and intake route-matrix assertions in `tenants/hermes-titus/scripts/qualify.sh` and `tenants/hermes-titus/email-poller/scripts/qualify.sh`
+- [x] T010 [US2] Add failing Titus default and intake route-matrix assertions in `tenants/hermes-titus/scripts/qualify.sh` and `tenants/hermes-titus/email-poller/scripts/qualify.sh`
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Default Titus to `timeless-tech-solutions` in `tenants/hermes-titus/runtime/load-phase-env.sh`
-- [ ] T012 [US2] Implement route-aware defaults and override behavior in `tenants/hermes-titus/email-poller/runtime/load-phase-config.sh`
-- [ ] T013 [US2] Make polling-state updates use the same route-to-app matrix in `tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh`
-- [ ] T014 [US2] Run both Titus qualification suites and confirm the new assertions pass
+- [x] T011 [US2] Default Titus to `timeless-tech-solutions` in `tenants/hermes-titus/runtime/load-phase-env.sh`
+- [x] T012 [US2] Implement route-aware defaults and override behavior in `tenants/hermes-titus/email-poller/runtime/load-phase-config.sh`
+- [x] T013 [US2] Make polling-state updates use the same route-to-app matrix in `tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh`
+- [x] T014 [US2] Run both Titus qualification suites and confirm the new assertions pass
 
 **Checkpoint**: Source and tests agree on every route before deployment.
 
@@ -98,7 +98,7 @@ remains intact and deletion is still out of scope.
 ## Dependencies & Execution Order
 
 - Setup and completed copy preparation precede every consumer change.
-- T005 blocks every production restart.
+- T005 blocks every production restart, but not source-only preparation.
 - T006 must fail before T007; T010 must fail before T011-T013.
 - T007-T009 and T011-T014 are independently reviewable, but T015-T016 form one
   coordinated rename/deploy window.
