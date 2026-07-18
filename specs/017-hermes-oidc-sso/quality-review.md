@@ -4,9 +4,10 @@
 
 **Gateway**: `code-review-and-quality`
 
-**Verdict**: Approve for merge behind disabled rollout controls. Isolated
-database and real-provider exchange qualification pass. Production OIDC
-activation remains blocked by the explicit canary tasks.
+**Verdict**: Approved and verified live for the exact `tenant-0` canary.
+Broad rollout remains disabled. Isolated provider qualification, production
+browser qualification, rollback, reactivation, and data-preservation checks
+pass.
 
 ## Context and scope
 
@@ -52,7 +53,9 @@ and owned by its existing repository.
    recovery state and never constructs an unsafe launch URL.
 7. **Required — Security: authorization accepted an omitted response type at
    the local policy layer.** The owner policy now requires exact `code` response
-   type in addition to exact callback, scopes, state, nonce, and S256 challenge.
+   type in addition to exact callback, scopes, state, and S256 challenge. A
+   nonce is validated when supplied; Hermes v0.18 intentionally omits it from
+   its authorization-code PKCE request.
 8. **Required — Correctness/Security: Better Auth's administrative client
    creation API rejected the unauthenticated server-side lifecycle caller.**
    The isolated real-provider matrix exposed this before rollout. Lifecycle
@@ -145,12 +148,26 @@ Critical or Required finding remains open.
   passed. The tracked qualification command reproduced the isolated migration,
   provider exchange, and cleanup sequence without retaining secret artifacts.
 
-## Remaining rollout blockers
+## Production canary evidence
 
-- T026: healthy native dashboard launch timing, 900-second Hermes cookie and
-  logout clearing. The provider's 900-second token lifetime is now verified.
-- T055: approved production canary, key overlap, rollback timing and tenant-data
-  preservation evidence.
+- The verified owner completed the Nginx tenant gate, Hermes self-hosted OIDC
+  selection, Better Auth authorization, callback, and native `/sessions`
+  dashboard flow with no second credential prompt.
+- The Hermes session cookie was `HttpOnly`, `Secure`, `SameSite=Lax`, and had
+  896 seconds remaining from the 900-second contract. Logout returned to
+  `/login` and removed the cookie.
+- Dashboard WebSocket handshakes passed after adding upgrade forwarding; the
+  final browser run reported no console or page errors.
+- The public client remained secretless, exact-contract, linked, enabled, and
+  active only after the provisioner confirmed the guarded restart.
+- The rollback disabled the client, restored the exact protected pre-canary
+  config SHA, advertised Basic Auth, retained 23,663 data files, and completed
+  in 57 seconds. Reactivation restored self-hosted OIDC and the final browser
+  checks.
+- URL newline/path corruption and Hermes' optional-nonce request shape gained
+  regression tests. The final gateway passed 655 tests, TypeScript, and the
+  optimized production build. The repository's pre-existing `next lint`
+  command remains interactive and is not a usable CI gate.
 
-The rollout controls keep these missing runtime proofs from becoming customer
-exposure. Rerun this gateway after the approved production canary.
+No Critical or Required finding remains open. Broad rollout remains controlled
+by `HERMES_DASHBOARD_OIDC_ENABLED=false`; only `tenant-0` is allowlisted.
