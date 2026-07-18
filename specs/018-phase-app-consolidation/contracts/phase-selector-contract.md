@@ -20,6 +20,11 @@ The loader accepts exactly one positional route: `titus`, `agent`, or
 | `agent` | `overnightdesk` | `/agents/hermes-email-intake/agent` |
 | `mitchel` | `overnightdesk` | `/agents/hermes-email-intake/mitchel` |
 
+The Titus route uses `/opt/control-tower/secrets/phase-service-token`, backed by
+the TTS service account. Agent and Mitchel use
+`/opt/overnightdesk/secrets/phase-service-token`, backed by AgentZero. Both
+files remain mode 0400 and owned by the existing credential-loader account.
+
 `EMAIL_INTAKE_PHASE_APP` may override the default for a bounded rollback or
 verification run. `EMAIL_INTAKE_PHASE_ENVIRONMENT` defaults to `production`.
 
@@ -32,9 +37,10 @@ remain unchanged.
 - Target app: `overnightdesk`
 - Target environment: `production`
 - Target path: `/email-fetch`
-- Bootstrap token: existing email-fetch service account after it is granted
-  OvernightDesk Production access, or a dedicated replacement token installed
-  with mode 0600 and the existing file owner.
+- Bootstrap token file: `/opt/email-fetch/phase-service-token`, containing an
+  AgentZero token and installed mode 0600 for the email-fetch runtime owner.
+- The runner reads only that token file; it does not source another consumer's
+  dotenv configuration or the legacy `/opt/email-fetch/.env`.
 - Rollback: restore the preserved script and select `Infrastructure:/`.
 
 ## Output and telemetry

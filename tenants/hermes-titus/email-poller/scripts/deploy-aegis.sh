@@ -31,6 +31,14 @@ phase_app_for_route() {
   esac
 }
 
+phase_token_file_for_route() {
+  case "$1" in
+    titus) printf '%s\n' /opt/control-tower/secrets/phase-service-token ;;
+    agent|mitchel) printf '%s\n' /opt/overnightdesk/secrets/phase-service-token ;;
+    *) usage ;;
+  esac
+}
+
 prepare() {
   "$root/scripts/qualify.sh"
   "${ssh_cmd[@]}" 'install -d -m 0700 /tmp/hermes-email-intake-deploy'
@@ -128,14 +136,23 @@ REMOTE
 set_enabled() {
   local value=$1
   local phase_app
+  local phase_token_file
   while IFS= read -r route <&3; do
     phase_app=${EMAIL_INTAKE_PHASE_APP:-$(phase_app_for_route "$route")}
-    "${ssh_cmd[@]}" sudo bash -s -- "$route" "$value" "$phase_app" <<'REMOTE'
+    phase_token_file=${EMAIL_INTAKE_PHASE_TOKEN_FILE:-$(phase_token_file_for_route "$route")}
+    "${ssh_cmd[@]}" sudo bash -s -- "$route" "$value" "$phase_app" "$phase_token_file" <<'REMOTE'
 set -euo pipefail
 route=$1
 value=$2
 phase_app=$3
-export PHASE_SERVICE_TOKEN=$(</opt/control-tower/secrets/phase-service-token)
+phase_token_file=$4
+test -f "$phase_token_file" && test ! -L "$phase_token_file"
+test "$(stat -c %a "$phase_token_file")" = 400
+test "$(stat -c %u "$phase_token_file")" = 10001
+token_size=$(stat -c %s "$phase_token_file")
+test "$token_size" -ge 20 && test "$token_size" -le 8192
+! LC_ALL=C grep -q '[[:space:][:cntrl:]]' "$phase_token_file"
+export PHASE_SERVICE_TOKEN=$(<"$phase_token_file")
 printf '%s' "$value" | phase secrets update AGENTMAIL_POLLING_ENABLED \
   --app "$phase_app" --env production --path "/agents/hermes-email-intake/$route" >/dev/null
 unset PHASE_SERVICE_TOKEN

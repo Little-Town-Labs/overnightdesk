@@ -9,8 +9,10 @@
 Consolidate Phase around two use-case boundaries without deleting rollback
 sources. Phase data is copied and fingerprint-verified before activation;
 route-aware shell loaders select `timeless-tech-solutions` for Titus and
-`overnightdesk` for Agent, Mitchel, and email-fetch. The app rename and Aegis
-restarts form one coordinated cutover after app/environment grants are proven.
+`overnightdesk` for Agent, Mitchel, and email-fetch. Those consumers use exactly
+two Phase identities: the TTS service account for Titus and AgentZero for the
+OvernightDesk boundary. The app rename and Aegis restarts form one coordinated
+cutover after app/environment access is proven.
 
 ## Technical Context
 
@@ -30,7 +32,7 @@ restarts form one coordinated cutover after app/environment grants are proven.
 
 **Constraints**: No value output; no source deletion; app-level authorization is the trust boundary; five consumers must remain individually rollbackable
 
-**Scale/Scope**: Three Phase apps becoming two active apps; three copied paths; five affected consumers; two Git worktrees
+**Scale/Scope**: Three Phase apps becoming two active apps; three service accounts becoming two active identities; three copied paths; five affected consumers; two Git worktrees
 
 ## Constitution Check
 
@@ -93,8 +95,9 @@ library for one coordinated cutover.
    preserving all sources.
 2. **Consumer preparation**: Add failing route-selection assertions, implement
    route-aware selectors, and qualify the complete tenant package.
-3. **Access and rename**: Grant existing service accounts to target apps,
-   verify real secret loads, and rename the existing Azure app by stable ID.
+3. **Access and rename**: Verify the TTS and AgentZero identities against their
+   target apps, retire `platform-cli-cloud` from active use, and verify the
+   existing Azure app was renamed by stable ID.
 4. **Aegis cutover**: Update the email-fetch selector, deploy tenant loaders,
    restart affected consumers one at a time, and verify health.
 5. **Closeout**: Update standards, deploy evidence, and source-control PRs;

@@ -78,6 +78,24 @@ fragments. That output is unsuitable for terminals and deployment logs.
 **Alternatives considered**: Rely on masking; redirect only selected rows.
 Neither prevents accidental fragments from appearing.
 
+## Decision 7: Use one service account per active app boundary
+
+**Decision**: Use the existing TTS service account for Titus and the existing
+AgentZero service account for Agent, Mitchel, email-fetch, and other
+OvernightDesk consumers. Retain `platform-cli-cloud` only as rollback material
+during observation; do not grant it to OvernightDesk or use it after cutover.
+
+**Rationale**: The app is the authorization boundary. Reusing the identity that
+already owns each target app avoids cross-app grants and reduces three active
+service accounts to two. Each consumer still receives a dedicated token-only
+file with restrictive ownership instead of sourcing another consumer's dotenv
+file.
+
+**Alternatives considered**: Grant the TTS account to OvernightDesk; grant
+`platform-cli-cloud` to OvernightDesk; source the orchestrator dotenv from
+email-fetch. These increase blast radius, retain a third active identity, or
+couple unrelated consumer configuration.
+
 ## Sources
 
 - Phase Apps API: <https://docs.phase.dev/public-api/apps>

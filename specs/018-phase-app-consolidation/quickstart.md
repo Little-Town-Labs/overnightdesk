@@ -11,21 +11,22 @@
 
 ## Current access gate
 
-The live service-account inventory is:
+The verified target service-account inventory is:
 
-- `azure-ops` (`c2e504a1-37c9-43c4-a397-6a46684d9383`) has Azure Ops
-  Production only and owns the `control-tower` token used by Titus and intake.
+- `azure-ops` (`c2e504a1-37c9-43c4-a397-6a46684d9383`) is the existing TTS
+  identity. Its `control-tower` token successfully exported the 14-key Titus
+  intake path from `timeless-tech-solutions` after the app rename.
 - `platform-cli-cloud` (`9fc6e9c1-fe51-4bf6-b5c4-bcf5d8b7a366`) has
-  Infrastructure Production only and owns the email-fetch token.
+  Infrastructure Production only. Its email-fetch token is retained for
+  rollback but is not part of the active target.
 - `AgentZero` (`fd6c52d5-249d-4035-bc2d-ba1e85ccedda`) has OvernightDesk
-  Production and owns the existing platform tokens.
+  Production. Its installed platform token successfully exported all 55
+  `overnightdesk:/email-fetch` entries and will back the Agent, Mitchel, and
+  email-fetch token files.
 
-The existing service token can read service-account metadata but received HTTP
-403 when it attempted a declarative access update. An Owner/Admin Phase Console
-session or PAT must add OvernightDesk Production to the first two accounts
-while retaining their current grants. No production restart is allowed until
-both installed tokens complete value-suppressed exports from their target
-paths.
+The two target identities have completed value-suppressed exports from their
+target apps. No cross-app grant is required. `platform-cli-cloud` remains
+unchanged and must not be deleted until rollback observation is complete.
 
 ## Source qualification
 
@@ -40,14 +41,18 @@ route-to-app matrix and existing Go intake behavior.
 
 ## Coordinated cutover
 
-1. Rename the existing Azure app by stable ID.
-2. Deploy the reviewed Titus and intake loaders.
-3. Restart Hermes Titus and verify its secret load and health.
-4. Restart Titus intake, then Agent intake, then Mitchel intake; verify each
+1. Confirm app ID `f8e85a82-d424-49f7-9522-1586510f185c` is named
+   `timeless-tech-solutions`.
+2. Install AgentZero-backed, consumer-owned token files without printing their
+   values.
+3. Deploy the reviewed Titus and intake loaders.
+4. Restart Hermes Titus and verify its secret load and health.
+5. Restart Titus intake, then Agent intake, then Mitchel intake; verify each
    before advancing.
-5. Update email-fetch to `overnightdesk:/email-fetch`, run it once, and verify
+6. Update email-fetch to `overnightdesk:/email-fetch`, run it once, and verify
    its exit status and expected completion event.
-6. Search live active configuration for obsolete selectors.
+7. Search live active configuration for obsolete selectors and confirm no
+   active consumer uses the `platform-cli-cloud` token.
 
 ## Rollback
 

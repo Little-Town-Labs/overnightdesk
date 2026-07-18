@@ -52,6 +52,17 @@ expected counts, non-empty string values, and no emitted values.
 A consumer cannot activate until its grant can perform a real value-suppressed
 export for every required path.
 
+## Service Account Identity
+
+- `tts`: Control Tower, Hermes Titus, and Titus intake
+- `AgentZero`: OvernightDesk platform consumers, Agent and Mitchel intake, and
+  email-fetch
+- `platform-cli-cloud`: retained only as an inactive rollback credential during
+  observation
+
+Consumer-owned token files may contain separate tokens for one identity. Token
+file count does not change the two-identity trust model.
+
 ## Cutover Evidence
 
 - source/destination counts and fingerprints
