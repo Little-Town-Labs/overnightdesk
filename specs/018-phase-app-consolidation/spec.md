@@ -124,9 +124,9 @@ health checks with rollback sources still retained.
 - **FR-012**: Secret values MUST NOT appear in commits, terminal output,
   deployment logs, or documentation.
 - **FR-013**: Active consumers MUST use exactly two Phase service-account
-  identities: the TTS identity for Titus and the AgentZero identity for
-  OvernightDesk consumers. The legacy `platform-cli-cloud` identity MUST NOT
-  remain in active use after cutover.
+  identities: the `timeless-tech-solutions` identity for Titus and the
+  `overnightdesk` identity for OvernightDesk consumers. The legacy
+  `platform-cli-cloud` identity MUST NOT remain in active use after cutover.
 
 ### Key Entities
 
@@ -164,7 +164,8 @@ health checks with rollback sources still retained.
   `Infrastructure`.
 - Both source and destination apps use the Production environment.
 - Paths organize secret loading but do not replace app-level authorization.
-- Existing TTS and AgentZero service tokens remain valid and can be installed
-  in separate consumer-owned token files without creating another identity.
+- Existing `timeless-tech-solutions` and `overnightdesk` service tokens remain
+  valid and can be installed in separate consumer-owned token files without
+  creating another identity.
 - The accepted platform-standard ADR is the authority for target boundaries,
   migration ordering, and deletion safeguards.

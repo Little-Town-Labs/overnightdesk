@@ -80,10 +80,11 @@ Neither prevents accidental fragments from appearing.
 
 ## Decision 7: Use one service account per active app boundary
 
-**Decision**: Use the existing TTS service account for Titus and the existing
-AgentZero service account for Agent, Mitchel, email-fetch, and other
-OvernightDesk consumers. Retain `platform-cli-cloud` only as rollback material
-during observation; do not grant it to OvernightDesk or use it after cutover.
+**Decision**: Use the existing `timeless-tech-solutions` service account for
+Titus and the existing `overnightdesk` service account for Agent, Mitchel,
+email-fetch, and other OvernightDesk consumers. Retain `platform-cli-cloud`
+only as rollback material during observation; do not grant it to OvernightDesk
+or use it after cutover.
 
 **Rationale**: The app is the authorization boundary. Reusing the identity that
 already owns each target app avoids cross-app grants and reduces three active

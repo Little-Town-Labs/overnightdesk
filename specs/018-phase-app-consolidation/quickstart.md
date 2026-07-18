@@ -13,16 +13,19 @@
 
 The verified target service-account inventory is:
 
-- `azure-ops` (`c2e504a1-37c9-43c4-a397-6a46684d9383`) is the existing TTS
+- `timeless-tech-solutions` (`c2e504a1-37c9-43c4-a397-6a46684d9383`) is the TTS
   identity. Its `control-tower` token successfully exported the 14-key Titus
-  intake path from `timeless-tech-solutions` after the app rename.
+  intake path from the app with the same name.
 - `platform-cli-cloud` (`9fc6e9c1-fe51-4bf6-b5c4-bcf5d8b7a366`) has
   Infrastructure Production only. Its email-fetch token is retained for
   rollback but is not part of the active target.
-- `AgentZero` (`fd6c52d5-249d-4035-bc2d-ba1e85ccedda`) has OvernightDesk
+- `overnightdesk` (`fd6c52d5-249d-4035-bc2d-ba1e85ccedda`) has OvernightDesk
   Production. Its installed platform token successfully exported all 55
-  `overnightdesk:/email-fetch` entries and will back the Agent, Mitchel, and
+  `overnightdesk:/email-fetch` entries and backs the Agent, Mitchel, and
   email-fetch token files.
+
+Both active service accounts were renamed in place after cutover. Their stable
+IDs and installed tokens were retained; only their display names changed.
 
 The two target identities have completed value-suppressed exports from their
 target apps. No cross-app grant is required. `platform-cli-cloud` remains
@@ -43,8 +46,8 @@ route-to-app matrix and existing Go intake behavior.
 
 1. Confirm app ID `f8e85a82-d424-49f7-9522-1586510f185c` is named
    `timeless-tech-solutions`.
-2. Install AgentZero-backed, consumer-owned token files without printing their
-   values.
+2. Install `overnightdesk`-backed, consumer-owned token files without printing
+   their values.
 3. Deploy the reviewed Titus and intake loaders.
 4. Restart Hermes Titus and verify its secret load and health.
 5. Restart Titus intake, then Agent intake, then Mitchel intake; verify each
