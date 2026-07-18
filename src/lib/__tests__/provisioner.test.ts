@@ -26,6 +26,14 @@ describe("Provisioner Client", () => {
       subdomain: "a1b2c3d4e5f6.overnightdesk.com",
       plan: "starter" as const,
       callbackUrl: "https://overnightdesk.com/api/provisioner/callback",
+      dashboardAuth: {
+        provider: "self-hosted" as const,
+        issuer: "https://www.overnightdesk.com/api/auth",
+        clientId: "public-client-id",
+        publicUrl: "https://a1b2c3d4e5f6.overnightdesk.com",
+        callbackUrl: "https://a1b2c3d4e5f6.overnightdesk.com/auth/callback",
+        scopes: ["openid", "profile", "email"] as const,
+      },
     };
 
     it("sends tenantId, subdomain, plan, and callbackUrl in body", async () => {
@@ -38,6 +46,7 @@ describe("Provisioner Client", () => {
       expect(body.subdomain).toBe("a1b2c3d4e5f6.overnightdesk.com");
       expect(body.plan).toBe("starter");
       expect(body.callbackUrl).toBe("https://overnightdesk.com/api/provisioner/callback");
+      expect(body.dashboardAuth).toEqual(validParams.dashboardAuth);
     });
 
     it("does NOT send gatewayPort or dashboardTokenHash", async () => {
@@ -48,6 +57,7 @@ describe("Provisioner Client", () => {
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.gatewayPort).toBeUndefined();
       expect(body.dashboardTokenHash).toBeUndefined();
+      expect(body.dashboardAuth.clientSecret).toBeUndefined();
     });
 
     it("sends Bearer auth header", async () => {
@@ -137,6 +147,53 @@ describe("Provisioner Client", () => {
       );
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.tenantId).toBe("a1b2c3d4e5f6");
+    });
+  });
+
+  describe("configureDashboardAuth()", () => {
+    it("POSTs the non-secret client contract to /dashboard-auth", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true });
+      const params = {
+        tenantId: "a1b2c3d4e5f6",
+        restart: true,
+        dashboardAuth: {
+          provider: "self-hosted" as const,
+          issuer: "https://www.overnightdesk.com/api/auth",
+          clientId: "public-client-id",
+          publicUrl: "https://a1b2c3d4e5f6.overnightdesk.com",
+          callbackUrl: "https://a1b2c3d4e5f6.overnightdesk.com/auth/callback",
+          scopes: ["openid", "profile", "email"] as const,
+        },
+      };
+
+      await expect(
+        provisionerClient.configureDashboardAuth(params)
+      ).resolves.toEqual({ success: true });
+
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        "https://api.overnightdesk.com/dashboard-auth"
+      );
+      expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual(params);
+      expect(JSON.parse(mockFetch.mock.calls[0][1].body).dashboardAuth.clientSecret).toBeUndefined();
+    });
+
+    it("maps provisioner failures without returning a response body", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 422 });
+
+      await expect(
+        provisionerClient.configureDashboardAuth({
+          tenantId: "tenant-a",
+          restart: true,
+          dashboardAuth: {
+            provider: "self-hosted",
+            issuer: "https://www.overnightdesk.com/api/auth",
+            clientId: "public-client-id",
+            publicUrl: "https://tenant-a.overnightdesk.com",
+            callbackUrl: "https://tenant-a.overnightdesk.com/auth/callback",
+            scopes: ["openid", "profile", "email"],
+          },
+        })
+      ).resolves.toEqual({ success: false, error: "Provisioner returned 422" });
     });
   });
 

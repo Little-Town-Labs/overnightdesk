@@ -27,6 +27,27 @@ jest.mock("@/lib/provisioner", () => ({
   },
 }));
 
+const mockEnsureHermesOidcClient = jest
+  .fn()
+  .mockResolvedValue({ clientId: "public-client-id", created: true });
+jest.mock("@/lib/hermes-oidc", () => ({
+  ensureHermesOidcClient: (...a: unknown[]) => mockEnsureHermesOidcClient(...a),
+  buildHermesDashboardAuthConfig: ({
+    clientId,
+    subdomain,
+  }: {
+    clientId: string;
+    subdomain: string;
+  }) => ({
+    provider: "self-hosted",
+    issuer: "https://www.overnightdesk.com/api/auth",
+    clientId,
+    publicUrl: `https://${subdomain}`,
+    callbackUrl: `https://${subdomain}/auth/callback`,
+    scopes: ["openid", "profile", "email"],
+  }),
+}));
+
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
@@ -137,12 +158,27 @@ describe("POST /api/wizard/write-step", () => {
 // --- complete route ---
 
 describe("POST /api/wizard/complete", () => {
+  const originalOidcEnabled = process.env.HERMES_DASHBOARD_OIDC_ENABLED;
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetSession.mockResolvedValue(SESSION);
     mockGetInstanceForUser.mockResolvedValue(INSTANCE);
     mockSelectFromWhere.mockResolvedValue([INSTANCE]);
     mockProvision.mockResolvedValue({ success: true });
+    mockEnsureHermesOidcClient.mockResolvedValue({
+      clientId: "public-client-id",
+      created: true,
+    });
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED = "true";
+  });
+
+  afterAll(() => {
+    if (originalOidcEnabled === undefined) {
+      delete process.env.HERMES_DASHBOARD_OIDC_ENABLED;
+    } else {
+      process.env.HERMES_DASHBOARD_OIDC_ENABLED = originalOidcEnabled;
+    }
   });
 
   it("returns 401 if not authenticated", async () => {
@@ -165,8 +201,46 @@ describe("POST /api/wizard/complete", () => {
 
     expect(res.status).toBe(200);
     expect(mockProvision).toHaveBeenCalledWith(
-      expect.objectContaining({ tenantId: "alice" })
+      expect.objectContaining({
+        tenantId: "alice",
+        dashboardAuth: {
+          provider: "self-hosted",
+          issuer: "https://www.overnightdesk.com/api/auth",
+          clientId: "public-client-id",
+          publicUrl: "https://alice.overnightdesk.com",
+          callbackUrl: "https://alice.overnightdesk.com/auth/callback",
+          scopes: ["openid", "profile", "email"],
+        },
+      })
     );
+    expect(mockEnsureHermesOidcClient).toHaveBeenCalledWith({
+      instanceId: "inst-1",
+      ownerId: "user-1",
+      subdomain: "alice.overnightdesk.com",
+    });
+  });
+
+  it("does not advance or provision when the dashboard client cannot be ensured", async () => {
+    mockEnsureHermesOidcClient.mockRejectedValueOnce(new Error("database unavailable"));
+    const { POST } = await import("@/app/api/wizard/complete/route");
+    const res = await POST(new NextRequest("http://localhost/api/wizard/complete", {
+      method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+    }));
+
+    expect(res.status).toBe(503);
+    expect(mockProvision).not.toHaveBeenCalled();
+  });
+
+  it("fails closed before creating a client when OIDC rollout is disabled", async () => {
+    process.env.HERMES_DASHBOARD_OIDC_ENABLED = "false";
+    const { POST } = await import("@/app/api/wizard/complete/route");
+    const res = await POST(new NextRequest("http://localhost/api/wizard/complete", {
+      method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+    }));
+
+    expect(res.status).toBe(503);
+    expect(mockEnsureHermesOidcClient).not.toHaveBeenCalled();
+    expect(mockProvision).not.toHaveBeenCalled();
   });
 
   it("returns 400 if instance already running", async () => {

@@ -6,6 +6,7 @@ import { stripe } from "@/lib/stripe";
 import { createInstance } from "@/lib/instance";
 import { provisionerClient } from "@/lib/provisioner";
 import { getAppUrl } from "@/lib/config";
+import { disableHermesOidcClient } from "@/lib/hermes-oidc";
 
 export function mapPriceIdToPlan(
   priceId: string
@@ -103,6 +104,8 @@ export async function handleInvoicePaymentFailed(
   const sub = await findSubscription(stripeSubscriptionId);
   if (!sub) return;
 
+  await disableDashboardForUser(sub.userId);
+
   await db
     .update(subscription)
     .set({
@@ -160,6 +163,10 @@ export async function handleSubscriptionUpdated(
   const plan = mapPriceIdToPlan(priceId);
   const mappedStatus = mapStripeStatus(status);
 
+  if (mappedStatus === "past_due" || mappedStatus === "canceled") {
+    await disableDashboardForUser(sub.userId);
+  }
+
   await db
     .update(subscription)
     .set({
@@ -176,6 +183,30 @@ export async function handleSubscriptionUpdated(
     target: `user:${sub.userId}`,
     details: { stripeSubscriptionId, status: mappedStatus, plan },
   });
+}
+
+async function disableDashboardForUser(userId: string) {
+  const instances = await db
+    .select()
+    .from(instance)
+    .where(eq(instance.userId, userId));
+  for (const candidate of instances) {
+    if (candidate.hermesOidcClientId && candidate.subdomain) {
+      await disableHermesOidcClient({
+        instanceId: candidate.id,
+        ownerId: candidate.userId,
+        subdomain: candidate.subdomain,
+      });
+    }
+  }
+
+  return instances.find(
+    (candidate) =>
+      candidate.status === "running" ||
+      candidate.status === "awaiting_auth" ||
+      candidate.status === "queued" ||
+      candidate.status === "provisioning"
+  );
 }
 
 export async function handleSubscriptionDeleted(
@@ -201,18 +232,7 @@ export async function handleSubscriptionDeleted(
 
   // Trigger deprovisioning
   try {
-    const instances = await db
-      .select()
-      .from(instance)
-      .where(eq(instance.userId, sub.userId));
-
-    const activeInstance = instances.find(
-      (i) =>
-        i.status === "running" ||
-        i.status === "awaiting_auth" ||
-        i.status === "queued" ||
-        i.status === "provisioning"
-    );
+    const activeInstance = await disableDashboardForUser(sub.userId);
 
     if (activeInstance) {
       provisionerClient.deprovision(activeInstance.tenantId).catch(() => {

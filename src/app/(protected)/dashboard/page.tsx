@@ -17,7 +17,10 @@ import { ChatInterface } from "./chat/chat-interface";
 import { provisionerClient } from "@/lib/provisioner";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
-import { getHermesDashboardUrl } from "@/lib/hermes-dashboard";
+import {
+  getHermesDashboardUnavailableMessage,
+  getHermesDashboardUrl,
+} from "@/lib/hermes-dashboard";
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -80,8 +83,15 @@ export default async function DashboardPage() {
   // ─── Hermes running: hero-first layout ──────────────────────────────────────
   if (hermesAgent && isRunning && inst) {
     const hermesDashboardUrl = inst.subdomain
-      ? getHermesDashboardUrl(inst.subdomain)
+      ? getHermesDashboardUrl(inst.subdomain, {
+          authStatus: inst.hermesDashboardAuthStatus,
+          clientId: inst.hermesOidcClientId,
+        })
       : null;
+    const dashboardUnavailableMessage = getHermesDashboardUnavailableMessage({
+      authStatus: inst.hermesDashboardAuthStatus,
+      clientId: inst.hermesOidcClientId,
+    });
 
     return (
       <>
@@ -150,6 +160,18 @@ export default async function DashboardPage() {
             </a>
             <RestartButton instanceRunning />
           </div>
+          {dashboardUnavailableMessage && (
+            <p
+              className="text-sm mb-8 rounded-lg px-4 py-3"
+              style={{
+                color: "var(--color-od-text-2)",
+                background: "var(--color-od-raised)",
+                border: "1px solid var(--color-od-border)",
+              }}
+            >
+              {dashboardUnavailableMessage}
+            </p>
+          )}
 
           {/* Secondary stats */}
           <div className="flex flex-wrap gap-6 pt-6 border-t" style={{ borderColor: "var(--color-od-border)" }}>

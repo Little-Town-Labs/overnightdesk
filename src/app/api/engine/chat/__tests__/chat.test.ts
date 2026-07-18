@@ -17,6 +17,7 @@ jest.mock("@/lib/instance", () => ({
 const mockStreamText = jest.fn();
 jest.mock("ai", () => ({
   streamText: (...a: unknown[]) => mockStreamText(...a),
+  convertToModelMessages: async (messages: unknown[]) => messages,
 }));
 
 jest.mock("@ai-sdk/openai", () => ({
@@ -49,7 +50,7 @@ describe("POST /api/engine/chat", () => {
     mockGetSession.mockResolvedValue(SESSION);
     mockGetInstanceForUser.mockResolvedValue(RUNNING_HERMES);
     mockStreamText.mockReturnValue({
-      toTextStreamResponse: () => new Response("streamed", { status: 200 }),
+      toUIMessageStreamResponse: () => new Response("streamed", { status: 200 }),
     });
     // Resolve mock after module loading
     const { createOpenAI } = await import("@ai-sdk/openai");

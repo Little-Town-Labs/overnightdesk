@@ -1,8 +1,24 @@
+export interface DashboardAuthParams {
+  provider: "self-hosted";
+  issuer: string;
+  clientId: string;
+  publicUrl: string;
+  callbackUrl: string;
+  scopes: readonly ["openid", "profile", "email"];
+}
+
 interface ProvisionParams {
   tenantId: string;
   subdomain: string;
   plan: "starter" | "pro";
   callbackUrl: string;
+  dashboardAuth: DashboardAuthParams;
+}
+
+export interface ConfigureDashboardAuthParams {
+  tenantId: string;
+  dashboardAuth: DashboardAuthParams;
+  restart: boolean;
 }
 
 export interface HermesMessage {
@@ -92,6 +108,37 @@ export const provisionerClient = {
         };
       }
 
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+
+  async configureDashboardAuth(
+    params: ConfigureDashboardAuthParams
+  ): Promise<ProvisionerResult> {
+    const { url, secret } = getConfig();
+
+    try {
+      const response = await fetch(`${url}/dashboard-auth`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secret}`,
+        },
+        body: JSON.stringify(params),
+        signal: AbortSignal.timeout(30_000),
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `Provisioner returned ${response.status}`,
+        };
+      }
       return { success: true };
     } catch (error) {
       return {
