@@ -24,7 +24,7 @@ baselines.
 **Purpose**: Resolve blockers and establish contracts shared by every user
 story.
 
-- [ ] T004 Obtain owner approval for credential rotation/runtime-artifact remediation and record only the value-suppressed disposition in `specs/019-hermes-runtime-identity/quickstart.md`
+- [x] T004 Obtain owner approval for credential rotation/runtime-artifact remediation and record only the value-suppressed disposition in `specs/019-hermes-runtime-identity/quickstart.md`
 - [x] T005 [P] Add a failing Walter route/target/rollback contract assertion in `tenants/hermes-titus/email-poller/scripts/qualify.sh`
 - [x] T006 [P] Add an exact `walter` tuple authorization test while retaining the `agent` rollback tuple in `overnightdesk-securityteam/test/pipeline/ingestion-pipeline.test.ts`
 - [x] T007 [P] Update the Walter canary-container expectations in `overnightdesk-engine/internal/hermes/dashboard_oidc_test.go` (the implementation is already generic and accepts the explicit mapping)
@@ -108,9 +108,9 @@ remain unchanged before and after the prepared source changes.
 **Independent Test**: Walter passes all active surfaces and the retained Agent
 identity can be restored without deleting or restoring the runtime volume.
 
-- [ ] T027 [US4] Copy/fingerprint-verify `overnightdesk:/agents/hermes-email-intake/agent` to `/agents/hermes-email-intake/walter` without printing values and retain the source path
-- [ ] T028 [US4] Deploy and verify dual-tuple SecurityTeam policy before changing any runtime or intake selector
-- [ ] T029 [US4] Deploy Walter-capable intake source with Walter polling disabled and Agent still healthy
+- [x] T027 [US4] Copy/fingerprint-verify `overnightdesk:/agents/hermes-email-intake/agent` to `/agents/hermes-email-intake/walter` without printing values and retain the source path
+- [x] T028 [US4] Deploy and verify dual-tuple SecurityTeam policy before changing any runtime or intake selector
+- [x] T029 [US4] Deploy Walter-capable intake source with Walter polling disabled and Agent still healthy
 - [ ] T030 [US4] Run the credential-remediation gate from T004 and stop if it is not satisfied
 - [ ] T031 [US4] Stop Agent intake, copy its stopped state to `hermes-email-intake-walter-data`, and compare value-suppressed file metadata/hashes
 - [ ] T032 [US4] Rename `hermes-agent` to `hermes-walter`, activate the repo-owned persona, update/reload Nginx, and verify container identity, mount continuity, DNS, public status, API, and dashboard
