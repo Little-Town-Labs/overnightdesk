@@ -37,9 +37,9 @@ story while preserving all existing Better Auth behavior.
 **⚠️ CRITICAL**: No user story work starts until this phase passes its
 regression checkpoint.
 
-- [ ] T005 Add failing schema assertions for OAuth client, token, consent, JWKS, and instance-link constraints in src/db/__tests__/schema-constraints.test.ts
-- [ ] T006 Add the Better Auth OAuth/JWKS tables, dashboard-auth enum, nullable unique instance client link, status, timestamp, and relations in src/db/schema.ts
-- [ ] T007 Generate and inspect the additive Drizzle migration and metadata in drizzle/ for the Phase 2 schema
+- [x] T005 Add failing schema assertions for OAuth client, token, consent, JWKS, and instance-link constraints in src/db/__tests__/schema-constraints.test.ts
+- [x] T006 Add the Better Auth OAuth/JWKS tables, dashboard-auth enum, nullable unique instance client link, status, timestamp, and relations in src/db/schema.ts
+- [x] T007 Generate and inspect the additive Drizzle migration and metadata in drizzle/ for the Phase 2 schema
 - [ ] T008 Add failing provider-configuration and time-controlled overlap tests for RS256, 30-day rotation, one-hour old/new key grace, 120-second codes, 900-second access/ID tokens, exact scopes, no refresh grant, no dynamic registration, disabled generic JWT surfaces, and denied client CRUD in src/lib/__tests__/auth-oidc-config.test.ts and src/lib/__tests__/auth-oidc-rotation.test.ts
 - [ ] T009 Configure Better Auth JWT and OAuth provider plugins with the tested rotation, expiry, surface-reduction, and protocol defaults in src/lib/auth.ts
 - [ ] T010 Add failing route tests for issuer-path OpenID discovery and root OAuth authorization-server metadata in src/app/api/auth/__tests__/oidc-metadata.test.ts
