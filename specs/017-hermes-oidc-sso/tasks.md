@@ -40,12 +40,12 @@ regression checkpoint.
 - [x] T005 Add failing schema assertions for OAuth client, token, consent, JWKS, and instance-link constraints in src/db/__tests__/schema-constraints.test.ts
 - [x] T006 Add the Better Auth OAuth/JWKS tables, dashboard-auth enum, nullable unique instance client link, status, timestamp, and relations in src/db/schema.ts
 - [x] T007 Generate and inspect the additive Drizzle migration and metadata in drizzle/ for the Phase 2 schema
-- [ ] T008 Add failing provider-configuration and time-controlled overlap tests for RS256, 30-day rotation, one-hour old/new key grace, 120-second codes, 900-second access/ID tokens, exact scopes, no refresh grant, no dynamic registration, disabled generic JWT surfaces, and denied client CRUD in src/lib/__tests__/auth-oidc-config.test.ts and src/lib/__tests__/auth-oidc-rotation.test.ts
-- [ ] T009 Configure Better Auth JWT and OAuth provider plugins with the tested rotation, expiry, surface-reduction, and protocol defaults in src/lib/auth.ts
-- [ ] T010 Add failing route tests for issuer-path OpenID discovery and root OAuth authorization-server metadata in src/app/api/auth/__tests__/oidc-metadata.test.ts
-- [ ] T011 Implement the explicit Next.js well-known metadata routes under src/app/api/auth/.well-known/ and src/app/.well-known/oauth-authorization-server/api/auth/
-- [ ] T012 Add `oauthProviderClient()` to src/lib/auth-client.ts and a regression test proving signed `oauth_query` is forwarded by email/password sign-in in src/lib/__tests__/auth-client-oidc.test.ts
-- [ ] T013 Run existing auth, tenant verification, database schema, type-check, and build regression suites from package.json and record the Phase 2 checkpoint in specs/017-hermes-oidc-sso/quickstart.md
+- [x] T008 Add failing provider-configuration and time-controlled overlap tests for RS256, 30-day rotation, one-hour old/new key grace, 120-second codes, 900-second access/ID tokens, exact scopes, no refresh grant, no dynamic registration, disabled generic JWT surfaces, and denied client CRUD in src/lib/__tests__/auth-oidc-config.test.ts and src/lib/__tests__/auth-oidc-rotation.test.ts
+- [x] T009 Configure Better Auth JWT and OAuth provider plugins with the tested rotation, expiry, surface-reduction, and protocol defaults in src/lib/auth.ts
+- [x] T010 Add failing route tests for issuer-path OpenID discovery and root OAuth authorization-server metadata in src/app/api/auth/__tests__/oidc-metadata.test.ts
+- [x] T011 Implement the explicit Next.js well-known metadata routes under src/app/api/auth/.well-known/ and src/app/.well-known/oauth-authorization-server/api/auth/
+- [x] T012 Add `oauthProviderClient()` to src/lib/auth-client.ts and a regression test proving signed `oauth_query` is forwarded by email/password sign-in in src/lib/__tests__/auth-client-oidc.test.ts
+- [x] T013 Run existing auth, tenant verification, database schema, type-check, and build regression suites from package.json and record the Phase 2 checkpoint in specs/017-hermes-oidc-sso/quickstart.md
 
 **Checkpoint**: Existing login remains functional and the provider exposes only
 the intended protocol surface; no tenant client is active.

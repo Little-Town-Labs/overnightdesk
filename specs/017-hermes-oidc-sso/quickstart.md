@@ -17,6 +17,24 @@ Use an isolated PostgreSQL database, apply the generated additive migration,
 and verify that existing Better Auth sign-in, verification, password reset,
 session, and tenant-auth tests still pass after the 1.6.23 upgrade.
 
+### Phase 2 checkpoint — 2026-07-18
+
+- `npm test -- --runInBand`: 39 suites passed, 1 skipped; 565 tests passed,
+  22 skipped.
+- `npx tsc --noEmit`: passed.
+- `npm run build`: passed with build-only placeholder configuration; the
+  placeholder database URL is intentionally unreachable and no database access
+  occurs during this checkpoint.
+- Schema constraint tests passed (3 structural assertions); 19 database-backed
+  assertions remain intentionally skipped until `DATABASE_TEST_URL` points to
+  the isolated migration test database.
+- The generated migration was inspected as additive. Historical migration
+  journal metadata in this repository is incomplete, so `0008_hermes_dashboard_oidc.sql`
+  was authored in the repository's existing additive sequence instead of
+  accepting Drizzle's destructive full-schema regeneration.
+- No tenant OAuth client was created or activated. Existing tenants remain on
+  their current protected dashboard authentication path.
+
 ## 2. Engine repository
 
 ```bash

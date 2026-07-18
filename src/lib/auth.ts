@@ -2,6 +2,8 @@ import { betterAuth } from "better-auth";
 import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { jwt } from "better-auth/plugins";
+import { oauthProvider } from "@better-auth/oauth-provider";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import {
@@ -9,11 +11,16 @@ import {
   sendPasswordResetEmail,
 } from "@/lib/email";
 import { isAdmin, isInvitedEmail } from "@/lib/billing";
+import {
+  HERMES_JWT_OPTIONS,
+  HERMES_OAUTH_PROVIDER_OPTIONS,
+} from "@/lib/hermes-oidc-config";
 
 export const auth = betterAuth({
   appName: "OvernightDesk",
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
+  disabledPaths: ["/token"],
   trustedOrigins: [
     "https://overnightdesk.com",
     "https://www.overnightdesk.com",
@@ -99,7 +106,11 @@ export const auth = betterAuth({
     },
   },
 
-  plugins: [nextCookies()],
+  plugins: [
+    jwt(HERMES_JWT_OPTIONS),
+    oauthProvider(HERMES_OAUTH_PROVIDER_OPTIONS),
+    nextCookies(),
+  ],
 });
 
 export type Auth = typeof auth;
