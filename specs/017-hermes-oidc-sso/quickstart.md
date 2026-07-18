@@ -168,12 +168,15 @@ Keep broad provisioning disabled and allowlist only the approved tenant:
 
 ```text
 HERMES_DASHBOARD_OIDC_ENABLED=false
-HERMES_DASHBOARD_OIDC_CANARY_TENANT_IDS=hermes-agent
+HERMES_DASHBOARD_OIDC_CANARY_TENANT_IDS=tenant-0
 ```
 
 An authenticated platform administrator may then call
 `POST /api/admin/hermes/dashboard-auth` with metadata-only JSON
-`{"tenantId":"hermes-agent","action":"configure"}`. The route creates or
+`{"tenantId":"tenant-0","action":"configure"}`. In the retained production
+layout, that logical tenant maps explicitly to `aegis-prod.overnightdesk.com`,
+container `hermes-agent`, and `/opt/data/config.yaml`; the provisioner rejects
+partial or non-allowlisted legacy mappings. The route creates or
 recovers the disabled client, applies and restarts the exact tenant through the
 engine, and activates only after configuration succeeds. Use action `disable`
 before rollback. Do not record the admin session, authorization headers, OAuth
