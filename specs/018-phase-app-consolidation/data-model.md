@@ -54,9 +54,9 @@ export for every required path.
 
 ## Service Account Identity
 
-- `tts`: Control Tower, Hermes Titus, and Titus intake
-- `AgentZero`: OvernightDesk platform consumers, Agent and Mitchel intake, and
-  email-fetch
+- `timeless-tech-solutions`: Control Tower, Hermes Titus, and Titus intake
+- `overnightdesk`: OvernightDesk platform consumers, Agent and Mitchel intake,
+  and email-fetch
 - `platform-cli-cloud`: retained only as an inactive rollback credential during
   observation
 

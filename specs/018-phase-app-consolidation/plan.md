@@ -10,9 +10,10 @@ Consolidate Phase around two use-case boundaries without deleting rollback
 sources. Phase data is copied and fingerprint-verified before activation;
 route-aware shell loaders select `timeless-tech-solutions` for Titus and
 `overnightdesk` for Agent, Mitchel, and email-fetch. Those consumers use exactly
-two Phase identities: the TTS service account for Titus and AgentZero for the
-OvernightDesk boundary. The app rename and Aegis restarts form one coordinated
-cutover after app/environment access is proven.
+two Phase identities: the `timeless-tech-solutions` service account for Titus
+and the `overnightdesk` service account for the OvernightDesk boundary. The app
+rename and Aegis restarts form one coordinated cutover after app/environment
+access is proven.
 
 ## Technical Context
 
@@ -95,9 +96,10 @@ library for one coordinated cutover.
    preserving all sources.
 2. **Consumer preparation**: Add failing route-selection assertions, implement
    route-aware selectors, and qualify the complete tenant package.
-3. **Access and rename**: Verify the TTS and AgentZero identities against their
-   target apps, retire `platform-cli-cloud` from active use, and verify the
-   existing Azure app was renamed by stable ID.
+3. **Access and rename**: Verify the `timeless-tech-solutions` and
+   `overnightdesk` identities against their target apps, retire
+   `platform-cli-cloud` from active use, and verify the existing Azure app was
+   renamed by stable ID.
 4. **Aegis cutover**: Update the email-fetch selector, deploy tenant loaders,
    restart affected consumers one at a time, and verify health.
 5. **Closeout**: Update standards, deploy evidence, and source-control PRs;
