@@ -16,6 +16,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.53",
     "@ai-sdk/react": "^3.0.170",
+    "@better-auth/oauth-provider": "1.6.23",
     "@neondatabase/serverless": "^0.10.0",
     "@react-email/components": "^1.0.10",
     "@vercel/analytics": "^2.0.1",
@@ -24,8 +25,8 @@
     "@xterm/xterm": "^6.0.0",
     "ai": "^6.0.168",
     "bcryptjs": "^3.0.3",
-    "better-auth": "^1.5.5",
-    "drizzle-orm": "^0.39.0",
+    "better-auth": "1.6.23",
+    "drizzle-orm": "0.45.2",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

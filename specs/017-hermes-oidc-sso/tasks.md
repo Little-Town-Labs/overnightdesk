@@ -22,10 +22,10 @@ separate Git repositories and must be committed there.
 **Purpose**: Establish supported dependencies, branches, and decision records
 without enabling OIDC for a tenant.
 
-- [ ] T001 Upgrade `better-auth` to 1.6.23 and add `@better-auth/oauth-provider` 1.6.23 in package.json and package-lock.json
-- [ ] T002 Create the matching `017-hermes-oidc-sso` feature branch in ../overnightdesk-engine/ and confirm both repository worktrees are clean
-- [ ] T003 [P] Record the provider, owner-only, token-lifetime, cross-repository, and rollback decisions in docs/decisions/002-hermes-dashboard-oidc-sso.md
-- [ ] T004 [P] Document non-secret issuer and rollout configuration keys in .env.example and ../overnightdesk-engine/deploy/hermes-provisioner.env.example
+- [x] T001 Upgrade `better-auth` and `@better-auth/oauth-provider` to 1.6.23 and align `drizzle-orm` to the adapter-supported 0.45.2 release in package.json and package-lock.json
+- [x] T002 Create the matching `017-hermes-oidc-sso` feature branch in ../overnightdesk-engine/ and confirm both repository worktrees are clean
+- [x] T003 [P] Record the provider, owner-only, token-lifetime, cross-repository, and rollback decisions in docs/decisions/002-hermes-dashboard-oidc-sso.md
+- [x] T004 [P] Document non-secret issuer and rollout configuration keys in .env.example and ../overnightdesk-engine/deploy/hermes-provisioner.env.example
 
 ---
 
