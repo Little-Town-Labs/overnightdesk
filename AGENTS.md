@@ -61,5 +61,5 @@ not as a replacement for Spec Kit artifacts.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/017-hermes-oidc-sso/plan.md`
+`specs/018-phase-app-consolidation/plan.md`
 <!-- SPECKIT END -->
