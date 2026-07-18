@@ -31,21 +31,25 @@ grep -Fq 'disable --now titus-email-poller.service' scripts/deploy-aegis.sh
 grep -Fq 'instance=mitchel set_enabled true' scripts/deploy-aegis.sh
 grep -Fq 'instance=mitchel set_enabled false || true' scripts/deploy-aegis.sh
 grep -Fq 'titus) default_phase_app=timeless-tech-solutions; default_token_file=/opt/control-tower/secrets/phase-service-token' runtime/load-phase-config.sh
-grep -Fq 'agent|mitchel) default_phase_app=overnightdesk; default_token_file=/opt/overnightdesk/secrets/phase-service-token' runtime/load-phase-config.sh
+grep -Fq 'agent|walter|mitchel) default_phase_app=overnightdesk; default_token_file=/opt/overnightdesk/secrets/phase-service-token' runtime/load-phase-config.sh
 grep -Fq 'token_file=${PHASE_TOKEN_FILE:-$default_token_file}' runtime/load-phase-config.sh
 grep -Fq 'phase_app=${EMAIL_INTAKE_PHASE_APP:-$default_phase_app}' runtime/load-phase-config.sh
 grep -Fq 'phase_app_for_route()' scripts/deploy-aegis.sh
 grep -Fq 'phase_token_file_for_route()' scripts/deploy-aegis.sh
 grep -Fq "titus) printf '%s\\n' timeless-tech-solutions" scripts/deploy-aegis.sh
-grep -Fq "agent|mitchel) printf '%s\\n' overnightdesk" scripts/deploy-aegis.sh
+grep -Fq "agent|walter|mitchel) printf '%s\\n' overnightdesk" scripts/deploy-aegis.sh
 grep -Fq "titus) printf '%s\\n' /opt/control-tower/secrets/phase-service-token" scripts/deploy-aegis.sh
-grep -Fq "agent|mitchel) printf '%s\\n' /opt/overnightdesk/secrets/phase-service-token" scripts/deploy-aegis.sh
+grep -Fq "agent|walter|mitchel) printf '%s\\n' /opt/overnightdesk/secrets/phase-service-token" scripts/deploy-aegis.sh
+grep -Fq 'active_platform_route=walter' scripts/deploy-aegis.sh
+grep -Fq 'rollback_platform_route=agent' scripts/deploy-aegis.sh
+grep -Fq 'assert_platform_route_exclusive' scripts/deploy-aegis.sh
 ! grep -R -Eq -- '--publish|-p [0-9]' runtime scripts
 
-for route in titus agent mitchel; do
+for route in titus agent walter mitchel; do
   case "$route" in
     titus) address=titus-operations@agentmail.to; target=hermes-titus; senders=garyb@timelesstechs.com,austin@timelesstechs.com ;;
     agent) address=acerockstar@agentmail.to; target=hermes-agent; senders=netgleb@gmail.com ;;
+    walter) address=acerockstar@agentmail.to; target=hermes-walter; senders=netgleb@gmail.com ;;
     mitchel) address=thediamondguy@agentmail.to; target=hermes-mitchel; senders=mitchelcbrown88@gmail.com ;;
   esac
   jq -n --arg route "$route" --arg address "$address" --arg target "$target" --arg senders "$senders" '{

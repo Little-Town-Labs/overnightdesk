@@ -4,7 +4,7 @@ set -euo pipefail
 instance=${1:?route instance required}
 case "$instance" in
   titus) default_phase_app=timeless-tech-solutions; default_token_file=/opt/control-tower/secrets/phase-service-token ;;
-  agent|mitchel) default_phase_app=overnightdesk; default_token_file=/opt/overnightdesk/secrets/phase-service-token ;;
+  agent|walter|mitchel) default_phase_app=overnightdesk; default_token_file=/opt/overnightdesk/secrets/phase-service-token ;;
   *) printf 'invalid route instance\n' >&2; exit 2 ;;
 esac
 

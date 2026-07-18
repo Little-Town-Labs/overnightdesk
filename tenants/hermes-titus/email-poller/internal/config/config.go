@@ -22,6 +22,7 @@ type routeDefinition struct {
 var routes = map[string]routeDefinition{
 	"titus":   {address: "titus-operations@agentmail.to", target: "hermes-titus"},
 	"agent":   {address: "acerockstar@agentmail.to", target: "hermes-agent"},
+	"walter":  {address: "acerockstar@agentmail.to", target: "hermes-walter"},
 	"mitchel": {address: "thediamondguy@agentmail.to", target: "hermes-mitchel"},
 }
 

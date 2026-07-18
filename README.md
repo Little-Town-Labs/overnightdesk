@@ -20,9 +20,21 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Runtime Model
 
-Current agent runtime is Hermes. The retired standalone tenant engine and
-Tenet-0 source tree have been removed from this repo. Gary's active runtime is
-`hermes-agent`; Mitchel's runtime is `hermes-mitchel`.
+Current agent runtimes use Hermes and are divided by use case and primary-memory
+boundary. A runtime may expose more than one persona; a person may be authorized
+to more than one runtime. Shared knowledge access does not merge runtime-local
+history.
+
+| Runtime | Use case | Default persona | Primary memory |
+|---------|----------|-----------------|----------------|
+| `hermes-walter` | OvernightDesk/Aegis platform operations | Walter | Existing platform runtime volume (`hermes-agent-data`) |
+| `hermes-titus` | Timeless Tech Solutions operations and collaboration | Titus | Titus runtime memory |
+| `hermes-mitchel` | Mitchel business workflows | Trevor | Mitchel/Trevor runtime memory and business records |
+| `hermes-rex` | Gary's personal tooling, off Aegis | Rex | Separate personal runtime memory |
+
+The retained `hermes-agent` name is a rollback identity during the Walter
+migration. References to the upstream Hermes Agent product or image keep the
+upstream `hermes-agent` name.
 
 ## Tenant Workflow Source
 
@@ -31,7 +43,8 @@ These directories are repo-controlled deploy sources for tenant-local MCP
 servers, skills, schedules, and runbooks that are synced into tenant runtimes on
 `aegis-prod`.
 
-Mitchel's tenant is `tenants/hermes-mitchel/`. It contains Trevor's prospecting
+Walter's default persona source is `tenants/hermes-walter/`. Mitchel's tenant is
+`tenants/hermes-mitchel/`. It contains Trevor's prospecting
 MCP server, tenant skills, operator runbooks, and Trevor database migrations
 under `tenants/hermes-mitchel/mcp-servers/trevor-db/ops/migrations/`.
 
@@ -42,7 +55,9 @@ overnightdesk/
 ├── src/                              Next.js app, API routes, lib, db schema
 ├── drizzle/                          Generated app database migrations
 ├── tenants/
-│   └── hermes-mitchel/               Mitchel/Trevor tenant workflow source
+│   ├── hermes-walter/                 Walter platform-operations persona source
+│   ├── hermes-titus/                  Titus/TTS runtime source
+│   └── hermes-mitchel/                Mitchel/Trevor tenant workflow source
 ├── vercel.json                       Cron jobs config
 ├── .specify/                         Spec-kit specifications and roadmap
 └── .env.example                      Required env vars
