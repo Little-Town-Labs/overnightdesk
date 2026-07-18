@@ -47,7 +47,7 @@ one-shot live run completes while `Infrastructure:/` remains readable.
 - [x] T007 [US1] Add the source-owned `overnightdesk:/email-fetch` runner in `scripts/run-email-fetch.sh`
 - [x] T007A [US1] Make the runner validate and load `/opt/email-fetch/phase-service-token` without sourcing unrelated environment configuration
 - [x] T008 [US1] Qualify the email-fetch selector with `scripts/qualify-phase-app-consolidation.sh` and `git diff --check`
-- [ ] T009 [US1] Back up and activate `/opt/overnightdesk/run-email-fetch.sh`, run one live fetch, and verify the completion event without emitting injected values
+- [x] T009 [US1] Back up and activate `/opt/overnightdesk/run-email-fetch.sh`, run one live fetch, and verify the completion event without emitting injected values
 
 **Checkpoint**: Email-fetch runs only from the target path and has an explicit
 script rollback.
@@ -88,8 +88,8 @@ healthy, with zero active obsolete selectors and both source apps retained.
 ### Implementation for User Story 3
 
 - [x] T015 [US3] Rename app ID `f8e85a82-d424-49f7-9522-1586510f185c` to `timeless-tech-solutions` through an authorized Phase admin surface and verify the stable ID
-- [ ] T016 [US3] Install the AgentZero-backed consumer token files, deploy the reviewed Titus and intake loaders from `018-phase-app-consolidation`, restart/verify one service at a time, and confirm exactly two Phase identities remain active
-- [ ] T017 [US3] Update app, path, consumer, rollback, and migration evidence in the sibling `overnightdesk-platform-standard` Phase worktree
+- [x] T016 [US3] Install the AgentZero-backed consumer token files, deploy the reviewed Titus and intake loaders from `018-phase-app-consolidation`, restart/verify one service at a time, and confirm exactly two Phase identities remain active
+- [x] T017 [US3] Update app, path, consumer, rollback, and migration evidence in the sibling `overnightdesk-platform-standard` Phase worktree
 - [ ] T018 [US3] Sync the merged platform standard to Aegis, restart `overnightdesk-ops`, and run the full Aegis health check
 - [ ] T019 [US3] Append the production activation result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T020 [US3] Apply the five-axis review gate, push both branches, and open reviewable pull requests in their owning repositories

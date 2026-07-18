@@ -65,6 +65,19 @@ route-to-app matrix and existing Go intake behavior.
   `Infrastructure:/`.
 - Preserve every data volume and every Phase source path.
 
+## Activation evidence
+
+- App ID `f8e85a82-d424-49f7-9522-1586510f185c` retained its identity under
+  `timeless-tech-solutions`.
+- Hermes Titus restarted and passed its full runtime verification.
+- Titus, Agent, and Mitchel intake restarted individually and reported healthy
+  with no published ports.
+- Email-fetch completed one live run from `overnightdesk:/email-fetch`.
+- Live token comparisons confirmed exactly two active identities and zero
+  active `azure-ops` or `Infrastructure` selectors.
+- `Infrastructure`, its source secrets, the legacy email-fetch dotenv, and the
+  previous runner remain available for rollback.
+
 ## Closeout
 
 Run the full Aegis health check, update `overnightdesk-platform-standard`,
