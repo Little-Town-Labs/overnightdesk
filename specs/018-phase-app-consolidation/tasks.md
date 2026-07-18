@@ -90,9 +90,9 @@ healthy, with zero active obsolete selectors and both source apps retained.
 - [x] T015 [US3] Rename app ID `f8e85a82-d424-49f7-9522-1586510f185c` to `timeless-tech-solutions` through an authorized Phase admin surface and verify the stable ID
 - [x] T016 [US3] Install the AgentZero-backed consumer token files, deploy the reviewed Titus and intake loaders from `018-phase-app-consolidation`, restart/verify one service at a time, and confirm exactly two Phase identities remain active
 - [x] T017 [US3] Update app, path, consumer, rollback, and migration evidence in the sibling `overnightdesk-platform-standard` Phase worktree
-- [ ] T018 [US3] Sync the merged platform standard to Aegis, restart `overnightdesk-ops`, and run the full Aegis health check
-- [ ] T019 [US3] Append the production activation result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T020 [US3] Apply the five-axis review gate, push both branches, and open reviewable pull requests in their owning repositories
+- [x] T018 [US3] Sync the merged platform standard to Aegis, restart `overnightdesk-ops`, and run the full Aegis health check
+- [x] T019 [US3] Append the production activation result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T020 [US3] Apply the five-axis review gate, push both branches, and open reviewable pull requests in their owning repositories
 
 **Checkpoint**: The two-app target is active and documented; `Infrastructure`
 remains intact and deletion is still out of scope.
