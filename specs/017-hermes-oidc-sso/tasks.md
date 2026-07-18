@@ -80,7 +80,7 @@ credential prompt.
 - [x] T023 [US1] Extend the engine provision request and apply dashboard OIDC before container start in ../overnightdesk-engine/internal/hermes/provisioner.go
 - [x] T024 [US1] Remove insecure dashboard startup while retaining the authenticated bind and forwarded public URL behavior in ../overnightdesk-engine/internal/hermes/provisioner.go
 - [x] T025 [US1] Return the tenant root only for active OIDC linkage and retain the protected `/login` fallback otherwise in src/lib/hermes-dashboard.ts and src/app/(protected)/dashboard/page.tsx
-- [ ] T026 [US1] Run the US1 Jest and Go targets, measure a healthy launch under 10 seconds, prove the 900-second Hermes cookie lifetime, and prove Hermes logout clears dashboard-auth cookies against specs/017-hermes-oidc-sso/contracts/oidc-provider.md
+- [x] T026 [US1] Run the US1 Jest and Go targets, measure a healthy launch under 10 seconds, prove the 900-second Hermes cookie lifetime, and prove Hermes logout clears dashboard-auth cookies against specs/017-hermes-oidc-sso/contracts/oidc-provider.md
 
 **Checkpoint**: The owner-only happy path can establish a native Hermes session
 and no existing tenant is switched automatically.
@@ -160,7 +160,7 @@ and build before the required quality review.
 - [x] T052 Run the full Jest suite, TypeScript type check, production Next.js build, dependency audit, and migration inspection from package.json and drizzle/
 - [x] T053 Run the full Go test suite, Go build, vet/static checks, and diff checks in ../overnightdesk-engine/
 - [x] T054 Inspect repository diffs, generated artifacts, logs, and test fixtures for secrets or protocol artifacts in overnightdesk/ and ../overnightdesk-engine/
-- [ ] T055 Perform an approved isolated production canary and rollback using the aegis-ssh skill; explicitly verify launch timing, cookie expiry, logout, key overlap, replay denial, process/log redaction, and data preservation before promoting ../overnightdesk-platform-standard/ to verified live state and appending /home/frosted639/src/overnightdesk-suite/deploys.log
+- [x] T055 Perform an approved isolated production canary and rollback using the aegis-ssh skill; explicitly verify launch timing, cookie expiry, logout, key overlap, replay denial, process/log redaction, and data preservation before promoting ../overnightdesk-platform-standard/ to verified live state and appending /home/frosted639/src/overnightdesk-suite/deploys.log
 - [x] T056 Update task checkboxes and requirement checklist evidence in specs/017-hermes-oidc-sso/tasks.md and specs/017-hermes-oidc-sso/checklists/requirements.md
 - [x] T057 Apply the `code-review-and-quality` gateway to all repository diffs and evidence, record it in specs/017-hermes-oidc-sso/quality-review.md, and resolve every Critical or Required finding before merge readiness
 
