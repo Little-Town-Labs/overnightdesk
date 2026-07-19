@@ -155,6 +155,34 @@ https://docs.phase.dev/cli/commands
   paths, the stopped pre-credential-rotation container, the original persona,
   and the original Nginx configuration for the observation window.
 
+## Standards, Ops, and audit closeout — 2026-07-18
+
+- Merged and synced the live Walter platform contract at standard commit
+  `843d4b4`. The active service, nested intake, volume/bind, Phase-path,
+  network-selector, OIDC canary, and rollback-artifact records now match the
+  verified runtime. The compatibility-named `hermes-agent-data` volume and
+  Agent intake path/state remain preserved.
+- Merged audit commit `ea4c8f8`, repaired only the protected audit database and
+  Walter API selectors from their approved sources, and retained the previous
+  environment and image tags. Audit run 190 resolved all three prior drift
+  findings with zero findings, engine errors, or agent errors.
+- Deployed merged Ops commit `d42aa84` from a staging tree that preserved the
+  existing Aegis hotfixes. Local qualification passed 16 test files/128 tests
+  and the TypeScript build. Both deployed Ops health endpoints passed.
+- Atomically synced the eight Ops-owned Walter profile, skill, script, and
+  repo-watcher attribution files to `hermes-agent-data`, updated only the
+  Librarian cron wording while preserving volatile state, and verified exact
+  source-to-volume hashes. Rollback copies are retained under the protected
+  Aegis backup directory.
+- Verified the template intake units for Walter, Titus, and Mitchel active,
+  Agent inactive, the Walter runtime and public status healthy, and weekly
+  operations audit run 191 with zero findings, zero engine errors, and zero
+  agent errors.
+- All code, security, operational, standards, and audit review findings are
+  closed. The only remaining acceptance evidence is the owner-authenticated
+  dashboard login and Hermes session-cookie logout check; T032, T033, and the
+  final merged-main cleanup T042 intentionally remain open until that check.
+
 ## Follow-up: stable numeric tenant IDs
 
 Numeric tenant IDs are intentionally a separate architecture feature rather
