@@ -178,10 +178,10 @@ https://docs.phase.dev/cli/commands
   Agent inactive, the Walter runtime and public status healthy, and weekly
   operations audit run 191 with zero findings, zero engine errors, and zero
   agent errors.
-- All code, security, operational, standards, and audit review findings are
-  closed. The only remaining acceptance evidence is the owner-authenticated
-  dashboard login and Hermes session-cookie logout check; T032, T033, and the
-  final merged-main cleanup T042 intentionally remain open until that check.
+- All code, security, operational, standards, and audit review findings were
+  closed at this checkpoint. The owner-authenticated dashboard login, Hermes
+  session-cookie logout, and final merged-main cleanup were completed after the
+  Nginx repair recorded below.
 
 ## Owner-browser incident and repair — 2026-07-19
 
@@ -205,7 +205,16 @@ https://docs.phase.dev/cli/commands
   container IDs. That affects dashboard-page session preloading, not the native
   dashboard launch or owner authorization, and requires a separate provisioner
   deployment decision.
-- The repeated owner login/logout browser check remains pending.
+- The owner launched the native Walter dashboard from OvernightDesk and
+  directly at `aegis-prod.overnightdesk.com`. Hermes logout cleared its session
+  and returned to the native sign-in screen. Selecting the OIDC button created
+  a fresh Hermes session from the still-valid OvernightDesk SSO session without
+  another password prompt, which is the intended separation between Hermes
+  logout and global OvernightDesk logout.
+- T032, T033, and T042 are complete. All primary source repositories were clean
+  on merged `main` before this final evidence-only closeout branch, and the
+  Agent container identity, Phase path, intake state, and named volumes remain
+  retained for the observation window.
 
 ## Follow-up: stable numeric tenant IDs
 
