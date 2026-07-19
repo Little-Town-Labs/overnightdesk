@@ -2,13 +2,11 @@
 
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
-**Status**: Additive schema/resolver and guarded Tenet 1 allocation tooling are
-implemented and qualified on a disposable database. The workflow is being
-split so foundation allocation does not depend on Mitchel's Better Auth
-registration; verified membership remains a later fail-closed operation. The
-approved production invite allowlist and Vercel deployment are complete. No
-Phase change, resource rename, identity backfill, number allocation,
-authorization cutover, or production database deployment has been performed.
+**Status**: Migration 0009 and the guarded Tenet 1 foundation are deployed and
+verified in production with zero memberships. Mitchel's verified membership
+remains a later fail-closed operation. Existing authorization is still
+authoritative; no Phase change, resource rename, platform/orchestrator link, or
+authorization cutover has been performed.
 
 ## Phase 1: Durable Contract
 
@@ -44,7 +42,7 @@ authorization cutover, or production database deployment has been performed.
     - [x] T015e1 Add failing tests proving the foundation plans with no Better Auth user, contains zero memberships, and denies partial/drifted state
     - [x] T015e2 Implement idempotent foundation plan/apply/verify and separate verified membership plan/apply/verify commands with distinct confirmations and audit events
     - [x] T015e3 Qualify foundation apply, verified no-op retry, later membership attachment, and unchanged canonical IDs on disposable Neon
-  - [ ] T015f Merge and deploy migration 0009, apply the foundation once, rerun as `verified_noop`, and record deployment/standard evidence without waiting for Mitchel
+  - [x] T015f Merge and deploy migration 0009, apply the foundation once, rerun as `verified_noop`, and record deployment/standard evidence without waiting for Mitchel
   - [ ] T015g After T015d3, apply only Mitchel's membership and record its separate evidence
 - [ ] T016 Compare old and canonical resolution for Mitchel's foundation and prove a feature-flag rollback without deleting additive records; do not wait for membership
 - [ ] T017 Add failing member/non-member/suspended-member authorization tests using controlled fixture users

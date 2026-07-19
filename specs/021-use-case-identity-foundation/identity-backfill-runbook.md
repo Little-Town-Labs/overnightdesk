@@ -4,11 +4,25 @@ This runbook applies only to the owner-approved Mitchel/Trevor `Tenet 1`
 allocation. It does not authorize Tenet 0, Tenet 2, authorization cutover,
 Open WebUI, Teams, resource renaming, or creation of a person record.
 
-## Current production preflight
+## Production checkpoint
 
-Read-only checks on 2026-07-19 established:
+On 2026-07-19, merged main commit
+`c3a81b65e76fd2bf20d054bf5b09fbaf9e5b9992` was used to complete the
+membership-independent production operation:
 
-- Neon does not yet contain migration 0009 identity tables or instance links.
+- Migration 0009 deployed all 46 reviewed statements and its metadata-only
+  audit event.
+- Tenet 1 was allocated once with a Trevor runtime/persona foundation, four
+  resource bindings, one Phase boundary binding, and zero memberships.
+- Verification passed all four canonical selector checks. Schema and
+  foundation retries both returned `verified_noop`.
+- Production contains one Tenet 1 allocation, one schema audit event, and one
+  foundation audit event.
+- No platform-instance link, orchestrator link, resource rename, or
+  authorization cutover was performed. Legacy reads remain authoritative.
+
+The preceding read-only preflight established:
+
 - Better Auth contains one user and no Mitchel subject.
 - Mitchel's address is present exactly once in the production invite allowlist,
   and the resulting Vercel production deployment serves the public sign-up
@@ -23,8 +37,8 @@ Read-only checks on 2026-07-19 established:
   `production`, path `/agents/hermes-email-intake/mitchel`.
 
 The missing registry rows are evidence, not invitations to generate substitute
-UUIDs. The initial Tenet 1 command intentionally has no platform-instance or
-orchestrator-tenant input. Linking either registry later requires a separate,
+UUIDs. The deployed Tenet 1 foundation intentionally has no platform-instance
+or orchestrator-tenant link. Linking either registry later requires a separate,
 reviewed operation against an independently verified record.
 
 ## Required prerequisites
