@@ -78,6 +78,13 @@ Better Auth user cascades that user's membership grants so identity metadata
 does not block the existing account-deletion flow; canonical use-case/runtime
 records and allocation audit remain intact.
 
+A canonical use case is valid with zero memberships. That state means the
+platform has provisioned and can resolve the boundary, but nobody receives
+canonical access through it. Invitation allowlists or pending email delivery
+are onboarding inputs, not membership records. Membership activation requires
+an existing email-verified Better Auth user and does not rewrite the use case,
+number allocation, runtime, persona, or resource bindings.
+
 ## ResourceBinding
 
 | Field | Rule |
@@ -113,7 +120,8 @@ one App because the App is the approved blast-radius boundary.
 
 ## Allocation and State Rules
 
-1. UUID creation and any approved number allocation occur in one transaction.
+1. UUID creation and any approved number allocation occur in one foundation
+   transaction that does not require or create a membership.
 2. Number allocation is centrally serialized and audited.
 3. Numbers are not assigned in fixtures, documentation, or backfill scripts
    without an approved allocation operation.
@@ -121,3 +129,5 @@ one App because the App is the approved blast-radius boundary.
 5. Bindings transition through compatibility/rollback states before retirement.
 6. Canonical identities are not hard-deleted while referenced by audit,
    membership, runtime, or resource history.
+7. Verified membership activation is a separate idempotent transaction and
+   fails closed when the Better Auth subject is missing or unverified.

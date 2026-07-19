@@ -98,19 +98,22 @@ IDENTITY_BACKFILL_CONFIRM=TENET_1_MITCHEL_TREVOR \
 npm run identity:backfill:verify
 ```
 
-The apply batch creates the use case, immutable number allocation, runtime,
-default Trevor persona, active Mitchel owner membership, resource bindings,
-secret-boundary binding, and audit row atomically. A retry must return
+The foundation apply batch creates the use case, immutable number allocation,
+runtime, default Trevor persona, resource bindings, secret-boundary binding,
+and audit row atomically with zero memberships. A retry must return
 `verified_noop`. Verification resolves Tenet 1 plus container, volume, and
 hostname selectors to the same canonical boundary without printing their
-values.
+values. A separate membership command later requires the email-verified opaque
+Better Auth user ID and inserts only the owner membership plus its audit row;
+it must not regenerate or rewrite the foundation IDs.
 
 ## Failure and rollback
 
 - A failed Neon batch is atomic; investigate before retrying.
-- `identity_schema_missing`, `membership_user_missing`,
-  `membership_user_unverified`, identity conflicts, and canonical drift are
-  hard stops.
+- `identity_schema_missing`, identity conflicts, and canonical drift are hard
+  stops for foundation allocation. `membership_user_missing` and
+  `membership_user_unverified` are hard stops only for the separate membership
+  operation and do not block foundation work.
 - Do not create a fake Better Auth user, substitute Gary, or invent an
   orchestrator/platform instance UUID.
 - Do not delete identity rows or the immutable number allocation as rollback.

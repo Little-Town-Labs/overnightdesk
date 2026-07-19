@@ -4,12 +4,12 @@
 
 **Created**: 2026-07-19
 
-**Status**: In progress — additive schema/resolver and guarded Tenet 1
-allocation tooling implemented. Mitchel is allowlisted for production sign-up,
-but the preflight remains blocked until he creates and verifies his Better Auth
-account and migration 0009 is deployed. No identity backfill, number
-allocation, authorization cutover, or production database migration has been
-performed.
+**Status**: In progress — additive schema/resolver and guarded Tenet 1 tooling
+implemented. The allocation workflow is being split so platform-controlled
+foundation work does not wait for Mitchel's Better Auth registration. Human
+access remains blocked until a verified subject receives an active membership.
+No identity backfill, number allocation, authorization cutover, or production
+database migration has been performed.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or
@@ -87,6 +87,18 @@ records.
 resolvers against the same live-compatible fixture, and roll back application
 use of the new tables without deleting them or changing resources.
 
+**Acceptance Scenarios**:
+
+1. **Given** the owner approved Tenet 1 but Mitchel has not registered, **when**
+   the operator applies the foundation plan, **then** the use case, allocation,
+   runtime, persona, and verified resource bindings are created without a
+   membership or access grant.
+2. **Given** the foundation exists without a membership, **when** any user
+   requests access, **then** authorization fails closed.
+3. **Given** Mitchel later completes email verification, **when** the operator
+   applies the membership plan using his opaque Better Auth user ID, **then**
+   only the membership and its metadata-only audit event are added.
+
 ## Requirements
 
 ### Functional Requirements
@@ -142,9 +154,15 @@ use of the new tables without deleting them or changing resources.
   canonical Gary membership, do not depend on the later Austin membership or
   Teams integration.
 - **FR-016**: Feature 020 Open WebUI authentication research MAY proceed after
-  this identity contract is accepted, but the Mitchel/Trevor canary MUST wait
-  for the Mitchel use-case identity, Mitchel membership, Trevor persona, and
-  runtime-resource mapping.
+  this identity contract is accepted. Its service and dashboard implementation
+  MAY use controlled fixtures after the canonical foundation exists, but
+  Mitchel's end-user access and browser acceptance MUST wait for his active
+  membership.
+- **FR-017**: Canonical use-case provisioning MUST NOT require a human to have
+  registered. Foundation allocation and verified membership activation MUST be
+  separate idempotent, audited operations. A missing membership MUST grant no
+  access, and a membership MUST NOT be created from an email, fake user, or
+  substituted operator identity.
 
 ### Key Entities
 
@@ -175,6 +193,9 @@ use of the new tables without deleting them or changing resources.
   unchanged and rolled back without dropping new tables or changing resources.
 - **SC-005**: No deployed container, volume, hostname, Phase path, OIDC client,
   or intake route is renamed by the identity-foundation release.
+- **SC-006**: Disposable-database qualification proves the foundation converges
+  with zero memberships, a retry is a verified no-op, and later attachment of
+  one verified membership does not rewrite the allocation or runtime IDs.
 
 ## Non-Goals
 

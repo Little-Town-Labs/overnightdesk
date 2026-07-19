@@ -44,6 +44,20 @@ An authorization decision requires all of the following:
 Client-provided use-case numbers, slugs, hostnames, persona names, container
 names, or Phase paths never establish authorization.
 
+## Provisioning and Membership Contract
+
+- The platform may create an approved use case, immutable number allocation,
+  runtime, persona assignments, and verified resource bindings with zero
+  memberships.
+- A membership-free foundation is resolvable metadata, not an access grant;
+  canonical authorization must deny every subject until an active membership
+  exists.
+- Membership activation is a separate idempotent operation that accepts only
+  an existing email-verified Better Auth user ID. Email, a fake account, or a
+  substituted operator identity cannot stand in for the intended member.
+- Adding a membership must not replace or regenerate the canonical use-case or
+  runtime IDs.
+
 ## Compatibility Contract
 
 The foundation release preserves current platform and provisioner inputs and
@@ -61,10 +75,11 @@ No compatibility step prints or stores secret values.
 ## Open WebUI Contract
 
 Feature 020 uses canonical runtime identity for workspace assignment and active
-membership for access. Its release/auth research may proceed once this contract
-is accepted. The Mitchel/Trevor stateful canary cannot start until the Mitchel
-business use case, Mitchel's membership, Trevor's persona assignment, and the
-current `hermes-mitchel` runtime resource bindings are verified.
+membership for access. Its release/auth research and fixture-backed
+implementation may proceed once this contract is accepted and the foundation
+is available. Mitchel's end-user activation and browser acceptance cannot start
+until his membership is active; a missing membership must render an unavailable
+or forbidden state without forwarding to `hermes-mitchel`.
 
 ## Versioning
 

@@ -73,6 +73,16 @@ time. No number or prefix is inserted into production resource names during
 this feature. Infrastructure naming can be reconsidered later based on actual
 operational value.
 
+## Decision 7: Provision identity before a person accepts access
+
+A use case, runtime, persona, and infrastructure bindings describe platform
+state and do not require a person to have registered. Their audited foundation
+transaction therefore creates zero memberships. A second transaction may add
+an active membership only after the intended person has an email-verified
+Better Auth subject. This keeps customer participation from blocking platform
+delivery without using email as identity, inventing a user, or granting an
+operator temporary access to somebody else's use case.
+
 ## Rejected Alternatives
 
 - **Use the sequential number as the primary key**: enumerable, leaks creation
