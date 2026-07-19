@@ -571,6 +571,14 @@ function buildReadyPlan(
   };
 }
 
+function manifestSizedIds(existingIds: string[], count: number): string[] {
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      existingIds[index] ?? `00000000-0000-0000-0000-${String(index).padStart(12, "0")}`,
+  );
+}
+
 export function planMitchelTrevorFoundation(
   rawInput: IdentityFoundationInput,
   snapshot: IdentityFoundationSnapshot,
@@ -615,9 +623,13 @@ export function planMitchelMembershipActivation(
     personaAssignmentId:
       existing.personaAssignment?.id ?? "00000000-0000-0000-0000-000000000000",
     membershipId,
-    resourceBindingIds: existing.resourceBindings.map((binding) => binding.id),
-    secretBoundaryBindingIds: existing.secretBoundaryBindings.map(
-      (binding) => binding.id,
+    resourceBindingIds: manifestSizedIds(
+      existing.resourceBindings.map((binding) => binding.id),
+      MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings.length,
+    ),
+    secretBoundaryBindingIds: manifestSizedIds(
+      existing.secretBoundaryBindings.map((binding) => binding.id),
+      MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.length,
     ),
   });
   if (!existingFoundationStateMatches(existing, foundation)) {

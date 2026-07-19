@@ -39,7 +39,7 @@ function parseCommand(value: string | undefined): Command {
 }
 
 function parseInvocation(args: string[]): { scope: Scope; command: Command } {
-  if ((["foundation", "membership"] as const).includes(args[0] as never)) {
+  if (args[0] === "foundation" || args[0] === "membership") {
     return { scope: args[0] as Scope, command: parseCommand(args[1]) };
   }
   return { scope: "backfill", command: parseCommand(args[0]) };

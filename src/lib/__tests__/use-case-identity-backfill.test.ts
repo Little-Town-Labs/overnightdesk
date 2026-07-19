@@ -237,6 +237,56 @@ describe("planMitchelMembershipActivation", () => {
       reasons: ["membership_user_missing"],
     });
   });
+
+  it("accepts additive foundation bindings when attaching membership", () => {
+    const foundation = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+    if (foundation.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
+
+    const plan = planMitchelMembershipActivation(
+      input,
+      emptySnapshot({
+        existingCanonicalState: {
+          useCase: foundation.useCase,
+          numberAllocation: foundation.numberAllocation,
+          runtimeIdentity: foundation.runtimeIdentity,
+          personaAssignment: foundation.personaAssignment,
+          membership: null,
+          resourceBindings: [
+            ...foundation.resourceBindings,
+            {
+              id: "77777777-7777-4777-8777-777777777777",
+              useCaseId: foundation.useCase.id,
+              runtimeIdentityId: foundation.runtimeIdentity.id,
+              provider: "orchestrator",
+              kind: "orchestrator_tenant",
+              value: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+              state: "active",
+            },
+          ],
+          secretBoundaryBindings: [
+            ...foundation.secretBoundaryBindings,
+            {
+              id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+              useCaseId: foundation.useCase.id,
+              runtimeIdentityId: foundation.runtimeIdentity.id,
+              phaseApp: "overnightdesk",
+              environment: "development",
+              pathIdentifier: "/agents/hermes-email-intake/mitchel",
+            },
+          ],
+        },
+      }),
+      ids.membershipId,
+    );
+
+    expect(plan.status).toBe("ready");
+  });
 });
 
 describe("planMitchelTrevorBackfill", () => {
