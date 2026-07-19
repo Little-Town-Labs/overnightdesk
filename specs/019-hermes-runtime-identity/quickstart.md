@@ -183,6 +183,30 @@ https://docs.phase.dev/cli/commands
   dashboard login and Hermes session-cookie logout check; T032, T033, and the
   final merged-main cleanup T042 intentionally remain open until that check.
 
+## Owner-browser incident and repair — 2026-07-19
+
+- The first owner browser attempt reached Aegis but Nginx returned 403 before
+  Walter. Status-only comparison proved Vercel returned the expected 401 when
+  contacted with TLS SNI, while Walter's static `proxy_pass` omitted SNI and
+  received 403. Walter remained healthy throughout.
+- Added a failing source-contract test, then changed only Walter's
+  `/auth-verify` upstream to the working resolver, canonical Host, and TLS SNI
+  pattern already used by Mitchel. The focused Nginx/auth/OIDC suites pass 17
+  tests, and the dependency audit reports no high or critical findings.
+- Deployed the source file with an exact rollback copy, validated the complete
+  Nginx configuration, and reloaded Nginx without restarting Walter. Anonymous
+  access now fails safely with a 302 sign-in redirect instead of 403; public
+  status remains 200.
+- A metadata-only control-plane check also found the Aegis instance row still
+  stored `container_id=hermes-agent`. A guarded one-row update changed only
+  that selector to `hermes-walter`; tenant, owner, OIDC linkage, and lifecycle
+  state were unchanged. The deployed provisioner binary still lacks the
+  already-merged `/sessions` route and returns 404 for both old and new
+  container IDs. That affects dashboard-page session preloading, not the native
+  dashboard launch or owner authorization, and requires a separate provisioner
+  deployment decision.
+- The repeated owner login/logout browser check remains pending.
+
 ## Follow-up: stable numeric tenant IDs
 
 Numeric tenant IDs are intentionally a separate architecture feature rather
