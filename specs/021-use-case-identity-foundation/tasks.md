@@ -5,9 +5,10 @@
 **Status**: Additive schema/resolver and guarded Tenet 1 allocation tooling are
 implemented and qualified on a disposable database. Production preflight is
 blocked on Mitchel's missing Better Auth subject and the undeployed identity
-schema. No Phase, Vercel, resource renames, identity backfill, number
-allocation, authorization cutover, database deployment, or production changes
-have been performed.
+schema. The approved production invite allowlist and Vercel deployment are
+complete. No Phase change, resource rename, identity backfill, number
+allocation, authorization cutover, or production database deployment has been
+performed.
 
 ## Phase 1: Durable Contract
 
