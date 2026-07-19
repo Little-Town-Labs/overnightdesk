@@ -30,7 +30,7 @@ function emptySnapshot(
 ): IdentityBackfillSnapshot {
   return {
     schemaReady: true,
-    membershipUser: { id: input.membershipUserId },
+    membershipUser: { id: input.membershipUserId, emailVerified: true },
     canonicalConflict: false,
     existingCanonicalState: null,
     ...overrides,
@@ -61,6 +61,24 @@ describe("planMitchelTrevorBackfill", () => {
     expect(plan).toEqual({
       status: "blocked",
       reasons: ["membership_user_missing"],
+    });
+  });
+
+  it("blocks without writing when Mitchel has not verified his email", () => {
+    const plan = planMitchelTrevorBackfill(
+      input,
+      emptySnapshot({
+        membershipUser: {
+          id: input.membershipUserId,
+          emailVerified: false,
+        },
+      }),
+      ids,
+    );
+
+    expect(plan).toEqual({
+      status: "blocked",
+      reasons: ["membership_user_unverified"],
     });
   });
 

@@ -14,6 +14,11 @@ command. Disposable-Neon qualification passes. Production remains unchanged:
 the identity schema and Mitchel Better Auth subject are absent, and neither the
 platform instance table nor orchestrator registry contains a Mitchel row.
 
+**Invitation checkpoint (2026-07-19):** Mitchel is present exactly once in the
+production invite allowlist and the refreshed Vercel production deployment
+serves the sign-up route. The backfill now requires `emailVerified = true`;
+registration and verification remain Mitchel's required next action.
+
 ## Summary
 
 Introduce an additive identity registry that separates canonical use-case and

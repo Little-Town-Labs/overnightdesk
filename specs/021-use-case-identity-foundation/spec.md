@@ -5,10 +5,11 @@
 **Created**: 2026-07-19
 
 **Status**: In progress — additive schema/resolver and guarded Tenet 1
-allocation tooling implemented; production preflight is blocked on the missing
-Mitchel Better Auth subject and undeployed identity schema. No identity
-backfill, number allocation, authorization cutover, or production migration
-has been performed.
+allocation tooling implemented. Mitchel is allowlisted for production sign-up,
+but the preflight remains blocked until he creates and verifies his Better Auth
+account and migration 0009 is deployed. No identity backfill, number
+allocation, authorization cutover, or production database migration has been
+performed.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or

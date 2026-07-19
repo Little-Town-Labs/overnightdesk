@@ -58,9 +58,9 @@ async function identitySchemaReady(database: Database): Promise<boolean> {
 async function readMembershipUser(
   database: Database,
   userId: string,
-): Promise<{ id: string } | null> {
+): Promise<{ id: string; emailVerified: boolean } | null> {
   const rows = await database
-    .select({ id: user.id })
+    .select({ id: user.id, emailVerified: user.emailVerified })
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);

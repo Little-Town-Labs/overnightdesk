@@ -100,7 +100,7 @@ export interface ExistingCanonicalState {
 
 export interface IdentityBackfillSnapshot {
   schemaReady: boolean;
-  membershipUser: { id: string } | null;
+  membershipUser: { id: string; emailVerified: boolean } | null;
   canonicalConflict: boolean;
   existingCanonicalState: ExistingCanonicalState | null;
 }
@@ -343,6 +343,8 @@ function blockingReasons(
   if (snapshot.canonicalConflict) reasons.push("canonical_identity_conflict");
   if (snapshot.membershipUser?.id !== input.membershipUserId) {
     reasons.push("membership_user_missing");
+  } else if (!snapshot.membershipUser.emailVerified) {
+    reasons.push("membership_user_unverified");
   }
   return reasons;
 }
