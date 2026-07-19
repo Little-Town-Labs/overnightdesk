@@ -19,6 +19,7 @@
     "identity:membership:plan": "tsx scripts/use-case-identity-backfill.ts membership plan",
     "identity:membership:apply": "tsx scripts/use-case-identity-backfill.ts membership apply",
     "identity:membership:verify": "tsx scripts/use-case-identity-backfill.ts membership verify",
+    "identity:compatibility:verify": "tsx scripts/use-case-identity-backfill.ts compatibility verify",
     "identity:schema:plan": "node scripts/apply-use-case-identity-schema.cjs plan",
     "identity:schema:apply": "node scripts/apply-use-case-identity-schema.cjs apply",
     "test": "jest",

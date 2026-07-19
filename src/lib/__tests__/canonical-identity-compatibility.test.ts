@@ -1,5 +1,6 @@
 import {
   parseCanonicalIdentityReadMode,
+  requireCanonicalComparisonConfirmation,
   resolveLegacyWithCanonicalShadow,
 } from "@/lib/canonical-identity-compatibility";
 import type {
@@ -53,6 +54,25 @@ describe("parseCanonicalIdentityReadMode", () => {
     expect(parseCanonicalIdentityReadMode("compare")).toBe("compare");
     expect(() => parseCanonicalIdentityReadMode("canonical")).toThrow(
       "CANONICAL_IDENTITY_READ_MODE must be legacy or compare",
+    );
+  });
+});
+
+describe("requireCanonicalComparisonConfirmation", () => {
+  it("requires a separate exact confirmation only when comparison writes audits", () => {
+    expect(() =>
+      requireCanonicalComparisonConfirmation("legacy", undefined),
+    ).not.toThrow();
+    expect(() =>
+      requireCanonicalComparisonConfirmation(
+        "compare",
+        "COMPARE_TENET_1_SHADOW",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      requireCanonicalComparisonConfirmation("compare", undefined),
+    ).toThrow(
+      "IDENTITY_COMPARISON_CONFIRM must equal COMPARE_TENET_1_SHADOW",
     );
   });
 });

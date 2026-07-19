@@ -23,6 +23,20 @@ export function parseCanonicalIdentityReadMode(
   return parsed.data;
 }
 
+export function requireCanonicalComparisonConfirmation(
+  mode: CanonicalIdentityReadMode,
+  confirmation: string | undefined,
+): void {
+  if (
+    mode === "compare" &&
+    confirmation !== "COMPARE_TENET_1_SHADOW"
+  ) {
+    throw new Error(
+      "IDENTITY_COMPARISON_CONFIRM must equal COMPARE_TENET_1_SHADOW",
+    );
+  }
+}
+
 interface LegacyWithCanonicalShadowInput<TLegacy> {
   mode: CanonicalIdentityReadMode;
   legacyResult: TLegacy;
