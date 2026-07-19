@@ -119,9 +119,11 @@ identity can be restored without deleting or restoring the runtime volume.
 - [x] T035 [US4] Verify Open Brain, Ops MCP, cron, GitHub auth availability, monitoring, recent errors, Titus, and Mitchel without outputting protected content
 - [x] T036 [US4] Exercise or time a non-destructive rollback rehearsal and record the result in `specs/019-hermes-runtime-identity/quickstart.md`
 
-T032 runtime, mount, DNS, public status, and API checks have passed. T032 and
-T033 remain open only for the owner-authenticated dashboard login and logout
-cookie check.
+T032 runtime, mount, DNS, public status, and API checks have passed. The first
+owner-browser attempt exposed a missing TLS SNI/Host contract on Walter's
+Nginx verification subrequest; the tested production fix now returns the safe
+sign-in redirect instead of 403. T032 and T033 remain open for the repeated
+owner-authenticated dashboard login and logout cookie check.
 
 ---
 
