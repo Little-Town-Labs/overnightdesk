@@ -17,16 +17,18 @@ const describeIntegration = safeDisposableDatabase ? describe : describe.skip;
 
 describeIntegration("Mitchel/Trevor identity backfill store", () => {
   it("applies foundation before a user exists and attaches verified membership later", async () => {
-    const [{ eq }, { db }, schema, storeModule] = await Promise.all([
+    const [{ eq }, { db }, schema, storeModule, auditModule] = await Promise.all([
       import("drizzle-orm"),
       import("@/db"),
       import("@/db/schema"),
       import("@/db/use-case-identity-backfill-store"),
+      import("@/lib/canonical-identity-audit"),
     ]);
     const { platformAuditLog, useCaseMembership, user } = schema;
     const {
       applyIdentityFoundationPlan,
       applyMembershipActivationPlan,
+      compareMitchelTrevorLegacyAndCanonical,
       generateMitchelTrevorIdentityIds,
       inspectMitchelTrevorIdentityBackfill,
       inspectMitchelTrevorIdentityFoundation,
@@ -72,6 +74,73 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
         db,
       ),
     ).resolves.toEqual({ checked: 4, matched: 4, mismatches: [] });
+
+    const auditCanonicalComparison = auditModule.createPlatformIdentityAudit(db);
+    await expect(
+      compareMitchelTrevorLegacyAndCanonical(
+        "compare",
+        ids.useCaseId,
+        ids.runtimeIdentityId,
+        auditCanonicalComparison,
+        db,
+      ),
+    ).resolves.toEqual({
+      mode: "compare",
+      authority: "legacy",
+      legacyChecked: 1,
+      legacyMatched: 1,
+      canonicalChecked: 4,
+      canonicalMatched: 4,
+      canonicalMismatches: [],
+      canonicalErrors: [],
+    });
+
+    const comparisonAuditRows = await db
+      .select({ details: platformAuditLog.details })
+      .from(platformAuditLog)
+      .where(eq(platformAuditLog.action, "canonical_resolution_match"));
+    expect(comparisonAuditRows).toHaveLength(4);
+    expect(JSON.stringify(comparisonAuditRows)).not.toContain("hermes-mitchel");
+    expect(JSON.stringify(comparisonAuditRows)).not.toContain("aero-fett");
+    expect(JSON.stringify(comparisonAuditRows)).not.toContain("/agents/");
+
+    await expect(
+      compareMitchelTrevorLegacyAndCanonical(
+        "legacy",
+        ids.useCaseId,
+        ids.runtimeIdentityId,
+        auditCanonicalComparison,
+        db,
+      ),
+    ).resolves.toEqual({
+      mode: "legacy",
+      authority: "legacy",
+      legacyChecked: 1,
+      legacyMatched: 1,
+      canonicalChecked: 0,
+      canonicalMatched: 0,
+      canonicalMismatches: [],
+      canonicalErrors: [],
+    });
+
+    const afterRollback = await inspectMitchelTrevorIdentityFoundation(db);
+    expect(afterRollback.existingCanonicalState).toMatchObject({
+      useCase: { id: ids.useCaseId },
+      runtimeIdentity: { id: ids.runtimeIdentityId },
+    });
+    await expect(
+      verifyMitchelTrevorCanonicalSelectors(
+        ids.useCaseId,
+        ids.runtimeIdentityId,
+        db,
+      ),
+    ).resolves.toEqual({ checked: 4, matched: 4, mismatches: [] });
+    await expect(
+      db
+        .select({ details: platformAuditLog.details })
+        .from(platformAuditLog)
+        .where(eq(platformAuditLog.action, "canonical_resolution_match")),
+    ).resolves.toHaveLength(4);
 
     await db.insert(user).values({
       id: membershipUserId,
