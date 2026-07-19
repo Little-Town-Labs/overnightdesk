@@ -127,12 +127,17 @@ cookie check.
 
 ## Phase 7: Closeout and Review
 
-- [ ] T037 Update all active Walter selectors, compatibility notes, and retained rollback artifacts in `overnightdesk-platform-standard/WHAT/` and `HOW/`
-- [ ] T038 Sync the merged platform standard to Aegis, restart `overnightdesk-ops`, and run the full operations audit
-- [ ] T039 Apply the five-axis code/security/operations review to every owning repository and resolve all required findings
-- [ ] T040 Commit, push, open, verify, and merge one reviewable PR per owning repository
-- [ ] T041 Append the value-suppressed production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T037 Update all active Walter selectors, compatibility notes, and retained rollback artifacts in `overnightdesk-platform-standard/WHAT/` and `HOW/`
+- [x] T038 Sync the merged platform standard to Aegis, restart `overnightdesk-ops`, and run the full operations audit
+- [x] T039 Apply the five-axis code/security/operations review to every owning repository and resolve all required findings
+- [x] T040 Commit, push, open, verify, and merge one reviewable PR per owning repository
+- [x] T041 Append the value-suppressed production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T042 Confirm all primary repos are clean on merged `main` and leave old container name, Phase path, intake service/state, and runtime volume retained for observation
+
+T037-T041 closed after standards commits `843d4b4`, audit commit `ea4c8f8`,
+Ops commit `d42aa84`, and value-suppressed production verification. T042 remains
+open with the owner-browser checks so the final merged-main cleanup is recorded
+only after the authenticated dashboard gate is complete.
 
 ## Dependencies and Execution Order
 
