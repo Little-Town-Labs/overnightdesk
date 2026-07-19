@@ -1,5 +1,11 @@
 # Runtime Identity Contract
 
+Feature 021 extends this cutover-specific contract with canonical use-case and
+runtime UUIDs, optional non-authorizing Tenet numbers, membership, persona
+assignments, and resource bindings. In the table below, `tenant-0` remains the
+unchanged Walter-era platform selector and compatibility binding; it is not a
+new canonical UUID or proof of authorization.
+
 ## Canonical mapping
 
 | Concept | Active value after cutover | Compatibility value retained |

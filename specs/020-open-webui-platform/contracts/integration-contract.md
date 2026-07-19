@@ -2,19 +2,20 @@
 
 ## Assignment
 
-- The authenticated server-side instance record selects exactly one approved
-  Open WebUI origin.
+- Active server-side membership plus the canonical runtime/resource bindings
+  select exactly one approved Open WebUI origin.
 - Client-supplied tenant IDs, hostnames, container names, or Open WebUI origins
   never select the workspace.
-- No assignment returns unless the instance is running and the canary or
-  rollout policy enables Feature 020 for that exact instance.
+- No assignment returns unless the use case/runtime and membership are active
+  and the canary or rollout policy enables Feature 020 for that exact runtime.
 
 ## Ingress
 
 - Nginx is the only public route to Open WebUI.
-- The existing Better Auth owner check runs before proxying.
-- The owner check compares the requested Open WebUI host to the instance's
-  recorded assignment, not only to a broad Hermes classification.
+- The Better Auth active-membership check runs before proxying. The existing
+  exact-owner read is retained only as a migration rollback path.
+- The membership check compares the requested Open WebUI host to the canonical
+  runtime's recorded resource binding, not only to a broad Hermes classification.
 - Inbound identity assertion headers are stripped even though OIDC is the
   preferred authentication mechanism.
 - `Content-Security-Policy: frame-ancestors` permits only the approved
@@ -60,5 +61,6 @@
   administrative configuration changes emit metadata-only audit events.
 - Request size, concurrency, model visibility, and model-cost consumption use
   explicit bounds; file upload and optional tools remain disabled in the MVP.
-- Browser tests cover unauthenticated, wrong-owner, correct-owner, logout,
-  stale session, embedding denial from another origin, and fallback behavior.
+- Browser tests cover unauthenticated, non-member, suspended-member,
+  wrong-use-case, active-member, logout, stale session, embedding denial from
+  another origin, and fallback behavior.

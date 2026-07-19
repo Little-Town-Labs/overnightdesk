@@ -12,21 +12,28 @@ are authorized by this task list.
 - [x] T003 Record planned state and the obsolete `/sessions` inventory correction in `overnightdesk-platform-standard`
 - [ ] T004 Pin an Open WebUI release and review its image provenance, license, release notes, default headers, database behavior, and security advisories
 
+T004 may begin after the Feature 021 terminology and identity contract is
+accepted. It does not require schema deployment or a production number.
+
 ## Phase 2: Authentication and Embedding Spike
 
-- [ ] T005 Add failing tests for exact instance-to-workspace assignment and wrong-owner denial
+- [ ] T005 Add failing tests for canonical runtime-to-workspace assignment plus active-member, non-member, and suspended-member behavior
 - [ ] T006 Define a separate Open WebUI OIDC client kind without weakening the native Hermes dashboard client contract
 - [ ] T007 Prove top-level OIDC login, embedded session reuse, logout, and re-login with the pinned Open WebUI release
 - [ ] T008 Prove restrictive `frame-ancestors`, cookie, WebSocket/SSE, and text-only permissions behavior
-- [ ] T009 Run spoofed assignment/header, wrong-owner, unapproved-frame, oversized-request, unavailable-backend, and tool-authority abuse tests
+- [ ] T009 Run spoofed assignment/header, non-member, wrong-use-case, unapproved-frame, oversized-request, unavailable-backend, and tool-authority abuse tests
 - [ ] T010 Record the trusted-header alternative as rejected or separately approve and threat-model it if OIDC cannot satisfy the embedded flow
 
-## Phase 3: Mitchel Stateful Canary
+## Phase 3: Mitchel User / Trevor Agent Stateful Canary
+
+This phase is blocked until Feature 021 verifies the Mitchel business use case,
+Mitchel's active membership, Trevor's persona assignment, and the current
+`hermes-mitchel` runtime/resource bindings.
 
 - [ ] T011 Add version-pinned, rootless/read-only-where-compatible Open WebUI deployment source with health checks and a dedicated volume
-- [ ] T012 Add Phase secret names and value-suppressed qualification for the Mitchel Open WebUI path
+- [ ] T012 Add Phase secret names and value-suppressed qualification for Mitchel's Trevor Open WebUI path
 - [ ] T013 Add a private `hermes-mitchel:8642/v1` Chat Completions connection with Ollama and unrelated connections disabled
-- [ ] T014 Add a canary-only Nginx vhost and Better Auth exact-owner gate
+- [ ] T014 Add a canary-only Nginx vhost and Better Auth active-membership gate derived from the canonical runtime assignment
 - [ ] T015 Add metadata-only security audit events plus explicit request, concurrency, model, and cost bounds
 - [ ] T016 Verify container recreation preserves chats and no browser/log surface exposes protected values
 
@@ -41,7 +48,7 @@ are authorized by this task list.
 
 - [ ] T021 Run the five-axis code, security, data, operations, and UX review
 - [ ] T022 Perform approved Aegis/Vercel canary deployment with rollback evidence and deploy-log/standards updates
-- [ ] T023 Complete owner and non-owner browser checks and an observation window
+- [ ] T023 Complete member, non-member, suspended-member, and logout browser checks and an observation window
 - [ ] T024 Remove the custom chat component, `/api/engine/chat`, `/api/engine/sessions`, provisioner `getSessions`, and dependencies/tests used only by that bridge
 - [ ] T025 Keep the native Hermes dashboard and Open WebUI volume until a separately approved retention decision
 
@@ -52,7 +59,9 @@ are authorized by this task list.
 
 ## Dependencies and Execution Order
 
-- T004 precedes all code and deployment work.
+- Acceptance of the Feature 021 terminology/identity contract precedes T004-T010.
+- Feature 021 additive schema/resolver and Mitchel identity mapping precede T011-T016.
+- T004 precedes Feature 020 code and deployment work.
 - T005-T010 are a stop/go security gate for the remaining feature.
 - T011-T016 precede the Vercel iframe cutover so the frontend never points at
   an unqualified service.

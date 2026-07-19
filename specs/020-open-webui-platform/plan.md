@@ -7,10 +7,13 @@
 Replace the custom chat card in the Vercel-hosted dashboard with a full-height
 Open WebUI workspace. Vercel and Better Auth remain the control and identity
 plane. Aegis runs one persistent Open WebUI deployment per Hermes use-case and
-memory boundary. Nginx performs the existing exact-owner gate, Open WebUI uses
-a separate OvernightDesk OIDC client, and Open WebUI connects privately to the
-matching Hermes OpenAI-compatible API. Mitchel is the first canary; the native
-Hermes dashboard remains the rollback surface.
+memory boundary. Feature 021 supplies canonical runtime assignment and active
+membership; Nginx enforces that target gate while retaining the existing
+exact-owner read for migration rollback. Open WebUI uses a separate
+OvernightDesk OIDC client and connects privately to the matching Hermes
+OpenAI-compatible API. Mitchel is the first canary user and
+Trevor is his agent persona; the native Hermes dashboard remains the rollback
+surface.
 
 ## Technical Context
 
@@ -39,7 +42,7 @@ embedding, chat, logout, denial, and rollback checks
   bound to one Hermes use case. The platform database continues to hold only
   operational assignment metadata, not chats or API credentials.
 - **Security**: CONDITIONAL PASS. OIDC-in-embed behavior, frame policy, exact
-  owner denial, local-auth shutdown, and secret non-exposure must pass the
+  membership and non-member denial, local-auth shutdown, and secret non-exposure must pass the
   canary before broad use.
 - **Owner decides**: PASS. The canary and cleanup are separate gates. Titus
   Teams work and broader rollout require later approval.
@@ -59,7 +62,7 @@ Browser
   +-- iframe/top-level auth bootstrap to per-runtime WebUI hostname
          |
          v
-      Aegis Nginx: TLS + exact Better Auth owner gate + frame policy
+      Aegis Nginx: TLS + exact Better Auth membership gate + frame policy
          |
          v
       open-webui-<runtime> :8080
@@ -94,7 +97,7 @@ Browser
 overnightdesk/
 ├── specs/020-open-webui-platform/       feature contract and rollout tasks
 ├── src/app/(protected)/dashboard/       workspace shell and routing
-├── src/app/api/auth/                    OIDC/owner authorization
+├── src/app/api/auth/                    OIDC/membership authorization
 ├── src/lib/                             workspace assignment/config
 ├── infra/open-webui/                    compose and nginx templates
 └── tests/                               route, auth, and UI coverage
@@ -107,39 +110,53 @@ overnightdesk-platform-standard/
 
 ## Delivery Sequence
 
-1. **Contract and auth spike**: Pin the Open WebUI version, decide hostname
-   template, register a separate Mitchel OIDC client, and prove top-level login,
+1. **Identity contract**: Accept Feature 021 terminology, UUID/number
+   semantics, membership authorization, runtime/persona separation, and
+   resource-binding compatibility rules.
+2. **Open WebUI auth spike**: Pin the Open WebUI version, decide hostname
+   template, register a separate OIDC client for Mitchel's Trevor workspace,
+   and prove top-level login,
    iframe session reuse, logout semantics, and frame policy without exposing the
-   service broadly.
-2. **Mitchel stateful canary**: Add Phase-backed secrets, a dedicated volume,
-   private Hermes connection, health checks, and a canary-only Nginx route.
-3. **Frontend workspace redesign**: Create a wide dashboard shell and Chat
+   service broadly. This may overlap the additive identity implementation.
+3. **Mitchel/Trevor identity prerequisite**: Complete Feature 021's additive
+   schema, canonical resolver, Mitchel user membership, Trevor persona
+   assignment, and use-case/runtime bindings. Keep all existing resource names
+   and the prior single-owner read available.
+4. **Mitchel/Trevor stateful canary**: Add Phase-backed secrets, a dedicated volume,
+   private Hermes connection, health checks, and a canary-only Nginx route
+   assigned through the canonical runtime and membership.
+5. **Frontend workspace redesign**: Create a wide dashboard shell and Chat
    route, keep Trevor status surfaces concise, and add unavailable/native
    dashboard fallbacks.
-4. **Browser and rollback proof**: Verify owner and non-owner behavior,
+6. **Browser and rollback proof**: Verify member and non-member behavior,
    streaming, reload persistence, mobile layout, logout, container recreation,
    and sub-15-minute route rollback.
-5. **Cleanup**: After the observation gate, remove the custom chat component,
+7. **Cleanup**: After the observation gate, remove the custom chat component,
    `/api/engine/chat`, `/api/engine/sessions`, the undeployed provisioner
    `/sessions` client, and dependencies used only by that bridge.
-6. **Expansion**: Evaluate Walter and later Titus separately. Teams integration
+8. **Expansion**: Evaluate Walter and later Titus separately. Teams integration
    remains its own feature.
 
 ## Priority Against Remaining Work
 
-1. **Now — Feature 020 planning and auth spike (P1)**: The current custom chat
-   is already a user-facing surface and Feature 020 replaces rather than adds
-   another chat stack.
-2. **Separate owner gate — Feature 12 scheduler activation**: Prospect deep
+1. **Now — Feature 021 identity contract and additive foundation (P0)**:
+   Establish canonical UUIDs, optional stable numbers, membership, persona
+   assignments, and resource bindings before a stateful shared-access canary.
+2. **Parallel after contract — Feature 020 release/auth spike (P1)**: OIDC,
+   embedding, frame policy, and pinned-release research can proceed while the
+   additive identity schema and Mitchel backfill are implemented.
+3. **Separate owner gate — Feature 12 scheduler activation**: Prospect deep
    research is implemented and deployed; only task T024 remains, and it
    explicitly requires operator approval. It does not block Feature 020 source
    work.
-3. **Next — Feature 020 Mitchel canary and frontend cutover (P1)**.
-4. **After canary — Mitchel landing page (P2)**: Public acquisition remains
+4. **Next — Feature 021 Mitchel vertical slice, then Feature 020 canary and
+   frontend cutover (P1)**.
+5. **After canary — Mitchel landing page (P2)**: Public acquisition remains
    valuable but depends on a trustworthy authenticated operator experience.
-5. **Deferred — provisioner `/sessions` route**: Do not implement a legacy
+6. **Deferred — provisioner `/sessions` route**: Do not implement a legacy
    session bridge solely for the custom chat that Feature 020 will retire.
-6. **Separate roadmap — Titus Teams integration**.
+7. **Separate roadmap — Titus shared membership, Open WebUI, and Teams
+   integration**.
 
 The May 2026 three-phase provisioner/orchestrator convergence sketch
 (`OPERATOR_RESEED` bootstrap wiring, `/provision-infra`, and wizard parallel

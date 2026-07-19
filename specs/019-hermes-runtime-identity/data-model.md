@@ -1,8 +1,16 @@
 # Data Model: Hermes Runtime Identity
 
+> **Feature 021 extension:** This feature used `runtime_id` and
+> `runtime_name` to complete the Walter infrastructure/persona cutover. Feature
+> 021 now defines the platform-wide canonical UUID, optional Tenet number,
+> membership, persona assignment, and resource-binding contract. Existing
+> values here remain compatibility inputs; names do not become authorization
+> identifiers.
+
 ## Runtime
 
-- `runtime_id`: stable platform record, when one exists
+- `runtime_id`: stable platform record, when one exists; mapped additively to
+  Feature 021 canonical identity rather than assumed to be the same ID
 - `runtime_name`: active infrastructure/DNS name
 - `use_case`: one operational or business purpose
 - `host_boundary`: Aegis or off-host
