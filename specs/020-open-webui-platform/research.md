@@ -12,8 +12,8 @@ implementation; the configuration surface is version-sensitive.
 
 | Boundary | STRIDE concern | Required control |
 |----------|----------------|------------------|
-| Browser -> Vercel assignment | Spoofing/elevation through a client-supplied runtime or origin | Derive the assignment only from the authenticated server-side instance record and exact canary policy. |
-| Browser -> Aegis Nginx | Spoofing, clickjacking, session confusion | Better Auth exact-owner gate, restrictive frame ancestors, secure cookies, denial tests, and metadata-only auth audit. |
+| Browser -> Vercel assignment | Spoofing/elevation through a client-supplied runtime or origin | Derive the assignment only from active membership, canonical runtime/resource bindings, and exact canary policy. |
+| Browser -> Aegis Nginx | Spoofing, clickjacking, session confusion | Better Auth exact-membership gate, restrictive frame ancestors, secure cookies, denial tests, and metadata-only auth audit. |
 | Nginx -> Open WebUI | Header spoofing or alternate-path bypass | Keep Open WebUI off host ports, strip inbound identity headers, and do not approve trusted-header auth without a separate threat model. |
 | Open WebUI OIDC callback | Login CSRF, account collision, token disclosure | Exact redirect URI, state/nonce, S256 where supported, stable issuer/subject, email merging disabled, server-side token storage. |
 | Open WebUI -> Hermes | Secret disclosure, SSRF-like connection changes, cross-runtime access | Fixed private-network connection, server-side key, non-admin user role, no user-controlled base URL. |

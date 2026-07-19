@@ -19,20 +19,21 @@ dashboard as an advanced and rollback surface during rollout.
 An authorized user can enter the OvernightDesk dashboard and use a polished,
 full-height chat workspace without separately managing an Open WebUI password.
 
-**Why this priority**: Chat is the primary interaction surface for Mitchel and
-a likely secondary surface for other use cases. The current custom chat is a
+**Why this priority**: Chat is the primary interaction surface for Mitchel with
+his Hermes agent/persona Trevor, and a likely secondary surface for other use
+cases. The current custom chat is a
 thin proxy with incomplete history and duplicates a mature upstream UI.
 
-**Independent Test**: An authorized Mitchel user signs into OvernightDesk,
-opens the chat workspace, sends a text prompt, sees streamed Hermes tool
+**Independent Test**: Mitchel signs into OvernightDesk, opens his Trevor
+workspace, sends a text prompt, sees streamed Hermes tool
 progress and a final response, reloads the page, and sees the conversation in
 the same Open WebUI account.
 
 **Acceptance Scenarios**:
 
-1. **Given** an authenticated user owns a running Hermes instance, **when**
-   they open Chat, **then** the platform loads only the Open WebUI deployment
-   assigned to that instance.
+1. **Given** an authenticated user has active membership in a running Hermes
+   use case, **when** they open Chat, **then** the platform loads only the Open
+   WebUI deployment assigned to that canonical runtime.
 2. **Given** the user already has a valid Better Auth session, **when** the
    Open WebUI session is bootstrapped, **then** no separate local password is
    required.
@@ -43,8 +44,9 @@ the same Open WebUI account.
 
 ### User Story 2 - Preserve Use-Case and Memory Isolation (Priority: P1)
 
-The platform owner can prove that Open WebUI does not combine Walter, Mitchel,
-Titus, or future Rex conversations, secrets, model connections, or user access.
+The platform owner can prove that Open WebUI does not combine the
+OvernightDesk/Walter, Mitchel/Trevor, TTS/Titus, or future personal/Rex
+conversations, secrets, model connections, or user access.
 
 **Why this priority**: Open WebUI stores accounts, chats, and connection
 configuration. A single shared administrative database would create a new
@@ -52,7 +54,7 @@ cross-use-case blast radius inconsistent with the runtime identity model.
 
 **Independent Test**: Inspect two configured deployments and verify distinct
 containers, volumes, hostnames, OIDC client registrations, Phase paths, Hermes
-API credentials, and exact owner authorization.
+API credentials, and exact active-membership authorization.
 
 **Acceptance Scenarios**:
 
@@ -60,7 +62,7 @@ API credentials, and exact owner authorization.
    WebUI is provisioned, **then** each receives a separate Open WebUI data and
    authentication boundary.
 2. **Given** a browser requests another runtime's workspace, **when** the
-   Better Auth owner gate runs, **then** access is denied before Open WebUI.
+   Better Auth membership gate runs, **then** access is denied before Open WebUI.
 3. **Given** Open WebUI calls Hermes, **when** it authenticates, **then** the
    bearer credential remains server-side and never reaches browser JavaScript,
    Vercel logs, or the platform database.
@@ -108,7 +110,7 @@ Open WebUI volume remain intact.
 
 **Acceptance Scenarios**:
 
-1. **Given** the Mitchel canary fails a gate, **when** rollback is invoked,
+1. **Given** the Mitchel/Trevor canary fails a gate, **when** rollback is invoked,
    **then** the platform hides the embedded workspace without deleting data.
 2. **Given** the canary passes, **when** the custom chat is retired, **then**
    its API route, session bridge client, tests, and UI dependencies are removed
@@ -123,13 +125,15 @@ Open WebUI volume remain intact.
 - **FR-001**: The system MUST treat Open WebUI as a stateful Aegis workload,
   not as a Vercel Function or a client-only library.
 - **FR-002**: The Vercel application MUST remain the authenticated platform
-  shell and MUST select the workspace from the authenticated user's exact
-  running instance record.
+  shell and MUST select the workspace from the authenticated user's active
+  membership and canonical running runtime assignment.
 - **FR-003**: Each Hermes use-case and primary-memory boundary MUST receive a
   separate Open WebUI container, persistent volume, public hostname, OIDC
   client, Hermes connection, and secret path.
 - **FR-004**: Nginx MUST remain the only public Aegis ingress and MUST enforce
-  the Better Auth exact-owner gate before forwarding Open WebUI traffic.
+  the Better Auth active-membership gate for the canonical runtime before
+  forwarding Open WebUI traffic. The prior exact-owner read remains only as a
+  migration rollback path.
 - **FR-005**: Open WebUI MUST authenticate users through the OvernightDesk
   identity provider; local signup and password authentication MUST be disabled
   after OIDC has passed a rollback-tested canary.
@@ -153,7 +157,7 @@ Open WebUI volume remain intact.
 - **FR-013**: The existing custom chat and provisioner `/sessions` client MUST
   remain compatibility code until the canary passes and MUST then be removed
   as one reviewed cleanup slice.
-- **FR-014**: The feature MUST begin with one Mitchel canary and MUST NOT
+- **FR-014**: The feature MUST begin with one Mitchel-user/Trevor-agent canary and MUST NOT
   change Titus Teams integration, Walter's native dashboard, or Rex.
 - **FR-015**: Authentication failures, cross-instance denials, canary changes,
   and administrative configuration changes MUST produce metadata-only audit
@@ -169,7 +173,7 @@ Open WebUI volume remain intact.
 - **Workspace Assignment**: The server-side mapping from an authenticated
   OvernightDesk instance to its approved Open WebUI origin.
 - **Open WebUI Identity Client**: A separate Better Auth OIDC client with an
-  exact callback and instance-owner authorization.
+  exact callback and canonical runtime-membership authorization.
 - **Hermes Connection**: A server-side OpenAI-compatible connection from Open
   WebUI to one Hermes API server and one stable API credential.
 - **Canary Flag**: A reversible platform/route selector that exposes the new
@@ -177,7 +181,7 @@ Open WebUI volume remain intact.
 
 ## Success Criteria
 
-- **SC-001**: The Mitchel owner completes login, first chat, streamed response,
+- **SC-001**: Mitchel completes login to his Trevor workspace, first chat, streamed response,
   reload, logout, and re-login without a second password.
 - **SC-002**: Cross-instance and unauthenticated browser checks are denied
   before reaching Open WebUI.
