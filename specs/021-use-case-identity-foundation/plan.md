@@ -25,6 +25,15 @@ split into a foundation transaction with zero memberships and a later verified
 membership transaction. Existing authorization remains authoritative and the
 canonical path fails closed while membership is absent.
 
+**Production foundation checkpoint (2026-07-19):** From merged main commit
+`c3a81b65e76fd2bf20d054bf5b09fbaf9e5b9992`, migration 0009 deployed all 46
+reviewed statements and the Tenet 1 foundation applied atomically with zero
+memberships. Post-write verification resolved all four canonical selectors,
+and both schema and foundation retries returned `verified_noop`. Production
+contains one Tenet 1 allocation, one schema audit event, and one foundation
+audit event. No platform-instance link, orchestrator link, resource rename, or
+authorization cutover was included.
+
 ## Summary
 
 Introduce an additive identity registry that separates canonical use-case and

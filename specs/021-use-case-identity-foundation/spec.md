@@ -4,12 +4,13 @@
 
 **Created**: 2026-07-19
 
-**Status**: In progress — additive schema/resolver and guarded Tenet 1 tooling
-implemented. The allocation workflow is being split so platform-controlled
-foundation work does not wait for Mitchel's Better Auth registration. Human
-access remains blocked until a verified subject receives an active membership.
-No identity backfill, number allocation, authorization cutover, or production
-database migration has been performed.
+**Status**: In progress — migration 0009 and the owner-approved Tenet 1
+foundation are deployed and verified in production. The foundation contains
+zero memberships, so human access remains blocked until Mitchel completes
+Better Auth registration and email verification and the separate membership
+operation is reviewed and applied. Existing authorization remains
+authoritative; no platform-instance link, orchestrator link, resource rename,
+or authorization cutover has been performed.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or
