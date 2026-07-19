@@ -2,8 +2,10 @@
 
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
-**Status**: Contract/planning capture only. No schema, Phase, Vercel, resource,
-or production changes are authorized by this task list.
+**Status**: Additive schema/resolver foundation implemented and locally
+verified. No Phase, Vercel, resource renames, identity backfill, number
+allocation, authorization cutover, database deployment, or production changes
+have been performed.
 
 ## Phase 1: Durable Contract
 
@@ -14,14 +16,14 @@ or production changes are authorized by this task list.
 
 ## Phase 2: Additive Schema and Resolver
 
-- [ ] T005 Create `021a-identity-schema-resolver` from updated main after the planning branches merge
-- [ ] T006 Add failing migration tests for UUID identity, unique immutable non-reused numbers, one default persona, membership uniqueness, and active binding uniqueness
-- [ ] T007 Add use-case, runtime, persona-assignment, membership, resource-binding, secret-boundary-binding, and allocation-audit tables
-- [ ] T008 Add nullable canonical identity references to the current instance model without changing existing required fields or callbacks
-- [ ] T009 Add failing resolver tests covering UUID, number, legacy `tenantId`, instance UUID, orchestrator UUID, container, and hostname inputs
-- [ ] T010 Implement a server-side canonical resolver and metadata-only audit events; never resolve authorization from client-supplied resource strings
-- [ ] T011 Add dual-read comparison telemetry with no secret, prompt, response, token, or conversation content
-- [ ] T012 Verify old application tests and provisioning callbacks pass with canonical identity reads disabled
+- [x] T005 Create `021a-identity-schema-resolver` from updated main after the planning branches merge
+- [x] T006 Add failing migration tests for UUID identity, unique immutable non-reused numbers, one default persona, membership uniqueness, and active binding uniqueness
+- [x] T007 Add use-case, runtime, persona-assignment, membership, resource-binding, secret-boundary-binding, and append-only number-allocation tables
+- [x] T008 Add nullable canonical identity references to the current instance model without changing existing required fields or callbacks
+- [x] T009 Add failing resolver tests covering UUID, number, legacy `tenantId`, instance UUID, orchestrator UUID, container, and hostname inputs
+- [x] T010 Implement a server-side canonical resolver and metadata-only audit events; never resolve authorization from client-supplied resource strings
+- [x] T011 Add dual-read comparison telemetry with no secret, prompt, response, token, or conversation content
+- [x] T012 Verify old application tests and provisioning callbacks pass with canonical identity reads disabled
 
 ## Phase 3: Mitchel User / Trevor Agent Vertical Slice
 

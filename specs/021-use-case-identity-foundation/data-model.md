@@ -8,7 +8,7 @@ All IDs are UUIDs unless explicitly described otherwise.
 | Field | Rule |
 |---|---|
 | `id` | Immutable canonical UUID primary key |
-| `number` | Nullable positive bigint, unique, immutable once allocated, never reused |
+| `number` | Nullable projection from the append-only UseCaseNumberAllocation registry |
 | `slug` | Unique mutable operational label; not authorization |
 | `display_name` | Mutable human-readable name |
 | `status` | `planned`, `active`, `suspended`, `retired` |
@@ -27,6 +27,20 @@ All IDs are UUIDs unless explicitly described otherwise.
 Runtime identity is not a persona. A separate primary-memory requirement means
 a separate runtime record even if the same people or persona labels are used.
 
+## UseCaseNumberAllocation
+
+| Field | Rule |
+|---|---|
+| `number` | Positive bigint within JavaScript's safe-integer range; primary key |
+| `use_case_id` | Unique FK to UseCase; one allocated number per use case |
+| `allocated_by` | Non-secret actor identifier for the approved allocation |
+| `allocated_at` | Immutable allocation timestamp |
+
+The allocation registry is append-only. Database triggers reject updates and
+deletes, which preserves non-reuse even after a use case is retired. The number
+is joined/projected as the use case's human-facing number; it is not duplicated
+as an independently mutable column on `use_case`.
+
 ## PersonaAssignment
 
 | Field | Rule |
@@ -44,29 +58,33 @@ a separate runtime record even if the same people or persona labels are used.
 |---|---|
 | `id` | Membership UUID |
 | `use_case_id` | Required FK to UseCase |
-| `subject_type` / `subject_id` | Stable identity-provider subject binding |
+| `user_id` | Stable Better Auth user ID for the person; email is profile data only |
 | `runtime_id` | Nullable narrowing scope; null means use-case scope |
 | `role` | Explicit approved role, not free-form authority |
 | `status` | `invited`, `active`, `suspended`, `revoked` |
 | lifecycle timestamps | Granted, activated, suspended/revoked, expiry |
 
-Active membership uniqueness prevents duplicate grants for the same subject and
-scope. Email is profile data, not the stable membership key.
+One membership lifecycle record per user and scope prevents duplicate grants;
+revocation and later reactivation update that record rather than creating a
+second authority path. Email is profile data, not the stable membership key. Deleting the
+Better Auth user cascades that user's membership grants so identity metadata
+does not block the existing account-deletion flow; canonical use-case/runtime
+records and allocation audit remain intact.
 
 ## ResourceBinding
 
 | Field | Rule |
 |---|---|
 | `id` | Binding UUID |
-| `use_case_id` / `runtime_id` | Exactly one valid canonical target scope |
+| `use_case_id` / `runtime_id` | Required use-case scope with optional runtime narrowing |
 | `provider` | Owning system, such as `docker`, `phase`, `nginx`, `better_auth`, `orchestrator` |
-| `kind` | `instance`, `external_tenant`, `container`, `volume`, `hostname`, `phase_path`, `oidc_client`, `intake_route` |
+| `kind` | `platform_instance`, `orchestrator_tenant`, `container`, `volume`, `hostname`, `phase_path`, `oidc_client`, `intake_route` |
 | `value` | Exact non-secret identifier or path |
 | `state` | `active`, `compatibility`, `rollback`, `retired` |
 | `valid_from` / `valid_until` | Lifecycle interval |
 
-Active `(provider, kind, value)` is unique. Secret values and tokens are never
-stored as bindings.
+Every non-retired `(provider, kind, value)` is unique. Secret values and tokens
+are never stored as bindings.
 
 ## SecretBoundaryBinding
 
@@ -88,7 +106,7 @@ one App because the App is the approved blast-radius boundary.
 
 ## Allocation and State Rules
 
-1. UUID creation and number allocation occur in one transaction.
+1. UUID creation and any approved number allocation occur in one transaction.
 2. Number allocation is centrally serialized and audited.
 3. Numbers are not assigned in fixtures, documentation, or backfill scripts
    without an approved allocation operation.
