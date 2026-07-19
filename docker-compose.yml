@@ -295,10 +295,14 @@ services:
       - /tmp
     volumes:
       - /opt/overnightdesk/ops-data:/data
-      # Platform standard yaml — read-only mount from overnightdesk-platform-standard
-      - /opt/overnightdesk/overnightdesk-platform-standard/WHAT:/app/knowledge:ro
+      # Complete platform standard — read-only mounts from the merged Git checkout.
+      # The machine loader reads WHAT; HOW and WHY remain available to operators
+      # and agent tooling without maintaining a second runtime copy.
+      - /home/ubuntu/overnightdesk-platform-standard/WHAT:/app/standard/WHAT:ro
+      - /home/ubuntu/overnightdesk-platform-standard/HOW:/app/standard/HOW:ro
+      - /home/ubuntu/overnightdesk-platform-standard/WHY:/app/standard/WHY:ro
     environment:
-      - KNOWLEDGE_DIR=/app/knowledge
+      - KNOWLEDGE_DIR=/app/standard/WHAT
       - MCP_PORT=3000
       - WEB_PORT=3001
       - FACTS_DB_PATH=/data/facts.db
