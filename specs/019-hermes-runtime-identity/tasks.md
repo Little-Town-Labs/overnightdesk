@@ -113,17 +113,17 @@ identity can be restored without deleting or restoring the runtime volume.
 - [x] T029 [US4] Deploy Walter-capable intake source with Walter polling disabled and Agent still healthy
 - [x] T030 [US4] Run the credential-remediation gate from T004 and stop if it is not satisfied
 - [x] T031 [US4] Stop Agent intake, copy its stopped state to `hermes-email-intake-walter-data`, and compare value-suppressed file metadata/hashes
-- [ ] T032 [US4] Rename `hermes-agent` to `hermes-walter`, activate the repo-owned persona, update/reload Nginx, and verify container identity, mount continuity, DNS, public status, API, and dashboard
-- [ ] T033 [US4] Update the provisioner canary container mapping to Walter, restart only `hermes-provisioner`, and verify owner OIDC login/logout
+- [x] T032 [US4] Rename `hermes-agent` to `hermes-walter`, activate the repo-owned persona, update/reload Nginx, and verify container identity, mount continuity, DNS, public status, API, and dashboard
+- [x] T033 [US4] Update the provisioner canary container mapping to Walter, restart only `hermes-provisioner`, and verify owner OIDC login/logout
 - [x] T034 [US4] Start Walter intake, verify a healthy poll cycle and idempotency continuity, and leave Agent intake disabled/preserved
 - [x] T035 [US4] Verify Open Brain, Ops MCP, cron, GitHub auth availability, monitoring, recent errors, Titus, and Mitchel without outputting protected content
 - [x] T036 [US4] Exercise or time a non-destructive rollback rehearsal and record the result in `specs/019-hermes-runtime-identity/quickstart.md`
 
-T032 runtime, mount, DNS, public status, and API checks have passed. The first
-owner-browser attempt exposed a missing TLS SNI/Host contract on Walter's
-Nginx verification subrequest; the tested production fix now returns the safe
-sign-in redirect instead of 403. T032 and T033 remain open for the repeated
-owner-authenticated dashboard login and logout cookie check.
+T032 and T033 passed after the Nginx TLS SNI/Host repair. The owner launched
+Walter both from OvernightDesk and directly at the Aegis hostname. Hermes
+logout cleared the Hermes session and returned to its sign-in screen; the OIDC
+button then created a new Hermes session from the still-valid OvernightDesk SSO
+session, as designed. Global OvernightDesk logout remains a separate action.
 
 ---
 
@@ -134,12 +134,12 @@ owner-authenticated dashboard login and logout cookie check.
 - [x] T039 Apply the five-axis code/security/operations review to every owning repository and resolve all required findings
 - [x] T040 Commit, push, open, verify, and merge one reviewable PR per owning repository
 - [x] T041 Append the value-suppressed production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T042 Confirm all primary repos are clean on merged `main` and leave old container name, Phase path, intake service/state, and runtime volume retained for observation
+- [x] T042 Confirm all primary repos are clean on merged `main` and leave old container name, Phase path, intake service/state, and runtime volume retained for observation
 
-T037-T041 closed after standards commits `843d4b4`, audit commit `ea4c8f8`,
-Ops commit `d42aa84`, and value-suppressed production verification. T042 remains
-open with the owner-browser checks so the final merged-main cleanup is recorded
-only after the authenticated dashboard gate is complete.
+T037-T042 closed after standards commit `843d4b4`, audit commit `ea4c8f8`, Ops
+commit `d42aa84`, the Nginx auth repair in `c32cc0f`, successful owner-browser
+login/logout, and value-suppressed production verification. Compatibility and
+rollback artifacts remain retained for the observation window.
 
 ## Dependencies and Execution Order
 
