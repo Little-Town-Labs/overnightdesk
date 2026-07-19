@@ -10,8 +10,14 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "identity:backfill:plan": "tsx scripts/use-case-identity-backfill.ts plan",
+    "identity:backfill:apply": "tsx scripts/use-case-identity-backfill.ts apply",
+    "identity:backfill:verify": "tsx scripts/use-case-identity-backfill.ts verify",
+    "identity:schema:plan": "node scripts/apply-use-case-identity-schema.cjs plan",
+    "identity:schema:apply": "node scripts/apply-use-case-identity-schema.cjs apply",
     "test": "jest",
     "test:hermes-oidc-db": "node scripts/qualify-hermes-oidc-db.cjs",
+    "test:identity-backfill-db": "node scripts/qualify-use-case-identity-backfill-db.cjs",
     "test:coverage": "jest --coverage"
   },
   "dependencies": {

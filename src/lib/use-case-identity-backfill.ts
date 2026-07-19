@@ -9,8 +9,6 @@ const backfillInputSchema = z.object({
     .max(128)
     .regex(/^[a-z0-9][a-z0-9:._-]+$/i),
   membershipUserId: boundedId,
-  platformInstanceId: boundedId.nullable(),
-  orchestratorTenantId: z.string().uuid().nullable(),
 });
 
 export interface CanonicalIdentityIds {
@@ -20,13 +18,6 @@ export interface CanonicalIdentityIds {
   membershipId: string;
   resourceBindingIds: string[];
   secretBoundaryBindingIds: string[];
-}
-
-export interface PlatformIdentityInstance {
-  id: string;
-  userId: string;
-  useCaseId: string | null;
-  runtimeIdentityId: string | null;
 }
 
 export interface UseCaseRecord {
@@ -110,7 +101,7 @@ export interface ExistingCanonicalState {
 export interface IdentityBackfillSnapshot {
   schemaReady: boolean;
   membershipUser: { id: string } | null;
-  platformInstance: PlatformIdentityInstance | null;
+  canonicalConflict: boolean;
   existingCanonicalState: ExistingCanonicalState | null;
 }
 
@@ -193,11 +184,6 @@ export interface ReadyIdentityBackfillPlan {
   membership: MembershipRecord;
   resourceBindings: ResourceBindingRecord[];
   secretBoundaryBindings: SecretBoundaryBindingRecord[];
-  platformInstanceUpdate: {
-    id: string;
-    useCaseId: string;
-    runtimeIdentityId: string;
-  } | null;
   audit: BackfillAuditRecord;
 }
 
@@ -209,6 +195,20 @@ export type IdentityBackfillPlan =
       runtimeIdentityId: string;
     }
   | ReadyIdentityBackfillPlan;
+
+export function summarizeIdentityBackfillPlan(plan: IdentityBackfillPlan) {
+  if (plan.status === "blocked") return plan;
+  if (plan.status === "verified_noop") return plan;
+  return {
+    status: plan.status,
+    useCaseNumber: plan.numberAllocation.number,
+    membershipCount: plan.audit.details.membershipCount,
+    resourceBindingCount: plan.audit.details.resourceBindingCount,
+    secretBoundaryBindingCount: plan.audit.details.secretBoundaryBindingCount,
+    platformInstanceLinked: plan.audit.details.platformInstanceLinked,
+    orchestratorTenantBound: plan.audit.details.orchestratorTenantBound,
+  };
+}
 
 function comparableResource(binding: ResourceBindingRecord) {
   return {
@@ -231,22 +231,25 @@ function comparableSecretBoundary(binding: SecretBoundaryBindingRecord) {
   };
 }
 
-function sortedComparable<T>(values: T[], comparable: (value: T) => object) {
-  return values.map(comparable).sort((a, b) =>
-    JSON.stringify(a).localeCompare(JSON.stringify(b))
+function containsRequiredRecords<T>(
+  existing: T[],
+  required: T[],
+  comparable: (value: T) => object,
+): boolean {
+  const existingKeys = new Set(
+    existing.map((value) => JSON.stringify(comparable(value))),
+  );
+  return required.every((value) =>
+    existingKeys.has(JSON.stringify(comparable(value))),
   );
 }
 
-function existingStateMatches(
+function coreStateMatches(
   existing: ExistingCanonicalState,
-  expected: ReadyIdentityBackfillPlan
+  expected: ReadyIdentityBackfillPlan,
 ): boolean {
-  const {
-    runtimeIdentity,
-    personaAssignment,
-    membership,
-    numberAllocation,
-  } = existing;
+  const { runtimeIdentity, personaAssignment, membership, numberAllocation } =
+    existing;
   const useCaseMatches =
     existing.useCase.slug === expected.useCase.slug &&
     existing.useCase.displayName === expected.useCase.displayName &&
@@ -266,12 +269,9 @@ function existingStateMatches(
     personaAssignment !== null &&
     runtimeIdentity !== null &&
     personaAssignment.runtimeIdentityId === runtimeIdentity.id &&
-    personaAssignment.personaKey ===
-      expected.personaAssignment.personaKey &&
-    personaAssignment.displayName ===
-      expected.personaAssignment.displayName &&
-    personaAssignment.isDefault ===
-      expected.personaAssignment.isDefault &&
+    personaAssignment.personaKey === expected.personaAssignment.personaKey &&
+    personaAssignment.displayName === expected.personaAssignment.displayName &&
+    personaAssignment.isDefault === expected.personaAssignment.isDefault &&
     personaAssignment.authorityProfile ===
       expected.personaAssignment.authorityProfile &&
     personaAssignment.status === expected.personaAssignment.status;
@@ -282,129 +282,94 @@ function existingStateMatches(
     membership.userId === expected.membership.userId &&
     membership.role === expected.membership.role &&
     membership.status === expected.membership.status;
-  const resourcesMatch =
-    JSON.stringify(
-      sortedComparable(existing.resourceBindings, comparableResource)
-    ) ===
-    JSON.stringify(
-      sortedComparable(
-        expected.resourceBindings.map((binding) => ({
-          ...binding,
-          useCaseId: existing.useCase.id,
-          runtimeIdentityId: runtimeIdentity?.id ?? null,
-        })),
-        comparableResource
-      )
-    );
-  const secretBoundariesMatch =
-    JSON.stringify(
-      sortedComparable(
-        existing.secretBoundaryBindings,
-        comparableSecretBoundary
-      )
-    ) ===
-    JSON.stringify(
-      sortedComparable(
-        expected.secretBoundaryBindings.map((binding) => ({
-          ...binding,
-          useCaseId: existing.useCase.id,
-          runtimeIdentityId: runtimeIdentity?.id ?? null,
-        })),
-        comparableSecretBoundary
-      )
-    );
-
   return (
     useCaseMatches &&
     allocationMatches &&
     runtimeMatches &&
     personaMatches &&
-    membershipMatches &&
-    resourcesMatch &&
-    secretBoundariesMatch
+    membershipMatches
   );
 }
 
-export function planMitchelTrevorBackfill(
-  rawInput: IdentityBackfillInput,
-  snapshot: IdentityBackfillSnapshot,
-  ids: CanonicalIdentityIds
-): IdentityBackfillPlan {
-  const input = backfillInputSchema.parse(rawInput);
-  const reasons: string[] = [];
+function resourceStateMatches(
+  existing: ExistingCanonicalState,
+  expected: ReadyIdentityBackfillPlan,
+): boolean {
+  const expectedBindings = expected.resourceBindings.map((binding) => ({
+    ...binding,
+    useCaseId: existing.useCase.id,
+    runtimeIdentityId: existing.runtimeIdentity?.id ?? null,
+  }));
+  return containsRequiredRecords(
+    existing.resourceBindings,
+    expectedBindings,
+    comparableResource,
+  );
+}
 
+function secretBoundaryStateMatches(
+  existing: ExistingCanonicalState,
+  expected: ReadyIdentityBackfillPlan,
+): boolean {
+  const expectedBindings = expected.secretBoundaryBindings.map((binding) => ({
+    ...binding,
+    useCaseId: existing.useCase.id,
+    runtimeIdentityId: existing.runtimeIdentity?.id ?? null,
+  }));
+  return containsRequiredRecords(
+    existing.secretBoundaryBindings,
+    expectedBindings,
+    comparableSecretBoundary,
+  );
+}
+
+function existingStateMatches(
+  existing: ExistingCanonicalState,
+  expected: ReadyIdentityBackfillPlan,
+): boolean {
+  return (
+    coreStateMatches(existing, expected) &&
+    resourceStateMatches(existing, expected) &&
+    secretBoundaryStateMatches(existing, expected)
+  );
+}
+
+function blockingReasons(
+  input: IdentityBackfillInput,
+  snapshot: IdentityBackfillSnapshot,
+): string[] {
+  const reasons: string[] = [];
   if (!snapshot.schemaReady) reasons.push("identity_schema_missing");
+  if (snapshot.canonicalConflict) reasons.push("canonical_identity_conflict");
   if (snapshot.membershipUser?.id !== input.membershipUserId) {
     reasons.push("membership_user_missing");
   }
-  if (input.platformInstanceId && !snapshot.platformInstance) {
-    reasons.push("platform_instance_missing");
-  }
+  return reasons;
+}
+
+function resourceTemplates() {
+  return [...MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings];
+}
+
+function assertGeneratedIdCounts(
+  ids: CanonicalIdentityIds,
+  resources: ReturnType<typeof resourceTemplates>,
+): void {
   if (
-    input.platformInstanceId &&
-    snapshot.platformInstance &&
-    snapshot.platformInstance.userId !== input.membershipUserId
-  ) {
-    reasons.push("platform_instance_owner_mismatch");
-  }
-  if (snapshot.platformInstance) {
-    const existingUseCaseId = snapshot.existingCanonicalState?.useCase.id;
-    const existingRuntimeId =
-      snapshot.existingCanonicalState?.runtimeIdentity?.id;
-    const linksAreEmpty =
-      !snapshot.platformInstance.useCaseId &&
-      !snapshot.platformInstance.runtimeIdentityId;
-    const linksMatchExisting =
-      snapshot.platformInstance.useCaseId === existingUseCaseId &&
-      snapshot.platformInstance.runtimeIdentityId === existingRuntimeId;
-    if (!linksAreEmpty && !linksMatchExisting) {
-      reasons.push("platform_instance_already_linked");
-    }
-  }
-
-  if (reasons.length > 0) return { status: "blocked", reasons };
-
-  const dynamicResources = [
-    ...(input.platformInstanceId
-      ? [
-          {
-            provider: "better_auth",
-            kind: "platform_instance" as const,
-            value: input.platformInstanceId,
-            state: "active" as const,
-          },
-        ]
-      : []),
-    ...(input.orchestratorTenantId
-      ? [
-          {
-            provider: "orchestrator",
-            kind: "orchestrator_tenant" as const,
-            value: input.orchestratorTenantId,
-            state: "active" as const,
-          },
-        ]
-      : []),
-  ];
-  const resourceTemplates = [
-    ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings,
-    ...dynamicResources,
-  ];
-
-  if (
-    ids.resourceBindingIds.length !== resourceTemplates.length ||
+    ids.resourceBindingIds.length !== resources.length ||
     ids.secretBoundaryBindingIds.length !==
       MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.length
   ) {
     throw new Error("Generated identity ID counts do not match the manifest");
   }
+}
 
-  const plan: ReadyIdentityBackfillPlan = {
-    status: "ready",
-    useCase: {
-      id: ids.useCaseId,
-      ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.useCase,
-    },
+function buildCoreRecords(
+  input: IdentityBackfillInput,
+  ids: CanonicalIdentityIds,
+) {
+  return {
+    useCase: { id: ids.useCaseId, ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.useCase },
     numberAllocation: {
       number: MITCHEL_TREVOR_IDENTITY_TEMPLATE.number,
       useCaseId: ids.useCaseId,
@@ -425,11 +390,19 @@ export function planMitchelTrevorBackfill(
       useCaseId: ids.useCaseId,
       runtimeIdentityId: null,
       userId: input.membershipUserId,
-      role: "owner",
-      status: "active",
+      role: "owner" as const,
+      status: "active" as const,
       grantedBy: input.actor,
     },
-    resourceBindings: resourceTemplates.map((binding, index) => ({
+  };
+}
+
+function buildBindings(
+  ids: CanonicalIdentityIds,
+  resources: ReturnType<typeof resourceTemplates>,
+) {
+  return {
+    resourceBindings: resources.map((binding, index) => ({
       id: ids.resourceBindingIds[index],
       useCaseId: ids.useCaseId,
       runtimeIdentityId: ids.runtimeIdentityId,
@@ -442,15 +415,22 @@ export function planMitchelTrevorBackfill(
           useCaseId: ids.useCaseId,
           runtimeIdentityId: ids.runtimeIdentityId,
           ...binding,
-        })
+        }),
       ),
-    platformInstanceUpdate: input.platformInstanceId
-      ? {
-          id: input.platformInstanceId,
-          useCaseId: ids.useCaseId,
-          runtimeIdentityId: ids.runtimeIdentityId,
-        }
-      : null,
+  };
+}
+
+function buildReadyPlan(
+  input: IdentityBackfillInput,
+  ids: CanonicalIdentityIds,
+): ReadyIdentityBackfillPlan {
+  const resources = resourceTemplates();
+  assertGeneratedIdCounts(ids, resources);
+  const bindings = buildBindings(ids, resources);
+  return {
+    status: "ready",
+    ...buildCoreRecords(input, ids),
+    ...bindings,
     audit: {
       actor: input.actor,
       action: "use_case_identity_backfill_applied",
@@ -458,22 +438,31 @@ export function planMitchelTrevorBackfill(
       details: {
         useCaseNumber: MITCHEL_TREVOR_IDENTITY_TEMPLATE.number,
         membershipCount: 1,
-        resourceBindingCount: resourceTemplates.length,
-        secretBoundaryBindingCount:
-          MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.length,
-        platformInstanceLinked: Boolean(input.platformInstanceId),
-        orchestratorTenantBound: Boolean(input.orchestratorTenantId),
+        resourceBindingCount: resources.length,
+        secretBoundaryBindingCount: bindings.secretBoundaryBindings.length,
+        platformInstanceLinked: false,
+        orchestratorTenantBound: false,
       },
     },
   };
+}
+
+export function planMitchelTrevorBackfill(
+  rawInput: IdentityBackfillInput,
+  snapshot: IdentityBackfillSnapshot,
+  ids: CanonicalIdentityIds,
+): IdentityBackfillPlan {
+  const input = backfillInputSchema.parse(rawInput);
+  const reasons = blockingReasons(input, snapshot);
+  if (reasons.length > 0) return { status: "blocked", reasons };
+  const plan = buildReadyPlan(input, ids);
 
   if (snapshot.existingCanonicalState) {
     if (existingStateMatches(snapshot.existingCanonicalState, plan)) {
       return {
         status: "verified_noop",
         useCaseId: snapshot.existingCanonicalState.useCase.id,
-        runtimeIdentityId:
-          snapshot.existingCanonicalState.runtimeIdentity!.id,
+        runtimeIdentityId: snapshot.existingCanonicalState.runtimeIdentity!.id,
       };
     }
     return { status: "blocked", reasons: ["canonical_state_drift"] };

@@ -1,6 +1,7 @@
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
   planMitchelTrevorBackfill,
+  summarizeIdentityBackfillPlan,
   type CanonicalIdentityIds,
   type IdentityBackfillSnapshot,
 } from "@/lib/use-case-identity-backfill";
@@ -16,25 +17,21 @@ const ids: CanonicalIdentityIds = {
     "55555555-5555-4555-8555-555555555553",
     "55555555-5555-4555-8555-555555555554",
   ],
-  secretBoundaryBindingIds: [
-    "66666666-6666-4666-8666-666666666666",
-  ],
+  secretBoundaryBindingIds: ["66666666-6666-4666-8666-666666666666"],
 };
 
 const input = {
   actor: "operator:gary",
   membershipUserId: "better-auth-user-mitchel",
-  platformInstanceId: null,
-  orchestratorTenantId: null,
 };
 
 function emptySnapshot(
-  overrides: Partial<IdentityBackfillSnapshot> = {}
+  overrides: Partial<IdentityBackfillSnapshot> = {},
 ): IdentityBackfillSnapshot {
   return {
     schemaReady: true,
     membershipUser: { id: input.membershipUserId },
-    platformInstance: null,
+    canonicalConflict: false,
     existingCanonicalState: null,
     ...overrides,
   };
@@ -45,7 +42,7 @@ describe("planMitchelTrevorBackfill", () => {
     const plan = planMitchelTrevorBackfill(
       input,
       emptySnapshot({ schemaReady: false }),
-      ids
+      ids,
     );
 
     expect(plan).toEqual({
@@ -58,32 +55,12 @@ describe("planMitchelTrevorBackfill", () => {
     const plan = planMitchelTrevorBackfill(
       input,
       emptySnapshot({ membershipUser: null }),
-      ids
+      ids,
     );
 
     expect(plan).toEqual({
       status: "blocked",
       reasons: ["membership_user_missing"],
-    });
-  });
-
-  it("rejects a platform instance owned by another Better Auth subject", () => {
-    const plan = planMitchelTrevorBackfill(
-      { ...input, platformInstanceId: "platform-instance-1" },
-      emptySnapshot({
-        platformInstance: {
-          id: "platform-instance-1",
-          userId: "different-user",
-          useCaseId: null,
-          runtimeIdentityId: null,
-        },
-      }),
-      ids
-    );
-
-    expect(plan).toEqual({
-      status: "blocked",
-      reasons: ["platform_instance_owner_mismatch"],
     });
   });
 
@@ -110,12 +87,11 @@ describe("planMitchelTrevorBackfill", () => {
       displayName: "Trevor",
       isDefault: true,
     });
-    expect(plan.platformInstanceUpdate).toBeNull();
     expect(plan.resourceBindings).toHaveLength(4);
     expect(
       plan.resourceBindings.some(
-        (binding) => binding.kind === "orchestrator_tenant"
-      )
+        (binding) => binding.kind === "orchestrator_tenant",
+      ),
     ).toBe(false);
     expect(plan.audit.details).toEqual({
       useCaseNumber: 1,
@@ -128,54 +104,6 @@ describe("planMitchelTrevorBackfill", () => {
     expect(JSON.stringify(plan.audit)).not.toContain("aero-fett");
     expect(JSON.stringify(plan.audit)).not.toContain("hermes-mitchel-data");
     expect(JSON.stringify(plan.audit)).not.toContain("/agents/");
-  });
-
-  it("adds explicit platform and orchestrator bindings only when supplied", () => {
-    const plan = planMitchelTrevorBackfill(
-      {
-        ...input,
-        platformInstanceId: "platform-instance-1",
-        orchestratorTenantId: "77777777-7777-4777-8777-777777777777",
-      },
-      emptySnapshot({
-        platformInstance: {
-          id: "platform-instance-1",
-          userId: input.membershipUserId,
-          useCaseId: null,
-          runtimeIdentityId: null,
-        },
-      }),
-      {
-        ...ids,
-        resourceBindingIds: [
-          ...ids.resourceBindingIds,
-          "55555555-5555-4555-8555-555555555555",
-          "55555555-5555-4555-8555-555555555556",
-        ],
-      }
-    );
-
-    expect(plan.status).toBe("ready");
-    if (plan.status !== "ready") throw new Error("expected a ready plan");
-    expect(plan.platformInstanceUpdate).toEqual({
-      id: "platform-instance-1",
-      useCaseId: ids.useCaseId,
-      runtimeIdentityId: ids.runtimeIdentityId,
-    });
-    expect(plan.resourceBindings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          provider: "better_auth",
-          kind: "platform_instance",
-          value: "platform-instance-1",
-        }),
-        expect.objectContaining({
-          provider: "orchestrator",
-          kind: "orchestrator_tenant",
-          value: "77777777-7777-4777-8777-777777777777",
-        }),
-      ])
-    );
   });
 
   it("refuses partial or conflicting canonical state", () => {
@@ -197,7 +125,7 @@ describe("planMitchelTrevorBackfill", () => {
           secretBoundaryBindings: [],
         },
       }),
-      ids
+      ids,
     );
 
     expect(plan).toEqual({
@@ -206,7 +134,20 @@ describe("planMitchelTrevorBackfill", () => {
     });
   });
 
-  it("returns a verified no-op for an exact prior allocation", () => {
+  it("refuses a number, slug, or runtime collision before generating writes", () => {
+    const plan = planMitchelTrevorBackfill(
+      input,
+      emptySnapshot({ canonicalConflict: true }),
+      ids,
+    );
+
+    expect(plan).toEqual({
+      status: "blocked",
+      reasons: ["canonical_identity_conflict"],
+    });
+  });
+
+  it("returns a verified no-op when the required allocation is present", () => {
     const ready = planMitchelTrevorBackfill(input, emptySnapshot(), ids);
     if (ready.status !== "ready") throw new Error("expected a ready plan");
 
@@ -219,15 +160,36 @@ describe("planMitchelTrevorBackfill", () => {
           runtimeIdentity: ready.runtimeIdentity,
           personaAssignment: ready.personaAssignment,
           membership: ready.membership,
-          resourceBindings: ready.resourceBindings,
-          secretBoundaryBindings: ready.secretBoundaryBindings,
+          resourceBindings: [
+            ...ready.resourceBindings,
+            {
+              id: "77777777-7777-4777-8777-777777777777",
+              useCaseId: ready.useCase.id,
+              runtimeIdentityId: ready.runtimeIdentity.id,
+              provider: "orchestrator",
+              kind: "orchestrator_tenant",
+              value: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+              state: "active",
+            },
+          ],
+          secretBoundaryBindings: [
+            ...ready.secretBoundaryBindings,
+            {
+              id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+              useCaseId: ready.useCase.id,
+              runtimeIdentityId: ready.runtimeIdentity.id,
+              phaseApp: "overnightdesk",
+              environment: "development",
+              pathIdentifier: "/agents/hermes-email-intake/mitchel",
+            },
+          ],
         },
       }),
       {
         ...ids,
         useCaseId: "88888888-8888-4888-8888-888888888888",
         runtimeIdentityId: "99999999-9999-4999-8999-999999999999",
-      }
+      },
     );
 
     expect(plan).toEqual({
@@ -240,8 +202,26 @@ describe("planMitchelTrevorBackfill", () => {
   it("keeps the approved manifest bounded to the Mitchel/Trevor use case", () => {
     expect(MITCHEL_TREVOR_IDENTITY_TEMPLATE.number).toBe(1);
     expect(MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime.slug).toBe(
-      "hermes-mitchel"
+      "hermes-mitchel",
     );
     expect(MITCHEL_TREVOR_IDENTITY_TEMPLATE.persona.personaKey).toBe("trevor");
+  });
+
+  it("formats operator output without user IDs or resource values", () => {
+    const ready = planMitchelTrevorBackfill(input, emptySnapshot(), ids);
+    const summary = summarizeIdentityBackfillPlan(ready);
+
+    expect(summary).toEqual({
+      status: "ready",
+      useCaseNumber: 1,
+      membershipCount: 1,
+      resourceBindingCount: 4,
+      secretBoundaryBindingCount: 1,
+      platformInstanceLinked: false,
+      orchestratorTenantBound: false,
+    });
+    expect(JSON.stringify(summary)).not.toContain(input.membershipUserId);
+    expect(JSON.stringify(summary)).not.toContain("aero-fett");
+    expect(JSON.stringify(summary)).not.toContain("/agents/");
   });
 });
