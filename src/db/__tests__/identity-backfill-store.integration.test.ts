@@ -1,7 +1,11 @@
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
-  planMitchelTrevorBackfill,
+  planMitchelMembershipActivation,
+  planMitchelTrevorFoundation,
 } from "@/lib/use-case-identity-backfill";
+
+type IdentityStoreModule =
+  typeof import("@/db/use-case-identity-backfill-store");
 
 const databaseUrl = process.env.DATABASE_TEST_URL;
 const databaseName = databaseUrl ? new URL(databaseUrl).pathname.slice(1) : "";
@@ -12,62 +16,46 @@ const safeDisposableDatabase =
 const describeIntegration = safeDisposableDatabase ? describe : describe.skip;
 
 describeIntegration("Mitchel/Trevor identity backfill store", () => {
-  it("applies one atomic allocation and verifies every registered selector", async () => {
+  it("applies foundation before a user exists and attaches verified membership later", async () => {
     const [{ eq }, { db }, schema, storeModule] = await Promise.all([
       import("drizzle-orm"),
       import("@/db"),
       import("@/db/schema"),
       import("@/db/use-case-identity-backfill-store"),
     ]);
-    const { platformAuditLog, user } = schema;
+    const { platformAuditLog, useCaseMembership, user } = schema;
     const {
-      applyIdentityBackfillPlan,
+      applyIdentityFoundationPlan,
+      applyMembershipActivationPlan,
       generateMitchelTrevorIdentityIds,
       inspectMitchelTrevorIdentityBackfill,
+      inspectMitchelTrevorIdentityFoundation,
       verifyMitchelTrevorCanonicalSelectors,
-    } = storeModule;
+    } = storeModule as IdentityStoreModule;
     const membershipUserId = `mitchel-${crypto.randomUUID()}`;
     const input = {
       actor: "operator:identity-qualification",
       membershipUserId,
     };
 
-    await db.insert(user).values({
-      id: membershipUserId,
-      name: "Identity Qualification User",
-      email: `${membershipUserId}@test-auth.example.com`,
-      emailVerified: false,
-    });
-
-    const unverified = await inspectMitchelTrevorIdentityBackfill(input, db);
-    expect(
-      planMitchelTrevorBackfill(
-        input,
-        unverified,
-        generateMitchelTrevorIdentityIds(),
-      ),
-    ).toEqual({
-      status: "blocked",
-      reasons: ["membership_user_unverified"],
-    });
-
-    await db
-      .update(user)
-      .set({ emailVerified: true })
-      .where(eq(user.id, membershipUserId));
-
-    const before = await inspectMitchelTrevorIdentityBackfill(input, db);
     const ids = generateMitchelTrevorIdentityIds();
-    const ready = planMitchelTrevorBackfill(input, before, ids);
+    const before = await inspectMitchelTrevorIdentityFoundation(db);
+    const ready = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      before,
+      ids,
+    );
     expect(ready.status).toBe("ready");
-    if (ready.status !== "ready") throw new Error("expected a ready plan");
+    if (ready.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
 
-    await applyIdentityBackfillPlan(ready, db);
+    await applyIdentityFoundationPlan(ready, db);
 
-    const after = await inspectMitchelTrevorIdentityBackfill(input, db);
-    const retry = planMitchelTrevorBackfill(
-      input,
-      after,
+    const afterFoundation = await inspectMitchelTrevorIdentityFoundation(db);
+    const retry = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      afterFoundation,
       generateMitchelTrevorIdentityIds(),
     );
     expect(retry).toEqual({
@@ -75,6 +63,7 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
       useCaseId: ids.useCaseId,
       runtimeIdentityId: ids.runtimeIdentityId,
     });
+    await expect(db.select().from(useCaseMembership)).resolves.toHaveLength(0);
 
     await expect(
       verifyMitchelTrevorCanonicalSelectors(
@@ -84,14 +73,79 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
       ),
     ).resolves.toEqual({ checked: 4, matched: 4, mismatches: [] });
 
-    const auditRows = await db
+    await db.insert(user).values({
+      id: membershipUserId,
+      name: "Identity Qualification User",
+      email: `${membershipUserId}@test-auth.example.com`,
+      emailVerified: false,
+    });
+    const unverified = await inspectMitchelTrevorIdentityBackfill(input, db);
+    expect(
+      planMitchelMembershipActivation(input, unverified, ids.membershipId),
+    ).toEqual({
+      status: "blocked",
+      reasons: ["membership_user_unverified"],
+    });
+
+    await db
+      .update(user)
+      .set({ emailVerified: true })
+      .where(eq(user.id, membershipUserId));
+    const membershipSnapshot = await inspectMitchelTrevorIdentityBackfill(
+      input,
+      db,
+    );
+    const membershipPlan = planMitchelMembershipActivation(
+      input,
+      membershipSnapshot,
+      ids.membershipId,
+    );
+    expect(membershipPlan.status).toBe("ready");
+    if (membershipPlan.status !== "ready") {
+      throw new Error("expected a ready membership plan");
+    }
+    await applyMembershipActivationPlan(membershipPlan, db);
+
+    const afterMembership = await inspectMitchelTrevorIdentityBackfill(
+      input,
+      db,
+    );
+    expect(
+      planMitchelMembershipActivation(
+        input,
+        afterMembership,
+        crypto.randomUUID(),
+      ),
+    ).toEqual({ status: "verified_noop", membershipId: ids.membershipId });
+    expect(afterMembership.existingCanonicalState).toMatchObject({
+      useCase: { id: ids.useCaseId },
+      runtimeIdentity: { id: ids.runtimeIdentityId },
+    });
+
+    const foundationAuditRows = await db
       .select({ details: platformAuditLog.details })
       .from(platformAuditLog)
-      .where(eq(platformAuditLog.action, "use_case_identity_backfill_applied"));
-    expect(auditRows).toHaveLength(1);
-    expect(auditRows[0].details).toEqual(ready.audit.details);
-    expect(JSON.stringify(auditRows)).not.toContain("aero-fett");
-    expect(JSON.stringify(auditRows)).not.toContain("hermes-mitchel-data");
-    expect(JSON.stringify(auditRows)).not.toContain("/agents/");
+      .where(
+        eq(platformAuditLog.action, "use_case_identity_foundation_applied"),
+      );
+    expect(foundationAuditRows).toHaveLength(1);
+    expect(foundationAuditRows[0].details).toEqual(ready.audit.details);
+    const membershipAuditRows = await db
+      .select({ details: platformAuditLog.details })
+      .from(platformAuditLog)
+      .where(eq(platformAuditLog.action, "use_case_membership_activated"));
+    expect(membershipAuditRows).toHaveLength(1);
+    expect(membershipAuditRows[0].details).toEqual(
+      membershipPlan.audit.details,
+    );
+    expect(
+      JSON.stringify([foundationAuditRows, membershipAuditRows]),
+    ).not.toContain("aero-fett");
+    expect(
+      JSON.stringify([foundationAuditRows, membershipAuditRows]),
+    ).not.toContain("hermes-mitchel-data");
+    expect(
+      JSON.stringify([foundationAuditRows, membershipAuditRows]),
+    ).not.toContain("/agents/");
   });
 });

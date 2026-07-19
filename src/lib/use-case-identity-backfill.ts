@@ -270,6 +270,30 @@ export function summarizeIdentityBackfillPlan(plan: IdentityBackfillPlan) {
   };
 }
 
+export function summarizeIdentityFoundationPlan(plan: IdentityFoundationPlan) {
+  if (plan.status !== "ready") return plan;
+  return {
+    status: plan.status,
+    useCaseNumber: plan.numberAllocation.number,
+    membershipCount: plan.audit.details.membershipCount,
+    resourceBindingCount: plan.audit.details.resourceBindingCount,
+    secretBoundaryBindingCount: plan.audit.details.secretBoundaryBindingCount,
+    platformInstanceLinked: plan.audit.details.platformInstanceLinked,
+    orchestratorTenantBound: plan.audit.details.orchestratorTenantBound,
+  };
+}
+
+export function summarizeMembershipActivationPlan(
+  plan: MembershipActivationPlan,
+) {
+  if (plan.status === "blocked") return plan;
+  if (plan.status === "verified_noop") return { status: plan.status };
+  return {
+    status: plan.status,
+    membershipCount: plan.audit.details.membershipCount,
+  };
+}
+
 function comparableResource(binding: ResourceBindingRecord) {
   return {
     useCaseId: binding.useCaseId,
