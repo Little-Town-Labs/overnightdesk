@@ -24,7 +24,15 @@ import {
   type ReadyMembershipActivationPlan,
 } from "@/lib/use-case-identity-backfill";
 import { createDrizzleCanonicalIdentityStore } from "@/lib/canonical-identity-store";
-import type { CanonicalIdentitySelector } from "@/lib/canonical-identity";
+import type {
+  CanonicalIdentitySelector,
+  IdentityResolutionAuditEvent,
+} from "@/lib/canonical-identity";
+import {
+  resolveLegacyWithCanonicalShadow,
+  type CanonicalIdentityReadMode,
+} from "@/lib/canonical-identity-compatibility";
+import { isHermesMitchelTenant } from "@/lib/instance";
 
 type Database = typeof db;
 
@@ -453,16 +461,16 @@ export async function applyIdentityBackfillPlan(
   await database.batch(statements);
 }
 
-export async function verifyMitchelTrevorCanonicalSelectors(
-  expectedUseCaseId: string,
+interface MitchelTrevorCanonicalCheck {
+  label: string;
+  selector: CanonicalIdentitySelector;
+  expectedRuntimeId: string | null;
+}
+
+function mitchelTrevorCanonicalChecks(
   expectedRuntimeIdentityId: string,
-  database: Database = db,
-): Promise<{ checked: number; matched: number; mismatches: string[] }> {
-  const checks: Array<{
-    label: string;
-    selector: CanonicalIdentitySelector;
-    expectedRuntimeId: string | null;
-  }> = [
+): MitchelTrevorCanonicalCheck[] {
+  return [
     {
       label: "use_case_number",
       selector: {
@@ -486,6 +494,14 @@ export async function verifyMitchelTrevorCanonicalSelectors(
         expectedRuntimeId: expectedRuntimeIdentityId,
       })),
   ];
+}
+
+export async function verifyMitchelTrevorCanonicalSelectors(
+  expectedUseCaseId: string,
+  expectedRuntimeIdentityId: string,
+  database: Database = db,
+): Promise<{ checked: number; matched: number; mismatches: string[] }> {
+  const checks = mitchelTrevorCanonicalChecks(expectedRuntimeIdentityId);
   const store = createDrizzleCanonicalIdentityStore(database);
   const mismatches: string[] = [];
   for (const check of checks) {
@@ -502,4 +518,70 @@ export async function verifyMitchelTrevorCanonicalSelectors(
     matched: checks.length - mismatches.length,
     mismatches,
   };
+}
+
+export interface MitchelTrevorCompatibilitySummary {
+  mode: CanonicalIdentityReadMode;
+  authority: "legacy";
+  legacyChecked: 1;
+  legacyMatched: 0 | 1;
+  canonicalChecked: number;
+  canonicalMatched: number;
+  canonicalMismatches: string[];
+  canonicalErrors: string[];
+}
+
+type MitchelTrevorCompatibilityInput =
+  | { mode: "legacy" }
+  | {
+      mode: "compare";
+      expectedUseCaseId: string;
+      expectedRuntimeIdentityId: string;
+      audit: (event: IdentityResolutionAuditEvent) => Promise<unknown>;
+      database?: Database;
+    };
+
+export async function compareMitchelTrevorLegacyAndCanonical(
+  input: MitchelTrevorCompatibilityInput,
+): Promise<MitchelTrevorCompatibilitySummary> {
+  const legacyResult = isHermesMitchelTenant({
+    tenantId: MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime.slug,
+    containerId: MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime.slug,
+  });
+  const summary: MitchelTrevorCompatibilitySummary = {
+    mode: input.mode,
+    authority: "legacy",
+    legacyChecked: 1,
+    legacyMatched: legacyResult ? 1 : 0,
+    canonicalChecked: 0,
+    canonicalMatched: 0,
+    canonicalMismatches: [],
+    canonicalErrors: [],
+  };
+  if (input.mode === "legacy") return summary;
+
+  const store = createDrizzleCanonicalIdentityStore(input.database ?? db);
+  const checks = mitchelTrevorCanonicalChecks(
+    input.expectedRuntimeIdentityId,
+  );
+  for (const check of checks) {
+    const result = await resolveLegacyWithCanonicalShadow({
+      mode: input.mode,
+      legacyResult,
+      selector: check.selector,
+      expectedUseCaseId: input.expectedUseCaseId,
+      expectedRuntimeId: check.expectedRuntimeId,
+      store,
+      audit: input.audit,
+    });
+    summary.canonicalChecked += 1;
+    if (result.comparison === "match") summary.canonicalMatched += 1;
+    if (result.comparison === "mismatch") {
+      summary.canonicalMismatches.push(check.label);
+    }
+    if (result.comparison === "error") {
+      summary.canonicalErrors.push(check.label);
+    }
+  }
+  return summary;
 }

@@ -2,11 +2,18 @@ import {
   applyIdentityBackfillPlan,
   applyIdentityFoundationPlan,
   applyMembershipActivationPlan,
+  compareMitchelTrevorLegacyAndCanonical,
   generateMitchelTrevorIdentityIds,
   inspectMitchelTrevorIdentityBackfill,
   inspectMitchelTrevorIdentityFoundation,
   verifyMitchelTrevorCanonicalSelectors,
 } from "@/db/use-case-identity-backfill-store";
+import { db } from "@/db";
+import { createPlatformIdentityAudit } from "@/lib/canonical-identity-audit";
+import {
+  parseCanonicalIdentityReadMode,
+  requireCanonicalComparisonConfirmation,
+} from "@/lib/canonical-identity-compatibility";
 import {
   planMitchelMembershipActivation,
   planMitchelTrevorBackfill,
@@ -21,7 +28,7 @@ import {
   type MembershipActivationPlan,
 } from "@/lib/use-case-identity-backfill";
 
-type Scope = "backfill" | "foundation" | "membership";
+type Scope = "backfill" | "foundation" | "membership" | "compatibility";
 type Command = "plan" | "apply" | "verify";
 
 function requiredEnvironment(name: string): string {
@@ -39,7 +46,11 @@ function parseCommand(value: string | undefined): Command {
 }
 
 function parseInvocation(args: string[]): { scope: Scope; command: Command } {
-  if (args[0] === "foundation" || args[0] === "membership") {
+  if (
+    args[0] === "foundation" ||
+    args[0] === "membership" ||
+    args[0] === "compatibility"
+  ) {
     return { scope: args[0] as Scope, command: parseCommand(args[1]) };
   }
   return { scope: "backfill", command: parseCommand(args[0]) };
@@ -148,6 +159,50 @@ async function runMembership(command: Command): Promise<void> {
   printResult({ status: plan.status === "ready" ? "applied" : "verified_noop" });
 }
 
+async function runCompatibility(command: Command): Promise<void> {
+  if (command !== "verify") {
+    throw new Error("Compatibility command must be verify");
+  }
+  const mode = parseCanonicalIdentityReadMode(
+    process.env.CANONICAL_IDENTITY_READ_MODE,
+  );
+  requireCanonicalComparisonConfirmation(
+    mode,
+    process.env.IDENTITY_COMPARISON_CONFIRM,
+  );
+
+  if (mode === "legacy") {
+    const summary = await compareMitchelTrevorLegacyAndCanonical({ mode });
+    return printResult({ status: "verified", ...summary });
+  }
+
+  const foundation = await planFoundation({
+    actor: "operator:identity-comparison",
+  });
+  if (foundation.status === "blocked") return failBlocked(foundation);
+  if (foundation.status === "ready") {
+    return failBlocked({
+      status: "blocked",
+      reasons: ["canonical_foundation_missing"],
+    });
+  }
+
+  const summary = await compareMitchelTrevorLegacyAndCanonical({
+    mode,
+    expectedUseCaseId: foundation.useCaseId,
+    expectedRuntimeIdentityId: foundation.runtimeIdentityId,
+    audit: createPlatformIdentityAudit(db),
+  });
+  const verified =
+    summary.legacyMatched === 1 &&
+    summary.canonicalChecked > 0 &&
+    summary.canonicalMatched === summary.canonicalChecked &&
+    summary.canonicalMismatches.length === 0 &&
+    summary.canonicalErrors.length === 0;
+  printResult({ status: verified ? "verified" : "failed", ...summary });
+  if (!verified) process.exitCode = 2;
+}
+
 async function runBackfill(command: Command): Promise<void> {
   const input = loadBackfillInput();
   const plan = await planBackfill(input);
@@ -193,6 +248,9 @@ async function run(): Promise<void> {
   }
   if (invocation.scope === "membership") {
     return runMembership(invocation.command);
+  }
+  if (invocation.scope === "compatibility") {
+    return runCompatibility(invocation.command);
   }
   return runBackfill(invocation.command);
 }

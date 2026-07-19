@@ -71,6 +71,46 @@ function runSchemaApply(targetUrl) {
   }
 }
 
+function runCompatibilityVerification(targetUrl, mode) {
+  const result = spawnSync(
+    "npm",
+    ["run", "identity:compatibility:verify"],
+    {
+      cwd: repo,
+      env: {
+        ...process.env,
+        DATABASE_URL: targetUrl,
+        CANONICAL_IDENTITY_READ_MODE: mode,
+        IDENTITY_COMPARISON_CONFIRM:
+          mode === "compare" ? "COMPARE_TENET_1_SHADOW" : "",
+      },
+      stdio: "inherit",
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(
+      `identity compatibility ${mode} exited ${result.status}`,
+    );
+  }
+}
+
+function runFoundationVerify(targetUrl) {
+  const result = spawnSync("npm", ["run", "identity:foundation:verify"], {
+    cwd: repo,
+    env: {
+      ...process.env,
+      DATABASE_URL: targetUrl,
+      IDENTITY_FOUNDATION_ACTOR: "operator:identity-qualification",
+    },
+    stdio: "inherit",
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`identity foundation verify exited ${result.status}`);
+  }
+}
+
 async function applyBaselineMigrations(targetUrl) {
   const migrations = fs
     .readdirSync(path.join(repo, "drizzle"))
@@ -108,6 +148,15 @@ async function main() {
 
     currentStage = "run identity backfill integration test";
     runIntegrationTest(targetUrl);
+
+    currentStage = "run canonical shadow comparison";
+    runCompatibilityVerification(targetUrl, "compare");
+
+    currentStage = "prove legacy feature-flag rollback";
+    runCompatibilityVerification(targetUrl, "legacy");
+
+    currentStage = "verify additive foundation remains after rollback";
+    runFoundationVerify(targetUrl);
   } finally {
     if (created) {
       currentStage = "drop disposable database";

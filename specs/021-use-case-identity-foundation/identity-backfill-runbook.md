@@ -119,6 +119,41 @@ values. A separate membership command later requires the email-verified opaque
 Better Auth user ID and inserts only the owner membership plus its audit row;
 it must not regenerate or rewrite the foundation IDs.
 
+## Compare resolution and prove read-path rollback
+
+`CANONICAL_IDENTITY_READ_MODE` supports only `legacy` and `compare` and
+defaults to `legacy`. Both modes return the existing legacy result as the sole
+authority. `compare` adds shadow canonical reads and metadata-only audit events;
+the command rejects a `canonical` mode so T016 cannot become an authorization
+cutover by configuration mistake.
+
+After the reviewed command is merged, run the comparison with its separate
+confirmation:
+
+```bash
+CANONICAL_IDENTITY_READ_MODE=compare \
+IDENTITY_COMPARISON_CONFIRM=COMPARE_TENET_1_SHADOW \
+  npm run identity:compatibility:verify
+```
+
+Expected metadata reports one passing legacy check, four canonical checks,
+four matches, no mismatch/error labels, and `authority: legacy`. Selector
+values, email addresses, user IDs, and secret values must not appear in output
+or audit details.
+
+Then prove the operational rollback and retained additive state:
+
+```bash
+CANONICAL_IDENTITY_READ_MODE=legacy \
+  npm run identity:compatibility:verify
+IDENTITY_FOUNDATION_ACTOR=operator:identity-rollback-verification \
+  npm run identity:foundation:verify
+```
+
+The legacy result must report zero canonical checks. Foundation verification
+must remain `verified_noop` with all selector checks passing. Do not delete or
+rewrite identity rows as part of this rollback.
+
 ## Attach verified membership later
 
 After the intended person completes Better Auth email verification, obtain the
