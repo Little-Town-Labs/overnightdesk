@@ -75,6 +75,8 @@ authorization cutover, or production database deployment has been performed.
 - T005-T012 are additive and precede all membership authorization cutovers.
 - T015e-T016 and T021 permit fixture-backed platform work without Mitchel;
   T015g and T018-T020 gate his production authorization and acceptance.
-- T021 may overlap schema/backfill work after the contract; T022-T023 may not.
+- T021 may overlap schema/backfill work after the contract. Fixture-backed T022
+  may overlap after the canonical foundation; T023 and Mitchel activation may
+  not proceed before active membership.
 - T024-T027 follow acceptance of the Mitchel vertical slice.
 - Feature 12 scheduler activation remains an independent owner-gated operation.
