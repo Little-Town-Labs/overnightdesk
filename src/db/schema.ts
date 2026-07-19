@@ -1,7 +1,9 @@
 import { relations, sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
+  foreignKey,
   index,
   integer,
   jsonb,
@@ -11,7 +13,21 @@ import {
   text,
   timestamp,
   unique,
+  uuid,
 } from "drizzle-orm/pg-core";
+import { user } from "./auth-core-schema";
+import {
+  personaAssignment,
+  resourceBinding,
+  runtimeIdentity,
+  secretBoundaryBinding,
+  useCase,
+  useCaseMembership,
+  useCaseNumberAllocation,
+} from "./identity-schema";
+
+export { user } from "./auth-core-schema";
+export * from "./identity-schema";
 
 // ---------------------------------------------------------------------------
 // Existing tables
@@ -95,23 +111,6 @@ export const hermesDashboardAuthStatusEnum = pgEnum(
 // ---------------------------------------------------------------------------
 // Better Auth tables
 // ---------------------------------------------------------------------------
-
-export const user = pgTable("user", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  image: text("image"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  emailOptOut: boolean("email_opt_out").notNull().default(false),
-});
 
 export const session = pgTable("session", {
   id: text("id")
@@ -329,48 +328,73 @@ export const subscription = pgTable("subscription", {
     .defaultNow(),
 });
 
-export const instance = pgTable("instance", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  tenantId: text("tenant_id").notNull().unique(),
-  status: instanceStatusEnum("status").notNull().default("queued"),
-  containerId: text("container_id"),
-  gatewayPort: integer("gateway_port").unique(),
-  dashboardTokenHash: text("dashboard_token_hash"),
-  engineApiKey: text("engine_api_key"),
-  phaseServiceToken: text("phase_service_token"),
-  wizardState: jsonb("wizard_state").$type<{ completedSteps: number[]; currentStep: number } | null>(),
-  claudeAuthStatus: claudeAuthStatusEnum("claude_auth_status")
-    .notNull()
-    .default("not_configured"),
-  subdomain: text("subdomain").unique(),
-  hermesOidcClientId: text("hermes_oidc_client_id")
-    .unique()
-    .references(() => oauthClient.clientId, { onDelete: "set null" }),
-  hermesDashboardAuthStatus: hermesDashboardAuthStatusEnum(
-    "hermes_dashboard_auth_status"
-  )
-    .notNull()
-    .default("legacy"),
-  hermesDashboardAuthUpdatedAt: timestamp(
-    "hermes_dashboard_auth_updated_at",
-    { withTimezone: true }
-  ),
-  provisionedAt: timestamp("provisioned_at", { withTimezone: true }),
-  deprovisionedAt: timestamp("deprovisioned_at", { withTimezone: true }),
-  lastHealthCheck: timestamp("last_health_check", { withTimezone: true }),
-  consecutiveHealthFailures: integer("consecutive_health_failures").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const instance = pgTable(
+  "instance",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tenantId: text("tenant_id").notNull().unique(),
+    useCaseId: uuid("use_case_id").references(() => useCase.id, {
+      onDelete: "restrict",
+    }),
+    runtimeIdentityId: uuid("runtime_identity_id"),
+    status: instanceStatusEnum("status").notNull().default("queued"),
+    containerId: text("container_id"),
+    gatewayPort: integer("gateway_port").unique(),
+    dashboardTokenHash: text("dashboard_token_hash"),
+    engineApiKey: text("engine_api_key"),
+    phaseServiceToken: text("phase_service_token"),
+    wizardState: jsonb("wizard_state").$type<{
+      completedSteps: number[];
+      currentStep: number;
+    } | null>(),
+    claudeAuthStatus: claudeAuthStatusEnum("claude_auth_status")
+      .notNull()
+      .default("not_configured"),
+    subdomain: text("subdomain").unique(),
+    hermesOidcClientId: text("hermes_oidc_client_id")
+      .unique()
+      .references(() => oauthClient.clientId, { onDelete: "set null" }),
+    hermesDashboardAuthStatus: hermesDashboardAuthStatusEnum(
+      "hermes_dashboard_auth_status"
+    )
+      .notNull()
+      .default("legacy"),
+    hermesDashboardAuthUpdatedAt: timestamp(
+      "hermes_dashboard_auth_updated_at",
+      { withTimezone: true }
+    ),
+    provisionedAt: timestamp("provisioned_at", { withTimezone: true }),
+    deprovisionedAt: timestamp("deprovisioned_at", { withTimezone: true }),
+    lastHealthCheck: timestamp("last_health_check", { withTimezone: true }),
+    consecutiveHealthFailures: integer("consecutive_health_failures")
+      .notNull()
+      .default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: "instance_runtime_scope_fk",
+      columns: [table.runtimeIdentityId, table.useCaseId],
+      foreignColumns: [runtimeIdentity.id, runtimeIdentity.useCaseId],
+    }).onDelete("restrict"),
+    check(
+      "instance_runtime_requires_use_case",
+      sql`${table.runtimeIdentityId} IS NULL OR ${table.useCaseId} IS NOT NULL`
+    ),
+    index("instance_use_case_idx").on(table.useCaseId),
+    index("instance_runtime_identity_idx").on(table.runtimeIdentityId),
+  ]
+);
 
 export const fleetEvent = pgTable("fleet_event", {
   id: serial("id").primaryKey(),
@@ -472,7 +496,98 @@ export const userRelations = relations(user, ({ many }) => ({
   oauthAccessTokens: many(oauthAccessToken),
   oauthRefreshTokens: many(oauthRefreshToken),
   oauthConsents: many(oauthConsent),
+  useCaseMemberships: many(useCaseMembership),
 }));
+
+export const useCaseRelations = relations(useCase, ({ many }) => ({
+  numberAllocations: many(useCaseNumberAllocation),
+  runtimes: many(runtimeIdentity),
+  memberships: many(useCaseMembership),
+  resourceBindings: many(resourceBinding),
+  secretBoundaryBindings: many(secretBoundaryBinding),
+  instances: many(instance),
+}));
+
+export const useCaseNumberAllocationRelations = relations(
+  useCaseNumberAllocation,
+  ({ one }) => ({
+    useCase: one(useCase, {
+      fields: [useCaseNumberAllocation.useCaseId],
+      references: [useCase.id],
+    }),
+  })
+);
+
+export const runtimeIdentityRelations = relations(
+  runtimeIdentity,
+  ({ one, many }) => ({
+    useCase: one(useCase, {
+      fields: [runtimeIdentity.useCaseId],
+      references: [useCase.id],
+    }),
+    personas: many(personaAssignment),
+    memberships: many(useCaseMembership),
+    resourceBindings: many(resourceBinding),
+    secretBoundaryBindings: many(secretBoundaryBinding),
+    instances: many(instance),
+  })
+);
+
+export const personaAssignmentRelations = relations(
+  personaAssignment,
+  ({ one }) => ({
+    runtime: one(runtimeIdentity, {
+      fields: [personaAssignment.runtimeIdentityId],
+      references: [runtimeIdentity.id],
+    }),
+  })
+);
+
+export const useCaseMembershipRelations = relations(
+  useCaseMembership,
+  ({ one }) => ({
+    useCase: one(useCase, {
+      fields: [useCaseMembership.useCaseId],
+      references: [useCase.id],
+    }),
+    runtime: one(runtimeIdentity, {
+      fields: [useCaseMembership.runtimeIdentityId],
+      references: [runtimeIdentity.id],
+    }),
+    user: one(user, {
+      fields: [useCaseMembership.userId],
+      references: [user.id],
+    }),
+  })
+);
+
+export const resourceBindingRelations = relations(
+  resourceBinding,
+  ({ one }) => ({
+    useCase: one(useCase, {
+      fields: [resourceBinding.useCaseId],
+      references: [useCase.id],
+    }),
+    runtime: one(runtimeIdentity, {
+      fields: [resourceBinding.runtimeIdentityId],
+      references: [runtimeIdentity.id],
+    }),
+  })
+);
+
+export const secretBoundaryBindingRelations = relations(
+  secretBoundaryBinding,
+  ({ one }) => ({
+    useCase: one(useCase, {
+      fields: [secretBoundaryBinding.useCaseId],
+      references: [useCase.id],
+    }),
+    runtime: one(runtimeIdentity, {
+      fields: [secretBoundaryBinding.runtimeIdentityId],
+      references: [runtimeIdentity.id],
+    }),
+  })
+);
 
 export const sessionRelations = relations(session, ({ one }) => ({
   user: one(user, { fields: [session.userId], references: [user.id] }),
@@ -491,6 +606,14 @@ export const subscriptionRelations = relations(subscription, ({ one }) => ({
 
 export const instanceRelations = relations(instance, ({ one, many }) => ({
   user: one(user, { fields: [instance.userId], references: [user.id] }),
+  useCase: one(useCase, {
+    fields: [instance.useCaseId],
+    references: [useCase.id],
+  }),
+  runtimeIdentity: one(runtimeIdentity, {
+    fields: [instance.runtimeIdentityId],
+    references: [runtimeIdentity.id],
+  }),
   hermesOidcClient: one(oauthClient, {
     fields: [instance.hermesOidcClientId],
     references: [oauthClient.clientId],

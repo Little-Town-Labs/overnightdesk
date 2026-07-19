@@ -2,6 +2,12 @@
 
 **Branch**: `021-use-case-identity-foundation` | **Date**: 2026-07-19 | **Spec**: [spec.md](spec.md)
 
+**Implementation checkpoint (2026-07-19):** `021a-identity-schema-resolver`
+implements the additive schema, nullable instance links, validated canonical
+resolver, and metadata-only comparison audit adapter. Existing reads remain
+authoritative. No database deployment, backfill, stable-number allocation, or
+authorization cutover is included.
+
 ## Summary
 
 Introduce an additive identity registry that separates canonical use-case and

@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-19
 
-**Status**: Planned
+**Status**: In progress — additive schema/resolver implemented; no identity
+backfill, number allocation, authorization cutover, or production migration
+has been performed
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or
