@@ -103,7 +103,7 @@ This is a Next.js App Router project. The stack is deliberately narrow:
 | Tenant engine | hermes-agent (`nousresearch/hermes-agent:latest`) | Python/FastAPI; OpenAI-compatible API on :8642, dashboard sidecar on :9119 |
 | Model routing | OpenRouter | All tenant model calls; keys managed via Phase.dev — replaces Claude Code BYOS |
 | Secrets | Phase.dev | Per-tenant path `/{tenantId}/`, injected via `phase run` at container start |
-| Chat UI | Vercel AI SDK (`/dashboard/chat`) | Talks to hermes OpenAI-compatible endpoint on tenant container port 8642 |
+| Chat UI | Open WebUI on Aegis (planned Feature 020) | One stateful deployment per Hermes use-case boundary; Vercel remains the Better Auth shell. The legacy Vercel AI SDK chat remains only until canary cutover. |
 | Messaging bridge | hermes gateway | Telegram, Discord, etc. — runs inside the tenant container |
 | Routing/TLS | nginx on aegis-prod | `{tenantId}.overnightdesk.com` → tenant container |
 
