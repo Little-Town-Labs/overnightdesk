@@ -21,6 +21,17 @@ membership-independent production operation:
 - No platform-instance link, orchestrator link, resource rename, or
   authorization cutover was performed. Legacy reads remain authoritative.
 
+Later on 2026-07-19, merged main commit
+`f1869906a19349bdcc1a08e9d84e43ecaab7761b` completed the T016 compatibility
+checkpoint. The guarded production comparison returned one passing legacy
+check and four of four canonical matches with `authority: legacy`. Switching
+back to `legacy` returned zero canonical checks, and the foundation remained
+`verified_noop` with four of four selectors. A read-only closeout found exactly
+four recent `canonical_resolution_match` audit rows, only the expected number
+and resource-binding selector types, no forbidden resource/email/path values,
+and zero memberships. No identity, membership, resource, or secret record was
+changed; the only T016 production writes were those four metadata-only audits.
+
 The preceding read-only preflight established:
 
 - Better Auth contains one user and no Mitchel subject.
@@ -127,8 +138,7 @@ authority. `compare` adds shadow canonical reads and metadata-only audit events;
 the command rejects a `canonical` mode so T016 cannot become an authorization
 cutover by configuration mistake.
 
-After the reviewed command is merged, run the comparison with its separate
-confirmation:
+Run the comparison from reviewed merged code with its separate confirmation:
 
 ```bash
 CANONICAL_IDENTITY_READ_MODE=compare \

@@ -34,12 +34,14 @@ contains one Tenet 1 allocation, one schema audit event, and one foundation
 audit event. No platform-instance link, orchestrator link, resource rename, or
 authorization cutover was included.
 
-**Compatibility qualification checkpoint (2026-07-19):** T016 adds an
-explicit `legacy`/`compare` observation flag; neither supported mode permits
-canonical authorization. Disposable Neon proves four shadow matches, then a
-flag rollback to `legacy` with zero canonical reads, followed by a
-`verified_noop` foundation check with unchanged canonical IDs. Production
-comparison evidence remains pending the reviewed merge.
+**Compatibility and rollback checkpoint (2026-07-19):** Merged main commit
+`f1869906a19349bdcc1a08e9d84e43ecaab7761b` supplies an explicit
+`legacy`/`compare` observation flag; neither supported mode permits canonical
+authorization. Disposable Neon and production each returned four shadow
+matches with legacy authority. Production rollback to `legacy` performed zero
+canonical checks, the foundation remained `verified_noop` with four of four
+selectors, and a read-only closeout found exactly four recent metadata-only
+match audits, no forbidden values, and zero memberships.
 
 ## Summary
 
