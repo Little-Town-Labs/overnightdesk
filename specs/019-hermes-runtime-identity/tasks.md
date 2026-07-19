@@ -111,13 +111,17 @@ identity can be restored without deleting or restoring the runtime volume.
 - [x] T027 [US4] Copy/fingerprint-verify `overnightdesk:/agents/hermes-email-intake/agent` to `/agents/hermes-email-intake/walter` without printing values and retain the source path
 - [x] T028 [US4] Deploy and verify dual-tuple SecurityTeam policy before changing any runtime or intake selector
 - [x] T029 [US4] Deploy Walter-capable intake source with Walter polling disabled and Agent still healthy
-- [ ] T030 [US4] Run the credential-remediation gate from T004 and stop if it is not satisfied
-- [ ] T031 [US4] Stop Agent intake, copy its stopped state to `hermes-email-intake-walter-data`, and compare value-suppressed file metadata/hashes
+- [x] T030 [US4] Run the credential-remediation gate from T004 and stop if it is not satisfied
+- [x] T031 [US4] Stop Agent intake, copy its stopped state to `hermes-email-intake-walter-data`, and compare value-suppressed file metadata/hashes
 - [ ] T032 [US4] Rename `hermes-agent` to `hermes-walter`, activate the repo-owned persona, update/reload Nginx, and verify container identity, mount continuity, DNS, public status, API, and dashboard
 - [ ] T033 [US4] Update the provisioner canary container mapping to Walter, restart only `hermes-provisioner`, and verify owner OIDC login/logout
-- [ ] T034 [US4] Start Walter intake, verify a healthy poll cycle and idempotency continuity, and leave Agent intake disabled/preserved
-- [ ] T035 [US4] Verify Open Brain, Ops MCP, cron, GitHub auth availability, monitoring, recent errors, Titus, and Mitchel without outputting protected content
-- [ ] T036 [US4] Exercise or time a non-destructive rollback rehearsal and record the result in `specs/019-hermes-runtime-identity/quickstart.md`
+- [x] T034 [US4] Start Walter intake, verify a healthy poll cycle and idempotency continuity, and leave Agent intake disabled/preserved
+- [x] T035 [US4] Verify Open Brain, Ops MCP, cron, GitHub auth availability, monitoring, recent errors, Titus, and Mitchel without outputting protected content
+- [x] T036 [US4] Exercise or time a non-destructive rollback rehearsal and record the result in `specs/019-hermes-runtime-identity/quickstart.md`
+
+T032 runtime, mount, DNS, public status, and API checks have passed. T032 and
+T033 remain open only for the owner-authenticated dashboard login and logout
+cookie check.
 
 ---
 

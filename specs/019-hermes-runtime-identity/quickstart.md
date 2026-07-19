@@ -28,7 +28,7 @@ artifacts. Before production activation:
 Do not place values or fragments in this file, Git, terminal output, or
 `deploys.log`.
 
-Current disposition: **owner approval recorded; remediation in progress**. The
+Current disposition: **credential gate satisfied**. The
 live Communication Module database credential has been rotated across its
 consumers, the obsolete tenant-0 database secret has been removed, and the
 historical Hermes Agent artifact scan is clean after value-suppressed
@@ -37,9 +37,10 @@ across the active Phase consumers and has now replaced the invalid legacy
 copies in the Hermes Agent/Walter and Mitchel runtime stores. Their primary,
 fallback, delegation, and currently configured compression routes use separate
 Codex OAuth subscription state; Walter's on-demand Fusion reference route uses
-the valid Phase-backed OpenRouter credential. Replacement and revocation of
-the still-valid GitHub coder credential remains the final credential gate
-before main runtime activation.
+the valid Phase-backed OpenRouter credential. The GitHub coder credential was
+replaced from Phase across the container environment, both GitHub CLI entries,
+and all three Copilot credential-pool entries. The prior fine-grained PAT now
+returns unauthorized while the replacement authenticates successfully.
 
 ## Source qualification evidence — 2026-07-18
 
@@ -99,10 +100,13 @@ https://docs.phase.dev/cli/commands
   delegation routes. Compression is enabled on both runtimes and the current
   active auxiliary compression route is Codex OAuth `gpt-5.4-mini`; Walter's
   optional Fusion preset uses `openrouter/fusion` as its reference model.
-- GitHub personal access token replacement/revocation likewise requires the
-  provider console. The still-valid Phase value matches the active GitHub CLI,
-  Hermes credential-pool, and container-environment copies by protected
-  fingerprint. No value or fragment was recorded in source or evidence.
+- Replaced the GitHub coder credential with the staged Phase value. The active
+  container environment, both GitHub CLI entries, and all three Copilot
+  credential-pool entries match by protected fingerprint. GitHub user, all
+  nine selected repositories, issues, pull requests, and Actions reads pass.
+  The prior fine-grained PAT was revoked in the provider console and now
+  returns unauthorized. No value or fragment was recorded in source or
+  evidence.
 - Prepared `/agents/hermes-email-intake/walter` with the same 14-key protected
   route contract as Agent, except for the explicit Walter route, target, base
   URL, and disabled polling state. The Agent source path remains unchanged.
@@ -112,9 +116,57 @@ https://docs.phase.dev/cli/commands
 - Deployed Walter-capable intake and initialized its state with polling
   disabled. Agent remains healthy and polling; Walter is healthy but disabled,
   and the platform polling-exclusivity check passes.
-- No `hermes-walter` main runtime container exists yet. Nginx, OIDC, and the
-  active main runtime remain on `hermes-agent` until the credential gate is
-  complete.
+- Stopped and disabled Agent intake after setting its Phase polling selector to
+  false. Copied the two stopped state files into the preserved Walter intake
+  volume and verified exact names, sizes, ownership, modes, and protected
+  hashes before activation.
+- Renamed the active platform runtime in place to `hermes-walter`, activated
+  the repo-owned Walter persona, changed and reloaded Nginx, and preserved the
+  exact container ID, image, `hermes-agent-data` mount, network, restart policy,
+  and hardening contract. Docker DNS and public status recovered successfully.
+- Changed only the provisioner canary container mapping to `hermes-walter`,
+  retained a protected rollback copy, and restarted only
+  `hermes-provisioner`. OIDC discovery remains healthy and unauthenticated
+  dashboard access still fails closed. The final owner login/logout browser
+  check remains open.
+- Activated Walter intake from the copied state. Walter polling is true and
+  healthy; Agent polling is false and its service and state volume are
+  disabled/preserved. Titus and Mitchel remain healthy.
+- Verified Open Brain, Ops, SecurityTeam, Communication Module, Nginx,
+  GitHub operations, OIDC discovery, public status, active cron inventory,
+  recent critical-error counts, Titus, and Mitchel without outputting protected
+  content.
+
+## Rollback rehearsal — 2026-07-18
+
+- Set Walter polling false and stopped Walter intake before the rehearsal;
+  Agent intake remained stopped, so neither platform route processed mail.
+- Renamed the same runtime back to `hermes-agent`, restored the Agent persona
+  and Nginx route, changed the provisioner mapping back to Agent, and confirmed
+  the public status endpoint recovered with the same container ID and named
+  volume.
+- The first immediate status assertion ran before the restarted dashboard was
+  ready and stopped the rehearsal in the verified Agent rollback state. No
+  data, volume, credential, or intake selector was lost.
+- Reactivated Walter with the guarded recovery wait, restored the provisioner
+  mapping, and confirmed public status in 15 seconds. Re-enabled only Walter
+  intake and verified Walter/Titus/Mitchel healthy with Agent inactive.
+- Rollback and reactivation preserved both intake state volumes, both Phase
+  paths, the stopped pre-credential-rotation container, the original persona,
+  and the original Nginx configuration for the observation window.
+
+## Follow-up: stable numeric tenant IDs
+
+Numeric tenant IDs are intentionally a separate architecture feature rather
+than an extension of this rename. That feature should define one stable
+tenant/use-case identifier independently from runtime identity, persona, and
+human authorization; map all infrastructure selectors to the stable tenant;
+and support multiple personas on one runtime and shared-memory boundary. A
+candidate namespace is
+`tenants/{tenant_id}/agents/{agent_id}/personas/{persona_id}`, but actual IDs,
+compatibility aliases, and migration sequencing require their own spec and
+must not be inferred from persona names. Rex remains a separate runtime because
+it has a separate personal memory and trust boundary.
 
 ## Read-only production preflight
 

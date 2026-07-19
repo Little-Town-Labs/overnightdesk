@@ -6,6 +6,7 @@ cache=${GOCACHE:-/tmp/hermes-email-intake-go-cache}
 module_cache=${GOMODCACHE:-/tmp/hermes-email-go-mod}
 binary=/tmp/hermes-email-intake-qualify
 fixtures=$(mktemp -d /tmp/hermes-email-intake-fixtures.XXXXXX)
+migration_script="$root/../../../infra/hermes/migrate-walter.sh"
 trap 'rm -f "$binary"; rm -rf "$fixtures"' EXIT
 
 cd "$root"
@@ -43,6 +44,13 @@ grep -Fq "agent|walter|mitchel) printf '%s\\n' /opt/overnightdesk/secrets/phase-
 grep -Fq 'active_platform_route=walter' scripts/deploy-aegis.sh
 grep -Fq 'rollback_platform_route=agent' scripts/deploy-aegis.sh
 grep -Fq 'assert_platform_route_exclusive' scripts/deploy-aegis.sh
+grep -Fq 'github_rotation_backup=hermes-agent-pre-github-rotation' "$migration_script"
+grep -Fq 'rotate-github' "$migration_script"
+grep -Fq 'docker rename "$old_name" "$github_rotation_backup"' "$migration_script"
+grep -Fq -- '--env-file "$runtime_env_file"' "$migration_script"
+grep -Fq '.credential_pool.copilot' "$migration_script"
+grep -Fq 'oauth_token_count=' "$migration_script"
+grep -Fq '${line%%oauth_token:*}' "$migration_script"
 ! grep -R -Eq -- '--publish|-p [0-9]' runtime scripts
 
 for route in titus agent walter mitchel; do
