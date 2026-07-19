@@ -77,13 +77,13 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
 
     const auditCanonicalComparison = auditModule.createPlatformIdentityAudit(db);
     await expect(
-      compareMitchelTrevorLegacyAndCanonical(
-        "compare",
-        ids.useCaseId,
-        ids.runtimeIdentityId,
-        auditCanonicalComparison,
-        db,
-      ),
+      compareMitchelTrevorLegacyAndCanonical({
+        mode: "compare",
+        expectedUseCaseId: ids.useCaseId,
+        expectedRuntimeIdentityId: ids.runtimeIdentityId,
+        audit: auditCanonicalComparison,
+        database: db,
+      }),
     ).resolves.toEqual({
       mode: "compare",
       authority: "legacy",
@@ -105,13 +105,7 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
     expect(JSON.stringify(comparisonAuditRows)).not.toContain("/agents/");
 
     await expect(
-      compareMitchelTrevorLegacyAndCanonical(
-        "legacy",
-        ids.useCaseId,
-        ids.runtimeIdentityId,
-        auditCanonicalComparison,
-        db,
-      ),
+      compareMitchelTrevorLegacyAndCanonical({ mode: "legacy" }),
     ).resolves.toEqual({
       mode: "legacy",
       authority: "legacy",

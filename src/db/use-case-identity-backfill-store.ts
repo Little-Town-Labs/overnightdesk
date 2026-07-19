@@ -531,19 +531,25 @@ export interface MitchelTrevorCompatibilitySummary {
   canonicalErrors: string[];
 }
 
+type MitchelTrevorCompatibilityInput =
+  | { mode: "legacy" }
+  | {
+      mode: "compare";
+      expectedUseCaseId: string;
+      expectedRuntimeIdentityId: string;
+      audit: (event: IdentityResolutionAuditEvent) => Promise<unknown>;
+      database?: Database;
+    };
+
 export async function compareMitchelTrevorLegacyAndCanonical(
-  mode: CanonicalIdentityReadMode,
-  expectedUseCaseId: string,
-  expectedRuntimeIdentityId: string,
-  audit: (event: IdentityResolutionAuditEvent) => Promise<unknown>,
-  database: Database = db,
+  input: MitchelTrevorCompatibilityInput,
 ): Promise<MitchelTrevorCompatibilitySummary> {
   const legacyResult = isHermesMitchelTenant({
     tenantId: MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime.slug,
     containerId: MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime.slug,
   });
   const summary: MitchelTrevorCompatibilitySummary = {
-    mode,
+    mode: input.mode,
     authority: "legacy",
     legacyChecked: 1,
     legacyMatched: legacyResult ? 1 : 0,
@@ -552,19 +558,21 @@ export async function compareMitchelTrevorLegacyAndCanonical(
     canonicalMismatches: [],
     canonicalErrors: [],
   };
-  if (mode === "legacy") return summary;
+  if (input.mode === "legacy") return summary;
 
-  const store = createDrizzleCanonicalIdentityStore(database);
-  const checks = mitchelTrevorCanonicalChecks(expectedRuntimeIdentityId);
+  const store = createDrizzleCanonicalIdentityStore(input.database ?? db);
+  const checks = mitchelTrevorCanonicalChecks(
+    input.expectedRuntimeIdentityId,
+  );
   for (const check of checks) {
     const result = await resolveLegacyWithCanonicalShadow({
-      mode,
+      mode: input.mode,
       legacyResult,
       selector: check.selector,
-      expectedUseCaseId,
+      expectedUseCaseId: input.expectedUseCaseId,
       expectedRuntimeId: check.expectedRuntimeId,
       store,
-      audit,
+      audit: input.audit,
     });
     summary.canonicalChecked += 1;
     if (result.comparison === "match") summary.canonicalMatched += 1;

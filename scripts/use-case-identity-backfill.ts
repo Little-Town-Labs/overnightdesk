@@ -172,12 +172,7 @@ async function runCompatibility(command: Command): Promise<void> {
   );
 
   if (mode === "legacy") {
-    const summary = await compareMitchelTrevorLegacyAndCanonical(
-      mode,
-      "00000000-0000-0000-0000-000000000000",
-      "00000000-0000-0000-0000-000000000000",
-      async () => undefined,
-    );
+    const summary = await compareMitchelTrevorLegacyAndCanonical({ mode });
     return printResult({ status: "verified", ...summary });
   }
 
@@ -192,12 +187,12 @@ async function runCompatibility(command: Command): Promise<void> {
     });
   }
 
-  const summary = await compareMitchelTrevorLegacyAndCanonical(
+  const summary = await compareMitchelTrevorLegacyAndCanonical({
     mode,
-    foundation.useCaseId,
-    foundation.runtimeIdentityId,
-    createPlatformIdentityAudit(db),
-  );
+    expectedUseCaseId: foundation.useCaseId,
+    expectedRuntimeIdentityId: foundation.runtimeIdentityId,
+    audit: createPlatformIdentityAudit(db),
+  });
   const verified =
     summary.legacyMatched === 1 &&
     summary.canonicalChecked > 0 &&
