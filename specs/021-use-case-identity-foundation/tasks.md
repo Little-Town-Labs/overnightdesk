@@ -44,9 +44,9 @@ authorization cutover has been performed.
     - [x] T015e3 Qualify foundation apply, verified no-op retry, later membership attachment, and unchanged canonical IDs on disposable Neon
   - [x] T015f Merge and deploy migration 0009, apply the foundation once, rerun as `verified_noop`, and record deployment/standard evidence without waiting for Mitchel
   - [ ] T015g After T015d3, apply only Mitchel's membership and record its separate evidence
-- [ ] T016 Compare old and canonical resolution for Mitchel's foundation and prove a feature-flag rollback without deleting additive records; do not wait for membership
+- [x] T016 Compare old and canonical resolution for Mitchel's foundation and prove a feature-flag rollback without deleting additive records; do not wait for membership
   - [x] T016a Implement a legacy-authoritative `legacy`/`compare` shadow gate, metadata-only match evidence, guarded operator command, and disposable-Neon rollback qualification
-  - [ ] T016b Merge the reviewed command, record production compare evidence, switch back to `legacy`, and verify the additive foundation remains unchanged
+  - [x] T016b Merge the reviewed command, record production compare evidence, switch back to `legacy`, and verify the additive foundation remains unchanged
 - [ ] T017 Add failing member/non-member/suspended-member authorization tests using controlled fixture users
 - [ ] T018 Replace exact single-owner checks for the Mitchel canary with active canonical membership resolution
 - [ ] T019 Remove the hardcoded `hermes-mitchel` resource-alias special case only after compatibility and browser denial tests pass
