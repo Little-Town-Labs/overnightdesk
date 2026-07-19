@@ -28,7 +28,7 @@ have been performed.
 ## Phase 3: Mitchel User / Trevor Agent Vertical Slice
 
 - [x] T013 Create `021b-mitchel-identity-canary` only after 021a has a stable reviewed base
-- [ ] T014 Obtain explicit owner approval to allocate the Mitchel business use case's stable number; do not invent it in a migration or fixture
+- [x] T014 Record explicit owner approval for Mitchel/Trevor as Tenet 1; keep the canonical database allocation as a separately reviewed operation
 - [ ] T015 Backfill the Mitchel business use case, Mitchel's owner membership, Trevor's default persona assignment, instance/orchestrator references, and current `hermes-mitchel` resource bindings
 - [ ] T016 Compare old and canonical resolution for Mitchel and prove a feature-flag rollback without deleting additive records
 - [ ] T017 Add failing member/non-member/suspended-member authorization tests
@@ -41,8 +41,8 @@ have been performed.
 - [ ] T021 Permit `020a-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
 - [ ] T022 Gate `020b-open-webui-mitchel-canary` on accepted 020a auth evidence and completed Mitchel identity/membership mapping
 - [ ] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
-- [ ] T024 Backfill Walter, Titus, and Rex metadata only through separately reviewed allocation/membership decisions
-- [ ] T025 Add Titus shared membership for Gary and Austin only with the later Titus collaboration/Teams authorization design
+- [ ] T024 Allocate approved Tenet 0 and Tenet 2 and backfill Walter plus Titus with Gary as the current authorized person only through separately reviewed operations; keep Rex unassigned
+- [ ] T025 Add Austin to Titus only with the later Titus collaboration/Teams authorization design; do not make Teams a dependency for Gary's standalone Titus runtime
 - [ ] T026 Migrate remaining consumers one at a time and retire aliases only after observed zero use
 - [ ] T027 Treat numeric infrastructure renaming as optional future work; do not block identity completion on it
 
