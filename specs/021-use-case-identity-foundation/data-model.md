@@ -41,8 +41,10 @@ deletes, which preserves non-reuse even after a use case is retired. The number
 is joined/projected as the use case's human-facing number; it is not duplicated
 as an independently mutable column on `use_case`.
 
-`Tenet 0` is the reserved human-facing number for the OvernightDesk/Walter
-use case. Historical resource names such as `tenant-0`, `tenet-0`, and
+The owner-approved initial sequence is `Tenet 0` for OvernightDesk/Walter,
+`Tenet 1` for Mitchel/Trevor, and `Tenet 2` for TTS/Titus. Those approvals do
+not create registry rows; each allocation still uses the audited append-only
+operation. Historical resource names such as `tenant-0`, `tenet-0`, and
 `tenet0-postgres` are compatibility bindings, not proof that every workload or
 schema they host belongs to that use case.
 

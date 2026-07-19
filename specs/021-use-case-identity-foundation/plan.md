@@ -96,8 +96,8 @@ created. This avoids pretending two independently generated UUIDs are one ID.
 2. **Add schema and resolver foundation**: Write failing tests, add identity,
    membership, persona, and resource-binding tables, then add nullable links
    and read-only resolvers. Existing readers remain authoritative.
-3. **Backfill Mitchel/Trevor vertical slice**: Allocate a number for the Mitchel
-   business use case only with owner approval; bind Mitchel as the person/member,
+3. **Backfill Mitchel/Trevor vertical slice**: Allocate the owner-approved
+   `Tenet 1` through the audited operation; bind Mitchel as the person/member,
    Trevor as the default persona, and `hermes-mitchel` as a current resource
    alias; compare old and new resolution and prove rollback.
 4. **Move authorization to membership**: Replace exact single-owner checks for
@@ -106,9 +106,11 @@ created. This avoids pretending two independently generated UUIDs are one ID.
 5. **Run Feature 020 Mitchel/Trevor canary**: Bind Open WebUI to the canonical
    runtime and Mitchel's membership; Trevor remains the agent persona.
    Auth/release research may overlap steps 2-3 after step 1.
-6. **Expand incrementally**: Backfill Walter, Titus, Rex metadata, then customer
-   records and individual consumers. Resource renaming is separate optional
-   work, not a completion criterion.
+6. **Expand incrementally**: Allocate owner-approved `Tenet 0` and `Tenet 2`
+   and backfill Walter plus Titus with Gary as the current authorized person
+   through separate reviews. Add Austin with the later Teams authorization work; keep Rex and
+   later customer numbers unassigned until individually approved. Resource
+   renaming is separate optional work, not a completion criterion.
 
 ## Worktree and Merge Sequence
 

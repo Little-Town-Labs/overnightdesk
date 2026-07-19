@@ -128,12 +128,16 @@ use of the new tables without deleting them or changing resources.
 - **FR-015**: The Mitchel business use case MUST be the first vertical-slice
   backfill and resolver canary. Mitchel is the person/member, Trevor is the
   agent's default persona, and `hermes-mitchel` is the current runtime resource
-  alias. OvernightDesk/Walter retains the owner-approved `Tenet 0`
-  human-facing number. Existing `tenant-0`, `tenet-0`, and `tenet0-postgres`
+  alias. The owner-approved initial allocations are `Tenet 0` for
+  OvernightDesk/Walter, `Tenet 1` for Mitchel/Trevor, and `Tenet 2` for
+  TTS/Titus; each remains pending an audited canonical database allocation.
+  Existing `tenant-0`, `tenet-0`, and `tenet0-postgres`
   names remain resource
   bindings; their use for Trevor data does not assign Mitchel to Tenet 0.
-  Titus, Rex, and customer-wide backfills require separate reviewed tasks, and
-  Mitchel's number still requires its own approved allocation.
+  Titus, Rex, and customer-wide backfills require separate reviewed tasks.
+  Titus's current standalone runtime and Gary access, plus the planned
+  canonical Gary membership, do not depend on the later Austin membership or
+  Teams integration.
 - **FR-016**: Feature 020 Open WebUI authentication research MAY proceed after
   this identity contract is accepted, but the Mitchel/Trevor canary MUST wait
   for the Mitchel use-case identity, Mitchel membership, Trevor persona, and

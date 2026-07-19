@@ -24,10 +24,12 @@ authorization by possession. The use case therefore keeps a UUID primary key
 and may receive a unique immutable number. The number is never reused and is
 not accepted as proof of access.
 
-The owner confirmed that allocation is zero-based and that the
-OvernightDesk/Walter use case retains `Tenet 0`. Existing `tenant-0`, `tenet-0`,
-and `tenet0-postgres` infrastructure labels remain compatibility resources;
-Trevor data hosted by one of those resources does not make Mitchel Tenet 0.
+The owner confirmed that allocation is zero-based: OvernightDesk/Walter is
+`Tenet 0`, Mitchel/Trevor is `Tenet 1`, and TTS/Titus is `Tenet 2`. These are
+approved targets pending audited database allocation. Existing `tenant-0`,
+`tenet-0`, and `tenet0-postgres` infrastructure labels remain compatibility
+resources; Trevor data hosted by one of those resources does not make Mitchel
+Tenet 0.
 
 ## Decision 2: Standardize `use_case`, reserve `Tenet N` for display
 
@@ -43,6 +45,11 @@ The exact `instance.userId == session.user.id` rule is safe for a single owner
 but cannot represent Titus shared by Gary and Austin. Membership is a separate
 entity with role, state, scope, and lifecycle timestamps. A single-owner view
 can remain as a compatibility projection while consumers migrate.
+
+Titus currently operates for Gary without Teams. The planned canonical Gary
+membership also does not depend on Teams. Austin's later membership and Teams
+access are a separate authorization change, not a prerequisite for the
+standalone Tenet 2 runtime.
 
 ## Decision 4: Runtime, persona, and person remain independent
 
