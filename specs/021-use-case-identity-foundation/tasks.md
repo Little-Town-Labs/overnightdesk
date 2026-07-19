@@ -27,7 +27,7 @@ have been performed.
 
 ## Phase 3: Mitchel User / Trevor Agent Vertical Slice
 
-- [ ] T013 Create `021b-mitchel-identity-canary` only after 021a has a stable reviewed base
+- [x] T013 Create `021b-mitchel-identity-canary` only after 021a has a stable reviewed base
 - [ ] T014 Obtain explicit owner approval to allocate the Mitchel business use case's stable number; do not invent it in a migration or fixture
 - [ ] T015 Backfill the Mitchel business use case, Mitchel's owner membership, Trevor's default persona assignment, instance/orchestrator references, and current `hermes-mitchel` resource bindings
 - [ ] T016 Compare old and canonical resolution for Mitchel and prove a feature-flag rollback without deleting additive records

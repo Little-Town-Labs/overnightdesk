@@ -31,7 +31,7 @@ describe("use-case identity schema", () => {
     ]);
   });
 
-  it("uses UUID columns for canonical identity and positive immutable number allocations", () => {
+  it("uses UUID columns for canonical identity and zero-based immutable number allocations", () => {
     const useCaseConfig = getTableConfig(schema.useCase);
     const useCaseId = useCaseConfig.columns.find((column) => column.name === "id");
     expect(useCaseId?.getSQLType()).toBe("uuid");
@@ -41,7 +41,7 @@ describe("use-case identity schema", () => {
       "bigint"
     );
     expect(allocationConfig.checks.map((constraint) => constraint.name)).toContain(
-      "use_case_number_positive"
+      "use_case_number_nonnegative"
     );
     expect(allocationConfig.checks.map((constraint) => constraint.name)).toContain(
       "use_case_number_safe_integer"

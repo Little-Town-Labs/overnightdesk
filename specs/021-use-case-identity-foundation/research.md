@@ -24,6 +24,11 @@ authorization by possession. The use case therefore keeps a UUID primary key
 and may receive a unique immutable number. The number is never reused and is
 not accepted as proof of access.
 
+The owner confirmed that allocation is zero-based and that the
+OvernightDesk/Walter use case retains `Tenet 0`. Existing `tenant-0`, `tenet-0`,
+and `tenet0-postgres` infrastructure labels remain compatibility resources;
+Trevor data hosted by one of those resources does not make Mitchel Tenet 0.
+
 ## Decision 2: Standardize `use_case`, reserve `Tenet N` for display
 
 `tenant` already describes existing customer-tenancy fields. `tenet` sounds

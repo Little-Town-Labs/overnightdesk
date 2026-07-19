@@ -8,7 +8,7 @@ const selectorSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("runtime_id"), value: uuid }),
   z.object({
     type: z.literal("use_case_number"),
-    value: z.number().int().positive().safe(),
+    value: z.number().int().nonnegative().safe(),
   }),
   z.object({ type: z.literal("instance_id"), value: boundedIdentifier }),
   z.object({ type: z.literal("legacy_tenant_id"), value: boundedIdentifier }),

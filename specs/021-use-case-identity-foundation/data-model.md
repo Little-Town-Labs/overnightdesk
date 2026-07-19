@@ -31,7 +31,7 @@ a separate runtime record even if the same people or persona labels are used.
 
 | Field | Rule |
 |---|---|
-| `number` | Positive bigint within JavaScript's safe-integer range; primary key |
+| `number` | Non-negative bigint within JavaScript's safe-integer range; primary key; allocation starts at zero |
 | `use_case_id` | Unique FK to UseCase; one allocated number per use case |
 | `allocated_by` | Non-secret actor identifier for the approved allocation |
 | `allocated_at` | Immutable allocation timestamp |
@@ -40,6 +40,11 @@ The allocation registry is append-only. Database triggers reject updates and
 deletes, which preserves non-reuse even after a use case is retired. The number
 is joined/projected as the use case's human-facing number; it is not duplicated
 as an independently mutable column on `use_case`.
+
+`Tenet 0` is the reserved human-facing number for the OvernightDesk/Walter
+use case. Historical resource names such as `tenant-0`, `tenet-0`, and
+`tenet0-postgres` are compatibility bindings, not proof that every workload or
+schema they host belongs to that use case.
 
 ## PersonaAssignment
 

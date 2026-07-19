@@ -14,6 +14,7 @@ This is a future implementation checklist, not deployment authorization.
    classified as secrets or customer content.
 7. Create the Mitchel canary worktree from the reviewed schema branch.
 8. Allocate a stable number only through an approved, audited operation.
+   Allocation begins at zero; `Tenet 0` is reserved for OvernightDesk/Walter.
 9. Prove active member, non-member, and suspended-member behavior before any
    OIDC or Open WebUI assignment uses the new resolver.
 10. Keep old reads and all infrastructure names available for rollback through

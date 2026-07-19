@@ -92,7 +92,7 @@ export const useCaseNumberAllocation = pgTable(
       .defaultNow(),
   },
   (table) => [
-    check("use_case_number_positive", sql`${table.number} > 0`),
+    check("use_case_number_nonnegative", sql`${table.number} >= 0`),
     check(
       "use_case_number_safe_integer",
       sql`${table.number} <= 9007199254740991`

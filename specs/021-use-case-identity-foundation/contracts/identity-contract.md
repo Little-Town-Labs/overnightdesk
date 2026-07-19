@@ -21,6 +21,9 @@
   canonical UUID server-side.
 - A number is public, enumerable, immutable, and never reused. Knowing it grants
   no access.
+- Allocation is zero-based. `Tenet 0` identifies the OvernightDesk/Walter use
+  case; a `tenant-0`, `tenet-0`, or `tenet0-postgres` resource name remains a
+  compatibility binding and cannot grant or imply canonical ownership.
 - Slugs and display names may change. Historical aliases remain resolvable only
   while their binding state permits it.
 - A caller may submit a legacy selector only to a compatibility endpoint. The
