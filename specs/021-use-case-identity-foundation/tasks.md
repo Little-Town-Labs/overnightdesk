@@ -36,6 +36,9 @@ have been performed.
   - [x] T015b Add an atomic idempotent Tenet 1 plan/apply/verify command and disposable-Neon integration qualification
   - [x] T015c Inventory production without writes: schema absent, Mitchel Better Auth subject absent, Mitchel platform instance absent, and orchestrator registry empty; confirm current container, volume, hostname, and Phase intake path bindings
   - [ ] T015d Have Mitchel complete Better Auth registration/invitation and record the resulting opaque `user.id`; never infer membership from name or email
+    - [x] T015d1 Add Mitchel's email to the production invite allowlist, deploy the new Vercel environment, and verify the public sign-up route without recording the address in Git
+    - [x] T015d2 Require the Better Auth account to be email-verified before the backfill can produce a write plan
+    - [ ] T015d3 Have Mitchel sign up and verify his email, then obtain the opaque `user.id` through a metadata-only query
   - [ ] T015e Merge and deploy migration 0009, run the read-only plan, apply the full graph once, rerun as `verified_noop`, and record deployment/standard evidence
 - [ ] T016 Compare old and canonical resolution for Mitchel and prove a feature-flag rollback without deleting additive records
 - [ ] T017 Add failing member/non-member/suspended-member authorization tests

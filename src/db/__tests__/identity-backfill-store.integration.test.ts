@@ -36,8 +36,25 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
       id: membershipUserId,
       name: "Identity Qualification User",
       email: `${membershipUserId}@test-auth.example.com`,
-      emailVerified: true,
+      emailVerified: false,
     });
+
+    const unverified = await inspectMitchelTrevorIdentityBackfill(input, db);
+    expect(
+      planMitchelTrevorBackfill(
+        input,
+        unverified,
+        generateMitchelTrevorIdentityIds(),
+      ),
+    ).toEqual({
+      status: "blocked",
+      reasons: ["membership_user_unverified"],
+    });
+
+    await db
+      .update(user)
+      .set({ emailVerified: true })
+      .where(eq(user.id, membershipUserId));
 
     const before = await inspectMitchelTrevorIdentityBackfill(input, db);
     const ids = generateMitchelTrevorIdentityIds();

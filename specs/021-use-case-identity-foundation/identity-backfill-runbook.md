@@ -10,6 +10,10 @@ Read-only checks on 2026-07-19 established:
 
 - Neon does not yet contain migration 0009 identity tables or instance links.
 - Better Auth contains one user and no Mitchel subject.
+- Mitchel's address is present exactly once in the production invite allowlist,
+  and the resulting Vercel production deployment serves the public sign-up
+  route. His Better Auth account still does not exist until he completes
+  registration.
 - The platform `instance` table contains only Walter's `tenant-0` row.
 - The Aegis orchestrator `tenants` registry is empty, so no Mitchel
   orchestrator UUID exists to bind.
@@ -27,8 +31,9 @@ reviewed operation against an independently verified record.
 
 1. Merge the reviewed implementation containing these commands.
 2. Have Mitchel complete the normal Better Auth registration or invitation
-   flow. Obtain the opaque Better Auth `user.id` with a metadata-only query.
-   Do not infer the subject from name or email inside the backfill.
+   flow and verify his email. Obtain the opaque Better Auth `user.id` with a
+   metadata-only query. Do not infer the subject from name or email inside the
+   backfill. An existing but unverified account is a hard stop.
 3. Load `DATABASE_URL` from the approved Vercel/Neon secret source without
    printing it. Any temporary environment file must be mode `0600` and removed
    at closeout.
@@ -103,8 +108,9 @@ values.
 ## Failure and rollback
 
 - A failed Neon batch is atomic; investigate before retrying.
-- `identity_schema_missing`, `membership_user_missing`, identity conflicts,
-  and canonical drift are hard stops.
+- `identity_schema_missing`, `membership_user_missing`,
+  `membership_user_unverified`, identity conflicts, and canonical drift are
+  hard stops.
 - Do not create a fake Better Auth user, substitute Gary, or invent an
   orchestrator/platform instance UUID.
 - Do not delete identity rows or the immutable number allocation as rollback.
