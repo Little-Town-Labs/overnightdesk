@@ -3,6 +3,7 @@
 **Source:** PRD v3.0 (2026-04-24)
 **Constitution:** v2.0.0 (2026-04-24)
 **Generated:** 2026-04-24
+**Last Reconciled:** 2026-07-19
 
 ---
 
@@ -10,9 +11,9 @@
 
 OvernightDesk v3 is a managed hermes-agent hosting platform. The Go daemon and Claude Code BYOS model are replaced by hermes-agent (Nous Research) + OpenRouter + Phase.dev secrets management. This roadmap covers the hermes architecture only — no carry-forward from v1. Features are added as the new stack requires them.
 
-**Total Features:** 4
+**Total Features:** 5 (four original v3 features plus Feature 020)
 **Phases:** 2
-**Critical Path:** Agent Zero Migration → Provisioner → Setup Wizard → Web Chat
+**Current UX Path:** Existing Hermes runtime/provisioner → Feature 020 auth spike → Mitchel Open WebUI canary → dashboard cutover
 
 ---
 
@@ -70,6 +71,53 @@ OvernightDesk v3 is a managed hermes-agent hosting platform. The Go daemon and C
 **Priority:** P1 (High)
 **Dependencies:** Feature 2 (running hermes containers), Feature 3 (`API_SERVER_KEY` in Phase.dev)
 
+**Status (2026-07-19): Superseded by Feature 020.** A custom Vercel AI SDK
+chat exists, but the provisioner `/sessions` route it expects is not deployed
+and the UI duplicates conversation-management behavior now provided by Open
+WebUI. Keep it only as rollback/compatibility code until the Feature 020 canary
+passes; do not extend it or implement `/sessions` solely for this design.
+
+---
+
+### Feature 5: Embedded Open WebUI Workspace (Feature 020)
+**Source:** Owner direction on 2026-07-19 and `specs/020-open-webui-platform/`
+**Description:** Replace the custom dashboard chat with a full-height Open WebUI
+workspace. Vercel and Better Auth remain the platform shell. Aegis runs one
+persistent Open WebUI deployment per Hermes use-case/memory boundary, connected
+privately to that runtime's OpenAI-compatible API. Begin with a Mitchel canary,
+retain the native Hermes dashboard, and remove the custom chat/session bridge
+only after browser, isolation, persistence, and rollback proof.
+**Complexity:** Large
+**Priority:** P1 (next active platform development slice)
+**Dependencies:** Running Hermes API; exact instance-owner auth; separate Open
+WebUI OIDC client; pinned Open WebUI release; Nginx frame policy; Phase-backed
+secrets and persistent volume
+**Spec:** `specs/020-open-webui-platform/`
+
+---
+
+## Current Priority Decision — 2026-07-19
+
+| Order | Work | Priority decision |
+|------:|------|-------------------|
+| 1 | Feature 020 contract and authentication/embedding spike | Start next. It replaces an existing weak user-facing chat rather than adding a parallel product. |
+| 2 | Feature 12 prospect scheduler activation (T024) | Separate owner gate. Deep-research source and production deployment are complete; activation requires explicit approval and does not block Feature 020. |
+| 3 | Feature 020 Mitchel canary and dashboard redesign | Continue after the auth spike passes. Preserve native Hermes dashboard rollback. |
+| 4 | Mitchel Feature 11 landing page | P2 after the authenticated operator experience is trustworthy. |
+| 5 | Provisioner `/sessions` route | Deferred/superseded. Do not build it solely for custom chat that Feature 020 removes. |
+| 6 | Titus Teams integration | Separate future feature; coordinate Titus chat/channel design then. |
+
+This order is the durable restart point. It supersedes the stale unchecked
+execution checklist below, which describes the original April v3 sequence but
+does not reflect the current deployed platform.
+
+The three-phase provisioner/orchestrator convergence sketch recorded in the
+initial 2026-05-07 standard (`OPERATOR_RESEED` startup wiring,
+`/provision-infra`, and wizard parallel calls) is abandoned planning, not
+unfinished Feature 020 or customer-rollout work. The current wizard continues
+to call the working Hermes provisioner directly. This does not retire the
+existing platform orchestrator's other responsibilities.
+
 ---
 
 ## Dependency Graph
@@ -81,11 +129,13 @@ Feature 1 (Agent Zero Migration)
               │
               ├──► Feature 3 (Setup Wizard)
               │         │
-              └──► Feature 4 (Web Chat) ◄──┘
-                         (also needs API_SERVER_KEY from Feature 3)
+              └──► Feature 4 (Custom Web Chat, superseded)
+                         │
+                         └──► Feature 020 (Embedded Open WebUI)
 ```
 
-**Critical path:** 1 → 2 → 3 → 4
+**Current chat path:** Existing runtime/provisioner → Feature 020 auth spike →
+Mitchel canary → custom-chat cleanup.
 
 ---
 
@@ -114,20 +164,25 @@ Feature 1 (Agent Zero Migration)
 | Feature | Priority | Complexity |
 |---------|----------|------------|
 | 3 — Self-Service Setup Wizard | P1 | Medium |
-| 4 — Web Chat Interface | P1 | Medium |
+| 4 — Custom Web Chat Interface | Superseded | Medium |
+| 020 — Embedded Open WebUI Workspace | P1 | Large |
 
 **Completion gate:**
 - [ ] Non-technical user can complete wizard post-payment; no server access required
 - [ ] All secrets flow through Phase.dev; zero plaintext credentials in platform DB
-- [ ] Authenticated hermes tenant user can chat via `/dashboard/chat` with streaming responses
-- [ ] nginx `/v1/*` routing live for all provisioned tenants
+- [ ] Authenticated Mitchel canary user can chat through the embedded Open WebUI workspace with streaming responses
+- [ ] Open WebUI reaches only its assigned Hermes API over the private network
 - [ ] `API_SERVER_KEY` never exposed client-side
 - [ ] Test coverage ≥ 80% on new platform code
-- [ ] Mobile-responsive chat UI verified
+- [ ] Desktop/mobile, owner denial, persistence, logout, and rollback checks pass
 
 ---
 
-## Execution Checklist
+## Historical April 2026 Execution Checklist
+
+This checklist is retained as source history. Use
+`specs/020-open-webui-platform/tasks.md` for current chat work and the Current
+Priority Decision above for sequencing.
 
 ### Phase 1
 
