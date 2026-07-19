@@ -1,8 +1,13 @@
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  planMitchelMembershipActivation,
   planMitchelTrevorBackfill,
+  planMitchelTrevorFoundation,
   summarizeIdentityBackfillPlan,
+  summarizeIdentityFoundationPlan,
+  summarizeMembershipActivationPlan,
   type CanonicalIdentityIds,
+  type IdentityFoundationSnapshot,
   type IdentityBackfillSnapshot,
 } from "@/lib/use-case-identity-backfill";
 
@@ -36,6 +41,253 @@ function emptySnapshot(
     ...overrides,
   };
 }
+
+function emptyFoundationSnapshot(
+  overrides: Partial<IdentityFoundationSnapshot> = {},
+): IdentityFoundationSnapshot {
+  return {
+    schemaReady: true,
+    canonicalConflict: false,
+    existingCanonicalState: null,
+    ...overrides,
+  };
+}
+
+describe("planMitchelTrevorFoundation", () => {
+  it("creates the canonical foundation with zero memberships and no Better Auth user", () => {
+    const plan = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+
+    expect(plan.status).toBe("ready");
+    if (plan.status !== "ready") throw new Error("expected a ready plan");
+    expect(plan).not.toHaveProperty("membership");
+    expect(plan.audit.details.membershipCount).toBe(0);
+    expect(plan.numberAllocation.number).toBe(1);
+    expect(plan.runtimeIdentity.slug).toBe("hermes-mitchel");
+    expect(plan.personaAssignment.personaKey).toBe("trevor");
+  });
+
+  it("summarizes foundation plans without resource values", () => {
+    const plan = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+
+    expect(summarizeIdentityFoundationPlan(plan)).toEqual({
+      status: "ready",
+      useCaseNumber: 1,
+      membershipCount: 0,
+      resourceBindingCount: 4,
+      secretBoundaryBindingCount: 1,
+      platformInstanceLinked: false,
+      orchestratorTenantBound: false,
+    });
+    expect(JSON.stringify(summarizeIdentityFoundationPlan(plan))).not.toContain(
+      "aero-fett",
+    );
+  });
+
+  it("returns a verified no-op when the foundation exists without membership", () => {
+    const ready = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+    if (ready.status !== "ready") throw new Error("expected a ready plan");
+
+    const plan = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot({
+        existingCanonicalState: {
+          useCase: ready.useCase,
+          numberAllocation: ready.numberAllocation,
+          runtimeIdentity: ready.runtimeIdentity,
+          personaAssignment: ready.personaAssignment,
+          membership: null,
+          resourceBindings: ready.resourceBindings,
+          secretBoundaryBindings: ready.secretBoundaryBindings,
+        },
+      }),
+      ids,
+    );
+
+    expect(plan).toEqual({
+      status: "verified_noop",
+      useCaseId: ids.useCaseId,
+      runtimeIdentityId: ids.runtimeIdentityId,
+    });
+  });
+});
+
+describe("planMitchelMembershipActivation", () => {
+  it("adds only membership after an email-verified Better Auth user exists", () => {
+    const foundation = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+    if (foundation.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
+
+    const plan = planMitchelMembershipActivation(
+      input,
+      emptySnapshot({
+        existingCanonicalState: {
+          useCase: foundation.useCase,
+          numberAllocation: foundation.numberAllocation,
+          runtimeIdentity: foundation.runtimeIdentity,
+          personaAssignment: foundation.personaAssignment,
+          membership: null,
+          resourceBindings: foundation.resourceBindings,
+          secretBoundaryBindings: foundation.secretBoundaryBindings,
+        },
+      }),
+      ids.membershipId,
+    );
+
+    expect(plan.status).toBe("ready");
+    if (plan.status !== "ready") throw new Error("expected a ready plan");
+    expect(plan).not.toHaveProperty("useCase");
+    expect(plan.membership).toMatchObject({
+      useCaseId: ids.useCaseId,
+      userId: input.membershipUserId,
+      role: "owner",
+      status: "active",
+    });
+    expect(plan.audit.details).toEqual({ membershipCount: 1 });
+  });
+
+  it("summarizes membership activation without the Better Auth user ID", () => {
+    const foundation = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+    if (foundation.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
+    const plan = planMitchelMembershipActivation(
+      input,
+      emptySnapshot({
+        existingCanonicalState: {
+          useCase: foundation.useCase,
+          numberAllocation: foundation.numberAllocation,
+          runtimeIdentity: foundation.runtimeIdentity,
+          personaAssignment: foundation.personaAssignment,
+          membership: null,
+          resourceBindings: foundation.resourceBindings,
+          secretBoundaryBindings: foundation.secretBoundaryBindings,
+        },
+      }),
+      ids.membershipId,
+    );
+
+    expect(summarizeMembershipActivationPlan(plan)).toEqual({
+      status: "ready",
+      membershipCount: 1,
+    });
+    expect(JSON.stringify(summarizeMembershipActivationPlan(plan))).not.toContain(
+      input.membershipUserId,
+    );
+  });
+
+  it("suppresses membership IDs from verified no-op output", () => {
+    expect(
+      summarizeMembershipActivationPlan({
+        status: "verified_noop",
+        membershipId: ids.membershipId,
+      }),
+    ).toEqual({ status: "verified_noop" });
+  });
+
+  it("blocks membership while leaving a valid foundation usable for resolution", () => {
+    const foundation = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+    if (foundation.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
+
+    const plan = planMitchelMembershipActivation(
+      input,
+      emptySnapshot({
+        membershipUser: null,
+        existingCanonicalState: {
+          useCase: foundation.useCase,
+          numberAllocation: foundation.numberAllocation,
+          runtimeIdentity: foundation.runtimeIdentity,
+          personaAssignment: foundation.personaAssignment,
+          membership: null,
+          resourceBindings: foundation.resourceBindings,
+          secretBoundaryBindings: foundation.secretBoundaryBindings,
+        },
+      }),
+      ids.membershipId,
+    );
+
+    expect(plan).toEqual({
+      status: "blocked",
+      reasons: ["membership_user_missing"],
+    });
+  });
+
+  it("accepts additive foundation bindings when attaching membership", () => {
+    const foundation = planMitchelTrevorFoundation(
+      { actor: input.actor },
+      emptyFoundationSnapshot(),
+      ids,
+    );
+    if (foundation.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
+
+    const plan = planMitchelMembershipActivation(
+      input,
+      emptySnapshot({
+        existingCanonicalState: {
+          useCase: foundation.useCase,
+          numberAllocation: foundation.numberAllocation,
+          runtimeIdentity: foundation.runtimeIdentity,
+          personaAssignment: foundation.personaAssignment,
+          membership: null,
+          resourceBindings: [
+            ...foundation.resourceBindings,
+            {
+              id: "77777777-7777-4777-8777-777777777777",
+              useCaseId: foundation.useCase.id,
+              runtimeIdentityId: foundation.runtimeIdentity.id,
+              provider: "orchestrator",
+              kind: "orchestrator_tenant",
+              value: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+              state: "active",
+            },
+          ],
+          secretBoundaryBindings: [
+            ...foundation.secretBoundaryBindings,
+            {
+              id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+              useCaseId: foundation.useCase.id,
+              runtimeIdentityId: foundation.runtimeIdentity.id,
+              phaseApp: "overnightdesk",
+              environment: "development",
+              pathIdentifier: "/agents/hermes-email-intake/mitchel",
+            },
+          ],
+        },
+      }),
+      ids.membershipId,
+    );
+
+    expect(plan.status).toBe("ready");
+  });
+});
 
 describe("planMitchelTrevorBackfill", () => {
   it("blocks without writing when the canonical schema is not deployed", () => {

@@ -30,15 +30,17 @@ reviewed operation against an independently verified record.
 ## Required prerequisites
 
 1. Merge the reviewed implementation containing these commands.
-2. Have Mitchel complete the normal Better Auth registration or invitation
-   flow and verify his email. Obtain the opaque Better Auth `user.id` with a
-   metadata-only query. Do not infer the subject from name or email inside the
-   backfill. An existing but unverified account is a hard stop.
+2. Foundation allocation does not require a Better Auth user. Before the later
+   membership operation, have Mitchel complete the normal registration or
+   invitation flow and verify his email. Obtain the opaque Better Auth
+   `user.id` with a metadata-only query. Do not infer the subject from name or
+   email. An existing but unverified account blocks membership only.
 3. Load `DATABASE_URL` from the approved Vercel/Neon secret source without
    printing it. Any temporary environment file must be mode `0600` and removed
    at closeout.
-4. Set `IDENTITY_SCHEMA_ACTOR` and `IDENTITY_BACKFILL_ACTOR` to a stable
-   operator identifier. Neither field is a credential.
+4. Set `IDENTITY_SCHEMA_ACTOR`, `IDENTITY_FOUNDATION_ACTOR`, and later
+   `IDENTITY_MEMBERSHIP_ACTOR` to a stable operator identifier. None is a
+   credential.
 5. Keep canonical identity reads non-authoritative. This operation adds data;
    it does not change authorization.
 
@@ -76,14 +78,10 @@ The apply command rejects destructive migration text, submits all migration
 statements plus one metadata-only audit event in one Neon transaction, and
 then verifies all expected tables and nullable instance columns.
 
-## Plan and apply Tenet 1
-
-Set the stable Better Auth subject obtained from the authenticated identity
-record.
+## Plan and apply the Tenet 1 foundation
 
 ```bash
-export MITCHEL_BETTER_AUTH_USER_ID='<opaque Better Auth user.id>'
-npm run identity:backfill:plan
+npm run identity:foundation:plan
 ```
 
 Expected plan output contains the Tenet number, counts, and linkage booleans
@@ -93,24 +91,44 @@ Auth user ID, resource values, emails, tokens, or secret values. Apply once
 with the exact confirmation phrase:
 
 ```bash
-IDENTITY_BACKFILL_CONFIRM=TENET_1_MITCHEL_TREVOR \
-  npm run identity:backfill:apply
-npm run identity:backfill:verify
+IDENTITY_FOUNDATION_CONFIRM=TENET_1_FOUNDATION \
+  npm run identity:foundation:apply
+npm run identity:foundation:verify
 ```
 
-The apply batch creates the use case, immutable number allocation, runtime,
-default Trevor persona, active Mitchel owner membership, resource bindings,
-secret-boundary binding, and audit row atomically. A retry must return
+The foundation apply batch creates the use case, immutable number allocation,
+runtime, default Trevor persona, resource bindings, secret-boundary binding,
+and audit row atomically with zero memberships. A retry must return
 `verified_noop`. Verification resolves Tenet 1 plus container, volume, and
 hostname selectors to the same canonical boundary without printing their
-values.
+values. A separate membership command later requires the email-verified opaque
+Better Auth user ID and inserts only the owner membership plus its audit row;
+it must not regenerate or rewrite the foundation IDs.
+
+## Attach verified membership later
+
+After the intended person completes Better Auth email verification, obtain the
+opaque `user.id` through a value-suppressed metadata query and set it only in
+the operator environment:
+
+```bash
+export MITCHEL_BETTER_AUTH_USER_ID='<opaque Better Auth user.id>'
+npm run identity:membership:plan
+IDENTITY_MEMBERSHIP_CONFIRM=ACTIVATE_TENET_1_MITCHEL \
+  npm run identity:membership:apply
+npm run identity:membership:verify
+```
+
+The membership plan blocks when the account is absent or unverified. Its output
+contains only status and count metadata, never the Better Auth user ID or email.
 
 ## Failure and rollback
 
 - A failed Neon batch is atomic; investigate before retrying.
-- `identity_schema_missing`, `membership_user_missing`,
-  `membership_user_unverified`, identity conflicts, and canonical drift are
-  hard stops.
+- `identity_schema_missing`, identity conflicts, and canonical drift are hard
+  stops for foundation allocation. `membership_user_missing` and
+  `membership_user_unverified` are hard stops only for the separate membership
+  operation and do not block foundation work.
 - Do not create a fake Better Auth user, substitute Gary, or invent an
   orchestrator/platform instance UUID.
 - Do not delete identity rows or the immutable number allocation as rollback.

@@ -18,7 +18,10 @@ import {
   type ExistingCanonicalState,
   type IdentityBackfillInput,
   type IdentityBackfillSnapshot,
+  type IdentityFoundationSnapshot,
   type ReadyIdentityBackfillPlan,
+  type ReadyIdentityFoundationPlan,
+  type ReadyMembershipActivationPlan,
 } from "@/lib/use-case-identity-backfill";
 import { createDrizzleCanonicalIdentityStore } from "@/lib/canonical-identity-store";
 import type { CanonicalIdentitySelector } from "@/lib/canonical-identity";
@@ -298,7 +301,7 @@ async function readSecretBoundaries(
 
 async function readExistingState(
   database: Database,
-  membershipUserId: string,
+  membershipUserId: string | null,
   roots: Awaited<ReturnType<typeof readIdentityRoots>>,
 ): Promise<ExistingCanonicalState | null> {
   const selectedUseCase = roots.slugUseCase ?? roots.numberUseCase;
@@ -308,7 +311,9 @@ async function readExistingState(
     await Promise.all([
       readNumberAllocation(database, selectedUseCase.id),
       runtime ? readPersona(database, runtime) : Promise.resolve(null),
-      readMembership(database, membershipUserId, selectedUseCase.id),
+      membershipUserId
+        ? readMembership(database, membershipUserId, selectedUseCase.id)
+        : Promise.resolve(null),
       runtime
         ? readResourceBindings(database, selectedUseCase.id, runtime.id)
         : Promise.resolve([]),
@@ -375,6 +380,56 @@ export async function inspectMitchelTrevorIdentityBackfill(
       roots,
     ),
   };
+}
+
+export async function inspectMitchelTrevorIdentityFoundation(
+  database: Database = db,
+): Promise<IdentityFoundationSnapshot> {
+  const schemaReady = await identitySchemaReady(database);
+  if (!schemaReady) {
+    return {
+      schemaReady,
+      canonicalConflict: false,
+      existingCanonicalState: null,
+    };
+  }
+
+  const roots = await readIdentityRoots(database);
+  return {
+    schemaReady,
+    canonicalConflict: rootsConflict(roots),
+    existingCanonicalState: await readExistingState(database, null, roots),
+  };
+}
+
+export async function applyIdentityFoundationPlan(
+  plan: ReadyIdentityFoundationPlan,
+  database: Database = db,
+): Promise<void> {
+  const statements = [
+    database.insert(useCase).values(plan.useCase),
+    database.insert(useCaseNumberAllocation).values(plan.numberAllocation),
+    database.insert(runtimeIdentity).values(plan.runtimeIdentity),
+    database.insert(personaAssignment).values(plan.personaAssignment),
+    database.insert(resourceBinding).values(plan.resourceBindings),
+    database.insert(secretBoundaryBinding).values(plan.secretBoundaryBindings),
+    database.insert(platformAuditLog).values(plan.audit),
+  ] as const;
+
+  await database.batch(statements);
+}
+
+export async function applyMembershipActivationPlan(
+  plan: ReadyMembershipActivationPlan,
+  database: Database = db,
+): Promise<void> {
+  await database.batch([
+    database.insert(useCaseMembership).values({
+      ...plan.membership,
+      activatedAt: new Date(),
+    }),
+    database.insert(platformAuditLog).values(plan.audit),
+  ] as const);
 }
 
 export async function applyIdentityBackfillPlan(

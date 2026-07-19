@@ -3,12 +3,12 @@
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
 **Status**: Additive schema/resolver and guarded Tenet 1 allocation tooling are
-implemented and qualified on a disposable database. Production preflight is
-blocked on Mitchel's missing Better Auth subject and the undeployed identity
-schema. The approved production invite allowlist and Vercel deployment are
-complete. No Phase change, resource rename, identity backfill, number
-allocation, authorization cutover, or production database deployment has been
-performed.
+implemented and qualified on a disposable database. The workflow is being
+split so foundation allocation does not depend on Mitchel's Better Auth
+registration; verified membership remains a later fail-closed operation. The
+approved production invite allowlist and Vercel deployment are complete. No
+Phase change, resource rename, identity backfill, number allocation,
+authorization cutover, or production database deployment has been performed.
 
 ## Phase 1: Durable Contract
 
@@ -32,7 +32,7 @@ performed.
 
 - [x] T013 Create `021b-mitchel-identity-canary` only after 021a has a stable reviewed base
 - [x] T014 Record explicit owner approval for Mitchel/Trevor as Tenet 1; keep the canonical database allocation as a separately reviewed operation
-- [ ] T015 Backfill the Mitchel business use case, Mitchel's owner membership, Trevor's default persona assignment, and current verified `hermes-mitchel` resource bindings; link exact platform/orchestrator references only through a later reviewed operation when those registry rows exist
+- [ ] T015 Provision the Mitchel/Trevor canonical foundation independently, then attach Mitchel's owner membership after verification; link exact platform/orchestrator references only through a later reviewed operation when those registry rows exist
   - [x] T015a Add guarded schema plan/apply tooling with an explicit confirmation, one transaction, metadata-only audit event, and mixed-state refusal
   - [x] T015b Add an atomic idempotent Tenet 1 plan/apply/verify command and disposable-Neon integration qualification
   - [x] T015c Inventory production without writes: schema absent, Mitchel Better Auth subject absent, Mitchel platform instance absent, and orchestrator registry empty; confirm current container, volume, hostname, and Phase intake path bindings
@@ -40,9 +40,14 @@ performed.
     - [x] T015d1 Add Mitchel's email to the production invite allowlist, deploy the new Vercel environment, and verify the public sign-up route without recording the address in Git
     - [x] T015d2 Require the Better Auth account to be email-verified before the backfill can produce a write plan
     - [ ] T015d3 Have Mitchel sign up and verify his email, then obtain the opaque `user.id` through a metadata-only query
-  - [ ] T015e Merge and deploy migration 0009, run the read-only plan, apply the full graph once, rerun as `verified_noop`, and record deployment/standard evidence
-- [ ] T016 Compare old and canonical resolution for Mitchel and prove a feature-flag rollback without deleting additive records
-- [ ] T017 Add failing member/non-member/suspended-member authorization tests
+  - [x] T015e Split the audited operation into a membership-independent foundation transaction and a later verified-membership transaction
+    - [x] T015e1 Add failing tests proving the foundation plans with no Better Auth user, contains zero memberships, and denies partial/drifted state
+    - [x] T015e2 Implement idempotent foundation plan/apply/verify and separate verified membership plan/apply/verify commands with distinct confirmations and audit events
+    - [x] T015e3 Qualify foundation apply, verified no-op retry, later membership attachment, and unchanged canonical IDs on disposable Neon
+  - [ ] T015f Merge and deploy migration 0009, apply the foundation once, rerun as `verified_noop`, and record deployment/standard evidence without waiting for Mitchel
+  - [ ] T015g After T015d3, apply only Mitchel's membership and record its separate evidence
+- [ ] T016 Compare old and canonical resolution for Mitchel's foundation and prove a feature-flag rollback without deleting additive records; do not wait for membership
+- [ ] T017 Add failing member/non-member/suspended-member authorization tests using controlled fixture users
 - [ ] T018 Replace exact single-owner checks for the Mitchel canary with active canonical membership resolution
 - [ ] T019 Remove the hardcoded `hermes-mitchel` resource-alias special case only after compatibility and browser denial tests pass
 - [ ] T020 Run security, data, API-contract, migration, and operations review before enabling any production canary
@@ -50,7 +55,7 @@ performed.
 ## Phase 4: Open WebUI Dependency and Expansion
 
 - [ ] T021 Permit `020a-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
-- [ ] T022 Gate `020b-open-webui-mitchel-canary` on accepted 020a auth evidence and completed Mitchel identity/membership mapping
+- [ ] T022 Permit fixture-backed `020b-open-webui-mitchel-canary` implementation after accepted 020a auth evidence and completed canonical foundation; gate Mitchel activation and browser acceptance on active membership
 - [ ] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
 - [ ] T024 Allocate approved Tenet 0 and Tenet 2 and backfill Walter plus Titus with Gary as the current authorized person only through separately reviewed operations; keep Rex unassigned
 - [ ] T025 Add Austin to Titus only with the later Titus collaboration/Teams authorization design; do not make Teams a dependency for Gary's standalone Titus runtime
@@ -68,7 +73,10 @@ performed.
 
 - T001-T004 precede identity implementation and are the mergeable planning slice.
 - T005-T012 are additive and precede all membership authorization cutovers.
-- T013-T020 are the Mitchel identity gate for the stateful Open WebUI canary.
-- T021 may overlap schema/backfill work after the contract; T022-T023 may not.
+- T015e-T016 and T021 permit fixture-backed platform work without Mitchel;
+  T015g and T018-T020 gate his production authorization and acceptance.
+- T021 may overlap schema/backfill work after the contract. Fixture-backed T022
+  may overlap after the canonical foundation; T023 and Mitchel activation may
+  not proceed before active membership.
 - T024-T027 follow acceptance of the Mitchel vertical slice.
 - Feature 12 scheduler activation remains an independent owner-gated operation.
