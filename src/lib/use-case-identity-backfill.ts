@@ -270,6 +270,30 @@ export function summarizeIdentityBackfillPlan(plan: IdentityBackfillPlan) {
   };
 }
 
+export function summarizeIdentityFoundationPlan(plan: IdentityFoundationPlan) {
+  if (plan.status !== "ready") return plan;
+  return {
+    status: plan.status,
+    useCaseNumber: plan.numberAllocation.number,
+    membershipCount: plan.audit.details.membershipCount,
+    resourceBindingCount: plan.audit.details.resourceBindingCount,
+    secretBoundaryBindingCount: plan.audit.details.secretBoundaryBindingCount,
+    platformInstanceLinked: plan.audit.details.platformInstanceLinked,
+    orchestratorTenantBound: plan.audit.details.orchestratorTenantBound,
+  };
+}
+
+export function summarizeMembershipActivationPlan(
+  plan: MembershipActivationPlan,
+) {
+  if (plan.status === "blocked") return plan;
+  if (plan.status === "verified_noop") return { status: plan.status };
+  return {
+    status: plan.status,
+    membershipCount: plan.audit.details.membershipCount,
+  };
+}
+
 function comparableResource(binding: ResourceBindingRecord) {
   return {
     useCaseId: binding.useCaseId,
@@ -547,6 +571,14 @@ function buildReadyPlan(
   };
 }
 
+function manifestSizedIds(existingIds: string[], count: number): string[] {
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      existingIds[index] ?? `00000000-0000-0000-0000-${String(index).padStart(12, "0")}`,
+  );
+}
+
 export function planMitchelTrevorFoundation(
   rawInput: IdentityFoundationInput,
   snapshot: IdentityFoundationSnapshot,
@@ -591,9 +623,13 @@ export function planMitchelMembershipActivation(
     personaAssignmentId:
       existing.personaAssignment?.id ?? "00000000-0000-0000-0000-000000000000",
     membershipId,
-    resourceBindingIds: existing.resourceBindings.map((binding) => binding.id),
-    secretBoundaryBindingIds: existing.secretBoundaryBindings.map(
-      (binding) => binding.id,
+    resourceBindingIds: manifestSizedIds(
+      existing.resourceBindings.map((binding) => binding.id),
+      MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings.length,
+    ),
+    secretBoundaryBindingIds: manifestSizedIds(
+      existing.secretBoundaryBindings.map((binding) => binding.id),
+      MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.length,
     ),
   });
   if (!existingFoundationStateMatches(existing, foundation)) {

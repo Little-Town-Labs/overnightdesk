@@ -40,10 +40,10 @@ authorization cutover, or production database deployment has been performed.
     - [x] T015d1 Add Mitchel's email to the production invite allowlist, deploy the new Vercel environment, and verify the public sign-up route without recording the address in Git
     - [x] T015d2 Require the Better Auth account to be email-verified before the backfill can produce a write plan
     - [ ] T015d3 Have Mitchel sign up and verify his email, then obtain the opaque `user.id` through a metadata-only query
-  - [ ] T015e Split the audited operation into a membership-independent foundation transaction and a later verified-membership transaction
+  - [x] T015e Split the audited operation into a membership-independent foundation transaction and a later verified-membership transaction
     - [x] T015e1 Add failing tests proving the foundation plans with no Better Auth user, contains zero memberships, and denies partial/drifted state
-    - [ ] T015e2 Implement idempotent foundation plan/apply/verify and separate verified membership plan/apply/verify commands with distinct confirmations and audit events
-    - [ ] T015e3 Qualify foundation apply, verified no-op retry, later membership attachment, and unchanged canonical IDs on disposable Neon
+    - [x] T015e2 Implement idempotent foundation plan/apply/verify and separate verified membership plan/apply/verify commands with distinct confirmations and audit events
+    - [x] T015e3 Qualify foundation apply, verified no-op retry, later membership attachment, and unchanged canonical IDs on disposable Neon
   - [ ] T015f Merge and deploy migration 0009, apply the foundation once, rerun as `verified_noop`, and record deployment/standard evidence without waiting for Mitchel
   - [ ] T015g After T015d3, apply only Mitchel's membership and record its separate evidence
 - [ ] T016 Compare old and canonical resolution for Mitchel's foundation and prove a feature-flag rollback without deleting additive records; do not wait for membership
