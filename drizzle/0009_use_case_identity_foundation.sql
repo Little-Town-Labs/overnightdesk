@@ -22,7 +22,7 @@ CREATE TABLE "use_case_number_allocation" (
 	"use_case_id" uuid NOT NULL,
 	"allocated_by" text NOT NULL,
 	"allocated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "use_case_number_positive" CHECK ("use_case_number_allocation"."number" > 0),
+	CONSTRAINT "use_case_number_nonnegative" CHECK ("use_case_number_allocation"."number" >= 0),
 	CONSTRAINT "use_case_number_safe_integer" CHECK ("use_case_number_allocation"."number" <= 9007199254740991)
 );--> statement-breakpoint
 

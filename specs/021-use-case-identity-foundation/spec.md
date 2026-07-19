@@ -91,8 +91,9 @@ use of the new tables without deleting them or changing resources.
 - **FR-001**: Every use case MUST have an immutable canonical UUID used for
   authorization, relationships, and internal APIs.
 - **FR-002**: Every use case MAY have one immutable, unique, centrally
-  allocated positive number for human reference and optional routes. Numbers
-  MUST NOT be reused and MUST NOT be security credentials or primary keys.
+  allocated non-negative number for human reference and optional routes. The
+  allocation sequence is zero-based. Numbers MUST NOT be reused and MUST NOT
+  be security credentials or primary keys.
 - **FR-003**: The technical canonical term MUST be `use_case`; the UI MAY label
   its stable number as `Tenet N`. Existing `tenant` fields remain legacy
   compatibility selectors until migrated.
@@ -127,8 +128,12 @@ use of the new tables without deleting them or changing resources.
 - **FR-015**: The Mitchel business use case MUST be the first vertical-slice
   backfill and resolver canary. Mitchel is the person/member, Trevor is the
   agent's default persona, and `hermes-mitchel` is the current runtime resource
-  alias. Walter, Titus, Rex, and customer-wide backfills require separate
-  reviewed tasks; no numbers are assigned merely by this specification.
+  alias. OvernightDesk/Walter retains the owner-approved `Tenet 0`
+  human-facing number. Existing `tenant-0`, `tenet-0`, and `tenet0-postgres`
+  names remain resource
+  bindings; their use for Trevor data does not assign Mitchel to Tenet 0.
+  Titus, Rex, and customer-wide backfills require separate reviewed tasks, and
+  Mitchel's number still requires its own approved allocation.
 - **FR-016**: Feature 020 Open WebUI authentication research MAY proceed after
   this identity contract is accepted, but the Mitchel/Trevor canary MUST wait
   for the Mitchel use-case identity, Mitchel membership, Trevor persona, and
@@ -168,7 +173,7 @@ use of the new tables without deleting them or changing resources.
 
 - Renaming live infrastructure to include numeric identifiers.
 - Replacing UUIDs with sequential integers.
-- Assigning production Tenet numbers in documentation.
+- Assigning additional production Tenet numbers without an approved allocation.
 - Merging separate runtime memories because people or personas overlap.
 - Changing the two-app Phase boundary.
 - Deploying Open WebUI, redesigning the Vercel frontend, or integrating Titus

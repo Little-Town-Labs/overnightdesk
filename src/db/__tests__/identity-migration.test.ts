@@ -22,7 +22,7 @@ describe("use-case identity migration", () => {
   });
 
   it("makes number allocations immutable and non-reusable", () => {
-    expect(migration).toContain("use_case_number_positive");
+    expect(migration).toContain("use_case_number_nonnegative");
     expect(migration).toContain("use_case_number_safe_integer");
     expect(migration).toContain(
       "prevent_use_case_number_allocation_mutation"

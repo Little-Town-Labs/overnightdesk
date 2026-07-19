@@ -57,6 +57,9 @@ audit redaction, rollback verification
 1. `use_case_id` UUID is the canonical security and relationship key.
 2. `use_case_number` is optional, immutable, non-secret, never reused, and
    intended only for human reference or stable public labels such as `Tenet 7`.
+   Allocation is zero-based, and OvernightDesk/Walter retains `Tenet 0`.
+   Historical `tenant-0`, `tenet-0`, and `tenet0-postgres` names remain resource
+   bindings even when they host data used by another use case.
 3. `use_case` is the canonical technical term. `tenant` remains a compatibility
    term for customer tenancy and existing fields. `tenet` is a UI label only;
    it must not be used as a misspelled replacement for `tenant_id`.

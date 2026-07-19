@@ -36,25 +36,25 @@ describe("resolveCanonicalIdentity", () => {
     });
   });
 
-  it("accepts a positive safe Tenet number as a lookup only", async () => {
+  it("accepts Tenet 0 as a safe zero-based lookup only", async () => {
     const store = createStore();
 
-    await resolveCanonicalIdentity({ type: "use_case_number", value: 17 }, store);
+    await resolveCanonicalIdentity({ type: "use_case_number", value: 0 }, store);
 
     expect(store.resolve).toHaveBeenCalledWith({
       type: "use_case_number",
-      value: 17,
+      value: 0,
     });
   });
 
-  it("rejects invalid UUIDs and non-positive numbers before querying storage", async () => {
+  it("rejects invalid UUIDs and negative numbers before querying storage", async () => {
     const store = createStore();
 
     await expect(
       resolveCanonicalIdentity({ type: "use_case_id", value: "tenant-17" }, store)
     ).rejects.toThrow("Invalid canonical identity selector");
     await expect(
-      resolveCanonicalIdentity({ type: "use_case_number", value: 0 }, store)
+      resolveCanonicalIdentity({ type: "use_case_number", value: -1 }, store)
     ).rejects.toThrow("Invalid canonical identity selector");
     expect(store.resolve).not.toHaveBeenCalled();
   });
