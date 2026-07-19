@@ -9,4 +9,4 @@
 - [x] Authorization, audit, allocation, compatibility, and rollback rules are testable.
 - [x] Mitchel is the first vertical slice and production numbers are not invented in documentation.
 - [x] Open WebUI research can overlap after the contract, while its canary waits for identity mapping.
-- [x] Titus Teams, resource renaming, broad backfill, and production deployment are out of scope.
+- [x] Titus Teams, resource renaming, and broad backfill remain out of scope; only the separately guarded Tenet 1 schema/allocation operation may proceed after its prerequisites pass.
