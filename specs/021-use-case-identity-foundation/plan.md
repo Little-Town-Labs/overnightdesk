@@ -8,6 +8,12 @@ resolver, and metadata-only comparison audit adapter. Existing reads remain
 authoritative. No database deployment, backfill, stable-number allocation, or
 authorization cutover is included.
 
+**Backfill checkpoint (2026-07-19):** `021-audited-identity-backfill` adds a
+guarded schema runner and an atomic, idempotent Tenet 1 plan/apply/verify
+command. Disposable-Neon qualification passes. Production remains unchanged:
+the identity schema and Mitchel Better Auth subject are absent, and neither the
+platform instance table nor orchestrator registry contains a Mitchel row.
+
 ## Summary
 
 Introduce an additive identity registry that separates canonical use-case and
@@ -128,9 +134,10 @@ contract is accepted, create implementation worktrees from updated `main`:
 
 1. `021a-identity-schema-resolver`
 2. `021b-mitchel-identity-canary` stacked on 021a
-3. `020a-open-webui-auth-spike` may run in parallel after the contract
-4. `020b-open-webui-mitchel-canary` stacks on both 021b and accepted 020a work
-5. `020c-open-webui-dashboard-cutover` follows the canary
+3. `021-audited-identity-backfill` from merged `main`
+4. `020a-open-webui-auth-spike` may run in parallel after the contract
+5. `020b-open-webui-mitchel-canary` stacks on completed Tenet 1 membership and accepted 020a work
+6. `020c-open-webui-dashboard-cutover` follows the canary
 
 Do not create all execution worktrees early; create each when its dependency is
 merged or its stable base commit is recorded. This prevents long-lived drift.

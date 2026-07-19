@@ -1,6 +1,7 @@
 # Implementation Quickstart: Use-Case Identity Foundation
 
-This is a future implementation checklist, not deployment authorization.
+This checklist now points to the guarded implementation. Production execution
+still requires every preflight in the runbook to pass.
 
 1. Confirm the identity ADR and `WHAT/identity.yaml` are merged.
 2. Create `021a-identity-schema-resolver` from current `main` and record its
@@ -21,5 +22,8 @@ This is a future implementation checklist, not deployment authorization.
    OIDC or Open WebUI assignment uses the new resolver.
 10. Keep old reads and all infrastructure names available for rollback through
     the observation window.
+
+The exact commands, confirmation phrases, current production inventory, and
+rollback rules are in [identity-backfill-runbook.md](identity-backfill-runbook.md).
 
 Never drop tables, reuse a number, or rename resources as a quick rollback.

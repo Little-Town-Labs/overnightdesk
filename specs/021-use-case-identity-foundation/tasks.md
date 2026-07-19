@@ -2,8 +2,10 @@
 
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
-**Status**: Additive schema/resolver foundation implemented and locally
-verified. No Phase, Vercel, resource renames, identity backfill, number
+**Status**: Additive schema/resolver and guarded Tenet 1 allocation tooling are
+implemented and qualified on a disposable database. Production preflight is
+blocked on Mitchel's missing Better Auth subject and the undeployed identity
+schema. No Phase, Vercel, resource renames, identity backfill, number
 allocation, authorization cutover, database deployment, or production changes
 have been performed.
 
@@ -29,7 +31,12 @@ have been performed.
 
 - [x] T013 Create `021b-mitchel-identity-canary` only after 021a has a stable reviewed base
 - [x] T014 Record explicit owner approval for Mitchel/Trevor as Tenet 1; keep the canonical database allocation as a separately reviewed operation
-- [ ] T015 Backfill the Mitchel business use case, Mitchel's owner membership, Trevor's default persona assignment, instance/orchestrator references, and current `hermes-mitchel` resource bindings
+- [ ] T015 Backfill the Mitchel business use case, Mitchel's owner membership, Trevor's default persona assignment, and current verified `hermes-mitchel` resource bindings; link exact platform/orchestrator references only through a later reviewed operation when those registry rows exist
+  - [x] T015a Add guarded schema plan/apply tooling with an explicit confirmation, one transaction, metadata-only audit event, and mixed-state refusal
+  - [x] T015b Add an atomic idempotent Tenet 1 plan/apply/verify command and disposable-Neon integration qualification
+  - [x] T015c Inventory production without writes: schema absent, Mitchel Better Auth subject absent, Mitchel platform instance absent, and orchestrator registry empty; confirm current container, volume, hostname, and Phase intake path bindings
+  - [ ] T015d Have Mitchel complete Better Auth registration/invitation and record the resulting opaque `user.id`; never infer membership from name or email
+  - [ ] T015e Merge and deploy migration 0009, run the read-only plan, apply the full graph once, rerun as `verified_noop`, and record deployment/standard evidence
 - [ ] T016 Compare old and canonical resolution for Mitchel and prove a feature-flag rollback without deleting additive records
 - [ ] T017 Add failing member/non-member/suspended-member authorization tests
 - [ ] T018 Replace exact single-owner checks for the Mitchel canary with active canonical membership resolution

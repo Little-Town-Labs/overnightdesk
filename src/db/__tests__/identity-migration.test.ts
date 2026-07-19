@@ -4,7 +4,7 @@ import { join } from "node:path";
 describe("use-case identity migration", () => {
   const migration = readFileSync(
     join(process.cwd(), "drizzle/0009_use_case_identity_foundation.sql"),
-    "utf8"
+    "utf8",
   );
 
   it("adds identity tables and nullable instance links without backfilling data", () => {
@@ -13,10 +13,10 @@ describe("use-case identity migration", () => {
     expect(migration).toContain('CREATE TABLE "use_case_membership"');
     expect(migration).toContain('CREATE TABLE "resource_binding"');
     expect(migration).toContain(
-      'ALTER TABLE "instance" ADD COLUMN "use_case_id" uuid'
+      'ALTER TABLE "instance" ADD COLUMN "use_case_id" uuid',
     );
     expect(migration).toContain(
-      'ALTER TABLE "instance" ADD COLUMN "runtime_identity_id" uuid'
+      'ALTER TABLE "instance" ADD COLUMN "runtime_identity_id" uuid',
     );
     expect(migration).not.toMatch(/UPDATE\s+"?instance"?\s+SET/i);
   });
@@ -24,11 +24,9 @@ describe("use-case identity migration", () => {
   it("makes number allocations immutable and non-reusable", () => {
     expect(migration).toContain("use_case_number_nonnegative");
     expect(migration).toContain("use_case_number_safe_integer");
+    expect(migration).toContain("prevent_use_case_number_allocation_mutation");
     expect(migration).toContain(
-      "prevent_use_case_number_allocation_mutation"
-    );
-    expect(migration).toContain(
-      "BEFORE UPDATE OR DELETE ON use_case_number_allocation"
+      "BEFORE UPDATE OR DELETE ON use_case_number_allocation",
     );
   });
 
@@ -39,7 +37,21 @@ describe("use-case identity migration", () => {
     expect(migration).toContain("resource_binding_live_identifier_unique");
     expect(migration).toContain("instance_runtime_scope_fk");
     expect(migration).toContain(
-      '"use_case_membership_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade'
+      '"use_case_membership_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade',
     );
+  });
+
+  it("requires an explicit confirmation and one transaction for production apply", () => {
+    const runner = readFileSync(
+      join(process.cwd(), "scripts/apply-use-case-identity-schema.cjs"),
+      "utf8",
+    );
+
+    expect(runner).toContain("IDENTITY_SCHEMA_CONFIRM");
+    expect(runner).toContain("ADD_IDENTITY_SCHEMA_0009");
+    expect(runner).toContain("client.transaction");
+    expect(runner).toContain("mixed_identity_schema_state");
+    expect(runner).toContain("use_case_identity_schema_deployed");
+    expect(runner).not.toMatch(/console\.log\([^)]*DATABASE_URL/);
   });
 });
