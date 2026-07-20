@@ -1,8 +1,36 @@
-# Tenet 1 Audited Identity Backfill
+# Audited Use-Case Identity Backfill
 
-This runbook applies only to the owner-approved Mitchel/Trevor `Tenet 1`
-allocation. It does not authorize Tenet 0, Tenet 2, authorization cutover,
-Open WebUI, Teams, resource renaming, or creation of a person record.
+This runbook covers the deployed Mitchel/Trevor `Tenet 1` foundation and the
+reviewed Walter `Tenet 0` operator workflow. Tenet 1 production evidence is
+recorded below. The Walter workflow is implemented and disposable-database
+qualified but has not been applied to production. Neither workflow by itself
+authorizes a dashboard consumer. Tenet 2, Open WebUI, Teams, resource renaming,
+and creation of a person record remain out of scope.
+
+## Walter T019a implementation checkpoint
+
+On 2026-07-20, branch `021-walter-canonical-authorization` added the guarded
+Tenet 0 foundation and a separate Gary membership workflow:
+
+- The foundation creates zero memberships and requires the exact
+  `TENET_0_WALTER_FOUNDATION` confirmation before apply.
+- The membership operation accepts only `GARY_BETTER_AUTH_USER_ID`, verifies
+  the referenced Better Auth account exists and has verified email, and
+  requires the separate `ACTIVATE_TENET_0_GARY` confirmation.
+- The manifest preserves active `hermes-walter`, `hermes-agent-data`,
+  `aegis-prod.overnightdesk.com`, `tenant-0`, Walter intake, and Walter Phase
+  identifiers. It also records the stopped `hermes-agent`, Agent intake, and
+  Agent Phase identifiers as rollback bindings. It does not rename anything.
+- `tenant-0` is recorded as a compatibility selector. T019a does not populate
+  the nullable platform-instance canonical foreign keys and reports
+  `platformInstanceLinked: false`.
+- Disposable Neon applied both Tenet 1 and Tenet 0 foundations, resolved all
+  ten Walter selectors, attached one verified Gary fixture membership in the
+  separate transaction, ran both Walter verification commands, preserved the
+  Tenet 1 legacy-authoritative rollback checks, and dropped the test database.
+- Production still has no Tenet 0 canonical allocation or Gary canonical
+  membership. Existing Walter/OIDC authorization remains authoritative until
+  T019b shadow comparison and T019c browser/rollback gates pass.
 
 ## Production checkpoint
 
@@ -181,6 +209,52 @@ npm run identity:membership:verify
 
 The membership plan blocks when the account is absent or unverified. Its output
 contains only status and count metadata, never the Better Auth user ID or email.
+
+## Plan and apply the Walter Tenet 0 foundation
+
+T019a uses target-specific commands so an operator cannot accidentally apply
+the historical Tenet 1 manifest while working on Walter:
+
+```bash
+IDENTITY_FOUNDATION_ACTOR=operator:<stable-id> \
+  npm run identity:walter:foundation:plan
+IDENTITY_FOUNDATION_ACTOR=operator:<stable-id> \
+IDENTITY_FOUNDATION_CONFIRM=TENET_0_WALTER_FOUNDATION \
+  npm run identity:walter:foundation:apply
+IDENTITY_FOUNDATION_ACTOR=operator:<stable-id> \
+  npm run identity:walter:foundation:verify
+```
+
+The plan output contains Tenet number, binding counts, zero memberships, and
+linkage booleans. Apply inserts the use case, immutable allocation, Walter
+runtime/default persona, active and rollback bindings, Phase boundaries, and
+one metadata-only audit row in a single batch. Verification must return ten of
+ten canonical selectors. It does not grant Gary access and does not change the
+current instance, OIDC client, container, volume, Nginx, Phase, or intake
+configuration.
+
+## Attach Gary's Walter membership separately
+
+Before planning membership, obtain Gary's existing opaque Better Auth
+`user.id` with a value-suppressed metadata query. Do not derive it from an
+email address and do not print it:
+
+```bash
+export GARY_BETTER_AUTH_USER_ID='<opaque Better Auth user.id>'
+IDENTITY_MEMBERSHIP_ACTOR=operator:<stable-id> \
+  npm run identity:walter:membership:plan
+IDENTITY_MEMBERSHIP_ACTOR=operator:<stable-id> \
+IDENTITY_MEMBERSHIP_CONFIRM=ACTIVATE_TENET_0_GARY \
+  npm run identity:walter:membership:apply
+IDENTITY_MEMBERSHIP_ACTOR=operator:<stable-id> \
+  npm run identity:walter:membership:verify
+```
+
+The membership command blocks on a missing/unverified subject, a missing or
+drifted Tenet 0 foundation, an identity collision, or an existing mismatched
+membership. Its write batch contains only the active owner membership and its
+metadata-only audit event. This database grant is not selected as OIDC
+authority until T019b and T019c complete.
 
 ## Failure and rollback
 

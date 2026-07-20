@@ -4,9 +4,13 @@ import {
   applyMembershipActivationPlan,
   compareMitchelTrevorLegacyAndCanonical,
   generateMitchelTrevorIdentityIds,
+  generateWalterIdentityIds,
   inspectMitchelTrevorIdentityBackfill,
   inspectMitchelTrevorIdentityFoundation,
+  inspectWalterIdentityBackfill,
+  inspectWalterIdentityFoundation,
   verifyMitchelTrevorCanonicalSelectors,
+  verifyWalterCanonicalSelectors,
 } from "@/db/use-case-identity-backfill-store";
 import { db } from "@/db";
 import { createPlatformIdentityAudit } from "@/lib/canonical-identity-audit";
@@ -18,6 +22,8 @@ import {
   planMitchelMembershipActivation,
   planMitchelTrevorBackfill,
   planMitchelTrevorFoundation,
+  planWalterFoundation,
+  planWalterMembershipActivation,
   summarizeIdentityBackfillPlan,
   summarizeIdentityFoundationPlan,
   summarizeMembershipActivationPlan,
@@ -30,6 +36,7 @@ import {
 
 type Scope = "backfill" | "foundation" | "membership" | "compatibility";
 type Command = "plan" | "apply" | "verify";
+type IdentityTarget = "mitchel-trevor" | "walter";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -45,25 +52,48 @@ function parseCommand(value: string | undefined): Command {
   return command as Command;
 }
 
-function parseInvocation(args: string[]): { scope: Scope; command: Command } {
+function parseInvocation(args: string[]): {
+  scope: Scope;
+  target: IdentityTarget;
+  command: Command;
+} {
   if (
     args[0] === "foundation" ||
     args[0] === "membership" ||
     args[0] === "compatibility"
   ) {
-    return { scope: args[0] as Scope, command: parseCommand(args[1]) };
+    const hasExplicitTarget =
+      args[1] === "walter" || args[1] === "mitchel-trevor";
+    if (args[0] === "compatibility" && hasExplicitTarget) {
+      throw new Error("Compatibility does not accept an identity target");
+    }
+    const target = args[1] === "walter" ? "walter" : "mitchel-trevor";
+    const commandIndex = hasExplicitTarget ? 2 : 1;
+    return {
+      scope: args[0] as Scope,
+      target,
+      command: parseCommand(args[commandIndex]),
+    };
   }
-  return { scope: "backfill", command: parseCommand(args[0]) };
+  return {
+    scope: "backfill",
+    target: "mitchel-trevor",
+    command: parseCommand(args[0]),
+  };
 }
 
 function loadFoundationInput(): IdentityFoundationInput {
   return { actor: requiredEnvironment("IDENTITY_FOUNDATION_ACTOR") };
 }
 
-function loadMembershipInput(): IdentityBackfillInput {
+function loadMembershipInput(target: IdentityTarget): IdentityBackfillInput {
   return {
     actor: requiredEnvironment("IDENTITY_MEMBERSHIP_ACTOR"),
-    membershipUserId: requiredEnvironment("MITCHEL_BETTER_AUTH_USER_ID"),
+    membershipUserId: requiredEnvironment(
+      target === "walter"
+        ? "GARY_BETTER_AUTH_USER_ID"
+        : "MITCHEL_BETTER_AUTH_USER_ID",
+    ),
   };
 }
 
@@ -80,7 +110,15 @@ function printResult(value: unknown): void {
 
 async function planFoundation(
   input: IdentityFoundationInput,
+  target: IdentityTarget = "mitchel-trevor",
 ): Promise<IdentityFoundationPlan> {
+  if (target === "walter") {
+    return planWalterFoundation(
+      input,
+      await inspectWalterIdentityFoundation(),
+      generateWalterIdentityIds(),
+    );
+  }
   return planMitchelTrevorFoundation(
     input,
     await inspectMitchelTrevorIdentityFoundation(),
@@ -90,7 +128,15 @@ async function planFoundation(
 
 async function planMembership(
   input: IdentityBackfillInput,
+  target: IdentityTarget = "mitchel-trevor",
 ): Promise<MembershipActivationPlan> {
+  if (target === "walter") {
+    return planWalterMembershipActivation(
+      input,
+      await inspectWalterIdentityBackfill(input),
+      generateWalterIdentityIds().membershipId,
+    );
+  }
   return planMitchelMembershipActivation(
     input,
     await inspectMitchelTrevorIdentityBackfill(input),
@@ -110,38 +156,54 @@ async function planBackfill(
 
 async function verifyFoundation(
   plan: Extract<IdentityFoundationPlan, { status: "verified_noop" }>,
+  target: IdentityTarget = "mitchel-trevor",
 ) {
+  if (target === "walter") {
+    return verifyWalterCanonicalSelectors(
+      plan.useCaseId,
+      plan.runtimeIdentityId,
+    );
+  }
   return verifyMitchelTrevorCanonicalSelectors(
     plan.useCaseId,
     plan.runtimeIdentityId,
   );
 }
 
-async function runFoundation(command: Command): Promise<void> {
+async function runFoundation(
+  command: Command,
+  target: IdentityTarget,
+): Promise<void> {
   const input = loadFoundationInput();
-  const plan = await planFoundation(input);
+  const plan = await planFoundation(input, target);
   if (plan.status === "blocked") return failBlocked(plan);
   if (command === "plan") return printResult(summarizeIdentityFoundationPlan(plan));
   if (command === "verify") {
     if (plan.status !== "verified_noop") return failNotApplied();
     return printResult({
       ...summarizeIdentityFoundationPlan(plan),
-      selectors: await verifyFoundation(plan),
+      selectors: await verifyFoundation(plan, target),
     });
   }
-  requireConfirmation("IDENTITY_FOUNDATION_CONFIRM", "TENET_1_FOUNDATION");
+  requireConfirmation(
+    "IDENTITY_FOUNDATION_CONFIRM",
+    target === "walter" ? "TENET_0_WALTER_FOUNDATION" : "TENET_1_FOUNDATION",
+  );
   if (plan.status === "ready") await applyIdentityFoundationPlan(plan);
-  const verified = await planFoundation(input);
+  const verified = await planFoundation(input, target);
   if (verified.status !== "verified_noop") throw new Error("Foundation verification did not converge");
   printResult({
     status: plan.status === "ready" ? "applied" : "verified_noop",
-    selectors: await verifyFoundation(verified),
+    selectors: await verifyFoundation(verified, target),
   });
 }
 
-async function runMembership(command: Command): Promise<void> {
-  const input = loadMembershipInput();
-  const plan = await planMembership(input);
+async function runMembership(
+  command: Command,
+  target: IdentityTarget,
+): Promise<void> {
+  const input = loadMembershipInput(target);
+  const plan = await planMembership(input, target);
   if (plan.status === "blocked") return failBlocked(plan);
   if (command === "plan" || command === "verify") {
     if (command === "verify" && plan.status !== "verified_noop") {
@@ -151,10 +213,12 @@ async function runMembership(command: Command): Promise<void> {
   }
   requireConfirmation(
     "IDENTITY_MEMBERSHIP_CONFIRM",
-    "ACTIVATE_TENET_1_MITCHEL",
+    target === "walter"
+      ? "ACTIVATE_TENET_0_GARY"
+      : "ACTIVATE_TENET_1_MITCHEL",
   );
   if (plan.status === "ready") await applyMembershipActivationPlan(plan);
-  const verified = await planMembership(input);
+  const verified = await planMembership(input, target);
   if (verified.status !== "verified_noop") throw new Error("Membership verification did not converge");
   printResult({ status: plan.status === "ready" ? "applied" : "verified_noop" });
 }
@@ -244,10 +308,10 @@ function failNotApplied(): void {
 async function run(): Promise<void> {
   const invocation = parseInvocation(process.argv.slice(2));
   if (invocation.scope === "foundation") {
-    return runFoundation(invocation.command);
+    return runFoundation(invocation.command, invocation.target);
   }
   if (invocation.scope === "membership") {
-    return runMembership(invocation.command);
+    return runMembership(invocation.command, invocation.target);
   }
   if (invocation.scope === "compatibility") {
     return runCompatibility(invocation.command);

@@ -1,8 +1,11 @@
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  WALTER_IDENTITY_TEMPLATE,
   planMitchelMembershipActivation,
   planMitchelTrevorBackfill,
   planMitchelTrevorFoundation,
+  planWalterFoundation,
+  planWalterMembershipActivation,
   summarizeIdentityBackfillPlan,
   summarizeIdentityFoundationPlan,
   summarizeMembershipActivationPlan,
@@ -30,6 +33,28 @@ const input = {
   membershipUserId: "better-auth-user-mitchel",
 };
 
+const walterIds: CanonicalIdentityIds = {
+  useCaseId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  runtimeIdentityId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+  personaAssignmentId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  membershipId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+  resourceBindingIds: Array.from(
+    { length: WALTER_IDENTITY_TEMPLATE.resourceBindings.length },
+    (_, index) =>
+      `eeeeeeee-eeee-4eee-8eee-${String(index).padStart(12, "0")}`,
+  ),
+  secretBoundaryBindingIds: Array.from(
+    { length: WALTER_IDENTITY_TEMPLATE.secretBoundaryBindings.length },
+    (_, index) =>
+      `ffffffff-ffff-4fff-8fff-${String(index).padStart(12, "0")}`,
+  ),
+};
+
+const walterInput = {
+  actor: "operator:gary",
+  membershipUserId: "better-auth-user-gary",
+};
+
 function emptySnapshot(
   overrides: Partial<IdentityBackfillSnapshot> = {},
 ): IdentityBackfillSnapshot {
@@ -52,6 +77,226 @@ function emptyFoundationSnapshot(
     ...overrides,
   };
 }
+
+describe("planWalterFoundation", () => {
+  it("creates the guarded Tenet 0 foundation without granting Gary access", () => {
+    const plan = planWalterFoundation(
+      { actor: walterInput.actor },
+      emptyFoundationSnapshot(),
+      walterIds,
+    );
+
+    expect(plan.status).toBe("ready");
+    if (plan.status !== "ready") throw new Error("expected a ready plan");
+    expect(plan).not.toHaveProperty("membership");
+    expect(plan.numberAllocation.number).toBe(0);
+    expect(plan.runtimeIdentity.slug).toBe("hermes-walter");
+    expect(plan.personaAssignment).toMatchObject({
+      personaKey: "walter",
+      displayName: "Walter",
+      isDefault: true,
+    });
+    expect(plan.audit.details).toEqual({
+      useCaseNumber: 0,
+      membershipCount: 0,
+      resourceBindingCount: WALTER_IDENTITY_TEMPLATE.resourceBindings.length,
+      secretBoundaryBindingCount:
+        WALTER_IDENTITY_TEMPLATE.secretBoundaryBindings.length,
+      platformInstanceLinked: false,
+      orchestratorTenantBound: false,
+    });
+  });
+
+  it("preserves every active and rollback Walter compatibility name", () => {
+    const resourceManifest = WALTER_IDENTITY_TEMPLATE.resourceBindings.map(
+      ({ provider, kind, value, state }) => ({ provider, kind, value, state }),
+    );
+
+    expect(resourceManifest).toEqual(
+      expect.arrayContaining([
+        {
+          provider: "docker",
+          kind: "container",
+          value: "hermes-walter",
+          state: "active",
+        },
+        {
+          provider: "docker",
+          kind: "container",
+          value: "hermes-agent",
+          state: "rollback",
+        },
+        {
+          provider: "docker",
+          kind: "volume",
+          value: "hermes-agent-data",
+          state: "compatibility",
+        },
+        {
+          provider: "nginx",
+          kind: "hostname",
+          value: "aegis-prod.overnightdesk.com",
+          state: "active",
+        },
+        {
+          provider: "overnightdesk",
+          kind: "platform_instance",
+          value: "tenant-0",
+          state: "compatibility",
+        },
+        {
+          provider: "phase",
+          kind: "phase_path",
+          value: "/agents/hermes-email-intake/walter",
+          state: "active",
+        },
+        {
+          provider: "phase",
+          kind: "phase_path",
+          value: "/agents/hermes-email-intake/agent",
+          state: "rollback",
+        },
+        {
+          provider: "securityteam",
+          kind: "intake_route",
+          value: "walter",
+          state: "active",
+        },
+        {
+          provider: "securityteam",
+          kind: "intake_route",
+          value: "agent",
+          state: "rollback",
+        },
+      ]),
+    );
+    expect(WALTER_IDENTITY_TEMPLATE.secretBoundaryBindings).toEqual([
+      {
+        phaseApp: "overnightdesk",
+        environment: "production",
+        pathIdentifier: "/agents/hermes-email-intake/walter",
+      },
+    ]);
+  });
+
+  it("returns a verified no-op without changing the canonical IDs", () => {
+    const ready = planWalterFoundation(
+      { actor: walterInput.actor },
+      emptyFoundationSnapshot(),
+      walterIds,
+    );
+    if (ready.status !== "ready") throw new Error("expected a ready plan");
+
+    const plan = planWalterFoundation(
+      { actor: walterInput.actor },
+      emptyFoundationSnapshot({
+        existingCanonicalState: {
+          useCase: ready.useCase,
+          numberAllocation: ready.numberAllocation,
+          runtimeIdentity: ready.runtimeIdentity,
+          personaAssignment: ready.personaAssignment,
+          membership: null,
+          resourceBindings: ready.resourceBindings,
+          secretBoundaryBindings: ready.secretBoundaryBindings,
+        },
+      }),
+      { ...walterIds, useCaseId: ids.useCaseId },
+    );
+
+    expect(plan).toEqual({
+      status: "verified_noop",
+      useCaseId: walterIds.useCaseId,
+      runtimeIdentityId: walterIds.runtimeIdentityId,
+    });
+  });
+});
+
+describe("planWalterMembershipActivation", () => {
+  function foundationState() {
+    const foundation = planWalterFoundation(
+      { actor: walterInput.actor },
+      emptyFoundationSnapshot(),
+      walterIds,
+    );
+    if (foundation.status !== "ready") {
+      throw new Error("expected a ready foundation");
+    }
+    return {
+      useCase: foundation.useCase,
+      numberAllocation: foundation.numberAllocation,
+      runtimeIdentity: foundation.runtimeIdentity,
+      personaAssignment: foundation.personaAssignment,
+      membership: null,
+      resourceBindings: foundation.resourceBindings,
+      secretBoundaryBindings: foundation.secretBoundaryBindings,
+    };
+  }
+
+  it("fails closed when Gary's opaque Better Auth subject is absent", () => {
+    const plan = planWalterMembershipActivation(
+      walterInput,
+      emptySnapshot({
+        membershipUser: null,
+        existingCanonicalState: foundationState(),
+      }),
+      walterIds.membershipId,
+    );
+
+    expect(plan).toEqual({
+      status: "blocked",
+      reasons: ["membership_user_missing"],
+    });
+  });
+
+  it("fails closed when Gary's Better Auth subject is not verified", () => {
+    const plan = planWalterMembershipActivation(
+      walterInput,
+      emptySnapshot({
+        membershipUser: {
+          id: walterInput.membershipUserId,
+          emailVerified: false,
+        },
+        existingCanonicalState: foundationState(),
+      }),
+      walterIds.membershipId,
+    );
+
+    expect(plan).toEqual({
+      status: "blocked",
+      reasons: ["membership_user_unverified"],
+    });
+  });
+
+  it("plans only Gary's owner membership after verification", () => {
+    const plan = planWalterMembershipActivation(
+      walterInput,
+      emptySnapshot({
+        membershipUser: {
+          id: walterInput.membershipUserId,
+          emailVerified: true,
+        },
+        existingCanonicalState: foundationState(),
+      }),
+      walterIds.membershipId,
+    );
+
+    expect(plan.status).toBe("ready");
+    if (plan.status !== "ready") throw new Error("expected a ready plan");
+    expect(plan).not.toHaveProperty("useCase");
+    expect(plan.membership).toEqual({
+      id: walterIds.membershipId,
+      useCaseId: walterIds.useCaseId,
+      runtimeIdentityId: null,
+      userId: walterInput.membershipUserId,
+      role: "owner",
+      status: "active",
+      grantedBy: walterInput.actor,
+    });
+    expect(JSON.stringify(summarizeMembershipActivationPlan(plan))).not.toContain(
+      walterInput.membershipUserId,
+    );
+  });
+});
 
 describe("planMitchelTrevorFoundation", () => {
   it("creates the canonical foundation with zero memberships and no Better Auth user", () => {

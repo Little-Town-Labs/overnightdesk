@@ -112,6 +112,63 @@ function runFoundationVerify(targetUrl) {
   }
 }
 
+function runWalterFoundationVerify(targetUrl) {
+  const result = spawnSync(
+    "npm",
+    ["run", "identity:walter:foundation:verify"],
+    {
+      cwd: repo,
+      env: {
+        ...process.env,
+        DATABASE_URL: targetUrl,
+        IDENTITY_FOUNDATION_ACTOR: "operator:identity-qualification",
+      },
+      stdio: "inherit",
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Walter identity foundation verify exited ${result.status}`);
+  }
+}
+
+function runWalterMembershipVerify(targetUrl, membershipUserId) {
+  const result = spawnSync(
+    "npm",
+    ["run", "identity:walter:membership:verify"],
+    {
+      cwd: repo,
+      env: {
+        ...process.env,
+        DATABASE_URL: targetUrl,
+        IDENTITY_MEMBERSHIP_ACTOR: "operator:identity-qualification",
+        GARY_BETTER_AUTH_USER_ID: membershipUserId,
+      },
+      stdio: "inherit",
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Walter identity membership verify exited ${result.status}`);
+  }
+}
+
+async function readWalterMembershipUserId(targetUrl) {
+  const database = drizzle(neon(targetUrl));
+  const result = await database.execute(sql`
+    SELECT membership.user_id
+    FROM use_case_membership AS membership
+    INNER JOIN use_case_number_allocation AS allocation
+      ON allocation.use_case_id = membership.use_case_id
+    WHERE allocation.number = 0
+      AND membership.status = 'active'
+  `);
+  if (result.rows.length !== 1 || typeof result.rows[0]?.user_id !== "string") {
+    throw new Error("Expected one active Walter membership fixture");
+  }
+  return result.rows[0].user_id;
+}
+
 async function applyBaselineMigrations(targetUrl) {
   const migrations = fs
     .readdirSync(path.join(repo, "drizzle"))
@@ -158,6 +215,15 @@ async function main() {
 
     currentStage = "verify additive foundation remains after rollback";
     runFoundationVerify(targetUrl);
+
+    currentStage = "verify Walter foundation through operator command";
+    runWalterFoundationVerify(targetUrl);
+
+    currentStage = "verify Gary membership through separate operator command";
+    runWalterMembershipVerify(
+      targetUrl,
+      await readWalterMembershipUserId(targetUrl),
+    );
   } finally {
     if (created) {
       currentStage = "drop disposable database";

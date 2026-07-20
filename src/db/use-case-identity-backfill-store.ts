@@ -14,7 +14,9 @@ import {
 } from "@/db/schema";
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  WALTER_IDENTITY_TEMPLATE,
   type CanonicalIdentityIds,
+  type CanonicalIdentityTemplate,
   type ExistingCanonicalState,
   type IdentityBackfillInput,
   type IdentityBackfillSnapshot,
@@ -22,6 +24,7 @@ import {
   type ReadyIdentityBackfillPlan,
   type ReadyIdentityFoundationPlan,
   type ReadyMembershipActivationPlan,
+  type ResourceBindingRecord,
 } from "@/lib/use-case-identity-backfill";
 import { createDrizzleCanonicalIdentityStore } from "@/lib/canonical-identity-store";
 import type {
@@ -85,31 +88,37 @@ const useCaseSelection = {
   status: useCase.status,
 };
 
-async function readUseCaseBySlug(database: Database) {
+async function readUseCaseBySlug(
+  database: Database,
+  template: CanonicalIdentityTemplate,
+) {
   const rows = await database
     .select(useCaseSelection)
     .from(useCase)
-    .where(eq(useCase.slug, MITCHEL_TREVOR_IDENTITY_TEMPLATE.useCase.slug))
+    .where(eq(useCase.slug, template.useCase.slug))
     .limit(1);
   return rows[0] ?? null;
 }
 
-async function readUseCaseByNumber(database: Database) {
+async function readUseCaseByNumber(
+  database: Database,
+  template: CanonicalIdentityTemplate,
+) {
   const rows = await database
     .select(useCaseSelection)
     .from(useCaseNumberAllocation)
     .innerJoin(useCase, eq(useCaseNumberAllocation.useCaseId, useCase.id))
     .where(
-      eq(
-        useCaseNumberAllocation.number,
-        MITCHEL_TREVOR_IDENTITY_TEMPLATE.number,
-      ),
+      eq(useCaseNumberAllocation.number, template.number),
     )
     .limit(1);
   return rows[0] ?? null;
 }
 
-async function readRuntimeBySlug(database: Database) {
+async function readRuntimeBySlug(
+  database: Database,
+  template: CanonicalIdentityTemplate,
+) {
   const rows = await database
     .select({
       id: runtimeIdentity.id,
@@ -119,16 +128,17 @@ async function readRuntimeBySlug(database: Database) {
       status: runtimeIdentity.status,
     })
     .from(runtimeIdentity)
-    .where(
-      eq(runtimeIdentity.slug, MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime.slug),
-    )
+    .where(eq(runtimeIdentity.slug, template.runtime.slug))
     .limit(1);
   return rows[0] ?? null;
 }
 
-async function readIdentityRoots(database: Database) {
+async function readIdentityRoots(
+  database: Database,
+  template: CanonicalIdentityTemplate,
+) {
   const resourcePredicates =
-    MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings.map((binding) =>
+    template.resourceBindings.map((binding) =>
       and(
         eq(resourceBinding.provider, binding.provider),
         eq(resourceBinding.kind, binding.kind),
@@ -137,9 +147,9 @@ async function readIdentityRoots(database: Database) {
     );
   const [slugUseCase, numberUseCase, runtime, bindingOwners] =
     await Promise.all([
-      readUseCaseBySlug(database),
-      readUseCaseByNumber(database),
-      readRuntimeBySlug(database),
+      readUseCaseBySlug(database, template),
+      readUseCaseByNumber(database, template),
+      readRuntimeBySlug(database, template),
       database
         .select({
           useCaseId: resourceBinding.useCaseId,
@@ -158,14 +168,17 @@ async function readIdentityRoots(database: Database) {
   };
 }
 
-function rootsConflict(roots: Awaited<ReturnType<typeof readIdentityRoots>>) {
+function rootsConflict(
+  roots: Awaited<ReturnType<typeof readIdentityRoots>>,
+  template: CanonicalIdentityTemplate,
+) {
   const { slugUseCase, numberUseCase, runtime } = roots;
   if (slugUseCase && numberUseCase && slugUseCase.id !== numberUseCase.id) {
     return true;
   }
   if (
     numberUseCase &&
-    numberUseCase.slug !== MITCHEL_TREVOR_IDENTITY_TEMPLATE.useCase.slug
+    numberUseCase.slug !== template.useCase.slug
   ) {
     return true;
   }
@@ -206,6 +219,7 @@ async function readNumberAllocation(database: Database, useCaseId: string) {
 async function readPersona(
   database: Database,
   runtime: NonNullable<Awaited<ReturnType<typeof readRuntimeBySlug>>>,
+  template: CanonicalIdentityTemplate,
 ) {
   const rows = await database
     .select({
@@ -221,10 +235,7 @@ async function readPersona(
     .where(
       and(
         eq(personaAssignment.runtimeIdentityId, runtime.id),
-        eq(
-          personaAssignment.personaKey,
-          MITCHEL_TREVOR_IDENTITY_TEMPLATE.persona.personaKey,
-        ),
+        eq(personaAssignment.personaKey, template.persona.personaKey),
         ne(personaAssignment.status, "retired"),
       ),
     )
@@ -311,6 +322,7 @@ async function readExistingState(
   database: Database,
   membershipUserId: string | null,
   roots: Awaited<ReturnType<typeof readIdentityRoots>>,
+  template: CanonicalIdentityTemplate,
 ): Promise<ExistingCanonicalState | null> {
   const selectedUseCase = roots.slugUseCase ?? roots.numberUseCase;
   if (!selectedUseCase) return null;
@@ -318,7 +330,7 @@ async function readExistingState(
   const [numberAllocation, persona, membership, bindings, secretBoundaries] =
     await Promise.all([
       readNumberAllocation(database, selectedUseCase.id),
-      runtime ? readPersona(database, runtime) : Promise.resolve(null),
+      runtime ? readPersona(database, runtime, template) : Promise.resolve(null),
       membershipUserId
         ? readMembership(database, membershipUserId, selectedUseCase.id)
         : Promise.resolve(null),
@@ -341,9 +353,10 @@ async function readExistingState(
   };
 }
 
-export function generateMitchelTrevorIdentityIds(): CanonicalIdentityIds {
-  const resourceCount =
-    MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings.length;
+function generateIdentityIds(
+  template: CanonicalIdentityTemplate,
+): CanonicalIdentityIds {
+  const resourceCount = template.resourceBindings.length;
   return {
     useCaseId: randomUUID(),
     runtimeIdentityId: randomUUID(),
@@ -352,15 +365,15 @@ export function generateMitchelTrevorIdentityIds(): CanonicalIdentityIds {
     resourceBindingIds: Array.from({ length: resourceCount }, () =>
       randomUUID(),
     ),
-    secretBoundaryBindingIds:
-      MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.map(() =>
-        randomUUID(),
-      ),
+    secretBoundaryBindingIds: template.secretBoundaryBindings.map(() =>
+      randomUUID(),
+    ),
   };
 }
 
-export async function inspectMitchelTrevorIdentityBackfill(
+async function inspectIdentityBackfill(
   input: IdentityBackfillInput,
+  template: CanonicalIdentityTemplate,
   database: Database = db,
 ): Promise<IdentityBackfillSnapshot> {
   const schemaReady = await identitySchemaReady(database);
@@ -377,20 +390,22 @@ export async function inspectMitchelTrevorIdentityBackfill(
     };
   }
 
-  const roots = await readIdentityRoots(database);
+  const roots = await readIdentityRoots(database, template);
   return {
     schemaReady,
     membershipUser,
-    canonicalConflict: rootsConflict(roots),
+    canonicalConflict: rootsConflict(roots, template),
     existingCanonicalState: await readExistingState(
       database,
       input.membershipUserId,
       roots,
+      template,
     ),
   };
 }
 
-export async function inspectMitchelTrevorIdentityFoundation(
+async function inspectIdentityFoundation(
+  template: CanonicalIdentityTemplate,
   database: Database = db,
 ): Promise<IdentityFoundationSnapshot> {
   const schemaReady = await identitySchemaReady(database);
@@ -402,12 +417,55 @@ export async function inspectMitchelTrevorIdentityFoundation(
     };
   }
 
-  const roots = await readIdentityRoots(database);
+  const roots = await readIdentityRoots(database, template);
   return {
     schemaReady,
-    canonicalConflict: rootsConflict(roots),
-    existingCanonicalState: await readExistingState(database, null, roots),
+    canonicalConflict: rootsConflict(roots, template),
+    existingCanonicalState: await readExistingState(
+      database,
+      null,
+      roots,
+      template,
+    ),
   };
+}
+
+export function generateMitchelTrevorIdentityIds(): CanonicalIdentityIds {
+  return generateIdentityIds(MITCHEL_TREVOR_IDENTITY_TEMPLATE);
+}
+
+export function generateWalterIdentityIds(): CanonicalIdentityIds {
+  return generateIdentityIds(WALTER_IDENTITY_TEMPLATE);
+}
+
+export function inspectMitchelTrevorIdentityBackfill(
+  input: IdentityBackfillInput,
+  database: Database = db,
+): Promise<IdentityBackfillSnapshot> {
+  return inspectIdentityBackfill(
+    input,
+    MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+    database,
+  );
+}
+
+export function inspectWalterIdentityBackfill(
+  input: IdentityBackfillInput,
+  database: Database = db,
+): Promise<IdentityBackfillSnapshot> {
+  return inspectIdentityBackfill(input, WALTER_IDENTITY_TEMPLATE, database);
+}
+
+export function inspectMitchelTrevorIdentityFoundation(
+  database: Database = db,
+): Promise<IdentityFoundationSnapshot> {
+  return inspectIdentityFoundation(MITCHEL_TREVOR_IDENTITY_TEMPLATE, database);
+}
+
+export function inspectWalterIdentityFoundation(
+  database: Database = db,
+): Promise<IdentityFoundationSnapshot> {
+  return inspectIdentityFoundation(WALTER_IDENTITY_TEMPLATE, database);
 }
 
 export async function applyIdentityFoundationPlan(
@@ -461,30 +519,33 @@ export async function applyIdentityBackfillPlan(
   await database.batch(statements);
 }
 
-interface MitchelTrevorCanonicalCheck {
+interface CanonicalIdentityCheck {
   label: string;
   selector: CanonicalIdentitySelector;
   expectedRuntimeId: string | null;
 }
 
-function mitchelTrevorCanonicalChecks(
+function canonicalIdentityChecks(
+  template: CanonicalIdentityTemplate,
   expectedRuntimeIdentityId: string,
-): MitchelTrevorCanonicalCheck[] {
+  includedKinds?: ReadonlySet<ResourceBindingRecord["kind"]>,
+): CanonicalIdentityCheck[] {
   return [
     {
       label: "use_case_number",
       selector: {
         type: "use_case_number",
-        value: MITCHEL_TREVOR_IDENTITY_TEMPLATE.number,
+        value: template.number,
       },
       expectedRuntimeId: null,
     },
-    ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings
-      .filter((binding) =>
-        ["container", "volume", "hostname"].includes(binding.kind),
-      )
-      .map((binding) => ({
-        label: `${binding.provider}:${binding.kind}`,
+    ...template.resourceBindings
+      .filter((binding) => !includedKinds || includedKinds.has(binding.kind))
+      .map((binding, index) => ({
+        label:
+          template === MITCHEL_TREVOR_IDENTITY_TEMPLATE
+            ? `${binding.provider}:${binding.kind}`
+            : `${binding.provider}:${binding.kind}:${index}`,
         selector: {
           type: "resource_binding" as const,
           provider: binding.provider,
@@ -496,12 +557,18 @@ function mitchelTrevorCanonicalChecks(
   ];
 }
 
-export async function verifyMitchelTrevorCanonicalSelectors(
+async function verifyCanonicalSelectors(
   expectedUseCaseId: string,
   expectedRuntimeIdentityId: string,
+  template: CanonicalIdentityTemplate,
+  includedKinds: ReadonlySet<ResourceBindingRecord["kind"]> | undefined,
   database: Database = db,
 ): Promise<{ checked: number; matched: number; mismatches: string[] }> {
-  const checks = mitchelTrevorCanonicalChecks(expectedRuntimeIdentityId);
+  const checks = canonicalIdentityChecks(
+    template,
+    expectedRuntimeIdentityId,
+    includedKinds,
+  );
   const store = createDrizzleCanonicalIdentityStore(database);
   const mismatches: string[] = [];
   for (const check of checks) {
@@ -518,6 +585,34 @@ export async function verifyMitchelTrevorCanonicalSelectors(
     matched: checks.length - mismatches.length,
     mismatches,
   };
+}
+
+export function verifyMitchelTrevorCanonicalSelectors(
+  expectedUseCaseId: string,
+  expectedRuntimeIdentityId: string,
+  database: Database = db,
+): Promise<{ checked: number; matched: number; mismatches: string[] }> {
+  return verifyCanonicalSelectors(
+    expectedUseCaseId,
+    expectedRuntimeIdentityId,
+    MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+    new Set(["container", "volume", "hostname"]),
+    database,
+  );
+}
+
+export function verifyWalterCanonicalSelectors(
+  expectedUseCaseId: string,
+  expectedRuntimeIdentityId: string,
+  database: Database = db,
+): Promise<{ checked: number; matched: number; mismatches: string[] }> {
+  return verifyCanonicalSelectors(
+    expectedUseCaseId,
+    expectedRuntimeIdentityId,
+    WALTER_IDENTITY_TEMPLATE,
+    undefined,
+    database,
+  );
 }
 
 export interface MitchelTrevorCompatibilitySummary {
@@ -561,8 +656,10 @@ export async function compareMitchelTrevorLegacyAndCanonical(
   if (input.mode === "legacy") return summary;
 
   const store = createDrizzleCanonicalIdentityStore(input.database ?? db);
-  const checks = mitchelTrevorCanonicalChecks(
+  const checks = canonicalIdentityChecks(
+    MITCHEL_TREVOR_IDENTITY_TEMPLATE,
     input.expectedRuntimeIdentityId,
+    new Set(["container", "volume", "hostname"]),
   );
   for (const check of checks) {
     const result = await resolveLegacyWithCanonicalShadow({

@@ -69,6 +69,18 @@ integration suites and preserved legacy-authoritative compare/rollback
 behavior. No OIDC, dashboard, API route, Hermes runtime, or other production
 consumer is enabled by this checkpoint.
 
+**Walter foundation implementation checkpoint (2026-07-20):**
+`021-walter-canonical-authorization` implements T019a without changing
+production authority. The guarded Tenet 0 foundation retains the active
+`hermes-walter`, `hermes-agent-data`, `aegis-prod.overnightdesk.com`, Walter
+intake, and Phase identifiers plus the stopped `hermes-agent`/Agent rollback
+identifiers as explicit resource bindings. Gary membership is a separate
+plan/apply/verify operation that accepts only his existing email-verified
+Better Auth `user.id`. Disposable-Neon qualification passed all ten Walter
+canonical selectors and both operator verification commands. No production
+foundation, membership, instance link, OIDC change, or authorization cutover
+is included; T019b and T019c remain separate gates.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is
