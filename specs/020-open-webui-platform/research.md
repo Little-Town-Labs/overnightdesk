@@ -4,9 +4,15 @@
 
 - Hermes Agent, [Open WebUI Integration](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/open-webui)
 - Open WebUI, [Environment Variable Configuration](https://docs.openwebui.com/getting-started/env-configuration/)
+- Open WebUI, [v0.10.2 release](https://github.com/open-webui/open-webui/releases/tag/v0.10.2)
+- Open WebUI, [SSO/OIDC](https://docs.openwebui.com/features/auth/sso/)
+- Open WebUI, [Hardening](https://docs.openwebui.com/getting-started/advanced-topics/hardening/)
+- Open WebUI, [Security advisories](https://github.com/open-webui/open-webui/security/advisories)
 
-Reviewed 2026-07-19. Pin and re-review the selected Open WebUI release during
-implementation; the configuration surface is version-sensitive.
+Initial research reviewed 2026-07-19. T020d pinned and reviewed `v0.10.2` on
+2026-07-20; see [release-review.md](release-review.md). Production must re-check
+the release and advisory state because the configuration and security surface
+is version-sensitive.
 
 ## Threat Model
 

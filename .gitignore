@@ -41,6 +41,8 @@ drizzle/meta/
 # local artifacts
 .docs/
 .herenow/
+/test-results/
+/playwright-report/
 
 # python test artifacts
 __pycache__/

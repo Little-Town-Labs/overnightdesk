@@ -9,7 +9,9 @@ foundation and separate Gary membership workflow are implemented and
 disposable-Neon qualified but not production-applied. T020b's guarded
 legacy-authoritative Titus/Gary shadow coverage is implemented with no
 production consumer. T020c selects Titus Open WebUI and defines its Better
-Auth OIDC external-identity adapter; no production change is included. Mitchel's
+Auth OIDC external-identity adapter. T020d pins Open WebUI `v0.10.2` and
+completes the disabled fixture-backed auth/frame/session/rollback gate; no
+production change is included. Mitchel's
 verified membership is still a later fail-closed operation. No Titus Phase
 change, resource rename, Teams/Austin grant, production consumer, or
 platform/orchestrator link has been performed.
@@ -74,12 +76,12 @@ platform/orchestrator link has been performed.
   - [x] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
   - [x] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
   - [x] T020c Select the dedicated Titus Open WebUI deployment as the first production consumer and record its exact Better Auth OIDC `(issuer, subject)` adapter, server-derived workspace binding, channel isolation, evidence, and rollback contract; Better Auth membership does not authorize Matrix, email, or Teams identities
-  - [ ] T020d Complete Feature 020's pinned-release and OIDC/frame/session spike against Titus fixtures; keep the production Open WebUI assignment disabled
+  - [x] T020d Complete Feature 020's pinned-release and OIDC/frame/session spike against Titus fixtures; keep the production Open WebUI assignment disabled
   - [ ] T020e Apply and verify the guarded Tenet 2 foundation and separate Gary membership, then provision and canary Titus Open WebUI through its reviewed Feature 020 tasks without changing Matrix, email, Teams, or Austin access
 
 ## Phase 4: Open WebUI Dependency and Expansion
 
-- [ ] T021 Permit `020a-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
+- [x] T021 Permit `020-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
 - [ ] T022 Permit fixture-backed Titus Open WebUI implementation after accepted auth evidence and the completed canonical foundation; gate production activation on Tenet 2 foundation and Gary membership
 - [ ] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
 - [ ] T024 Complete Trevor production authorization only after Mitchel has an active verified membership; rerun shadow, browser denial, and rollback gates before removing the exact-owner/resource-alias compatibility path

@@ -2,28 +2,30 @@
 
 **Input**: Design documents from `/specs/020-open-webui-platform/`
 
-**Status**: Planning captured and T020c selects Titus/Gary as the first canary,
-with Walter next and Mitchel/Trevor gated on Mitchel's membership. No runtime,
-Vercel, Phase, or production changes are authorized by this task list.
+**Status**: T020d pins Open WebUI `v0.10.2` and completes the disabled
+fixture-backed release/OIDC/frame/session/denial/rollback gate. Titus/Gary
+remains the first canary, with Walter next and Mitchel/Trevor gated on
+Mitchel's membership. No runtime, Vercel, Phase, or production changes are
+authorized by this task list.
 
 ## Phase 1: Decision and Source Baseline
 
 - [x] T001 Create Feature 020 spec, plan, research, integration contract, and requirements checklist
 - [x] T002 Update the active feature pointer and platform roadmap with the current priority decision
 - [x] T003 Record planned state and the obsolete `/sessions` inventory correction in `overnightdesk-platform-standard`
-- [ ] T004 Pin an Open WebUI release and review its image provenance, license, release notes, default headers, database behavior, and security advisories
+- [x] T004 Pin an Open WebUI release and review its image provenance, license, release notes, default headers, database behavior, and security advisories
 
 T004 may begin after the Feature 021 terminology and identity contract is
 accepted. It does not require schema deployment or a production number.
 
 ## Phase 2: Authentication and Embedding Spike
 
-- [ ] T005 Add failing tests for canonical runtime-to-workspace assignment plus active-member, non-member, and suspended-member behavior
-- [ ] T006 Define a separate Open WebUI OIDC client kind without weakening the native Hermes dashboard client contract
-- [ ] T007 Prove top-level OIDC login, embedded session reuse, logout, and re-login with the pinned Open WebUI release
-- [ ] T008 Prove restrictive `frame-ancestors`, cookie, WebSocket/SSE, and text-only permissions behavior
-- [ ] T009 Run spoofed assignment/header, non-member, wrong-use-case, unapproved-frame, oversized-request, unavailable-backend, and tool-authority abuse tests
-- [ ] T010 Record the trusted-header alternative as rejected or separately approve and threat-model it if OIDC cannot satisfy the embedded flow
+- [x] T005 Add failing tests for canonical runtime-to-workspace assignment plus active-member, non-member, and suspended-member behavior
+- [x] T006 Define a separate Open WebUI OIDC client kind without weakening the native Hermes dashboard client contract
+- [x] T007 Prove top-level OIDC login, embedded session reuse, logout, and re-login with the pinned Open WebUI release
+- [x] T008 Prove restrictive `frame-ancestors`, cookie, WebSocket/SSE, and text-only permissions behavior
+- [x] T009 Run spoofed assignment/header, non-member, wrong-use-case, unapproved-frame, oversized-request, unavailable-backend, and tool-authority abuse tests
+- [x] T010 Record the trusted-header alternative as rejected or separately approve and threat-model it if OIDC cannot satisfy the embedded flow
 
 ## Phase 3: Gary User / Titus Agent Stateful Canary
 

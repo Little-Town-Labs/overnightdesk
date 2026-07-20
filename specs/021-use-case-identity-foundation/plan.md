@@ -339,7 +339,7 @@ contract is accepted, create implementation worktrees from updated `main`:
 5. `021-shared-membership-store` from merged T017; no production consumer
 6. `021-walter-canonical-authorization` after the shared store merges
 7. `021-titus-canonical-foundation` after Walter's observation checkpoint
-8. `020a-open-webui-auth-spike` may run in parallel against Titus fixtures
+8. `020-open-webui-auth-spike` may run in parallel against Titus fixtures
 9. `020b-open-webui-titus-canary` follows accepted spike evidence plus the
    verified Tenet 2 foundation and Gary membership
 10. `020c-open-webui-dashboard-cutover` follows the accepted Titus canary
