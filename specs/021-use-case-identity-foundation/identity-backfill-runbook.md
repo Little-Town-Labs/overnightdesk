@@ -74,8 +74,9 @@ reviewed operation against an independently verified record.
 Use a separate administrator URL in `DATABASE_TEST_URL`. The command creates a
 uniquely named `overnightdesk_identity_*` database, applies the baseline
 through migration 0008, invokes the production schema command for migration
-0009, runs the real batch/resolver/audit test, and drops the database in
-`finally`.
+0009, runs the real batch/resolver/audit and shared membership-store tests,
+proves legacy-authoritative compare/rollback behavior, and drops the database
+in `finally`.
 
 ```bash
 npm run test:identity-backfill-db
