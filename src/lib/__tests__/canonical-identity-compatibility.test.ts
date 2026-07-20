@@ -9,6 +9,11 @@ import {
   requireWalterCanonicalAuthorityConfirmation,
   requireWalterMembershipComparisonConfirmation,
 } from "@/lib/walter-membership-compatibility";
+import {
+  compareTitusLegacyOwnerWithCanonicalMembership,
+  parseTitusMembershipAuthorizationMode,
+  requireTitusMembershipComparisonConfirmation,
+} from "@/lib/titus-membership-compatibility";
 import type {
   CanonicalIdentity,
   CanonicalIdentityStore,
@@ -415,6 +420,227 @@ describe("Walter legacy-owner/canonical-membership shadow comparison", () => {
     expect(events).toEqual([
       {
         eventType: "walter_authorization_shadow_compared",
+        authority: "legacy_owner",
+        comparison: "error",
+        legacyDecision: "allow",
+        canonicalDecision: "unavailable",
+      },
+    ]);
+  });
+});
+
+describe("Titus legacy-owner/canonical-membership shadow comparison", () => {
+  const userId = "better-auth-user-gary";
+  const membershipId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2";
+  const confirmation = "COMPARE_TITUS_MEMBERSHIP_SHADOW";
+
+  function authorizer(
+    decision: Awaited<ReturnType<UseCaseMembershipAuthorizer["authorize"]>>,
+  ): UseCaseMembershipAuthorizer & { authorize: jest.Mock } {
+    return {
+      authorize: jest.fn().mockResolvedValue(decision),
+      invalidateUser: jest.fn(),
+    };
+  }
+
+  function titusGrant() {
+    return {
+      authorized: true as const,
+      membershipId,
+      role: "owner" as const,
+      scope: "use_case" as const,
+      useCaseId: "33333333-3333-4333-8333-333333333333",
+      runtimeIdentityId: "44444444-4444-4444-8444-444444444444",
+    };
+  }
+
+  it("defaults to rollback-safe legacy mode and rejects canonical authority", () => {
+    expect(parseTitusMembershipAuthorizationMode(undefined)).toBe("legacy");
+    expect(parseTitusMembershipAuthorizationMode("")).toBe("legacy");
+    expect(parseTitusMembershipAuthorizationMode("compare")).toBe("compare");
+    expect(() => parseTitusMembershipAuthorizationMode("canonical")).toThrow(
+      "TITUS_MEMBERSHIP_AUTH_MODE must be legacy or compare",
+    );
+  });
+
+  it("requires an exact Titus-specific confirmation before comparison", () => {
+    expect(() =>
+      requireTitusMembershipComparisonConfirmation("legacy", undefined),
+    ).not.toThrow();
+    expect(() =>
+      requireTitusMembershipComparisonConfirmation("compare", confirmation),
+    ).not.toThrow();
+    expect(() =>
+      requireTitusMembershipComparisonConfirmation("compare", undefined),
+    ).toThrow(
+      "TITUS_MEMBERSHIP_COMPARISON_CONFIRM must equal COMPARE_TITUS_MEMBERSHIP_SHADOW",
+    );
+  });
+
+  it("does not start canonical comparison without the exact confirmation", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "not_authorized",
+    });
+    const audit = jest.fn();
+
+    await expect(
+      compareTitusLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit,
+      }),
+    ).rejects.toThrow(
+      "TITUS_MEMBERSHIP_COMPARISON_CONFIRM must equal COMPARE_TITUS_MEMBERSHIP_SHADOW",
+    );
+    expect(canonical.authorize).not.toHaveBeenCalled();
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  it("performs zero canonical or audit work after rollback to legacy mode", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "not_authorized",
+    });
+    const audit = jest.fn();
+
+    await expect(
+      compareTitusLegacyOwnerWithCanonicalMembership({
+        mode: "legacy",
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit,
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: true,
+      comparison: "disabled",
+    });
+    expect(canonical.authorize).not.toHaveBeenCalled();
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [true, titusGrant(), "allow", "allow", "match"],
+    [
+      false,
+      { authorized: false as const, reason: "not_authorized" as const },
+      "deny",
+      "deny",
+      "match",
+    ],
+    [
+      true,
+      { authorized: false as const, reason: "not_authorized" as const },
+      "allow",
+      "deny",
+      "mismatch",
+    ],
+    [false, titusGrant(), "deny", "allow", "mismatch"],
+  ])(
+    "records legacy %s and canonical decision without changing authority",
+    async (
+      legacyAuthorized,
+      decision,
+      legacyDecision,
+      canonicalDecision,
+      comparison,
+    ) => {
+      const events: unknown[] = [];
+
+      await expect(
+        compareTitusLegacyOwnerWithCanonicalMembership({
+          mode: "compare",
+          confirmation,
+          legacyAuthorized,
+          userId,
+          authorizer: authorizer(decision),
+          audit: async (event) => events.push(event),
+        }),
+      ).resolves.toEqual({
+        authority: "legacy_owner",
+        authorized: legacyAuthorized,
+        comparison,
+      });
+      expect(events).toEqual([
+        {
+          eventType: "titus_authorization_shadow_compared",
+          authority: "legacy_owner",
+          comparison,
+          legacyDecision,
+          canonicalDecision,
+        },
+      ]);
+      const serialized = JSON.stringify(events);
+      expect(serialized).not.toContain(userId);
+      expect(serialized).not.toContain(membershipId);
+      expect(serialized).not.toContain("hermes-titus");
+      expect(serialized).not.toContain("/agents/");
+    },
+  );
+
+  it.each([
+    ["canonical authorization is unavailable", "authorization"],
+    ["comparison audit is unavailable", "audit"],
+  ])(
+    "contains %s without changing legacy authority",
+    async (_name, failure) => {
+      const canonical = authorizer(
+        failure === "authorization"
+          ? { authorized: false, reason: "authorization_unavailable" }
+          : titusGrant(),
+      );
+
+      await expect(
+        compareTitusLegacyOwnerWithCanonicalMembership({
+          mode: "compare",
+          confirmation,
+          legacyAuthorized: true,
+          userId,
+          authorizer: canonical,
+          audit:
+            failure === "audit"
+              ? async () => {
+                  throw new Error("audit unavailable");
+                }
+              : async () => undefined,
+        }),
+      ).resolves.toEqual({
+        authority: "legacy_owner",
+        authorized: true,
+        comparison: "error",
+      });
+    },
+  );
+
+  it("records unavailable metadata when the canonical dependency throws", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "authorization_unavailable",
+    });
+    canonical.authorize.mockRejectedValue(new Error("membership store failed"));
+    const events: unknown[] = [];
+
+    await expect(
+      compareTitusLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        confirmation,
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit: async (event) => events.push(event),
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: true,
+      comparison: "error",
+    });
+    expect(events).toEqual([
+      {
+        eventType: "titus_authorization_shadow_compared",
         authority: "legacy_owner",
         comparison: "error",
         legacyDecision: "allow",
