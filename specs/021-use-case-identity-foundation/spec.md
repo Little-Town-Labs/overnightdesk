@@ -12,7 +12,9 @@ qualifies the guarded Titus / Tenet 2 foundation and separate Gary membership
 workflow without applying either to production. T020b adds a guarded
 Titus/Gary legacy-owner versus canonical-membership shadow boundary while
 keeping legacy authorization authoritative and enabling no production
-consumer. No platform-instance link, orchestrator link, resource rename,
+consumer. T020c selects a dedicated Titus Open WebUI deployment as the first
+consumer and defines its Better Auth OIDC `(issuer, subject)` adapter without
+deploying it. No platform-instance link, orchestrator link, resource rename,
 Teams/Austin grant, or Titus consumer cutover is included. Trevor production
 activation still waits for Mitchel.
 
@@ -163,7 +165,8 @@ use of the new tables without deleting them or changing resources.
   Teams integration.
 - **FR-016**: Feature 020 Open WebUI authentication research MAY proceed after
   this identity contract is accepted. Its service and dashboard implementation
-  MAY use controlled fixtures after the canonical foundation exists, but
+  MAY use controlled fixtures after the canonical foundation exists. Titus/Gary
+  is the first canary, Walter follows through an isolated deployment, and
   Mitchel's end-user access and browser acceptance MUST wait for his active
   membership.
 - **FR-017**: Canonical use-case provisioning MUST NOT require a human to have
@@ -177,6 +180,11 @@ use of the new tables without deleting them or changing resources.
   and rollback. Walter is the first real authorization cutover, Titus follows
   with Gary without depending on Teams or Austin, and Trevor remains
   production-blocked until Mitchel has an active verified membership.
+- **FR-019**: The first Titus membership consumer MUST be a dedicated Open
+  WebUI deployment whose external account key is the exact Better Auth OIDC
+  `(issuer, subject)` pair and whose hostname, client/audience, runtime, and
+  Hermes target are assigned server-side. The adapter MUST NOT authorize or
+  change Titus Matrix, AgentMail, Teams, or Austin identities.
 
 ### Key Entities
 
@@ -193,6 +201,9 @@ use of the new tables without deleting them or changing resources.
   external registry identifier.
 - **Secret Boundary**: A Phase App and environment access boundary that may
   contain secrets for several related resources without becoming their identity.
+- **External Consumer Identity Adapter**: Consumer-specific proof that maps an
+  authenticated provider subject to the existing membership subject and a
+  server-derived runtime/workspace assignment without using email.
 
 ## Success Criteria
 
@@ -213,6 +224,10 @@ use of the new tables without deleting them or changing resources.
 - **SC-007**: One shared membership integration passes controlled Walter,
   Titus, and Trevor fixtures without branching authorization policy on a
   runtime alias, persona name, or Tenet number.
+- **SC-008**: The Titus Open WebUI canary denies unauthenticated, non-member,
+  wrong-use-case, suspended/expired, stale-session, wrong-host/audience, and
+  storage-unavailable requests while rollback closes only the new route and
+  leaves Titus Matrix and email healthy.
 
 ## Non-Goals
 

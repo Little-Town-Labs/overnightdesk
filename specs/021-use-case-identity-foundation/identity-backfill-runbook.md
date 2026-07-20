@@ -235,10 +235,44 @@ Titus/Gary membership comparison boundary without changing production:
   Matrix E2EE membership, email sender allowlist, Teams integration, Austin
   grant, Phase path, or live resource changed.
 
-T020c must select and document a Titus production consumer and the relevant
-external-identity adapter before any production comparison or authority
+T020c's selection below precedes any production comparison or authority
 change. Better Auth membership alone does not authorize Matrix, email, or
 Teams identities.
+
+## Titus T020c consumer-selection checkpoint
+
+On 2026-07-20, T020c selected a dedicated Titus Open WebUI deployment as the
+first Tenet 2 membership consumer. This is a contract decision only; no Open
+WebUI container, volume, hostname, OIDC client, Phase path, Vercel assignment,
+Nginx route, database row, or production authorization changed.
+
+The selected adapter uses the exact OvernightDesk OIDC `(issuer, subject)`
+pair. The subject is Gary's opaque Better Auth `user.id`; email is not an
+account key. The OIDC client/audience, callback, requested hostname, canonical
+Tenet 2 runtime, Open WebUI deployment, and private `hermes-titus` endpoint
+must resolve to the same server-side assignment. Nginx must recheck the Better
+Auth session and active membership on HTTP, streaming, and WebSocket requests,
+so a retained Open WebUI cookie cannot bypass logout, suspension, expiry, or
+revocation.
+
+A read-only Aegis preflight at selection time confirmed `hermes-titus.service`
+and `hermes-email-intake@titus.service` active, both corresponding containers
+healthy with no published ports, the legacy standalone Titus poller inactive,
+`TITUS_MATRIX_STATE=ready`, and the durable Matrix store present. No secret,
+identity value, message, or conversation content was inspected.
+
+This adds a third Titus interaction identity without replacing the two active
+ones. Matrix retains its exact operator/bot/encrypted-room/device policy, and
+email retains its dedicated AgentMail inbox and exact sender allowlist. Teams
+and Austin remain later work. Titus Open WebUI secrets belong to the
+`timeless-tech-solutions` Phase App; Walter's later isolated Open WebUI
+deployment belongs to `overnightdesk`. Mitchel/Trevor remains gated on
+Mitchel's verified membership.
+
+The next gate is T020d: pin and review the Open WebUI release and prove the
+OIDC, frame, cookie, streaming/WebSocket, logout, local-auth shutdown, denial,
+and route-disabled rollback contract with fixtures. Production Tenet 2 apply
+and the Titus/Gary canary remain the separate T020e gate.
 
 ## Production checkpoint
 

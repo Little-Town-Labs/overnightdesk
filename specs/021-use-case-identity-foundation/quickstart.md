@@ -28,10 +28,12 @@ still requires every preflight in the runbook to pass.
 10. Use the guarded `identity:titus:foundation:*` and
    `identity:titus:membership:*` commands to allocate and backfill Tenet 2 plus
    Gary only after their separate confirmations, then use the separately
-   confirmed Titus legacy-authoritative shadow boundary before selecting a
-   production consumer. Preserve existing Matrix E2EE and email sender controls
-   until their external identities have a separately approved canonical
-   adapter; do not wait for Teams or Austin.
+   confirmed Titus legacy-authoritative shadow boundary. The selected first
+   consumer is a dedicated Titus Open WebUI deployment using the exact Better
+   Auth OIDC `(issuer, subject)` account key and server-derived runtime,
+   hostname, client, and Hermes assignments. Preserve existing Matrix E2EE and
+   email sender controls; their external identities do not inherit this
+   adapter. Do not wait for Teams, Austin, or Mitchel.
 11. Attach Mitchel's membership later through the separate audited command only
    after his Better Auth user is email-verified. Trevor production activation
    remains blocked, but it does not block Walter or Titus.

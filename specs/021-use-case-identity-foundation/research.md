@@ -83,6 +83,22 @@ Better Auth subject. This keeps customer participation from blocking platform
 delivery without using email as identity, inventing a user, or granting an
 operator temporary access to somebody else's use case.
 
+## Decision 8: Use Titus Open WebUI as the first Tenet 2 consumer
+
+Titus already has two active external channel identities: an exact Matrix
+operator/bot/encrypted-room policy and an AgentMail inbox with an exact sender
+allowlist. Replacing either policy would mix Better Auth membership with a
+different provider subject and add risk to a working channel.
+
+A dedicated Open WebUI deployment is a new surface and can use the existing
+Better Auth identity directly through an exact OIDC `(issuer, subject)` account
+key. The platform can bind its client, hostname, canonical runtime, and private
+Hermes endpoint server-side and can close the entire new route on rollback.
+This makes Titus/Gary the first Open WebUI canary without changing Matrix,
+email, Teams, or Austin. Walter follows through a fully separate Open WebUI
+deployment. Mitchel/Trevor remains later because Mitchel's active membership is
+still unavailable.
+
 ## Rejected Alternatives
 
 - **Use the sequential number as the primary key**: enumerable, leaks creation
@@ -97,3 +113,8 @@ operator temporary access to somebody else's use case.
   orchestrator already generate independent IDs.
 - **Keep `instance.userId` as the permanent authorization model**: cannot
   express Titus collaboration or scoped roles.
+- **Use Matrix or email as the first Titus membership consumer**: both already
+  have provider-specific identities and active policies; canonical membership
+  cannot prove an MXID or sender address without a separately approved binding.
+- **Share Titus and Walter Open WebUI state**: would merge accounts, chats,
+  administration, secrets, and rollback across distinct use-case boundaries.

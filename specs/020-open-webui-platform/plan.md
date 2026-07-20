@@ -8,12 +8,15 @@ Replace the custom chat card in the Vercel-hosted dashboard with a full-height
 Open WebUI workspace. Vercel and Better Auth remain the control and identity
 plane. Aegis runs one persistent Open WebUI deployment per Hermes use-case and
 memory boundary. Feature 021 supplies canonical runtime assignment and active
-membership; Nginx enforces that target gate while retaining the existing
-exact-owner read for migration rollback. Open WebUI uses a separate
+membership; Nginx enforces that target gate. Existing consumers may retain an
+exact-owner compatibility read, while the new Titus workspace rolls back by
+closing its assignment and route. Open WebUI uses a separate
 OvernightDesk OIDC client and connects privately to the matching Hermes
-OpenAI-compatible API. Mitchel is the first canary user and
-Trevor is his agent persona; the native Hermes dashboard remains the rollback
-surface.
+OpenAI-compatible API. Gary and Titus are the first canary user/runtime;
+Walter follows through a separate deployment using the same pattern, and
+Mitchel/Trevor remains gated on Mitchel's active membership. The native Hermes
+dashboard remains unchanged where already exposed; Titus rolls back to its
+existing Matrix and email interaction paths.
 
 ## Technical Context
 
@@ -29,8 +32,10 @@ for the first release
 **Ingress and auth**: Nginx TLS plus Better Auth `auth_request`; separate Open
 WebUI OIDC client and exact `/oauth/oidc/callback` redirect
 
-**Secrets**: Phase app `overnightdesk`; per-runtime Open WebUI path; no secret
-values in Vercel responses, source control, tests, or logs
+**Secrets**: Phase App selected by use-case trust boundary; Titus uses
+`timeless-tech-solutions`, Walter uses `overnightdesk`, and every deployment
+uses its own Open WebUI path; no secret values in Vercel responses, source
+control, tests, or logs
 
 **Testing**: Next.js unit/integration tests; Nginx configuration assertions;
 container health and persistence checks; Playwright desktop/mobile auth,
@@ -44,12 +49,13 @@ embedding, chat, logout, denial, and rollback checks
 - **Security**: CONDITIONAL PASS. OIDC-in-embed behavior, frame policy, exact
   membership and non-member denial, local-auth shutdown, and secret non-exposure must pass the
   canary before broad use.
-- **Owner decides**: PASS. The canary and cleanup are separate gates. Titus
-  Teams work and broader rollout require later approval.
+- **Owner decides**: PASS. Titus, Walter, and cleanup are separate gates.
+  Titus Teams work and broader rollout require later approval.
 - **Simple over clever**: PASS. Open WebUI uses Hermes' documented OpenAI
   compatibility directly; Vercel does not relay streaming chat traffic.
 - **Quality and rollback**: PASS. The native dashboard and both state volumes
-  are retained through an observation window.
+  are retained through an observation window, and Titus Matrix/email remain
+  unchanged.
 
 ## Architecture
 
@@ -114,28 +120,30 @@ overnightdesk-platform-standard/
    semantics, membership authorization, runtime/persona separation, and
    resource-binding compatibility rules.
 2. **Open WebUI auth spike**: Pin the Open WebUI version, decide hostname
-   template, register a separate OIDC client for Mitchel's Trevor workspace,
+   template, register a separate OIDC client for the Titus workspace,
    and prove top-level login,
    iframe session reuse, logout semantics, and frame policy without exposing the
    service broadly. This may overlap the additive identity implementation.
-3. **Mitchel/Trevor identity prerequisite**: Complete Feature 021's additive
-   schema, canonical resolver, Mitchel user membership, Trevor persona
-   assignment, and use-case/runtime bindings. Keep all existing resource names
-   and the prior single-owner read available.
-4. **Mitchel/Trevor stateful canary**: Add Phase-backed secrets, a dedicated volume,
+3. **Titus identity prerequisite**: Complete Feature 021's guarded Tenet 2
+   foundation and separate Gary membership operation. Keep every Matrix,
+   AgentMail, Teams, runtime, and rollback identifier unchanged.
+4. **Titus/Gary stateful canary**: Add TTS Phase-backed secrets, a dedicated volume,
    private Hermes connection, health checks, and a canary-only Nginx route
    assigned through the canonical runtime and membership.
 5. **Frontend workspace redesign**: Create a wide dashboard shell and Chat
-   route, keep Trevor status surfaces concise, and add unavailable/native
-   dashboard fallbacks.
+   route, keep Titus status surfaces concise, and add an honest unavailable
+   state that points back to the existing Matrix/email paths.
 6. **Browser and rollback proof**: Verify member and non-member behavior,
    streaming, reload persistence, mobile layout, logout, container recreation,
    and sub-15-minute route rollback.
-7. **Cleanup**: After the observation gate, remove the custom chat component,
-   `/api/engine/chat`, `/api/engine/sessions`, the undeployed provisioner
-   `/sessions` client, and dependencies used only by that bridge.
-8. **Expansion**: Evaluate Walter and later Titus separately. Teams integration
-   remains its own feature.
+7. **Cleanup**: Only after Titus and Walter are accepted and all remaining
+   consumers are accounted for, verify zero use and remove the custom chat
+   component, `/api/engine/chat`, `/api/engine/sessions`, the undeployed
+   provisioner `/sessions` client, and dependencies used only by that bridge.
+8. **Expansion**: Provision Walter through a separate container, volume,
+   hostname, OIDC client, Phase path, and Hermes connection after the Titus
+   canary. Mitchel/Trevor follows after Mitchel's active membership. Teams
+   remains its own channel feature.
 
 ## Priority Against Remaining Work
 
@@ -144,19 +152,22 @@ overnightdesk-platform-standard/
    assignments, and resource bindings before a stateful shared-access canary.
 2. **Parallel after contract — Feature 020 release/auth spike (P1)**: OIDC,
    embedding, frame policy, and pinned-release research can proceed while the
-   additive identity schema and Mitchel backfill are implemented.
+   guarded Tenet 2 foundation and Gary membership are prepared.
 3. **Separate owner gate — Feature 12 scheduler activation**: Prospect deep
    research is implemented and deployed; only task T024 remains, and it
    explicitly requires operator approval. It does not block Feature 020 source
    work.
-4. **Next — Feature 021 Mitchel vertical slice, then Feature 020 canary and
-   frontend cutover (P1)**.
-5. **After canary — Mitchel landing page (P2)**: Public acquisition remains
+4. **Next — Feature 021 Titus foundation/membership, then the Feature 020
+   Titus canary and frontend cutover (P1)**.
+5. **After Titus — Walter Open WebUI (P1)**: Reuse the qualified pattern but
+   preserve a separate workload, state, client, and secret boundary.
+6. **After Mitchel membership — Mitchel/Trevor Open WebUI (P1)**: Do not block
+   Titus or Walter on Mitchel's registration.
+7. **After canary — Mitchel landing page (P2)**: Public acquisition remains
    valuable but depends on a trustworthy authenticated operator experience.
-6. **Deferred — provisioner `/sessions` route**: Do not implement a legacy
+8. **Deferred — provisioner `/sessions` route**: Do not implement a legacy
    session bridge solely for the custom chat that Feature 020 will retire.
-7. **Separate roadmap — Titus shared membership, Open WebUI, and Teams
-   integration**.
+9. **Separate roadmap — Titus Teams integration and Austin membership**.
 
 The May 2026 three-phase provisioner/orchestrator convergence sketch
 (`OPERATOR_RESEED` bootstrap wiring, `/provision-infra`, and wizard parallel
@@ -171,5 +182,6 @@ retire the existing platform orchestrator or its other responsibilities.
 - Stop, but do not delete, the Open WebUI container or named volume.
 - Keep the Hermes API, runtime volume, native dashboard, and existing OIDC
   client unchanged.
+- Verify the existing Titus Matrix and email paths remain healthy.
 - Record the canary outcome and any production state change in the platform
   standard and suite `deploys.log`.

@@ -19,12 +19,14 @@ dashboard as an advanced and rollback surface during rollout.
 An authorized user can enter the OvernightDesk dashboard and use a polished,
 full-height chat workspace without separately managing an Open WebUI password.
 
-**Why this priority**: Chat is the primary interaction surface for Mitchel with
-his Hermes agent/persona Trevor, and a likely secondary surface for other use
-cases. The current custom chat is a
-thin proxy with incomplete history and duplicates a mature upstream UI.
+**Why this priority**: Titus is an active runtime whose owner already has a
+verified Better Auth identity and can complete the first reusable membership,
+OIDC, persistence, and rollback canary without waiting for Mitchel. Walter
+should receive a separate deployment after that canary, and Mitchel/Trevor can
+follow when Mitchel's membership exists. The current custom chat is a thin
+proxy with incomplete history and duplicates a mature upstream UI.
 
-**Independent Test**: Mitchel signs into OvernightDesk, opens his Trevor
+**Independent Test**: Gary signs into OvernightDesk, opens his Titus
 workspace, sends a text prompt, sees streamed Hermes tool
 progress and a final response, reloads the page, and sees the conversation in
 the same Open WebUI account.
@@ -80,7 +82,8 @@ not a full-height application. Embedding Open WebUI without revisiting the
 shell would produce a cramped and confusing experience.
 
 **Independent Test**: Verify desktop and mobile layouts for Overview, Chat,
-Mitchel's Trevor workspace, Settings, and the native Hermes dashboard link.
+Gary's Titus workspace, Settings, and an honest fallback to the existing Titus
+Matrix/email interaction paths.
 
 **Acceptance Scenarios**:
 
@@ -90,8 +93,8 @@ Mitchel's Trevor workspace, Settings, and the native Hermes dashboard link.
 2. **Given** a mobile viewport, **when** Chat is selected, **then** navigation
    remains usable and the chat surface has a supported mobile fallback.
 3. **Given** the canary is active, **when** Open WebUI is unavailable, **then**
-   the user sees an honest error and can still launch the native Hermes
-   dashboard.
+   the user sees an honest error and the existing Titus Matrix and email paths
+   remain available.
 
 ---
 
@@ -110,13 +113,14 @@ Open WebUI volume remain intact.
 
 **Acceptance Scenarios**:
 
-1. **Given** the Mitchel/Trevor canary fails a gate, **when** rollback is invoked,
+1. **Given** the Titus/Gary canary fails a gate, **when** rollback is invoked,
    **then** the platform hides the embedded workspace without deleting data.
 2. **Given** the canary passes, **when** the custom chat is retired, **then**
    its API route, session bridge client, tests, and UI dependencies are removed
    together.
 3. **Given** Titus Teams integration is not part of this slice, **when** the
-   feature ships, **then** no Teams routing or Titus authorization is changed.
+   feature ships, **then** no Teams routing, Matrix identity, or AgentMail
+   sender authorization is changed.
 
 ## Requirements
 
@@ -132,8 +136,9 @@ Open WebUI volume remain intact.
   client, Hermes connection, and secret path.
 - **FR-004**: Nginx MUST remain the only public Aegis ingress and MUST enforce
   the Better Auth active-membership gate for the canonical runtime before
-  forwarding Open WebUI traffic. The prior exact-owner read remains only as a
-  migration rollback path.
+  forwarding Open WebUI traffic. A runtime with an existing exact-owner path
+  may retain it only as migration compatibility; the new Titus workspace rolls
+  back by closing its assignment and route, not by exposing legacy-only access.
 - **FR-005**: Open WebUI MUST authenticate users through the OvernightDesk
   identity provider; local signup and password authentication MUST be disabled
   after OIDC has passed a rollback-tested canary.
@@ -142,8 +147,10 @@ Open WebUI volume remain intact.
 - **FR-007**: Open WebUI MUST call Hermes server-to-server through the private
   Docker network and use the Chat Completions API for the first release.
 - **FR-008**: Hermes API keys, Open WebUI secret keys, and OIDC client secrets
-  MUST live in the `overnightdesk` Phase app and MUST NOT be exposed to the
-  browser or stored in the OvernightDesk application database.
+  MUST live in the Phase App for the assigned use-case boundary—
+  `timeless-tech-solutions` for Titus and `overnightdesk` for Walter—and MUST
+  NOT be exposed to the browser or stored in the OvernightDesk application
+  database.
 - **FR-009**: Open WebUI chat/account data MUST persist in a dedicated volume
   belonging to the same use-case boundary as its Hermes runtime.
 - **FR-010**: The embedding policy MUST allow framing only from approved
@@ -153,12 +160,16 @@ Open WebUI volume remain intact.
   file upload, web search, code execution, and model visibility require
   explicit capability review rather than inheriting broad Open WebUI defaults.
 - **FR-012**: The platform MUST keep the native Hermes dashboard available as
-  an advanced and rollback surface through the observation window.
+  an advanced and rollback surface where it is already exposed, and MUST keep
+  Titus Matrix/email available through the Titus observation window.
 - **FR-013**: The existing custom chat and provisioner `/sessions` client MUST
-  remain compatibility code until the canary passes and MUST then be removed
-  as one reviewed cleanup slice.
-- **FR-014**: The feature MUST begin with one Mitchel-user/Trevor-agent canary and MUST NOT
-  change Titus Teams integration, Walter's native dashboard, or Rex.
+  remain compatibility code until Titus and Walter have accepted Open WebUI
+  rollouts and all remaining consumers are accounted for. They may then be
+  removed as one reviewed cleanup slice after verified zero use.
+- **FR-014**: The feature MUST begin with one Gary-user/Titus-agent canary,
+  evaluate a separate Walter deployment next, and leave Mitchel/Trevor gated
+  on Mitchel's active membership. It MUST NOT change Titus Teams, Matrix, or
+  AgentMail authorization, Austin membership, or Rex.
 - **FR-015**: Authentication failures, cross-instance denials, canary changes,
   and administrative configuration changes MUST produce metadata-only audit
   events without prompts, responses, cookies, tokens, or secret values.
@@ -181,7 +192,7 @@ Open WebUI volume remain intact.
 
 ## Success Criteria
 
-- **SC-001**: Mitchel completes login to his Trevor workspace, first chat, streamed response,
+- **SC-001**: Gary completes login to his Titus workspace, first chat, streamed response,
   reload, logout, and re-login without a second password.
 - **SC-002**: Cross-instance and unauthenticated browser checks are denied
   before reaching Open WebUI.
@@ -191,8 +202,9 @@ Open WebUI volume remain intact.
   the retained dedicated volume.
 - **SC-005**: Desktop and mobile browser checks pass with no unexpected nested
   scrolling and with an honest unavailable state.
-- **SC-006**: Rollback to the native Hermes dashboard takes less than 15
-  minutes and preserves both Hermes and Open WebUI state.
+- **SC-006**: Rollback closes the Titus Open WebUI route in less than 15
+  minutes, preserves both Hermes and Open WebUI state, and leaves Matrix and
+  email healthy.
 
 ## Non-Goals
 

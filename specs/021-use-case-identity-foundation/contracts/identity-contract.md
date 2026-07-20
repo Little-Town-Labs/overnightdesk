@@ -72,6 +72,28 @@ outputs. It adds a canonical resolver beside them. For each consumer:
 
 No compatibility step prints or stores secret values.
 
+## External Consumer Identity Contract
+
+Canonical membership is necessary but is not, by itself, proof of an identity
+presented by an external channel. Each consumer adapter must authenticate its
+own provider subject and bind that subject to the membership identity without
+using email, a display name, a room alias, or a client-supplied use-case value.
+
+The first Titus adapter is a dedicated Open WebUI OIDC client. It uses the
+exact OvernightDesk issuer and opaque Better Auth subject as the external
+account key. The client/audience, exact callback, requested hostname,
+canonical Tenet 2 runtime, Open WebUI deployment, and private Hermes endpoint
+are resolved and compared server-side. Account linking by email and trusted
+identity headers are prohibited. Nginx rechecks the Better Auth session and
+active membership for all HTTP, streaming, and WebSocket requests; an Open
+WebUI cookie is not independent authorization.
+
+This adapter does not authorize Titus Matrix, AgentMail, or Teams. Their MXID,
+sender address, and Entra object identities remain separate provider subjects
+with separate channel-native controls until later approved adapters exist.
+Adding another person requires that person's own Better Auth membership and
+external-provider binding; bindings are never copied between people.
+
 ## Open WebUI Contract
 
 Feature 020 uses canonical runtime identity for workspace assignment and active
