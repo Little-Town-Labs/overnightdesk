@@ -53,6 +53,7 @@ describe("GET /api/auth/verify-workspace", () => {
     expect(mockRecordAudit).toHaveBeenCalledWith(
       expect.objectContaining({ category: "success" }),
     );
+    expect(mockRecordAudit).toHaveBeenCalledTimes(1);
   });
 
   it("denies missing session, host, invalid transport, or membership", async () => {

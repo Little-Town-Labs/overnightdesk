@@ -51,10 +51,10 @@ function mapClient(row: typeof oauthClient.$inferSelect): TitusOpenWebuiClient {
     redirectUris: row.redirectUris,
     postLogoutRedirectUris: row.postLogoutRedirectUris ?? [],
     tokenEndpointAuthMethod: row.tokenEndpointAuthMethod as "none",
-    grantTypes: row.grantTypes as ["authorization_code", "refresh_token"],
+    grantTypes: row.grantTypes as ["authorization_code"],
     responseTypes: row.responseTypes as ["code"],
     public: row.public as true,
-    type: row.type as "web",
+    type: row.type as "user-agent-based",
     requirePKCE: row.requirePKCE as true,
     metadata: row.metadata as TitusOpenWebuiClient["metadata"],
   };

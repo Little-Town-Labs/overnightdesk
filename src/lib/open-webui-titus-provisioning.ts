@@ -24,10 +24,10 @@ export interface TitusOpenWebuiClient {
   redirectUris: string[];
   postLogoutRedirectUris: string[];
   tokenEndpointAuthMethod: "none";
-  grantTypes: ["authorization_code", "refresh_token"];
+  grantTypes: ["authorization_code"];
   responseTypes: ["code"];
   public: true;
-  type: "web";
+  type: "user-agent-based";
   requirePKCE: true;
   metadata: {
     kind: "open-webui";
@@ -85,10 +85,10 @@ export function buildTitusOpenWebuiProvisioningSpec(
         "https://www.overnightdesk.com/dashboard/chat?workspace=logged-out",
       ],
       tokenEndpointAuthMethod: "none",
-      grantTypes: ["authorization_code", "refresh_token"],
+      grantTypes: ["authorization_code"],
       responseTypes: ["code"],
       public: true,
-      type: "web",
+      type: "user-agent-based",
       requirePKCE: true,
       metadata: {
         kind: "open-webui",

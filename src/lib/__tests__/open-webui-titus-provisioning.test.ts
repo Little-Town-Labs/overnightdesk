@@ -3,6 +3,7 @@ import {
   verifyTitusOpenWebuiProvisioningSnapshot,
 } from "@/lib/open-webui-titus-provisioning";
 import { TITUS_OPEN_WEBUI } from "@/lib/open-webui-titus-canary";
+import { buildOpenWebuiOidcClientPayload } from "@/lib/open-webui-auth-spike";
 
 const identity = {
   useCaseId: "22222222-2222-4222-8222-222222222222",
@@ -49,6 +50,43 @@ describe("Titus Open WebUI provisioning specification", () => {
         ...identity,
       },
     });
+  });
+
+  it("matches the reviewed Open WebUI authorization client contract", () => {
+    const spec = buildTitusOpenWebuiProvisioningSpec(identity).client;
+    const authorization = buildOpenWebuiOidcClientPayload({
+      enabled: true,
+      deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+      ...identity,
+      host: TITUS_OPEN_WEBUI.host,
+      oidcClientId: TITUS_OPEN_WEBUI.oidcClientId,
+      oidcAudience: TITUS_OPEN_WEBUI.oidcClientId,
+      issuer: TITUS_OPEN_WEBUI.issuer,
+      hermesBaseUrl: TITUS_OPEN_WEBUI.hermesBaseUrl,
+    });
+    const provisionedContract = {
+      redirect_uris: spec.redirectUris,
+      scope: spec.scopes.join(" "),
+      token_endpoint_auth_method: spec.tokenEndpointAuthMethod,
+      grant_types: spec.grantTypes,
+      response_types: spec.responseTypes,
+      type: spec.type,
+      skip_consent: spec.skipConsent,
+      require_pkce: spec.requirePKCE,
+      metadata: spec.metadata,
+    };
+    const authorizationContract = {
+      redirect_uris: authorization.redirect_uris,
+      scope: authorization.scope,
+      token_endpoint_auth_method: authorization.token_endpoint_auth_method,
+      grant_types: authorization.grant_types,
+      response_types: authorization.response_types,
+      type: authorization.type,
+      skip_consent: authorization.skip_consent,
+      require_pkce: authorization.require_pkce,
+      metadata: authorization.metadata,
+    };
+    expect(provisionedContract).toEqual(authorizationContract);
   });
 
   it("accepts an exact disabled or enabled snapshot and rejects drift", () => {

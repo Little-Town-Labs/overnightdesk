@@ -21,18 +21,6 @@ export async function GET(request: NextRequest) {
     ? (rawTransport as "http" | "sse" | "websocket")
     : null;
 
-  try {
-    await recordOpenWebuiAuditEvent({
-      category: "start",
-      deploymentId: TITUS_OPEN_WEBUI.deploymentId,
-      host,
-      requestId,
-      transport: transport ?? undefined,
-    });
-  } catch {
-    return unauthorized();
-  }
-
   const session = await auth.api.getSession({ headers: request.headers });
   if (!host || !transport || !session) {
     await recordOpenWebuiAuditEvent({
