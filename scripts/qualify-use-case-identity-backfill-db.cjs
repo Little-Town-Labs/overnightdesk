@@ -29,7 +29,7 @@ async function execute(url, statement) {
   await drizzle(neon(url)).execute(sql.raw(statement));
 }
 
-function runIntegrationTest(targetUrl) {
+function runIntegrationTests(targetUrl) {
   const result = spawnSync(
     "npm",
     [
@@ -37,6 +37,7 @@ function runIntegrationTest(targetUrl) {
       "--",
       "--runInBand",
       "src/db/__tests__/identity-backfill-store.integration.test.ts",
+      "src/db/__tests__/use-case-membership-store.integration.test.ts",
     ],
     {
       cwd: repo,
@@ -50,7 +51,7 @@ function runIntegrationTest(targetUrl) {
   );
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`identity integration test exited ${result.status}`);
+    throw new Error(`identity integration tests exited ${result.status}`);
   }
 }
 
@@ -146,8 +147,8 @@ async function main() {
     currentStage = "apply identity schema through production command";
     runSchemaApply(targetUrl);
 
-    currentStage = "run identity backfill integration test";
-    runIntegrationTest(targetUrl);
+    currentStage = "run identity integration tests";
+    runIntegrationTests(targetUrl);
 
     currentStage = "run canonical shadow comparison";
     runCompatibilityVerification(targetUrl, "compare");

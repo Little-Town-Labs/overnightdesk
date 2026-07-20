@@ -55,6 +55,20 @@ connect the policy to OIDC, dashboard, or API routes and does not change the
 legacy-authoritative production read path. The shared database integration
 remains T018; each production consumer cutover is a later separate gate.
 
+**Shared membership checkpoint (2026-07-20):**
+`021-shared-membership-store` adds the reusable Drizzle lookup and one
+server-bound authorization interface for Walter, Titus, and Trevor. The
+authorizer accepts only a stable authenticated user ID; canonical use-case and
+optional runtime UUID assignment are supplied server-side. Active use-case,
+runtime, membership, scope, and expiry checks run through parameterized
+Drizzle queries. Grants and denials produce metadata-only audit records with a
+subject fingerprint, while audit or storage failure denies access. Caching
+remains disabled by default; explicit cache tests retain the T017 expiry and
+invalidation bounds. Disposable-Neon qualification passed both identity
+integration suites and preserved legacy-authoritative compare/rollback
+behavior. No OIDC, dashboard, API route, Hermes runtime, or other production
+consumer is enabled by this checkpoint.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is

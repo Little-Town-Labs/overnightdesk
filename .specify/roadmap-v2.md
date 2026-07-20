@@ -207,7 +207,7 @@ mapping → stateful Mitchel canary → dashboard cutover → custom-chat cleanu
 **Completion gate:**
 - [ ] Non-technical user can complete wizard post-payment; no server access required
 - [ ] All secrets flow through Phase.dev; zero plaintext credentials in platform DB
-- [ ] One shared membership integration passes Walter, Titus, and Trevor fixtures without alias-based authorization
+- [x] One shared membership integration passes Walter, Titus, and Trevor fixtures without alias-based authorization
 - [ ] Walter/Tenet 0 and Titus/Tenet 2 receive separately audited foundations and Gary memberships; Walter passes the first real cutover and rollback gate
 - [ ] Mitchel membership and Trevor production activation remain fail-closed without blocking Walter or Titus
 - [ ] Authenticated Mitchel can chat with his Trevor agent through the embedded Open WebUI workspace with streaming responses

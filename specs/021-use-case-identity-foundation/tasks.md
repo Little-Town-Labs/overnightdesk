@@ -3,10 +3,12 @@
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
 **Status**: Migration 0009 and the guarded Tenet 1 foundation are deployed and
-verified in production with zero memberships. Mitchel's verified membership
-remains a later fail-closed operation. Existing authorization is still
-authoritative; no Phase change, resource rename, platform/orchestrator link, or
-authorization cutover has been performed.
+verified in production with zero memberships. The shared T018 database-backed
+membership integration is implemented and disposable-Neon qualified with no
+production consumer. Mitchel's verified membership remains a later fail-closed
+operation. Existing authorization is still authoritative; no Phase change,
+resource rename, platform/orchestrator link, or authorization cutover has been
+performed.
 
 ## Phase 1: Durable Contract
 
@@ -51,11 +53,11 @@ authorization cutover has been performed.
   wrong-use-case, suspended-member, membership-expiry, cache-expiry,
   cache-invalidation, and storage-unavailable authorization tests; retain the
   isolated policy as pre-cutover code with no production consumer
-- [ ] T018 Build the reusable canonical membership integration without enabling a production consumer
-  - [ ] T018a Add a Drizzle membership store in `src/lib/use-case-membership-store.ts` with integration coverage in `src/db/__tests__/use-case-membership-store.integration.test.ts`; resolve by stable user ID, canonical use-case UUID, optional runtime scope, active state, and expiry
-  - [ ] T018b Add metadata-only denial/audit and server-derived runtime assignment in `src/lib/use-case-membership-authorization.ts`; never accept a client alias, persona, or Tenet number as authority
-  - [ ] T018c Keep authorization caching disabled by default and qualify any explicit cache mode in `src/lib/__tests__/use-case-membership-authorization.test.ts` against T017 expiry/invalidation behavior
-  - [ ] T018d Extend `src/lib/__tests__/fixtures/use-case-membership.ts` to prove the same integration with Walter, Titus, and Trevor fixtures while legacy production readers remain authoritative
+- [x] T018 Build the reusable canonical membership integration without enabling a production consumer
+  - [x] T018a Add a Drizzle membership store in `src/lib/use-case-membership-store.ts` with integration coverage in `src/db/__tests__/use-case-membership-store.integration.test.ts`; resolve by stable user ID, canonical use-case UUID, optional runtime scope, active state, and expiry
+  - [x] T018b Add metadata-only denial/audit and server-derived runtime assignment in `src/lib/use-case-membership-authorization.ts`; never accept a client alias, persona, or Tenet number as authority
+  - [x] T018c Keep authorization caching disabled by default and qualify any explicit cache mode in `src/lib/__tests__/use-case-membership-authorization.test.ts` against T017 expiry/invalidation behavior
+  - [x] T018d Extend `src/lib/__tests__/fixtures/use-case-membership.ts` to prove the same integration with Walter, Titus, and Trevor fixtures while legacy production readers remain authoritative
 - [ ] T019 Make Walter / Tenet 0 the first real membership-authorization cutover
   - [ ] T019a Extend `src/lib/use-case-identity-backfill.ts`, `src/db/use-case-identity-backfill-store.ts`, and `scripts/use-case-identity-backfill.ts` with a guarded Tenet 0 foundation plus separate Gary membership plan/apply/verify path; preserve all Walter resource names
   - [ ] T019b Add Walter legacy-owner/canonical-membership comparison and rollback coverage in `src/lib/__tests__/canonical-identity-compatibility.test.ts` before authority changes
