@@ -153,6 +153,27 @@ function runWalterMembershipVerify(targetUrl, membershipUserId) {
   }
 }
 
+function runTitusCommand(targetUrl, scope, command, membershipUserId) {
+  const environment = {
+    ...process.env,
+    DATABASE_URL: targetUrl,
+    IDENTITY_FOUNDATION_ACTOR: "operator:identity-qualification",
+    IDENTITY_MEMBERSHIP_ACTOR: "operator:identity-qualification",
+    IDENTITY_FOUNDATION_CONFIRM: "TENET_2_TITUS_FOUNDATION",
+    IDENTITY_MEMBERSHIP_CONFIRM: "ACTIVATE_TENET_2_GARY",
+    GARY_BETTER_AUTH_USER_ID: membershipUserId,
+  };
+  const result = spawnSync(
+    "npm",
+    ["run", `identity:titus:${scope}:${command}`],
+    { cwd: repo, env: environment, stdio: "inherit" },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Titus identity ${scope} ${command} exited ${result.status}`);
+  }
+}
+
 async function readWalterMembershipUserId(targetUrl) {
   const database = drizzle(neon(targetUrl));
   const result = await database.execute(sql`
@@ -165,6 +186,22 @@ async function readWalterMembershipUserId(targetUrl) {
   `);
   if (result.rows.length !== 1 || typeof result.rows[0]?.user_id !== "string") {
     throw new Error("Expected one active Walter membership fixture");
+  }
+  return result.rows[0].user_id;
+}
+
+async function readTitusMembershipUserId(targetUrl) {
+  const database = drizzle(neon(targetUrl));
+  const result = await database.execute(sql`
+    SELECT membership.user_id
+    FROM use_case_membership AS membership
+    INNER JOIN use_case_number_allocation AS allocation
+      ON allocation.use_case_id = membership.use_case_id
+    WHERE allocation.number = 2
+      AND membership.status = 'active'
+  `);
+  if (result.rows.length !== 1 || typeof result.rows[0]?.user_id !== "string") {
+    throw new Error("Expected one active Titus membership fixture");
   }
   return result.rows[0].user_id;
 }
@@ -224,6 +261,19 @@ async function main() {
       targetUrl,
       await readWalterMembershipUserId(targetUrl),
     );
+
+    const titusMembershipUserId = await readTitusMembershipUserId(targetUrl);
+    currentStage = "verify Titus foundation through operator command";
+    runTitusCommand(targetUrl, "foundation", "verify", titusMembershipUserId);
+
+    currentStage = "prove Titus foundation confirmation and idempotent apply";
+    runTitusCommand(targetUrl, "foundation", "apply", titusMembershipUserId);
+
+    currentStage = "verify Gary Titus membership through operator command";
+    runTitusCommand(targetUrl, "membership", "verify", titusMembershipUserId);
+
+    currentStage = "prove Titus membership confirmation and idempotent apply";
+    runTitusCommand(targetUrl, "membership", "apply", titusMembershipUserId);
   } finally {
     if (created) {
       currentStage = "drop disposable database";

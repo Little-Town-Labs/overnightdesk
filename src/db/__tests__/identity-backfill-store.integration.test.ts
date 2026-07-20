@@ -1,8 +1,11 @@
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  TITUS_IDENTITY_TEMPLATE,
   WALTER_IDENTITY_TEMPLATE,
   planMitchelMembershipActivation,
   planMitchelTrevorFoundation,
+  planTitusFoundation,
+  planTitusMembershipActivation,
   planWalterFoundation,
   planWalterMembershipActivation,
 } from "@/lib/use-case-identity-backfill";
@@ -520,5 +523,133 @@ describeIntegration("Walter identity backfill store", () => {
           previousWalterEnvironment.canonical;
       }
     }
+  });
+});
+
+describeIntegration("Titus identity backfill store", () => {
+  it("applies Tenet 2 with zero memberships and attaches Gary separately", async () => {
+    const [{ and, eq }, { db }, schema, storeModule] = await Promise.all([
+      import("drizzle-orm"),
+      import("@/db"),
+      import("@/db/schema"),
+      import("@/db/use-case-identity-backfill-store"),
+    ]);
+    const { platformAuditLog, useCaseMembership, user } = schema;
+    const {
+      applyIdentityFoundationPlan,
+      applyMembershipActivationPlan,
+      generateTitusIdentityIds,
+      inspectTitusIdentityBackfill,
+      inspectTitusIdentityFoundation,
+      verifyTitusCanonicalSelectors,
+    } = storeModule as IdentityStoreModule;
+    const membershipUserId = `titus-gary-${crypto.randomUUID()}`;
+    const input = {
+      actor: "operator:titus-identity-qualification",
+      membershipUserId,
+    };
+    const ids = generateTitusIdentityIds();
+
+    const before = await inspectTitusIdentityFoundation(db);
+    const ready = planTitusFoundation({ actor: input.actor }, before, ids);
+    expect(ready.status).toBe("ready");
+    if (ready.status !== "ready") {
+      throw new Error("expected a ready Titus foundation");
+    }
+    await applyIdentityFoundationPlan(ready, db);
+
+    const afterFoundation = await inspectTitusIdentityFoundation(db);
+    expect(
+      planTitusFoundation(
+        { actor: input.actor },
+        afterFoundation,
+        generateTitusIdentityIds(),
+      ),
+    ).toEqual({
+      status: "verified_noop",
+      useCaseId: ids.useCaseId,
+      runtimeIdentityId: ids.runtimeIdentityId,
+    });
+    await expect(
+      db
+        .select()
+        .from(useCaseMembership)
+        .where(eq(useCaseMembership.useCaseId, ids.useCaseId)),
+    ).resolves.toHaveLength(0);
+    await expect(
+      verifyTitusCanonicalSelectors(
+        ids.useCaseId,
+        ids.runtimeIdentityId,
+        db,
+      ),
+    ).resolves.toEqual({
+      checked: 1 + TITUS_IDENTITY_TEMPLATE.resourceBindings.length,
+      matched: 1 + TITUS_IDENTITY_TEMPLATE.resourceBindings.length,
+      mismatches: [],
+    });
+
+    await db.insert(user).values({
+      id: membershipUserId,
+      name: "Titus Identity Qualification User",
+      email: `${membershipUserId}@test-auth.example.com`,
+      emailVerified: true,
+    });
+    const membershipSnapshot = await inspectTitusIdentityBackfill(input, db);
+    const membershipPlan = planTitusMembershipActivation(
+      input,
+      membershipSnapshot,
+      ids.membershipId,
+    );
+    expect(membershipPlan.status).toBe("ready");
+    if (membershipPlan.status !== "ready") {
+      throw new Error("expected a ready Titus Gary membership");
+    }
+    await applyMembershipActivationPlan(membershipPlan, db);
+
+    const afterMembership = await inspectTitusIdentityBackfill(input, db);
+    expect(
+      planTitusMembershipActivation(
+        input,
+        afterMembership,
+        crypto.randomUUID(),
+      ),
+    ).toEqual({
+      status: "verified_noop",
+      membershipId: ids.membershipId,
+    });
+    expect(afterMembership.existingCanonicalState).toMatchObject({
+      useCase: { id: ids.useCaseId },
+      runtimeIdentity: { id: ids.runtimeIdentityId },
+      membership: { userId: membershipUserId },
+    });
+
+    const foundationAudits = await db
+      .select({ details: platformAuditLog.details })
+      .from(platformAuditLog)
+      .where(
+        and(
+          eq(platformAuditLog.action, "use_case_identity_foundation_applied"),
+          eq(platformAuditLog.target, ids.useCaseId),
+        ),
+      );
+    const membershipAudits = await db
+      .select({ details: platformAuditLog.details })
+      .from(platformAuditLog)
+      .where(
+        and(
+          eq(platformAuditLog.action, "use_case_membership_activated"),
+          eq(platformAuditLog.target, ids.useCaseId),
+        ),
+      );
+    expect(foundationAudits).toHaveLength(1);
+    expect(membershipAudits).toHaveLength(1);
+    const serializedAudits = JSON.stringify([
+      foundationAudits,
+      membershipAudits,
+    ]);
+    expect(serializedAudits).not.toContain(membershipUserId);
+    expect(serializedAudits).not.toContain("hermes-titus");
+    expect(serializedAudits).not.toContain("/agents/");
+    expect(serializedAudits).not.toContain("timeless-tech-solutions");
   });
 });
