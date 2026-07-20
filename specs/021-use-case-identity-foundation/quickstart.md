@@ -25,9 +25,11 @@ still requires every preflight in the runbook to pass.
 9. Allocate and backfill Tenet 0/Walter, attach Gary's verified membership,
    compare legacy and canonical decisions, and use Walter as the first real
    authorization cutover.
-10. Allocate and backfill Tenet 2/Titus plus Gary next. Preserve existing
-   Matrix E2EE and email sender controls until their external identities have a
-   separately approved canonical adapter; do not wait for Teams or Austin.
+10. Use the guarded `identity:titus:foundation:*` and
+   `identity:titus:membership:*` commands to allocate and backfill Tenet 2 plus
+   Gary only after their separate confirmations. Preserve existing Matrix E2EE
+   and email sender controls until their external identities have a separately
+   approved canonical adapter; do not wait for Teams or Austin.
 11. Attach Mitchel's membership later through the separate audited command only
    after his Better Auth user is email-verified. Trevor production activation
    remains blocked, but it does not block Walter or Titus.

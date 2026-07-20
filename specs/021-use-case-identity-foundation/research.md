@@ -25,11 +25,11 @@ and may receive a unique immutable number. The number is never reused and is
 not accepted as proof of access.
 
 The owner confirmed that allocation is zero-based: OvernightDesk/Walter is
-`Tenet 0`, Mitchel/Trevor is `Tenet 1`, and TTS/Titus is `Tenet 2`. These are
-approved targets pending audited database allocation. Existing `tenant-0`,
-`tenet-0`, and `tenet0-postgres` infrastructure labels remain compatibility
-resources; Trevor data hosted by one of those resources does not make Mitchel
-Tenet 0.
+`Tenet 0`, Mitchel/Trevor is `Tenet 1`, and TTS/Titus is `Tenet 2`. Tenets 0
+and 1 are allocated through audited operations; Tenet 2 remains approved but
+not production-allocated. Existing `tenant-0`, `tenet-0`, and
+`tenet0-postgres` infrastructure labels remain compatibility resources;
+Trevor data hosted by one of those resources does not make Mitchel Tenet 0.
 
 ## Decision 2: Standardize `use_case`, reserve `Tenet N` for display
 

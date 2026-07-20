@@ -3,13 +3,14 @@
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
 **Status**: Migration 0009 and the guarded Tenet 1 foundation are deployed and
-verified in production with zero memberships. T018's shared database-backed
-membership integration and Walter's T019 foundation, Gary membership,
-comparison, canonical canary, denial-state checks, and final rollback are
-complete. Production deliberately runs Walter on legacy owner authority with
-both confirmation variables absent. T020 establishes Titus / Tenet 2 next;
-Mitchel's verified membership remains a later fail-closed operation. No Phase
-change, resource rename, or platform/orchestrator link has been performed.
+verified in production with zero memberships. T018 and Walter's T019 canary
+plus final legacy rollback are complete. T020a's guarded Titus / Tenet 2
+foundation and separate Gary membership workflow are implemented and
+disposable-Neon qualified but not production-applied. T020b shadow coverage
+and T020c consumer/adapter selection remain next. Mitchel's verified membership
+is still a later fail-closed operation. No Titus Phase change, resource rename,
+Teams/Austin grant, production consumer, or platform/orchestrator link has been
+performed.
 
 ## Phase 1: Durable Contract
 
@@ -68,7 +69,7 @@ change, resource rename, or platform/orchestrator link has been performed.
     - [x] T019c3 From merged code, apply and verify the guarded Tenet 0 foundation and separate Gary membership, then deploy the new environment variables initially in `legacy`
     - [x] T019c4 Record member, non-member, suspended/expired, logout, direct-login, dashboard-button, compare, and rollback browser/audit evidence in the identity runbook
 - [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
-  - [ ] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
+  - [x] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
   - [ ] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
   - [ ] T020c Record the selected Titus production consumer and external-identity adapter contract in `specs/021-use-case-identity-foundation/plan.md` before cutover; Better Auth membership alone is not authority for Matrix, email, or Teams identities
 
