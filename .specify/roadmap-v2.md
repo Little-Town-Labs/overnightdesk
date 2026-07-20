@@ -107,9 +107,11 @@ membership, and infrastructure resource bindings. Keep UUIDs as internal and
 security identifiers; optionally allocate an immutable, never-reused number for
 human-facing `Tenet N` references. Preserve existing instance, orchestrator,
 container, volume, hostname, Phase, OIDC, and intake identifiers during
-migration. The Mitchel business use case is the first vertical slice: Mitchel
-is the person/member, Trevor is his agent persona, and `hermes-mitchel` is the
-current runtime resource alias.
+migration. The Mitchel business use case supplied the first completed database
+backfill/resolver slice: Mitchel is the person/member, Trevor is his agent
+persona, and `hermes-mitchel` is the current runtime resource alias. Forward
+authorization work is shared first, Walter first in production, Titus next,
+and Trevor last when Mitchel's membership exists.
 **Complexity:** Large
 **Priority:** P0 foundation for shared access and Feature 020 canary
 **Dependencies:** Accepted terminology/identity contract; additive schema and
@@ -122,18 +124,18 @@ contract is accepted; independently owner-gated Feature 12 activation
 
 ---
 
-## Current Priority Decision — 2026-07-19
+## Current Priority Decision — 2026-07-19 Authorization Reprioritization
 
 | Order | Work | Priority decision |
 |------:|------|-------------------|
-| 1 | Feature 021 terminology, contract, and additive schema/resolver | Start first. Canonical UUID, optional stable number, membership, persona assignment, and resource-binding semantics are foundational. |
-| 2 | Feature 020 release/authentication/embedding spike | May overlap Feature 021 implementation after the identity contract is accepted; it does not need production identity backfill to test OIDC/frame behavior. |
-| 3 | Feature 021 Mitchel-user/Trevor-agent identity and membership vertical slice | Required before the stateful Open WebUI canary. Preserve all current resource names. |
-| 4 | Feature 12 prospect scheduler activation (T024) | Separate owner gate. Implementation and deployment are complete; activation requires explicit approval and does not block identity or Open WebUI source work. |
-| 5 | Feature 020 Mitchel-user/Trevor-agent canary and dashboard redesign | Continue only after both the auth spike and identity gate pass. Preserve native Hermes dashboard rollback. |
-| 6 | Mitchel Feature 11 landing page | P2 after the authenticated operator experience is trustworthy. |
-| 7 | Provisioner `/sessions` route | Deferred/superseded. Do not build it solely for custom chat that Feature 020 removes. |
-| 8 | Titus shared membership, Open WebUI, and Teams integration | Separate future feature after the identity foundation; design Titus surfaces and Gary/Austin roles together. |
+| 1 | Feature 021 shared database-backed membership integration | Build once for Walter, Titus, and Trevor. Keep production readers legacy-authoritative and caching disabled by default. |
+| 2 | Walter / Tenet 0 foundation, Gary membership, shadow comparison, and cutover | First real production authorization slice because Walter is actively used and Gary can complete acceptance immediately. Preserve native dashboard rollback. |
+| 3 | Titus / Tenet 2 foundation and Gary membership | Proceed after Walter's observation checkpoint. Preserve current Matrix E2EE and email sender controls; Teams and Austin remain later. |
+| 4 | Feature 020 release/authentication/embedding spike | May overlap against fixtures; it does not require Mitchel's production membership to test OIDC/frame behavior. |
+| 5 | Trevor / Tenet 1 production authorization | Keep fixture-ready but pending Mitchel's verified membership. It does not gate Walter or Titus. |
+| 6 | Feature 020 Mitchel-user/Trevor-agent canary and dashboard redesign | Continue only after the auth spike and Mitchel membership gate pass. Preserve native Hermes dashboard rollback. |
+| 7 | Feature 12 prospect scheduler activation (T024) | Separate owner gate; it does not block identity work. |
+| 8 | Austin/Titus Teams collaboration, Rex, customer expansion, and optional resource renaming | Later separately reviewed work after the current three-runtime identity sequence. |
 
 This order is the durable restart point. It supersedes the stale unchecked
 execution checklist below, which describes the original April v3 sequence but
@@ -205,7 +207,9 @@ mapping → stateful Mitchel canary → dashboard cutover → custom-chat cleanu
 **Completion gate:**
 - [ ] Non-technical user can complete wizard post-payment; no server access required
 - [ ] All secrets flow through Phase.dev; zero plaintext credentials in platform DB
-- [ ] Canonical UUID identity, optional non-authorizing stable number, Mitchel membership, Trevor persona assignment, and resource bindings pass the first vertical slice
+- [ ] One shared membership integration passes Walter, Titus, and Trevor fixtures without alias-based authorization
+- [ ] Walter/Tenet 0 and Titus/Tenet 2 receive separately audited foundations and Gary memberships; Walter passes the first real cutover and rollback gate
+- [ ] Mitchel membership and Trevor production activation remain fail-closed without blocking Walter or Titus
 - [ ] Authenticated Mitchel can chat with his Trevor agent through the embedded Open WebUI workspace with streaming responses
 - [ ] Open WebUI reaches only its assigned Hermes API over the private network
 - [ ] `API_SERVER_KEY` never exposed client-side

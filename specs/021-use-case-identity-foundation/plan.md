@@ -52,7 +52,17 @@ not cached by default because cross-process invalidation is not available;
 callers that explicitly opt into caching are bounded by both cache TTL and
 membership expiry, and failures are never cached. This checkpoint does not
 connect the policy to OIDC, dashboard, or API routes and does not change the
-legacy-authoritative production read path. That cutover remains T018.
+legacy-authoritative production read path. The shared database integration
+remains T018; each production consumer cutover is a later separate gate.
+
+**Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
+completed database backfill and resolver comparison, but Mitchel/Trevor is the
+least-used runtime and Mitchel's membership is unavailable. Forward work is
+therefore reordered by reusable dependency and current operational value:
+build the use-case-neutral database membership integration, cut over Walter
+first, establish Titus with Gary next, and leave Trevor production activation
+pending Mitchel. Existing authorization remains authoritative until each
+separate shadow comparison and rollback gate passes.
 
 ## Summary
 
@@ -60,9 +70,10 @@ Introduce an additive identity registry that separates canonical use-case and
 runtime identity from people, personas, and infrastructure names. Keep UUIDs
 as internal/security identifiers. Allocate an optional immutable number for
 human-facing `Tenet N` references. Preserve every current resource name through
-explicit compatibility bindings. Use the Mitchel business use case, Mitchel
-membership, Trevor persona, and current `hermes-mitchel` runtime alias as the
-first vertical slice before the Feature 020 Open WebUI canary.
+explicit compatibility bindings. Tenet 1 supplied the first completed
+backfill/resolver evidence. The forward authorization schedule now builds one
+shared membership boundary, then prioritizes Walter and Titus before the
+Mitchel-gated Trevor and Feature 020 production canaries.
 
 ## Technical Context
 
@@ -147,21 +158,29 @@ created. This avoids pretending two independently generated UUIDs are one ID.
    persona and `hermes-mitchel` plus its verified resources without requiring
    or creating a human membership. Compare old and new resolution and prove
    rollback while existing reads remain authoritative.
-4. **Attach verified membership**: After Mitchel registers and verifies his
-   email, add his owner membership through a separate audited transaction using
-   only the opaque Better Auth user ID. Do not rewrite the foundation graph.
-5. **Move authorization to membership**: Replace exact single-owner checks for
-   the canary with canonical membership resolution. Keep compatibility behavior
-   for unmigrated instances.
-6. **Run Feature 020 Mitchel/Trevor canary**: Build and qualify Open WebUI
-   against the canonical runtime with controlled fixtures. Mitchel's end-user
-   access and browser acceptance wait for active membership; Trevor remains the
-   agent persona. Auth/release research may overlap steps 2-4 after step 1.
-7. **Expand incrementally**: Allocate owner-approved `Tenet 0` and `Tenet 2`
-   and backfill Walter plus Titus with Gary as the current authorized person
-   through separate reviews. Add Austin with the later Teams authorization work; keep Rex and
-   later customer numbers unassigned until individually approved. Resource
-   renaming is separate optional work, not a completion criterion.
+4. **Build shared membership integration**: Add the database-backed store,
+   metadata-only denial/audit adapter, server-derived runtime assignment, and
+   cross-use-case fixture qualification once. Keep caching disabled by default
+   until a cross-process invalidation mechanism exists. Do not enable a
+   production consumer in this step.
+5. **Cut over Walter first**: Allocate owner-approved `Tenet 0`, backfill the
+   Walter runtime/personas/resource bindings, attach Gary's verified membership,
+   compare legacy and canonical authorization, prove rollback, and then enable
+   only Walter behind its use-case flag and browser acceptance gate.
+6. **Establish Titus next**: Allocate owner-approved `Tenet 2`, backfill the
+   Titus runtime/resource bindings, and attach Gary's verified membership in a
+   separate reviewed operation. Shadow canonical resolution before selecting a
+   production consumer. Preserve the current Matrix E2EE identity and email
+   sender allowlists until a channel-specific adapter is separately approved;
+   neither Austin nor Teams is a dependency.
+7. **Keep Trevor ready but gated**: Retain fixture and Tenet 1 comparison
+   evidence. After Mitchel registers and verifies his email, attach only his
+   membership, run the Trevor-specific shadow/browser gates, and then enable
+   its production authorization. This gate does not block Walter or Titus.
+8. **Run Feature 020 and later expansion independently**: Open WebUI
+   release/OIDC/frame research may proceed against fixtures, but Mitchel's
+   stateful workspace waits for step 7. Add Austin, Rex, customer identities,
+   or optional resource renames only through later reviewed work.
 
 ## Worktree and Merge Sequence
 
@@ -181,11 +200,15 @@ contract is accepted, create implementation worktrees from updated `main`:
 2. `021b-mitchel-identity-canary` stacked on 021a
 3. `021-audited-identity-backfill` from merged `main`
 4. `021-decoupled-identity-provisioning` stacks on the verified-user safeguard
-5. `020a-open-webui-auth-spike` may run in parallel after the contract
-6. `020b-open-webui-mitchel-canary` may implement against fixtures after the
-   Tenet 1 foundation exists; end-user activation stacks on completed membership
-   and accepted 020a work
-7. `020c-open-webui-dashboard-cutover` follows the canary
+5. `021-shared-membership-store` from merged T017; no production consumer
+6. `021-walter-canonical-authorization` after the shared store merges
+7. `021-titus-canonical-foundation` after Walter's observation checkpoint
+8. `021-trevor-canonical-authorization` only after Mitchel membership exists
+9. `020a-open-webui-auth-spike` may run in parallel against fixtures
+10. `020b-open-webui-mitchel-canary` may implement against fixtures, while
+    end-user activation waits for completed Mitchel membership and accepted
+    020a work
+11. `020c-open-webui-dashboard-cutover` follows the Trevor canary
 
 Do not create all execution worktrees early; create each when its dependency is
 merged or its stable base commit is recorded. This prevents long-lived drift.
