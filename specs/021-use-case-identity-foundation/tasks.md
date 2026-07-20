@@ -47,7 +47,10 @@ authorization cutover has been performed.
 - [x] T016 Compare old and canonical resolution for Mitchel's foundation and prove a feature-flag rollback without deleting additive records; do not wait for membership
   - [x] T016a Implement a legacy-authoritative `legacy`/`compare` shadow gate, metadata-only match evidence, guarded operator command, and disposable-Neon rollback qualification
   - [x] T016b Merge the reviewed command, record production compare evidence, switch back to `legacy`, and verify the additive foundation remains unchanged
-- [ ] T017 Add failing member/non-member/suspended-member authorization tests using controlled fixture users
+- [x] T017 Add controlled fixture-backed active-member, non-member,
+  wrong-use-case, suspended-member, membership-expiry, cache-expiry,
+  cache-invalidation, and storage-unavailable authorization tests; retain the
+  isolated policy as pre-cutover code with no production consumer
 - [ ] T018 Replace exact single-owner checks for the Mitchel canary with active canonical membership resolution
 - [ ] T019 Remove the hardcoded `hermes-mitchel` resource-alias special case only after compatibility and browser denial tests pass
 - [ ] T020 Run security, data, API-contract, migration, and operations review before enabling any production canary
