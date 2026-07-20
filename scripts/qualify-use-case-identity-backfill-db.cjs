@@ -174,6 +174,32 @@ function runTitusCommand(targetUrl, scope, command, membershipUserId) {
   }
 }
 
+function runTitusOpenWebuiCommand(targetUrl, command) {
+  const confirmations = {
+    apply: "PROVISION_TITUS_OPEN_WEBUI_DISABLED",
+    enable: "ENABLE_TITUS_OPEN_WEBUI_CLIENT",
+    disable: "ROLLBACK_TITUS_OPEN_WEBUI_CLIENT",
+  };
+  const result = spawnSync(
+    "npm",
+    ["run", `open-webui:titus:${command}`],
+    {
+      cwd: repo,
+      env: {
+        ...process.env,
+        DATABASE_URL: targetUrl,
+        TITUS_OPEN_WEBUI_ACTOR: "operator:identity-qualification",
+        TITUS_OPEN_WEBUI_CONFIRM: confirmations[command] ?? "",
+      },
+      stdio: "inherit",
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Titus Open WebUI ${command} exited ${result.status}`);
+  }
+}
+
 async function readWalterMembershipUserId(targetUrl) {
   const database = drizzle(neon(targetUrl));
   const result = await database.execute(sql`
@@ -274,6 +300,27 @@ async function main() {
 
     currentStage = "prove Titus membership confirmation and idempotent apply";
     runTitusCommand(targetUrl, "membership", "apply", titusMembershipUserId);
+
+    currentStage = "plan Titus Open WebUI disabled provisioning";
+    runTitusOpenWebuiCommand(targetUrl, "plan");
+
+    currentStage = "apply Titus Open WebUI disabled provisioning";
+    runTitusOpenWebuiCommand(targetUrl, "apply");
+
+    currentStage = "verify Titus Open WebUI disabled provisioning";
+    runTitusOpenWebuiCommand(targetUrl, "verify");
+
+    currentStage = "enable Titus Open WebUI OIDC client";
+    runTitusOpenWebuiCommand(targetUrl, "enable");
+
+    currentStage = "verify Titus Open WebUI enabled provisioning";
+    runTitusOpenWebuiCommand(targetUrl, "verify");
+
+    currentStage = "rollback Titus Open WebUI OIDC client";
+    runTitusOpenWebuiCommand(targetUrl, "disable");
+
+    currentStage = "verify Titus Open WebUI disabled rollback";
+    runTitusOpenWebuiCommand(targetUrl, "verify");
   } finally {
     if (created) {
       currentStage = "drop disposable database";

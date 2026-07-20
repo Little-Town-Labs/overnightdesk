@@ -114,6 +114,7 @@ export const auth = betterAuth({
     "https://www.overnightdesk.com",
     "https://aegis-prod.overnightdesk.com",
     "https://aero-fett.overnightdesk.com",
+    "https://titus-chat.overnightdesk.com",
   ],
   advanced: {
     defaultCookieAttributes: {
