@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  TITUS_IDENTITY_TEMPLATE,
   WALTER_IDENTITY_TEMPLATE,
   type CanonicalIdentityIds,
   type CanonicalIdentityTemplate,
@@ -438,6 +439,10 @@ export function generateWalterIdentityIds(): CanonicalIdentityIds {
   return generateIdentityIds(WALTER_IDENTITY_TEMPLATE);
 }
 
+export function generateTitusIdentityIds(): CanonicalIdentityIds {
+  return generateIdentityIds(TITUS_IDENTITY_TEMPLATE);
+}
+
 export function inspectMitchelTrevorIdentityBackfill(
   input: IdentityBackfillInput,
   database: Database = db,
@@ -456,6 +461,13 @@ export function inspectWalterIdentityBackfill(
   return inspectIdentityBackfill(input, WALTER_IDENTITY_TEMPLATE, database);
 }
 
+export function inspectTitusIdentityBackfill(
+  input: IdentityBackfillInput,
+  database: Database = db,
+): Promise<IdentityBackfillSnapshot> {
+  return inspectIdentityBackfill(input, TITUS_IDENTITY_TEMPLATE, database);
+}
+
 export function inspectMitchelTrevorIdentityFoundation(
   database: Database = db,
 ): Promise<IdentityFoundationSnapshot> {
@@ -466,6 +478,12 @@ export function inspectWalterIdentityFoundation(
   database: Database = db,
 ): Promise<IdentityFoundationSnapshot> {
   return inspectIdentityFoundation(WALTER_IDENTITY_TEMPLATE, database);
+}
+
+export function inspectTitusIdentityFoundation(
+  database: Database = db,
+): Promise<IdentityFoundationSnapshot> {
+  return inspectIdentityFoundation(TITUS_IDENTITY_TEMPLATE, database);
 }
 
 export async function applyIdentityFoundationPlan(
@@ -610,6 +628,20 @@ export function verifyWalterCanonicalSelectors(
     expectedUseCaseId,
     expectedRuntimeIdentityId,
     WALTER_IDENTITY_TEMPLATE,
+    undefined,
+    database,
+  );
+}
+
+export function verifyTitusCanonicalSelectors(
+  expectedUseCaseId: string,
+  expectedRuntimeIdentityId: string,
+  database: Database = db,
+): Promise<{ checked: number; matched: number; mismatches: string[] }> {
+  return verifyCanonicalSelectors(
+    expectedUseCaseId,
+    expectedRuntimeIdentityId,
+    TITUS_IDENTITY_TEMPLATE,
     undefined,
     database,
   );

@@ -179,3 +179,91 @@ export const WALTER_IDENTITY_TEMPLATE = {
     },
   ],
 } as const satisfies CanonicalIdentityTemplate;
+
+export const TITUS_IDENTITY_TEMPLATE = {
+  number: 2,
+  useCase: {
+    slug: "timeless-tech-solutions",
+    displayName: "Timeless Tech Solutions operations and collaboration",
+    status: "active" as const,
+  },
+  runtime: {
+    slug: "hermes-titus",
+    memoryBoundaryKind: "docker_named_volume",
+    status: "active" as const,
+  },
+  persona: {
+    personaKey: "titus",
+    displayName: "Titus",
+    isDefault: true,
+    authorityProfile: "current-hermes-titus",
+    status: "active" as const,
+  },
+  resourceBindings: [
+    {
+      provider: "docker",
+      kind: "container" as const,
+      value: "hermes-titus",
+      state: "active" as const,
+    },
+    {
+      provider: "docker",
+      kind: "volume" as const,
+      value: "hermes-titus-data",
+      state: "active" as const,
+    },
+    ...[
+      "/agents/hermes-titus/runtime",
+      "/agents/hermes-titus/overnightdesk",
+      "/agents/hermes-titus/memory",
+    ].map((value) => ({
+      provider: "phase",
+      kind: "phase_path" as const,
+      value,
+      state: "active" as const,
+    })),
+    {
+      provider: "phase",
+      kind: "phase_path" as const,
+      value: "/agents/hermes-titus/email",
+      state: "rollback" as const,
+    },
+    {
+      provider: "phase",
+      kind: "phase_path" as const,
+      value: "/agents/hermes-titus/matrix",
+      state: "active" as const,
+    },
+    {
+      provider: "phase",
+      kind: "phase_path" as const,
+      value: "/agents/hermes-titus/teams",
+      state: "compatibility" as const,
+    },
+    {
+      provider: "phase",
+      kind: "phase_path" as const,
+      value: "/agents/hermes-email-intake/titus",
+      state: "active" as const,
+    },
+    {
+      provider: "securityteam",
+      kind: "intake_route" as const,
+      value: "titus",
+      state: "active" as const,
+    },
+  ],
+  secretBoundaryBindings: [
+    "/agents/hermes-titus/runtime",
+    "/agents/hermes-titus/overnightdesk",
+    "/agents/hermes-titus/memory",
+    "/agents/hermes-titus/email",
+    "/agents/hermes-titus/matrix",
+    "/agents/hermes-titus/teams",
+    "/agents/hermes-email-intake/titus",
+  ].map((pathIdentifier) => ({
+    phaseApp: "timeless-tech-solutions",
+    environment: "production",
+    pathIdentifier,
+  })),
+} as const satisfies CanonicalIdentityTemplate;
