@@ -149,7 +149,22 @@ verified-noop retries, separate membership attachment, metadata-only audits,
 and the existing Tenet 1/Walter regression gates before dropping the database.
 No production allocation, membership, consumer, Matrix policy, email sender
 allowlist, Teams activation, or Austin grant is included. T020b shadow
-resolution and T020c consumer/adapter selection remain separate gates.
+resolution is recorded in the checkpoint below; T020c consumer/adapter
+selection remains a separate gate.
+
+**Titus authorization shadow checkpoint (2026-07-20):**
+`021-titus-canonical-shadow` implements T020b as a pre-consumer compatibility
+boundary. Titus accepts only `legacy` or `compare`, requires the exact
+`COMPARE_TITUS_MEMBERSHIP_SHADOW` confirmation for comparison, and always
+returns the legacy owner decision as authority. Walter and Titus now share one
+fail-safe membership-shadow primitive while retaining separate mode parsers,
+confirmation phrases, and metadata-only event types. Controlled tests cover
+allow/deny matches, both mismatch directions, missing confirmation, canonical
+and audit unavailability, thrown dependencies, value suppression, rejection
+of canonical authority, and rollback to `legacy` with zero canonical or audit
+work. No production database, consumer, Matrix E2EE policy, email sender
+allowlist, Teams integration, or Austin membership changes. T020c remains the
+separate production-consumer and external-identity-adapter contract gate.
 
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the

@@ -9,9 +9,12 @@ foundation are deployed and verified in production with zero memberships.
 Walter / Tenet 0 completed its foundation, Gary membership, canonical canary,
 and final rollback to legacy authority. T020a implements and disposable-Neon
 qualifies the guarded Titus / Tenet 2 foundation and separate Gary membership
-workflow without applying either to production. No platform-instance link,
-orchestrator link, resource rename, Teams/Austin grant, or Titus consumer
-cutover is included. Trevor production activation still waits for Mitchel.
+workflow without applying either to production. T020b adds a guarded
+Titus/Gary legacy-owner versus canonical-membership shadow boundary while
+keeping legacy authorization authoritative and enabling no production
+consumer. No platform-instance link, orchestrator link, resource rename,
+Teams/Austin grant, or Titus consumer cutover is included. Trevor production
+activation still waits for Mitchel.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or

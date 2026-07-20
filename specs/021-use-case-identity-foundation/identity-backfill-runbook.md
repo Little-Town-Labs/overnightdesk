@@ -173,7 +173,8 @@ changes:
   Tenet 1 legacy/compare rollback and Walter gates; and dropped the database.
 - No production allocation, membership, consumer, Matrix E2EE policy, email
   sender allowlist, Teams activation, Austin grant, or live resource changed.
-  T020b and T020c remain separate gates.
+  T020b is the separate shadow checkpoint below; T020c remains a separate
+  consumer-selection gate.
 
 The production operation, when separately approved after merge, runs from an
 environment where `DATABASE_URL` is already supplied through the protected
@@ -213,6 +214,31 @@ GARY_BETTER_AUTH_USER_ID=<opaque-user-id> \
 Command output contains status, counts, linkage booleans, and selector
 match/mismatch labels only. It must not contain the Better Auth user ID,
 membership ID, resource values, Phase paths, email, or secret values.
+
+## Titus T020b shadow checkpoint
+
+On 2026-07-20, branch `021-titus-canonical-shadow` added a pre-consumer
+Titus/Gary membership comparison boundary without changing production:
+
+- `legacy` is the default and performs zero canonical authorization or
+  comparison-audit work.
+- `compare` requires the exact `COMPARE_TITUS_MEMBERSHIP_SHADOW`
+  confirmation and still returns the legacy owner decision as authority.
+- `canonical` is rejected. T020b contains no authority-enabling mode.
+- Walter and Titus share the same fail-safe comparison primitive, while Titus
+  retains its own mode parser, confirmation phrase, and
+  `titus_authorization_shadow_compared` metadata-only event type.
+- Controlled tests cover allow/deny matches, both mismatch directions,
+  unavailable and thrown canonical dependencies, audit failure, exact
+  confirmation, output suppression, and rollback with zero canonical work.
+- No production database record, environment variable, audit event, consumer,
+  Matrix E2EE membership, email sender allowlist, Teams integration, Austin
+  grant, Phase path, or live resource changed.
+
+T020c must select and document a Titus production consumer and the relevant
+external-identity adapter before any production comparison or authority
+change. Better Auth membership alone does not authorize Matrix, email, or
+Teams identities.
 
 ## Production checkpoint
 
