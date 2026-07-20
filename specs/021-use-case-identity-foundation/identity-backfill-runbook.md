@@ -274,6 +274,38 @@ OIDC, frame, cookie, streaming/WebSocket, logout, local-auth shutdown, denial,
 and route-disabled rollback contract with fixtures. Production Tenet 2 apply
 and the Titus/Gary canary remain the separate T020e gate.
 
+## Titus T020d disabled Open WebUI authentication spike
+
+On 2026-07-20, branch `020-open-webui-auth-spike` completed the fixture-backed
+T020d gate without changing production. Open WebUI `v0.10.2` is pinned to its
+signed source commit and Linux arm64/amd64 image manifests in
+`infra/open-webui/release.json`. The release, license, default headers,
+SQLite/OAuth-session state, OIDC behavior, and published advisories are
+recorded in `specs/020-open-webui-platform/release-review.md`.
+
+The spike defines a distinct `open-webui` public OIDC client with S256 PKCE,
+the exact `/oauth/oidc/callback`, fixed issuer/audience/host/runtime bindings,
+and email merging disabled. The outer Better Auth and canonical membership
+gate remains authoritative for HTTP, SSE, and WebSocket traffic even when the
+browser retains an Open WebUI session. Local signup/password login, trusted
+identity headers, uploads, audio, web search, image generation, code execution,
+and workspace tools are disabled in the fixture contract.
+
+Controlled tests cover active member, non-member, wrong-use-case, suspended,
+unauthenticated, wrong host/audience/client, unapproved frame, forged trusted
+header, oversized request, unavailable Hermes backend, attempted tool-authority
+expansion, canonical-store failure, top-level bootstrap, embedded reuse,
+Open WebUI logout/re-login, platform logout with a stale upstream session, and
+route-disabled rollback. Rollback preserves the prospective Open WebUI volume,
+Hermes runtime, Matrix, and email state.
+
+The result is production-disabled. T020e must repeat the release/advisory
+review, apply Tenet 2 and Gary membership separately, deploy the workload and
+route disabled, and pass value-suppressed callback/container-log checks before
+one Gary/Titus assignment may be enabled. The upstream release can emit raw
+token or claim objects at warning level on malformed OIDC callbacks; any
+sentinel leakage during T020e is a hard stop requiring a patch or filter.
+
 ## Production checkpoint
 
 On 2026-07-19, merged main commit

@@ -1,0 +1,13 @@
+{
+  "version": "v0.10.2",
+  "publishedAt": "2026-07-01T08:41:06Z",
+  "commit": "ecd48e2f718220a6400ecf49eafd4867a38feb10",
+  "commitVerified": true,
+  "image": "ghcr.io/open-webui/open-webui:v0.10.2",
+  "manifests": {
+    "amd64": "sha256:1e65dff0143ff8de0be8082da9d461f298dee9cbd23b2023ac89929b284ce8e4",
+    "arm64": "sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3"
+  },
+  "license": "Open WebUI License",
+  "productionApproved": false
+}

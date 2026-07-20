@@ -34,7 +34,9 @@
     "identity:compatibility:verify": "tsx scripts/use-case-identity-backfill.ts compatibility verify",
     "identity:schema:plan": "node scripts/apply-use-case-identity-schema.cjs plan",
     "identity:schema:apply": "node scripts/apply-use-case-identity-schema.cjs apply",
+    "fixture:open-webui-auth": "node --import tsx scripts/open-webui-auth-fixture-server.ts",
     "test": "jest",
+    "test:open-webui-browser": "playwright test tests/browser/open-webui-auth-spike.spec.ts --browser=chromium",
     "test:hermes-oidc-db": "node scripts/qualify-hermes-oidc-db.cjs",
     "test:identity-backfill-db": "node scripts/qualify-use-case-identity-backfill-db.cjs",
     "test:coverage": "jest --coverage"
@@ -61,6 +63,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.61.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
