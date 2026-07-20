@@ -107,9 +107,13 @@ only the authenticated Better Auth user ID to the shared membership
 authorizer. Non-Walter instances retain exact legacy-owner authorization.
 Controlled and disposable-Neon tests cover active member, non-member,
 suspended, expired, storage-unavailable, comparison, metadata-only audit, and
-zero-canonical-work rollback behavior. Production foundation, membership,
-deployment, and browser evidence remain separate post-merge gates, so T019c
-and T019 are not complete at this checkpoint.
+zero-canonical-work rollback behavior. Merged commit `50da928` then completed
+T019c3: production contains one verified Tenet 0 allocation and one active Gary
+membership, all ten Walter selectors match, and Vercel deployment
+`9AgtNVztYJuyL4c3woPZQka4XiBz` runs with only the explicit `legacy` mode. No
+comparison or canonical confirmation is present, so authorization authority
+has not changed. T019c4 browser, denial-state, comparison, and final rollback
+evidence remains required before T019 and T019c are complete.
 
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
