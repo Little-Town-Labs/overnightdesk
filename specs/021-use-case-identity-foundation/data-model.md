@@ -107,6 +107,31 @@ environment. It stores App/environment/path identifiers only, never secret
 values or service-account tokens. Several runtimes may intentionally bind to
 one App because the App is the approved blast-radius boundary.
 
+## External Consumer Identity Adapter
+
+This is an authorization boundary, not a new canonical person or membership
+record. It maps an authenticated provider subject into the existing Better
+Auth membership subject and resolves the consumer from canonical runtime
+resource bindings.
+
+For the selected Titus Open WebUI consumer:
+
+| Input / binding | Rule |
+|---|---|
+| OIDC issuer | Exact OvernightDesk Better Auth issuer |
+| OIDC subject | Opaque Better Auth `user.id`; never email |
+| OIDC client/audience | Separate Titus Open WebUI client bound server-side to the Titus runtime |
+| callback and hostname | Exact active resource bindings for the Titus Open WebUI deployment |
+| local account key | Exact `(issuer, subject)` pair; email linking disabled |
+| Hermes target | Server-derived private `hermes-titus` connection only |
+
+The Open WebUI deployment, hostname, OIDC client, volume, and Phase path are
+resource or secret-boundary bindings added during Feature 020 implementation.
+No second user table or email-to-user mapping is added to the canonical
+identity schema for this adapter. Matrix MXIDs, AgentMail senders, and future
+Teams/Entra objects are different external subjects and require separate later
+bindings if those channels adopt canonical membership.
+
 ## Existing Record Compatibility
 
 - `instance.id` remains the current platform UUID and is bound or linked to a

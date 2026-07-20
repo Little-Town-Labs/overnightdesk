@@ -12,8 +12,9 @@
 ## Ingress
 
 - Nginx is the only public route to Open WebUI.
-- The Better Auth active-membership check runs before proxying. The existing
-  exact-owner read is retained only as a migration rollback path.
+- The Better Auth active-membership check runs before proxying. An existing
+  runtime may retain its exact-owner read as migration compatibility. Titus has
+  no legacy Open WebUI route: rollback disables its assignment and route.
 - The membership check compares the requested Open WebUI host to the canonical
   runtime's recorded resource binding, not only to a broad Hermes classification.
 - Inbound identity assertion headers are stripped even though OIDC is the
@@ -30,8 +31,22 @@
   OvernightDesk provider.
 - Account linking by email remains disabled; stable issuer and subject claims
   identify the account.
+- The exact `(issuer, subject)` pair is the local account key. The subject is
+  the opaque Better Auth `user.id`; email and profile claims are display-only.
+- OIDC client/audience, callback, requested hostname, canonical runtime, Open
+  WebUI deployment, and Hermes target must all resolve to the same server-side
+  assignment. A client-supplied Tenet number, tenant, runtime, hostname, or
+  model endpoint cannot select or widen the workspace.
+- Nginx rechecks the Better Auth session and active membership for HTTP,
+  streaming, and WebSocket requests. An Open WebUI cookie does not remain
+  authority after logout, suspension, expiry, or revocation.
 - Local signup and password authentication remain available only for initial
   break-glass bootstrap, then are disabled after the OIDC rollback test.
+
+The first adapter is Titus/Gary. It is valid only for the Titus Open WebUI
+deployment and does not map Gary's membership to a Matrix MXID, AgentMail
+sender, or Teams/Entra object. Walter follows with a separate client and
+deployment; Mitchel/Trevor follows only after Mitchel's membership exists.
 
 ## Hermes Connection
 
@@ -50,6 +65,16 @@
 - Container recreation and rollback do not delete the volume.
 - Backup, retention, and deletion policy must be documented before broad
   rollout because Open WebUI adds a new store of customer conversation data.
+
+## Use-Case Secret Boundary
+
+- Titus Open WebUI secrets use Phase App `timeless-tech-solutions`, environment
+  `production`, under `/agents/open-webui/hermes-titus`.
+- Walter Open WebUI secrets later use the `overnightdesk` App under a distinct
+  runtime path.
+- Each workload uses only the service-account identity for its Phase App. No
+  Open WebUI secret or service-account token is stored in canonical identity
+  records or shared between the deployments.
 
 ## Observability and Denial Tests
 

@@ -8,7 +8,8 @@ plus final legacy rollback are complete. T020a's guarded Titus / Tenet 2
 foundation and separate Gary membership workflow are implemented and
 disposable-Neon qualified but not production-applied. T020b's guarded
 legacy-authoritative Titus/Gary shadow coverage is implemented with no
-production consumer. T020c consumer/adapter selection remains next. Mitchel's
+production consumer. T020c selects Titus Open WebUI and defines its Better
+Auth OIDC external-identity adapter; no production change is included. Mitchel's
 verified membership is still a later fail-closed operation. No Titus Phase
 change, resource rename, Teams/Austin grant, production consumer, or
 platform/orchestrator link has been performed.
@@ -18,7 +19,7 @@ platform/orchestrator link has been performed.
 - [x] T001 Define use case, Tenet number, tenant compatibility, runtime, persona, membership, resource binding, and secret boundary terminology
 - [x] T002 Specify UUID and number semantics, allocation rules, authorization requirements, and additive compatibility policy
 - [x] T003 Record the target standard, ADR, migration runbook, roadmap sequence, and stacked worktree strategy
-- [x] T004 Make the Feature 020 auth spike parallelizable after contract acceptance and gate its Mitchel canary on identity backfill
+- [x] T004 Make the Feature 020 auth spike parallelizable after contract acceptance; select Titus/Gary first, Walter next, and gate Mitchel/Trevor on Mitchel membership
 
 ## Phase 2: Additive Schema and Resolver
 
@@ -72,12 +73,14 @@ platform/orchestrator link has been performed.
 - [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
   - [x] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
   - [x] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
-  - [ ] T020c Record the selected Titus production consumer and external-identity adapter contract in `specs/021-use-case-identity-foundation/plan.md` before cutover; Better Auth membership alone is not authority for Matrix, email, or Teams identities
+  - [x] T020c Select the dedicated Titus Open WebUI deployment as the first production consumer and record its exact Better Auth OIDC `(issuer, subject)` adapter, server-derived workspace binding, channel isolation, evidence, and rollback contract; Better Auth membership does not authorize Matrix, email, or Teams identities
+  - [ ] T020d Complete Feature 020's pinned-release and OIDC/frame/session spike against Titus fixtures; keep the production Open WebUI assignment disabled
+  - [ ] T020e Apply and verify the guarded Tenet 2 foundation and separate Gary membership, then provision and canary Titus Open WebUI through its reviewed Feature 020 tasks without changing Matrix, email, Teams, or Austin access
 
 ## Phase 4: Open WebUI Dependency and Expansion
 
 - [ ] T021 Permit `020a-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
-- [ ] T022 Permit fixture-backed `020b-open-webui-mitchel-canary` implementation after accepted 020a auth evidence and completed canonical foundation; gate Mitchel activation and browser acceptance on active membership
+- [ ] T022 Permit fixture-backed Titus Open WebUI implementation after accepted auth evidence and the completed canonical foundation; gate production activation on Tenet 2 foundation and Gary membership
 - [ ] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
 - [ ] T024 Complete Trevor production authorization only after Mitchel has an active verified membership; rerun shadow, browser denial, and rollback gates before removing the exact-owner/resource-alias compatibility path
 - [ ] T025 Add Austin to Titus only with the later Titus collaboration/Teams authorization design; do not make Teams a dependency for Gary's standalone Titus runtime
@@ -99,10 +102,12 @@ platform/orchestrator link has been performed.
   work without Mitchel. T015g gates only T024 and Mitchel acceptance.
 - T018 precedes all canonical membership consumers. T019 is the first real
   cutover. T020 follows Walter's observation checkpoint and may establish
-  Titus/Gary without Austin or Teams.
-- T021 may overlap schema/backfill work after the contract. Fixture-backed T022
-  may overlap after the canonical foundation; T023 and Mitchel activation may
-  not proceed before active membership.
+  Titus/Gary without Austin or Teams. T020c selects Open WebUI; T020d's
+  release/auth spike precedes T020e's disabled provisioning and canary.
+- T021 may overlap foundation work after the contract. Fixture-backed T022 may
+  overlap after the canonical schema; T023 and the Titus canary may not proceed
+  before active Tenet 2 membership. Mitchel activation separately waits for
+  Mitchel membership.
 - T024 is intentionally last among the three current Aegis runtimes because it
   depends on Mitchel; it does not gate T018-T020. T025-T027 remain later work.
 - Feature 12 scheduler activation remains an independent owner-gated operation.
