@@ -183,6 +183,20 @@ sender allowlists, Teams/Entra identities, and Austin membership remain
 unchanged and independently authoritative for their channels. No Open WebUI,
 Phase, Nginx, Vercel, database, or production change is included in T020c.
 
+**Titus production-canary source checkpoint (2026-07-20):** T020e source adds
+the guarded Tenet 2 provisioning and canary boundary without changing the
+existing Matrix, AgentMail, Teams, or Austin identities. The canonical apply
+requires the previously reviewed Tenet 2 foundation and exactly one active,
+unexpired use-case owner. It atomically adds five Open WebUI resource bindings,
+one `timeless-tech-solutions` Phase path boundary, and a distinct public S256
+PKCE OIDC client in disabled state. A partial or conflicting state blocks;
+enable and rollback use separate exact confirmations. The pinned Aegis
+workload has its own volume, no host port, and only the private Titus Hermes
+connection. Nginx delegates every HTTP/SSE/WebSocket request to the Vercel
+canonical membership gate. Production remains disabled until this source is
+merged and its identity, Phase, private-container, callback-sentinel, route,
+browser, persistence, and rollback gates pass in order.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is

@@ -3,7 +3,7 @@
 **Source:** PRD v3.0 (2026-04-24)
 **Constitution:** v2.0.0 (2026-04-24)
 **Generated:** 2026-04-24
-**Last Reconciled:** 2026-07-19
+**Last Reconciled:** 2026-07-20
 
 ---
 
@@ -13,8 +13,9 @@ OvernightDesk v3 is a managed hermes-agent hosting platform. The Go daemon and C
 
 **Total Features:** 6 (four original v3 features plus Features 020 and 021)
 **Phases:** 2
-**Current UX Path:** Feature 021 identity contract/foundation + Feature 020 auth
-spike → Mitchel-user/Trevor-agent identity backfill → Open WebUI canary → dashboard cutover
+**Current UX Path:** Titus/Tenet 2 foundation and Gary membership → Titus Open
+WebUI canary → Walter Open WebUI → dashboard cutover → Mitchel/Trevor after
+Mitchel membership
 
 ---
 
@@ -85,9 +86,10 @@ passes; do not extend it or implement `/sessions` solely for this design.
 **Description:** Replace the custom dashboard chat with a full-height Open WebUI
 workspace. Vercel and Better Auth remain the platform shell. Aegis runs one
 persistent Open WebUI deployment per Hermes use-case/memory boundary, connected
-privately to that runtime's OpenAI-compatible API. Begin with Mitchel as the
-canary user and Trevor as his Hermes agent persona,
-retain the native Hermes dashboard, and remove the custom chat/session bridge
+privately to that runtime's OpenAI-compatible API. Begin with Gary as the
+canary user and Titus as the Tenet 2 runtime, follow with a fully isolated
+Walter deployment, and gate Mitchel/Trevor on Mitchel's membership. Retain the
+native Hermes dashboard, and remove the custom chat/session bridge
 only after browser, isolation, persistence, and rollback proof.
 **Complexity:** Large
 **Priority:** P1 (next active platform development slice)
@@ -131,18 +133,22 @@ contract is accepted; independently owner-gated Feature 12 activation
 | 1 | Feature 021 shared database-backed membership integration | Build once for Walter, Titus, and Trevor. Keep production readers legacy-authoritative and caching disabled by default. |
 | 2 | Walter / Tenet 0 foundation, Gary membership, shadow comparison, and cutover | First real production authorization slice because Walter is actively used and Gary can complete acceptance immediately. Preserve native dashboard rollback. |
 | 3 | Titus / Tenet 2 foundation and Gary membership | Proceed after Walter's observation checkpoint. Preserve current Matrix E2EE and email sender controls; Teams and Austin remain later. |
-| 4 | Feature 020 release/authentication/embedding spike | May overlap against fixtures; it does not require Mitchel's production membership to test OIDC/frame behavior. |
-| 5 | Trevor / Tenet 1 production authorization | Keep fixture-ready but pending Mitchel's verified membership. It does not gate Walter or Titus. |
-| 6 | Feature 020 Mitchel-user/Trevor-agent canary and dashboard redesign | Continue only after the auth spike and Mitchel membership gate pass. Preserve native Hermes dashboard rollback. |
-| 7 | Feature 12 prospect scheduler activation (T024) | Separate owner gate; it does not block identity work. |
-| 8 | Austin/Titus Teams collaboration, Rex, customer expansion, and optional resource renaming | Later separately reviewed work after the current three-runtime identity sequence. |
+| 4 | Feature 020 release/authentication/embedding spike | Completed against fixtures; it did not require Mitchel's production membership. |
+| 5 | Feature 020 Titus/Gary production canary | Provision disabled, prove callback/log hygiene and rollback, then enable only the exact Gary membership. |
+| 6 | Walter Open WebUI and dashboard redesign | Reuse the accepted pattern with a separate workload, state, client, and secret boundary. |
+| 7 | Trevor / Tenet 1 production authorization and Open WebUI | Keep fixture-ready but pending Mitchel's verified membership. It does not gate Walter or Titus. |
+| 8 | Feature 12 prospect scheduler activation (T024) | Separate owner gate; it does not block identity work. |
+| 9 | Austin/Titus Teams collaboration, Rex, customer expansion, and optional resource renaming | Later separately reviewed work after the current three-runtime identity sequence. |
 
 This order is the durable restart point. It supersedes the stale unchecked
 execution checklist below, which describes the original April v3 sequence but
 does not reflect the current deployed platform.
 
-Orders 1 and 2 completed on 2026-07-20. Order 3, T020 Titus / Tenet 2
-foundation and Gary membership, is the next engineering task.
+Orders 1, 2, and 4 completed on 2026-07-20. Order 3 source and qualification
+are complete, but its production apply remains the first T020e gate. T020e
+then performs the guarded Order 5 Titus/Gary canary. Production activation
+must follow merged source, disabled provisioning, sentinel, rollback, and
+browser gates in that order.
 
 The three-phase provisioner/orchestrator convergence sketch recorded in the
 initial 2026-05-07 standard (`OPERATOR_RESEED` startup wiring,
@@ -169,14 +175,16 @@ Feature 1 (Agent Zero Migration)
 Feature 021 (Use-Case Identity Foundation)
     ├──► shared membership integration (complete)
     │         └──► Walter / Tenet 0 canary and rollback (complete)
-    │                   └──► Titus / Tenet 2 foundation and Gary membership (next)
+    │                   └──► Titus / Tenet 2 foundation and Gary membership
+    │                                  └──► Titus/Gary Open WebUI canary (next)
     └──► Mitchel membership when verified
               └──► Feature 020 stateful Mitchel canary
 ```
 
-**Current chat path:** Complete Walter / Tenet 0 evidence → establish Titus /
-Tenet 2 with Gary → attach Mitchel membership when verified → run the stateful
-Mitchel/Trevor Open WebUI canary → dashboard cutover → custom-chat cleanup.
+**Current chat path:** Establish Titus/Tenet 2 with Gary → run the isolated
+Titus/Gary Open WebUI canary → provision isolated Walter Open WebUI → dashboard
+cutover → attach Mitchel membership when verified → Mitchel/Trevor deployment
+→ custom-chat cleanup after all consumers show zero legacy use.
 
 ---
 

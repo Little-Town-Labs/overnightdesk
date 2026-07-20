@@ -20,13 +20,15 @@ import {
   HERMES_OAUTH_PROVIDER_OPTIONS,
   hasForbiddenOAuthResourceIndicator,
 } from "@/lib/hermes-oidc-config";
-import {
-  authorizeHermesOidcOwner,
-  authorizeHermesOidcToken,
-} from "@/lib/hermes-oidc";
 import { recordHermesOidcAuditEvent } from "@/lib/hermes-oidc-audit";
+import {
+  authorizeOAuthProviderLogin,
+  authorizeOAuthProviderToken,
+} from "@/lib/oauth-provider-authorization";
+import { recordOpenWebuiAuditEvent } from "@/lib/open-webui-audit";
+import { TITUS_OPEN_WEBUI } from "@/lib/open-webui-titus-canary";
 
-async function requireHermesAuthorization(
+async function requireOAuthAuthorization(
   user: { id: string; emailVerified: boolean },
   scopes: string[],
   requestId?: string,
@@ -38,34 +40,62 @@ async function requireHermesAuthorization(
     if (!state?.query) throw new Error("missing provider state");
     clientId = new URLSearchParams(state.query).get("client_id") ?? undefined;
     if (recordAudit) {
-      await recordHermesOidcAuditEvent({
-        category: "start",
-        clientId,
-        requestId,
-      }).catch(() => undefined);
+      if (clientId === TITUS_OPEN_WEBUI.oidcClientId) {
+        await recordOpenWebuiAuditEvent({
+          category: "start",
+          deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+          clientId,
+          requestId,
+        });
+      } else {
+        await recordHermesOidcAuditEvent({
+          category: "start",
+          clientId,
+          requestId,
+        });
+      }
     }
-    const instanceId = await authorizeHermesOidcOwner({
+    const authorization = await authorizeOAuthProviderLogin({
       user,
       scopes,
       query: state.query,
     });
     if (recordAudit) {
-      await recordHermesOidcAuditEvent({
-        category: "success",
-        instanceId,
-        clientId,
-        requestId,
-      }).catch(() => undefined);
+      if (authorization.kind === "open-webui") {
+        await recordOpenWebuiAuditEvent({
+          category: "success",
+          deploymentId: authorization.referenceId,
+          clientId,
+          requestId,
+        });
+      } else {
+        await recordHermesOidcAuditEvent({
+          category: "success",
+          instanceId: authorization.referenceId,
+          clientId,
+          requestId,
+        });
+      }
     }
-    return instanceId;
+    return authorization.referenceId;
   } catch {
     if (recordAudit) {
-      await recordHermesOidcAuditEvent({
-        category: "denied",
-        reason: "invalid_client",
-        clientId,
-        requestId,
-      }).catch(() => undefined);
+      if (clientId === TITUS_OPEN_WEBUI.oidcClientId) {
+        await recordOpenWebuiAuditEvent({
+          category: "denied",
+          reason: "invalid_client",
+          deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+          clientId,
+          requestId,
+        }).catch(() => undefined);
+      } else {
+        await recordHermesOidcAuditEvent({
+          category: "denied",
+          reason: "invalid_client",
+          clientId,
+          requestId,
+        }).catch(() => undefined);
+      }
     }
     throw new APIError("FORBIDDEN", {
       error: "access_denied",
@@ -84,6 +114,7 @@ export const auth = betterAuth({
     "https://www.overnightdesk.com",
     "https://aegis-prod.overnightdesk.com",
     "https://aero-fett.overnightdesk.com",
+    "https://titus-chat.overnightdesk.com",
   ],
   advanced: {
     defaultCookieAttributes: {
@@ -182,7 +213,7 @@ export const auth = betterAuth({
       postLogin: {
         page: "/sign-in",
         shouldRedirect: async ({ headers, user, scopes }) => {
-          await requireHermesAuthorization(
+          await requireOAuthAuthorization(
             user,
             scopes,
             headers.get("x-request-id") ?? undefined
@@ -190,11 +221,11 @@ export const auth = betterAuth({
           return false;
         },
         consentReferenceId: ({ user, scopes }) =>
-          requireHermesAuthorization(user, scopes, undefined, false),
+          requireOAuthAuthorization(user, scopes, undefined, false),
       },
       customIdTokenClaims: async ({ user, scopes, metadata }) => {
         try {
-          return await authorizeHermesOidcToken({ user, scopes, metadata });
+          return await authorizeOAuthProviderToken({ user, scopes, metadata });
         } catch {
           throw new APIError("FORBIDDEN", {
             error: "access_denied",

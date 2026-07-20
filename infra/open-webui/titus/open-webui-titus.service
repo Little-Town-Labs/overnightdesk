@@ -1,0 +1,28 @@
+[Unit]
+Description=OvernightDesk Titus Open WebUI
+Requires=docker.service
+After=docker.service network-online.target hermes-titus.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=open-webui-titus
+Group=open-webui-titus
+SupplementaryGroups=docker
+RuntimeDirectory=open-webui-titus
+RuntimeDirectoryMode=0750
+ExecStartPre=+/opt/open-webui-titus/bin/load-phase-env.sh
+ExecStart=/opt/open-webui-titus/bin/run-container.sh
+ExecStop=/opt/open-webui-titus/bin/stop-container.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=240
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/run/open-webui-titus
+
+[Install]
+WantedBy=multi-user.target

@@ -2,11 +2,12 @@
 
 **Input**: Design documents from `/specs/020-open-webui-platform/`
 
-**Status**: T020d pins Open WebUI `v0.10.2` and completes the disabled
-fixture-backed release/OIDC/frame/session/denial/rollback gate. Titus/Gary
-remains the first canary, with Walter next and Mitchel/Trevor gated on
-Mitchel's membership. No runtime, Vercel, Phase, or production changes are
-authorized by this task list.
+**Status**: T020e production source is implemented and production remains
+disabled pending merge and the ordered deployment gates. Open WebUI `v0.10.2`
+is pinned by Linux arm64 digest. Titus/Gary is the first canary, Walter is
+next, and Mitchel/Trevor remains gated on Mitchel's membership. T020e
+authorizes only the reviewed Titus/Gary canary sequence; broad rollout,
+Walter, Mitchel/Trevor, Teams, Austin, and custom-chat removal remain separate.
 
 ## Phase 1: Decision and Source Baseline
 
@@ -33,12 +34,20 @@ This phase is blocked until Feature 021 applies and verifies the guarded Tenet
 2 foundation, Gary's active membership, and the current `hermes-titus`
 runtime/resource bindings. It does not wait for Mitchel, Austin, or Teams.
 
-- [ ] T011 Add version-pinned, rootless/read-only-where-compatible Open WebUI deployment source with health checks and a dedicated volume
-- [ ] T012 Add Phase secret names under the `timeless-tech-solutions` use-case boundary and value-suppressed qualification for Titus's Open WebUI path
-- [ ] T013 Add a private `hermes-titus:8642/v1` Chat Completions connection with Ollama and unrelated connections disabled
-- [ ] T014 Add a canary-only Nginx vhost and Better Auth active-membership gate derived from the canonical runtime assignment
-- [ ] T015 Add metadata-only security audit events plus explicit request, concurrency, model, and cost bounds
+- [x] T011 Add version-pinned, rootless/read-only-where-compatible Open WebUI deployment source with health checks and a dedicated volume
+- [x] T012 Add Phase secret names under the `timeless-tech-solutions` use-case boundary and value-suppressed qualification for Titus's Open WebUI path
+- [x] T013 Add a private `hermes-titus:8642/v1` Chat Completions connection with Ollama and unrelated connections disabled
+- [x] T014 Add a canary-only Nginx vhost and Better Auth active-membership gate derived from the canonical runtime assignment
+- [x] T015 Add metadata-only security audit events plus explicit request, concurrency, model, and cost bounds
 - [ ] T016 Verify container recreation preserves chats and no browser/log surface exposes protected values
+
+The T011-T015 source checkpoint uses public S256 PKCE client
+`overnightdesk-open-webui-titus-v1`, hostname
+`titus-chat.overnightdesk.com`, dedicated volume
+`open-webui-hermes-titus-data`, and Phase path
+`/agents/open-webui/hermes-titus`. Provisioning creates the canonical records
+with the client disabled. Activation and rollback require separate exact
+confirmations and never delete the volume.
 
 ## Phase 4: Vercel Dashboard Redesign
 
@@ -64,7 +73,9 @@ runtime/resource bindings. It does not wait for Mitchel, Austin, or Teams.
 ## Dependencies and Execution Order
 
 - Acceptance of the Feature 021 terminology/identity contract precedes T004-T010.
-- Feature 021 guarded Tenet 2 foundation and Gary membership precede T011-T016.
+- Feature 021 guarded Tenet 2 foundation and Gary membership precede T016 and
+  every production activation; T011-T015 source may be prepared while the
+  production identity gate remains closed.
 - T004 precedes Feature 020 code and deployment work.
 - T005-T010 are a stop/go security gate for the remaining feature.
 - T011-T016 precede the Vercel iframe cutover so the frontend never points at
