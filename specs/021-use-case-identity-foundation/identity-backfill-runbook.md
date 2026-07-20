@@ -85,10 +85,28 @@ authorization-code and token paths to the shared membership boundary:
   rollback states. The retry preserved all ten Walter selectors and the
   separate verified membership fixture, then dropped the disposable database.
 
-This checkpoint does not claim production completion. The production
-foundation and Gary membership must be applied from merged code before the
-Vercel flag sequence and browser matrix below. T019c remains open until that
-evidence is recorded.
+Merged commit `50da928e11b13060c3b5ab873b3f12bf1f2d3fac` completed the
+T019c3 production gate on 2026-07-20:
+
+- The guarded Tenet 0 foundation applied once and its retry returned
+  `verified_noop` with all ten selectors matched.
+- The separate Gary membership plan returned `ready` for exactly one verified
+  member, applied once, and its retry returned `verified_noop`.
+- Read-only closeout found one Tenet 0 allocation, one active Tenet 0
+  membership, and two metadata-only operator audit rows.
+- Vercel production contains only
+  `WALTER_MEMBERSHIP_AUTH_MODE=legacy`; neither comparison nor canonical
+  confirmation is present. Deployment `9AgtNVztYJuyL4c3woPZQka4XiBz` built
+  successfully and was aliased to `www.overnightdesk.com`.
+- The public site returned HTTP 200, the dashboard and Aegis root redirected
+  anonymous requests to sign-in, OIDC discovery remained canonical, and the
+  existing Walter and Nginx containers remained up. No Aegis service was
+  restarted or reconfigured.
+
+Legacy exact-owner authorization therefore remains authoritative and performs
+zero canonical work per request. T019c remains open only for the authenticated
+compare, canonical member/denial, logout, direct-login, dashboard-button, and
+final rollback evidence in T019c4.
 
 ## Production checkpoint
 

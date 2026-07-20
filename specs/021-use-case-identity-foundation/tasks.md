@@ -66,7 +66,7 @@ platform/orchestrator link has been performed.
   - [ ] T019c Integrate Walter only, then complete the guarded production and browser evidence gates
     - [x] T019c1 Connect authorization-code and token paths in `src/lib/hermes-oidc.ts` with `legacy`, legacy-authoritative `compare`, and separately confirmed `canonical` modes; leave non-Walter OIDC authorization unchanged
     - [x] T019c2 Add controlled and disposable-Neon coverage for active member, non-member, suspended/expired member, canonical unavailability, metadata-only comparison, and zero-canonical-work legacy rollback
-    - [ ] T019c3 From merged code, apply and verify the guarded Tenet 0 foundation and separate Gary membership, then deploy the new environment variables initially in `legacy`
+    - [x] T019c3 From merged code, apply and verify the guarded Tenet 0 foundation and separate Gary membership, then deploy the new environment variables initially in `legacy`
     - [ ] T019c4 Record member, non-member, suspended/expired, logout, direct-login, dashboard-button, compare, and rollback browser/audit evidence in the identity runbook
 - [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
   - [ ] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
