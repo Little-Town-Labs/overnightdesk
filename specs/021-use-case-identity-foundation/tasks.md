@@ -60,7 +60,7 @@ performed.
   - [x] T018d Extend `src/lib/__tests__/fixtures/use-case-membership.ts` to prove the same integration with Walter, Titus, and Trevor fixtures while legacy production readers remain authoritative
 - [ ] T019 Make Walter / Tenet 0 the first real membership-authorization cutover
   - [x] T019a Extend `src/lib/use-case-identity-backfill.ts`, `src/db/use-case-identity-backfill-store.ts`, and `scripts/use-case-identity-backfill.ts` with a guarded Tenet 0 foundation plus separate Gary membership plan/apply/verify path; preserve all Walter resource names
-  - [ ] T019b Add Walter legacy-owner/canonical-membership comparison and rollback coverage in `src/lib/__tests__/canonical-identity-compatibility.test.ts` before authority changes
+  - [x] T019b Add Walter legacy-owner/canonical-membership comparison and rollback coverage in `src/lib/__tests__/canonical-identity-compatibility.test.ts` before authority changes
   - [ ] T019c Integrate Walter only in `src/lib/hermes-oidc.ts` and `src/lib/__tests__/hermes-oidc-authorization.test.ts`, then record member, non-member, suspended/expired, logout, direct-login, and rollback browser evidence in the identity runbook
 - [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
   - [ ] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names

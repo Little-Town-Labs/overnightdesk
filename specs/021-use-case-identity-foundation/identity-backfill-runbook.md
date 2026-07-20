@@ -32,6 +32,30 @@ Tenet 0 foundation and a separate Gary membership workflow:
   membership. Existing Walter/OIDC authorization remains authoritative until
   T019b shadow comparison and T019c browser/rollback gates pass.
 
+## Walter T019b shadow checkpoint
+
+On 2026-07-20, branch `021-walter-canonical-shadow` added the pre-consumer
+legacy-owner/canonical-membership comparison contract:
+
+- `WALTER_MEMBERSHIP_AUTH_MODE` defaults to `legacy`, accepts only `legacy` or
+  `compare`, and deliberately rejects a canonical authority mode.
+- `compare` requires the exact
+  `WALTER_MEMBERSHIP_COMPARISON_CONFIRM=COMPARE_WALTER_MEMBERSHIP_SHADOW`
+  confirmation. This is separate from the earlier Tenet 1 identity-resolution
+  comparison confirmation.
+- The returned `authorized` value always comes from the legacy exact-owner
+  decision. Canonical membership is observation only, including when the two
+  decisions disagree or canonical storage/audit is unavailable.
+- Comparison events record only authority, match state, and
+  allow/deny/unavailable decisions. They contain no Better Auth subject,
+  membership identifier, email, alias, resource value, secret, or conversation
+  content.
+- Switching to `legacy` performs zero canonical authorization and zero
+  comparison-audit calls. Additive canonical records remain intact.
+- This checkpoint does not wire `hermes-oidc.ts` or any production consumer.
+  T019c remains responsible for Walter's guarded OIDC integration and browser
+  rollback evidence before canonical authority can be considered.
+
 ## Production checkpoint
 
 On 2026-07-19, merged main commit

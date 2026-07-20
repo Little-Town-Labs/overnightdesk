@@ -3,11 +3,17 @@ import {
   requireCanonicalComparisonConfirmation,
   resolveLegacyWithCanonicalShadow,
 } from "@/lib/canonical-identity-compatibility";
+import {
+  compareWalterLegacyOwnerWithCanonicalMembership,
+  parseWalterMembershipAuthorizationMode,
+  requireWalterMembershipComparisonConfirmation,
+} from "@/lib/walter-membership-compatibility";
 import type {
   CanonicalIdentity,
   CanonicalIdentityStore,
   IdentityResolutionAuditEvent,
 } from "@/lib/canonical-identity";
+import type { UseCaseMembershipAuthorizer } from "@/lib/use-case-membership-authorization";
 
 const canonicalIdentity: CanonicalIdentity = {
   useCaseId: "11111111-1111-4111-8111-111111111111",
@@ -146,5 +152,253 @@ describe("resolveLegacyWithCanonicalShadow", () => {
       comparison: "error",
     });
     expect(audit).not.toHaveBeenCalled();
+  });
+});
+
+describe("Walter legacy-owner/canonical-membership shadow comparison", () => {
+  const userId = "better-auth-user-gary";
+  const confirmation = "COMPARE_WALTER_MEMBERSHIP_SHADOW";
+
+  function authorizer(
+    decision: Awaited<ReturnType<UseCaseMembershipAuthorizer["authorize"]>>,
+  ): UseCaseMembershipAuthorizer & { authorize: jest.Mock } {
+    return {
+      authorize: jest.fn().mockResolvedValue(decision),
+      invalidateUser: jest.fn(),
+    };
+  }
+
+  it("defaults to rollback-safe legacy mode and rejects canonical authority", () => {
+    expect(parseWalterMembershipAuthorizationMode(undefined)).toBe("legacy");
+    expect(parseWalterMembershipAuthorizationMode("")).toBe("legacy");
+    expect(parseWalterMembershipAuthorizationMode("compare")).toBe("compare");
+    expect(() => parseWalterMembershipAuthorizationMode("canonical")).toThrow(
+      "WALTER_MEMBERSHIP_AUTH_MODE must be legacy or compare",
+    );
+  });
+
+  it("requires an exact Walter-specific confirmation before comparison", () => {
+    expect(() =>
+      requireWalterMembershipComparisonConfirmation("legacy", undefined),
+    ).not.toThrow();
+    expect(() =>
+      requireWalterMembershipComparisonConfirmation(
+        "compare",
+        "COMPARE_WALTER_MEMBERSHIP_SHADOW",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      requireWalterMembershipComparisonConfirmation("compare", undefined),
+    ).toThrow(
+      "WALTER_MEMBERSHIP_COMPARISON_CONFIRM must equal COMPARE_WALTER_MEMBERSHIP_SHADOW",
+    );
+  });
+
+  it("does not start canonical comparison without the exact confirmation", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "not_authorized",
+    });
+    const audit = jest.fn();
+
+    await expect(
+      compareWalterLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit,
+      }),
+    ).rejects.toThrow(
+      "WALTER_MEMBERSHIP_COMPARISON_CONFIRM must equal COMPARE_WALTER_MEMBERSHIP_SHADOW",
+    );
+    expect(canonical.authorize).not.toHaveBeenCalled();
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  it("performs zero canonical or audit work after rollback to legacy mode", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "not_authorized",
+    });
+    const audit = jest.fn();
+
+    await expect(
+      compareWalterLegacyOwnerWithCanonicalMembership({
+        mode: "legacy",
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit,
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: true,
+      comparison: "disabled",
+    });
+    expect(canonical.authorize).not.toHaveBeenCalled();
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  it("records a match without exposing the Better Auth subject or membership", async () => {
+    const canonical = authorizer({
+      authorized: true,
+      membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+      role: "owner",
+      scope: "use_case",
+      useCaseId: "00000000-0000-4000-8000-000000000000",
+      runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
+    });
+    const events: unknown[] = [];
+
+    await expect(
+      compareWalterLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        confirmation,
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit: async (event) => events.push(event),
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: true,
+      comparison: "match",
+    });
+    expect(events).toEqual([
+      {
+        eventType: "walter_authorization_shadow_compared",
+        authority: "legacy_owner",
+        comparison: "match",
+        legacyDecision: "allow",
+        canonicalDecision: "allow",
+      },
+    ]);
+    expect(JSON.stringify(events)).not.toContain(userId);
+    expect(JSON.stringify(events)).not.toContain(
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+    );
+  });
+
+  it("keeps a legacy grant authoritative when canonical membership denies", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "not_authorized",
+    });
+
+    await expect(
+      compareWalterLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        confirmation,
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit: async () => undefined,
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: true,
+      comparison: "mismatch",
+    });
+  });
+
+  it("keeps a legacy denial authoritative when canonical membership grants", async () => {
+    const canonical = authorizer({
+      authorized: true,
+      membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+      role: "owner",
+      scope: "use_case",
+      useCaseId: "00000000-0000-4000-8000-000000000000",
+      runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
+    });
+
+    await expect(
+      compareWalterLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        confirmation,
+        legacyAuthorized: false,
+        userId,
+        authorizer: canonical,
+        audit: async () => undefined,
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: false,
+      comparison: "mismatch",
+    });
+  });
+
+  it.each([
+    ["canonical authorization is unavailable", "authorization"],
+    ["comparison audit is unavailable", "audit"],
+  ])(
+    "contains %s without changing legacy authority",
+    async (_name, failure) => {
+      const canonical = authorizer(
+        failure === "authorization"
+          ? { authorized: false, reason: "authorization_unavailable" }
+          : {
+              authorized: true,
+              membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+              role: "owner",
+              scope: "use_case",
+              useCaseId: "00000000-0000-4000-8000-000000000000",
+              runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
+            },
+      );
+
+      await expect(
+        compareWalterLegacyOwnerWithCanonicalMembership({
+          mode: "compare",
+          confirmation,
+          legacyAuthorized: true,
+          userId,
+          authorizer: canonical,
+          audit:
+            failure === "audit"
+              ? async () => {
+                  throw new Error("audit unavailable");
+                }
+              : async () => undefined,
+        }),
+      ).resolves.toEqual({
+        authority: "legacy_owner",
+        authorized: true,
+        comparison: "error",
+      });
+    },
+  );
+
+  it("contains a thrown canonical dependency failure without changing legacy authority", async () => {
+    const canonical = authorizer({
+      authorized: false,
+      reason: "authorization_unavailable",
+    });
+    canonical.authorize.mockRejectedValue(new Error("membership store failed"));
+    const events: unknown[] = [];
+
+    await expect(
+      compareWalterLegacyOwnerWithCanonicalMembership({
+        mode: "compare",
+        confirmation,
+        legacyAuthorized: true,
+        userId,
+        authorizer: canonical,
+        audit: async (event) => events.push(event),
+      }),
+    ).resolves.toEqual({
+      authority: "legacy_owner",
+      authorized: true,
+      comparison: "error",
+    });
+    expect(events).toEqual([
+      {
+        eventType: "walter_authorization_shadow_compared",
+        authority: "legacy_owner",
+        comparison: "error",
+        legacyDecision: "allow",
+        canonicalDecision: "unavailable",
+      },
+    ]);
   });
 });

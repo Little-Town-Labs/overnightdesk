@@ -81,6 +81,19 @@ canonical selectors and both operator verification commands. No production
 foundation, membership, instance link, OIDC change, or authorization cutover
 is included; T019b and T019c remain separate gates.
 
+**Walter authorization shadow checkpoint (2026-07-20):**
+`021-walter-canonical-shadow` implements T019b as a pre-consumer compatibility
+boundary. Its Walter-specific mode accepts only `legacy` or `compare`, requires
+the exact `COMPARE_WALTER_MEMBERSHIP_SHADOW` confirmation for comparison, and
+always returns the legacy single-owner decision as authority. Controlled tests
+cover matches, both mismatch directions, canonical/audit unavailability, value
+suppression, rejection of a canonical authority mode, and rollback to `legacy`
+with zero canonical authorization or comparison-audit calls. The comparison
+event contains only allow/deny/unavailable decision metadata; it excludes the
+Better Auth subject and membership identifiers. No OIDC, dashboard, API route,
+database, or production consumer is connected; T019c remains the separate
+authority and browser/rollback gate.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is
