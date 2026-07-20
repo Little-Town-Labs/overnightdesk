@@ -6,6 +6,7 @@ import {
 import {
   compareWalterLegacyOwnerWithCanonicalMembership,
   parseWalterMembershipAuthorizationMode,
+  requireWalterCanonicalAuthorityConfirmation,
   requireWalterMembershipComparisonConfirmation,
 } from "@/lib/walter-membership-compatibility";
 import type {
@@ -168,12 +169,32 @@ describe("Walter legacy-owner/canonical-membership shadow comparison", () => {
     };
   }
 
-  it("defaults to rollback-safe legacy mode and rejects canonical authority", () => {
+  it("defaults to rollback-safe legacy mode and accepts the guarded canonical mode", () => {
     expect(parseWalterMembershipAuthorizationMode(undefined)).toBe("legacy");
     expect(parseWalterMembershipAuthorizationMode("")).toBe("legacy");
     expect(parseWalterMembershipAuthorizationMode("compare")).toBe("compare");
-    expect(() => parseWalterMembershipAuthorizationMode("canonical")).toThrow(
-      "WALTER_MEMBERSHIP_AUTH_MODE must be legacy or compare",
+    expect(parseWalterMembershipAuthorizationMode("canonical")).toBe(
+      "canonical",
+    );
+    expect(() => parseWalterMembershipAuthorizationMode("enabled")).toThrow(
+      "WALTER_MEMBERSHIP_AUTH_MODE must be legacy, compare, or canonical",
+    );
+  });
+
+  it("requires a separate exact confirmation for canonical authority", () => {
+    expect(() =>
+      requireWalterCanonicalAuthorityConfirmation("legacy", undefined),
+    ).not.toThrow();
+    expect(() =>
+      requireWalterCanonicalAuthorityConfirmation(
+        "canonical",
+        "ENABLE_WALTER_CANONICAL_MEMBERSHIP",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      requireWalterCanonicalAuthorityConfirmation("canonical", undefined),
+    ).toThrow(
+      "WALTER_MEMBERSHIP_CANONICAL_CONFIRM must equal ENABLE_WALTER_CANONICAL_MEMBERSHIP",
     );
   });
 

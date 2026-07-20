@@ -218,11 +218,13 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
 
 describeIntegration("Walter identity backfill store", () => {
   it("applies Tenet 0 with zero memberships and attaches Gary separately", async () => {
-    const [{ and, eq }, { db }, schema, storeModule] = await Promise.all([
+    const [{ and, eq, inArray }, { db }, schema, storeModule, oidcModule] =
+      await Promise.all([
       import("drizzle-orm"),
       import("@/db"),
       import("@/db/schema"),
       import("@/db/use-case-identity-backfill-store"),
+      import("@/lib/hermes-oidc"),
     ]);
     const { platformAuditLog, useCaseMembership, user } = schema;
     const {
@@ -239,6 +241,7 @@ describeIntegration("Walter identity backfill store", () => {
       membershipUserId,
     };
     const ids = generateWalterIdentityIds();
+    const nonMemberUserId = `walter-nonmember-${crypto.randomUUID()}`;
 
     const before = await inspectWalterIdentityFoundation(db);
     const ready = planWalterFoundation({ actor: input.actor }, before, ids);
@@ -278,12 +281,20 @@ describeIntegration("Walter identity backfill store", () => {
       mismatches: [],
     });
 
-    await db.insert(user).values({
-      id: membershipUserId,
-      name: "Walter Identity Qualification User",
-      email: `${membershipUserId}@test-auth.example.com`,
-      emailVerified: true,
-    });
+    await db.insert(user).values([
+      {
+        id: membershipUserId,
+        name: "Walter Identity Qualification User",
+        email: `${membershipUserId}@test-auth.example.com`,
+        emailVerified: true,
+      },
+      {
+        id: nonMemberUserId,
+        name: "Walter Non-Member Qualification User",
+        email: `${nonMemberUserId}@test-auth.example.com`,
+        emailVerified: true,
+      },
+    ]);
     const membershipSnapshot = await inspectWalterIdentityBackfill(input, db);
     const membershipPlan = planWalterMembershipActivation(
       input,
@@ -342,5 +353,172 @@ describeIntegration("Walter identity backfill store", () => {
     expect(JSON.stringify([foundationAudits, membershipAudits])).not.toContain(
       "/agents/",
     );
+
+    const clientId = "walter-membership-qualification";
+    const instanceId = "walter-instance-qualification";
+    const redirectUri = "https://aegis-prod.overnightdesk.com/auth/callback";
+    const context = {
+      instanceId,
+      instanceUserId: membershipUserId,
+      instanceTenantId: "tenant-0",
+      instanceSubdomain: "aegis-prod.overnightdesk.com",
+      instanceStatus: "running",
+      dashboardAuthStatus: "active",
+      linkedClientId: clientId,
+      client: {
+        clientId,
+        clientSecret: null,
+        disabled: false,
+        redirectUris: [redirectUri],
+        scopes: ["openid", "profile", "email"],
+        tokenEndpointAuthMethod: "none",
+        grantTypes: ["authorization_code"],
+        responseTypes: ["code"],
+        public: true,
+        type: "user-agent-based",
+        requirePKCE: true,
+        skipConsent: true,
+        metadata: {
+          kind: "hermes-dashboard",
+          schemaVersion: 1,
+          instanceId,
+        },
+      },
+    };
+    const query = new URLSearchParams({
+      client_id: clientId,
+      response_type: "code",
+      redirect_uri: redirectUri,
+      scope: "openid profile email",
+      state: "walter-membership-qualification",
+      code_challenge: "a".repeat(43),
+      code_challenge_method: "S256",
+    }).toString();
+    const gateway = {
+      findByClientId: jest.fn().mockResolvedValue(context),
+    };
+    const authorize = (userId: string) =>
+      oidcModule.authorizeHermesOidcOwner(
+        {
+          user: { id: userId, emailVerified: true },
+          scopes: ["openid", "profile", "email"],
+          query,
+        },
+        gateway,
+      );
+    const previousWalterEnvironment = {
+      mode: process.env.WALTER_MEMBERSHIP_AUTH_MODE,
+      comparison: process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM,
+      canonical: process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM,
+    };
+    const authorizationActions = [
+      "use_case_membership_authorization.granted",
+      "use_case_membership_authorization.denied",
+      "walter_membership_authorization_shadow.match",
+      "walter_membership_authorization_shadow.mismatch",
+      "walter_membership_authorization_shadow.error",
+    ];
+
+    try {
+      process.env.WALTER_MEMBERSHIP_AUTH_MODE = "canonical";
+      process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM =
+        "ENABLE_WALTER_CANONICAL_MEMBERSHIP";
+      delete process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM;
+
+      await expect(authorize(membershipUserId)).resolves.toBe(instanceId);
+      await expect(authorize(nonMemberUserId)).rejects.toThrow("denied");
+
+      await db
+        .update(useCaseMembership)
+        .set({ status: "suspended", suspendedAt: new Date() })
+        .where(eq(useCaseMembership.id, ids.membershipId));
+      await expect(authorize(membershipUserId)).rejects.toThrow("denied");
+
+      await db
+        .update(useCaseMembership)
+        .set({
+          status: "active",
+          suspendedAt: null,
+          expiresAt: new Date("2000-01-01T00:00:00.000Z"),
+        })
+        .where(eq(useCaseMembership.id, ids.membershipId));
+      await expect(authorize(membershipUserId)).rejects.toThrow("denied");
+
+      await db
+        .update(useCaseMembership)
+        .set({ expiresAt: null })
+        .where(eq(useCaseMembership.id, ids.membershipId));
+      process.env.WALTER_MEMBERSHIP_AUTH_MODE = "compare";
+      process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM =
+        "COMPARE_WALTER_MEMBERSHIP_SHADOW";
+      delete process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM;
+      await expect(authorize(membershipUserId)).resolves.toBe(instanceId);
+
+      const beforeRollbackAudits = await db
+        .select({ action: platformAuditLog.action })
+        .from(platformAuditLog)
+        .where(inArray(platformAuditLog.action, authorizationActions));
+      process.env.WALTER_MEMBERSHIP_AUTH_MODE = "legacy";
+      delete process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM;
+      await expect(authorize(membershipUserId)).resolves.toBe(instanceId);
+      const afterRollbackAudits = await db
+        .select({ action: platformAuditLog.action })
+        .from(platformAuditLog)
+        .where(inArray(platformAuditLog.action, authorizationActions));
+      expect(afterRollbackAudits).toHaveLength(beforeRollbackAudits.length);
+
+      const authorizationAudits = await db
+        .select({
+          action: platformAuditLog.action,
+          details: platformAuditLog.details,
+        })
+        .from(platformAuditLog)
+        .where(inArray(platformAuditLog.action, authorizationActions));
+      expect(authorizationAudits).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            action: "use_case_membership_authorization.granted",
+          }),
+          expect.objectContaining({
+            action: "use_case_membership_authorization.denied",
+          }),
+          expect.objectContaining({
+            action: "walter_membership_authorization_shadow.match",
+          }),
+        ]),
+      );
+      expect(JSON.stringify(authorizationAudits)).not.toContain(
+        membershipUserId,
+      );
+      expect(JSON.stringify(authorizationAudits)).not.toContain(
+        nonMemberUserId,
+      );
+      expect(JSON.stringify(authorizationAudits)).not.toContain(
+        "@test-auth.example.com",
+      );
+    } finally {
+      await db
+        .update(useCaseMembership)
+        .set({ status: "active", suspendedAt: null, expiresAt: null })
+        .where(eq(useCaseMembership.id, ids.membershipId));
+      if (previousWalterEnvironment.mode === undefined) {
+        delete process.env.WALTER_MEMBERSHIP_AUTH_MODE;
+      } else {
+        process.env.WALTER_MEMBERSHIP_AUTH_MODE =
+          previousWalterEnvironment.mode;
+      }
+      if (previousWalterEnvironment.comparison === undefined) {
+        delete process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM;
+      } else {
+        process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM =
+          previousWalterEnvironment.comparison;
+      }
+      if (previousWalterEnvironment.canonical === undefined) {
+        delete process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM;
+      } else {
+        process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM =
+          previousWalterEnvironment.canonical;
+      }
+    }
   });
 });

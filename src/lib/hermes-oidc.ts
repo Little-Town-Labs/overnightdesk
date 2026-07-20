@@ -1,8 +1,16 @@
 import { randomBytes } from "node:crypto";
 import { HERMES_OIDC_SCOPES } from "@/lib/hermes-oidc-config";
+import type { MembershipAuthorizationDecision } from "@/lib/use-case-membership-authorization";
+import {
+  compareWalterLegacyOwnerWithCanonicalMembership,
+  parseWalterMembershipAuthorizationMode,
+  requireWalterCanonicalAuthorityConfirmation,
+  type WalterAuthorizationShadowAuditEvent,
+} from "@/lib/walter-membership-compatibility";
 
 const HERMES_AUTH_PATH = "/api/auth";
 const HERMES_CALLBACK_PATH = "/auth/callback";
+const WALTER_LEGACY_TENANT_ID = "tenant-0";
 
 export interface HermesOidcClientInput {
   instanceId: string;
@@ -39,6 +47,7 @@ export interface HermesOidcInstanceRecord {
 export interface HermesOidcAuthorizationContext {
   instanceId: string;
   instanceUserId: string;
+  instanceTenantId: string;
   instanceSubdomain: string;
   instanceStatus: string;
   dashboardAuthStatus: string;
@@ -52,6 +61,21 @@ export interface HermesOidcAuthorizationGateway {
 
 export interface HermesOidcTokenGateway {
   findByInstanceId(instanceId: string): Promise<HermesOidcAuthorizationContext | null>;
+}
+
+export interface HermesOidcWalterAuthorizationGateway {
+  authorize(input: {
+    userId: string;
+    legacyTenantId: string;
+  }): Promise<MembershipAuthorizationDecision>;
+  recordComparison(event: WalterAuthorizationShadowAuditEvent): Promise<unknown>;
+}
+
+export interface HermesOidcWalterAuthorizationConfig {
+  mode?: string;
+  comparisonConfirmation?: string;
+  canonicalConfirmation?: string;
+  gateway: HermesOidcWalterAuthorizationGateway;
 }
 
 export interface HermesOidcLifecycleGateway {
@@ -174,7 +198,7 @@ function hasExactClientContract(
   );
 }
 
-function isActiveAuthorizationContext(
+function isActiveOidcContext(
   context: HermesOidcAuthorizationContext,
   user: { id: string; emailVerified: boolean },
   scopes: string[]
@@ -182,7 +206,6 @@ function isActiveAuthorizationContext(
   const allowedScopes = new Set<string>(HERMES_OIDC_SCOPES);
   return (
     user.emailVerified &&
-    context.instanceUserId === user.id &&
     context.instanceStatus === "running" &&
     context.dashboardAuthStatus === "active" &&
     context.linkedClientId === context.client.clientId &&
@@ -211,6 +234,7 @@ async function selectAuthorizationContext(
     .select({
       instanceId: schema.instance.id,
       instanceUserId: schema.instance.userId,
+      instanceTenantId: schema.instance.tenantId,
       instanceSubdomain: schema.instance.subdomain,
       instanceStatus: schema.instance.status,
       dashboardAuthStatus: schema.instance.hermesDashboardAuthStatus,
@@ -257,6 +281,110 @@ const defaultTokenGateway: HermesOidcTokenGateway = {
     selectAuthorizationContext("instance", instanceId),
 };
 
+const defaultWalterAuthorizationGateway: HermesOidcWalterAuthorizationGateway = {
+  async authorize({ userId, legacyTenantId }) {
+    const [identityStoreModule, membershipStoreModule, authorizationModule] =
+      await Promise.all([
+        import("@/lib/canonical-identity-store"),
+        import("@/lib/use-case-membership-store"),
+        import("@/lib/use-case-membership-authorization"),
+      ]);
+    const canonical = await identityStoreModule.canonicalIdentityStore.resolve({
+      type: "resource_binding",
+      provider: "overnightdesk",
+      kind: "platform_instance",
+      value: legacyTenantId,
+    });
+    if (
+      legacyTenantId !== WALTER_LEGACY_TENANT_ID ||
+      canonical?.useCaseNumber !== 0 ||
+      !canonical.runtimeId
+    ) {
+      return { authorized: false, reason: "authorization_unavailable" };
+    }
+    return authorizationModule
+      .createUseCaseMembershipAuthorizer({
+        store: membershipStoreModule.useCaseMembershipStore,
+        assignment: {
+          useCaseId: canonical.useCaseId,
+          runtimeIdentityId: canonical.runtimeId,
+        },
+        audit: authorizationModule.recordMembershipAuthorizationAuditEvent,
+      })
+      .authorize({ userId });
+  },
+  async recordComparison(event) {
+    const [{ db }, { platformAuditLog }] = await Promise.all([
+      import("@/db"),
+      import("@/db/schema"),
+    ]);
+    await db.insert(platformAuditLog).values({
+      actor: "hermes-oidc",
+      action: `walter_membership_authorization_shadow.${event.comparison}`,
+      target: "tenet:0",
+      details: {
+        authority: event.authority,
+        comparison: event.comparison,
+        legacyDecision: event.legacyDecision,
+        canonicalDecision: event.canonicalDecision,
+      },
+    });
+  },
+};
+
+function defaultWalterAuthorizationConfig(): HermesOidcWalterAuthorizationConfig {
+  return {
+    mode: process.env.WALTER_MEMBERSHIP_AUTH_MODE,
+    comparisonConfirmation:
+      process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM,
+    canonicalConfirmation: process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM,
+    gateway: defaultWalterAuthorizationGateway,
+  };
+}
+
+async function isHermesOidcUserAuthorized(
+  context: HermesOidcAuthorizationContext,
+  userId: string,
+  config: HermesOidcWalterAuthorizationConfig,
+): Promise<boolean> {
+  const legacyAuthorized = context.instanceUserId === userId;
+  if (context.instanceTenantId !== WALTER_LEGACY_TENANT_ID) {
+    return legacyAuthorized;
+  }
+
+  try {
+    const mode = parseWalterMembershipAuthorizationMode(config.mode);
+    if (mode === "legacy") return legacyAuthorized;
+
+    const authorizer = {
+      authorize: ({ userId: stableUserId }: { userId: string }) =>
+        config.gateway.authorize({
+          userId: stableUserId,
+          legacyTenantId: context.instanceTenantId,
+        }),
+    };
+    if (mode === "compare") {
+      const result = await compareWalterLegacyOwnerWithCanonicalMembership({
+        mode,
+        confirmation: config.comparisonConfirmation,
+        legacyAuthorized,
+        userId,
+        authorizer,
+        audit: (event) => config.gateway.recordComparison(event),
+      });
+      return result.authorized;
+    }
+
+    requireWalterCanonicalAuthorityConfirmation(
+      mode,
+      config.canonicalConfirmation,
+    );
+    return (await authorizer.authorize({ userId })).authorized;
+  } catch {
+    return false;
+  }
+}
+
 function denyAuthorization(): never {
   throw new Error("Hermes dashboard authorization denied");
 }
@@ -267,7 +395,9 @@ export async function authorizeHermesOidcOwner(
     scopes: string[];
     query: string;
   },
-  gateway: HermesOidcAuthorizationGateway = defaultAuthorizationGateway
+  gateway: HermesOidcAuthorizationGateway = defaultAuthorizationGateway,
+  walterAuthorization: HermesOidcWalterAuthorizationConfig =
+    defaultWalterAuthorizationConfig(),
 ): Promise<string> {
   const query = new URLSearchParams(input.query);
   const clientId = query.get("client_id");
@@ -281,7 +411,7 @@ export async function authorizeHermesOidcOwner(
 
   if (
     !context ||
-    !isActiveAuthorizationContext(context, input.user, input.scopes) ||
+    !isActiveOidcContext(context, input.user, input.scopes) ||
     query.get("response_type") !== "code" ||
     query.get("redirect_uri") !== getHermesOidcCallbackUrl(context.instanceSubdomain) ||
     queryScopes.join(" ") !== input.scopes.join(" ") ||
@@ -290,6 +420,15 @@ export async function authorizeHermesOidcOwner(
     (nonce !== null && (nonce.length === 0 || nonce.length > 512)) ||
     query.get("code_challenge_method") !== "S256" ||
     !/^[A-Za-z0-9_-]{43,128}$/.test(challenge)
+  ) {
+    denyAuthorization();
+  }
+  if (
+    !(await isHermesOidcUserAuthorized(
+      context,
+      input.user.id,
+      walterAuthorization,
+    ))
   ) {
     denyAuthorization();
   }
@@ -303,7 +442,9 @@ export async function authorizeHermesOidcToken(
     scopes: string[];
     metadata?: Record<string, unknown>;
   },
-  gateway: HermesOidcTokenGateway = defaultTokenGateway
+  gateway: HermesOidcTokenGateway = defaultTokenGateway,
+  walterAuthorization: HermesOidcWalterAuthorizationConfig =
+    defaultWalterAuthorizationConfig(),
 ): Promise<Record<string, never>> {
   const instanceId =
     input.metadata?.kind === "hermes-dashboard" &&
@@ -314,7 +455,15 @@ export async function authorizeHermesOidcToken(
   if (!instanceId) denyAuthorization();
 
   const context = await gateway.findByInstanceId(instanceId);
-  if (!context || !isActiveAuthorizationContext(context, input.user, input.scopes)) {
+  if (
+    !context ||
+    !isActiveOidcContext(context, input.user, input.scopes) ||
+    !(await isHermesOidcUserAuthorized(
+      context,
+      input.user.id,
+      walterAuthorization,
+    ))
+  ) {
     denyAuthorization();
   }
   return {};

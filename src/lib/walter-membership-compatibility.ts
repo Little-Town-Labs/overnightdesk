@@ -1,10 +1,18 @@
 import { z } from "zod";
 import type { UseCaseMembershipAuthorizer } from "@/lib/use-case-membership-authorization";
 
-const walterMembershipModeSchema = z.enum(["legacy", "compare"]);
+const walterMembershipModeSchema = z.enum([
+  "legacy",
+  "compare",
+  "canonical",
+]);
 
 export type WalterMembershipAuthorizationMode = z.infer<
   typeof walterMembershipModeSchema
+>;
+export type WalterMembershipShadowMode = Exclude<
+  WalterMembershipAuthorizationMode,
+  "canonical"
 >;
 
 export function parseWalterMembershipAuthorizationMode(
@@ -13,9 +21,25 @@ export function parseWalterMembershipAuthorizationMode(
   if (!value) return "legacy";
   const parsed = walterMembershipModeSchema.safeParse(value);
   if (!parsed.success) {
-    throw new Error("WALTER_MEMBERSHIP_AUTH_MODE must be legacy or compare");
+    throw new Error(
+      "WALTER_MEMBERSHIP_AUTH_MODE must be legacy, compare, or canonical",
+    );
   }
   return parsed.data;
+}
+
+export function requireWalterCanonicalAuthorityConfirmation(
+  mode: WalterMembershipAuthorizationMode,
+  confirmation: string | undefined,
+): void {
+  if (
+    mode === "canonical" &&
+    confirmation !== "ENABLE_WALTER_CANONICAL_MEMBERSHIP"
+  ) {
+    throw new Error(
+      "WALTER_MEMBERSHIP_CANONICAL_CONFIRM must equal ENABLE_WALTER_CANONICAL_MEMBERSHIP",
+    );
+  }
 }
 
 export function requireWalterMembershipComparisonConfirmation(
@@ -41,7 +65,7 @@ export interface WalterAuthorizationShadowAuditEvent {
 }
 
 interface WalterAuthorizationShadowInput {
-  mode: WalterMembershipAuthorizationMode;
+  mode: WalterMembershipShadowMode;
   confirmation?: string;
   legacyAuthorized: boolean;
   userId: string;
