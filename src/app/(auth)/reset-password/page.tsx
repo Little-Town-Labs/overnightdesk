@@ -71,6 +71,7 @@ function RequestForm() {
           <input
             id="email"
             type="email"
+            autoComplete="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -163,6 +164,7 @@ function ResetForm({ token }: { token: string }) {
           <input
             id="password"
             type="password"
+            autoComplete="new-password"
             required
             minLength={12}
             value={password}
