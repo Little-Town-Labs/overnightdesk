@@ -112,8 +112,27 @@ T019c3: production contains one verified Tenet 0 allocation and one active Gary
 membership, all ten Walter selectors match, and Vercel deployment
 `9AgtNVztYJuyL4c3woPZQka4XiBz` runs with only the explicit `legacy` mode. No
 comparison or canonical confirmation is present, so authorization authority
-has not changed. T019c4 browser, denial-state, comparison, and final rollback
-evidence remains required before T019 and T019c are complete.
+has not changed.
+
+**Walter canonical canary and rollback checkpoint (2026-07-20):** T019c4 is
+complete. Legacy-authoritative comparison produced three matches, zero
+mismatches, and zero errors before returning to zero-canonical-work legacy
+mode. Vercel deployment `dpl_22YPJTnKTwdb6MioASMEpZ6LKtEa` then enabled the
+separately confirmed canonical mode. Gary completed platform sign-in,
+dashboard-button, direct-Aegis, Hermes logout, and valid-session SSO flows.
+The shared authorizer denied Gary against Tenet 1 with one metadata-only audit
+and no identity or membership mutation; this was a server-side cross-use-case
+boundary check, not a browser/OIDC test. Temporarily suspended and expired
+states each produced the expected browser `access_denied`, one bounded
+membership denial, and one bounded dashboard denial, with no forbidden audit
+values; the same membership was restored immediately after each check. At the
+rollback boundary, cumulative canonical membership totals were 15 grants and
+3 denials, while comparison remained 3 matches, 0 mismatches, and 0 errors.
+Final deployment `dpl_93wZmmRs2ju7bqN2b3vofkpQKjR9` restored `legacy` and
+removed both confirmations. A fresh owner login increased dashboard success
+from 14 to 15 while canonical and comparison totals remained frozen. The
+membership is active, unsuspended, and unexpired. T019 is complete; T020 Titus
+/ Tenet 2 is next.
 
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the

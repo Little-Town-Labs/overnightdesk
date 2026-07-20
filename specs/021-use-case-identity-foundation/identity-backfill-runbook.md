@@ -1,11 +1,11 @@
 # Audited Use-Case Identity Backfill
 
 This runbook covers the deployed Mitchel/Trevor `Tenet 1` foundation and the
-reviewed Walter `Tenet 0` operator workflow. Tenet 1 production evidence is
-recorded below. The Walter workflow is implemented and disposable-database
-qualified but has not been applied to production. Neither workflow by itself
-authorizes a dashboard consumer. Tenet 2, Open WebUI, Teams, resource renaming,
-and creation of a person record remain out of scope.
+completed Walter `Tenet 0` operator and authorization workflow. Tenet 1 has no
+production membership or consumer. Walter's foundation and Gary membership
+are deployed; its guarded canonical canary and final legacy rollback are
+verified below. Tenet 2, Open WebUI, Teams, resource renaming, and creation of
+a person record remain out of scope.
 
 ## Walter T019a implementation checkpoint
 
@@ -28,9 +28,9 @@ Tenet 0 foundation and a separate Gary membership workflow:
   ten Walter selectors, attached one verified Gary fixture membership in the
   separate transaction, ran both Walter verification commands, preserved the
   Tenet 1 legacy-authoritative rollback checks, and dropped the test database.
-- Production still has no Tenet 0 canonical allocation or Gary canonical
-  membership. Existing Walter/OIDC authorization remains authoritative until
-  T019b shadow comparison and T019c browser/rollback gates pass.
+- At this implementation checkpoint, production still had no Tenet 0
+  allocation or Gary membership. The later T019c3 and T019c4 checkpoints below
+  supersede that historical state.
 
 ## Walter T019b shadow checkpoint
 
@@ -103,10 +103,52 @@ T019c3 production gate on 2026-07-20:
   existing Walter and Nginx containers remained up. No Aegis service was
   restarted or reconfigured.
 
-Legacy exact-owner authorization therefore remains authoritative and performs
-zero canonical work per request. T019c remains open only for the authenticated
-compare, canonical member/denial, logout, direct-login, dashboard-button, and
-final rollback evidence in T019c4.
+Legacy exact-owner authorization therefore remained authoritative and
+performed zero canonical work per request until the T019c4 canary below.
+
+## Walter T019c4 canonical canary and rollback checkpoint
+
+On 2026-07-20, Walter completed the guarded production comparison, canonical
+canary, denial-state checks, browser acceptance, and final rollback:
+
+- Legacy-authoritative comparison ran in Vercel deployment
+  `7eZSet2VK5nJqTmi5b7pthpHCXUW`, produced three matches, zero mismatches, and
+  zero errors, then returned to deployment `CRVZhwvLT9sYDDrv7CC4ahMdS29s`
+  with `legacy` authority and zero further canonical work.
+- Canonical canary deployment `dpl_22YPJTnKTwdb6MioASMEpZ6LKtEa` used the
+  exact canonical confirmation. Gary completed clean platform sign-in,
+  dashboard-button launch, direct Aegis launch, Hermes logout, and SSO return
+  from a valid Better Auth session. Walter, Nginx, OIDC discovery, JWKS, and
+  the public routes remained healthy.
+- A server-side Tenet 1 non-member check proved the shared cross-use-case
+  boundary: Gary's Tenet 0 subject and the Tenet 1 runtime were resolved by
+  the server, canonical authorization denied `not_authorized`, exactly one
+  metadata-only denial audit was written, and no identity or membership row
+  changed. This was shared-authorizer evidence, not a browser/OIDC Tenet 1
+  test.
+- The existing Tenet 0 membership was temporarily suspended and then restored.
+  The owner browser received `access_denied`; the bounded interval contained
+  one membership denial and one dashboard denial with no forbidden audit
+  values. The membership ID and expiry were preserved.
+- The same active membership was temporarily assigned a past expiry and then
+  restored. The owner browser again received `access_denied`; the bounded
+  interval contained one membership denial and one dashboard denial with no
+  forbidden audit values. The membership ID and active status were preserved.
+- At the rollback boundary, cumulative canonical authorization contained 15
+  grants and 3 denials. The three denials comprise the Tenet 1 shared-boundary
+  check plus Walter's suspended and expired checks; the totals are therefore
+  not all Walter browser events. Comparison remained three matches, zero
+  mismatches, and zero errors.
+- Final Vercel deployment `dpl_93wZmmRs2ju7bqN2b3vofkpQKjR9` restored
+  `WALTER_MEMBERSHIP_AUTH_MODE=legacy` and removed both comparison and
+  canonical confirmations. After a fresh owner login, dashboard successes
+  advanced from 14 to 15 while canonical grant/denial totals and comparison
+  totals remained frozen. Walter's membership is active, unsuspended, and
+  unexpired.
+
+T019 and T019c are complete. Production deliberately retains exact legacy
+owner authority after the proven canary; T020 Titus / Tenet 2 is the next
+engineering task.
 
 ## Production checkpoint
 

@@ -141,6 +141,9 @@ This order is the durable restart point. It supersedes the stale unchecked
 execution checklist below, which describes the original April v3 sequence but
 does not reflect the current deployed platform.
 
+Orders 1 and 2 completed on 2026-07-20. Order 3, T020 Titus / Tenet 2
+foundation and Gary membership, is the next engineering task.
+
 The three-phase provisioner/orchestrator convergence sketch recorded in the
 initial 2026-05-07 standard (`OPERATOR_RESEED` startup wiring,
 `/provision-infra`, and wizard parallel calls) is abandoned planning, not
@@ -164,14 +167,16 @@ Feature 1 (Agent Zero Migration)
                          └──► Feature 020 (Embedded Open WebUI auth spike)
 
 Feature 021 (Use-Case Identity Foundation)
-    ├──► Mitchel-user/Trevor-agent identity/membership vertical slice
-    │         └──► Feature 020 stateful Mitchel canary
-    └──► future Titus multi-person membership and channel work
+    ├──► shared membership integration (complete)
+    │         └──► Walter / Tenet 0 canary and rollback (complete)
+    │                   └──► Titus / Tenet 2 foundation and Gary membership (next)
+    └──► Mitchel membership when verified
+              └──► Feature 020 stateful Mitchel canary
 ```
 
-**Current chat path:** Accept Feature 021 contract → run additive identity
-foundation while Feature 020 auth research overlaps → verify Mitchel-user/Trevor-agent identity
-mapping → stateful Mitchel canary → dashboard cutover → custom-chat cleanup.
+**Current chat path:** Complete Walter / Tenet 0 evidence → establish Titus /
+Tenet 2 with Gary → attach Mitchel membership when verified → run the stateful
+Mitchel/Trevor Open WebUI canary → dashboard cutover → custom-chat cleanup.
 
 ---
 

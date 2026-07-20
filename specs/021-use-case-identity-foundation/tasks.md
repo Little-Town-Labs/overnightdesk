@@ -3,14 +3,13 @@
 **Input**: Design documents from `/specs/021-use-case-identity-foundation/`
 
 **Status**: Migration 0009 and the guarded Tenet 1 foundation are deployed and
-verified in production with zero memberships. The shared T018 database-backed
-membership integration is implemented and disposable-Neon qualified with no
-production consumer. T019c's Walter-only guarded OIDC code and real
-disposable-database membership path are implemented, but production remains on
-legacy owner authority until the foundation, Gary membership, deployment, and
-browser/rollback gates are completed. Mitchel's verified membership remains a
-later fail-closed operation. No Phase change, resource rename, or
-platform/orchestrator link has been performed.
+verified in production with zero memberships. T018's shared database-backed
+membership integration and Walter's T019 foundation, Gary membership,
+comparison, canonical canary, denial-state checks, and final rollback are
+complete. Production deliberately runs Walter on legacy owner authority with
+both confirmation variables absent. T020 establishes Titus / Tenet 2 next;
+Mitchel's verified membership remains a later fail-closed operation. No Phase
+change, resource rename, or platform/orchestrator link has been performed.
 
 ## Phase 1: Durable Contract
 
@@ -60,14 +59,14 @@ platform/orchestrator link has been performed.
   - [x] T018b Add metadata-only denial/audit and server-derived runtime assignment in `src/lib/use-case-membership-authorization.ts`; never accept a client alias, persona, or Tenet number as authority
   - [x] T018c Keep authorization caching disabled by default and qualify any explicit cache mode in `src/lib/__tests__/use-case-membership-authorization.test.ts` against T017 expiry/invalidation behavior
   - [x] T018d Extend `src/lib/__tests__/fixtures/use-case-membership.ts` to prove the same integration with Walter, Titus, and Trevor fixtures while legacy production readers remain authoritative
-- [ ] T019 Make Walter / Tenet 0 the first real membership-authorization cutover
+- [x] T019 Make Walter / Tenet 0 the first real membership-authorization cutover
   - [x] T019a Extend `src/lib/use-case-identity-backfill.ts`, `src/db/use-case-identity-backfill-store.ts`, and `scripts/use-case-identity-backfill.ts` with a guarded Tenet 0 foundation plus separate Gary membership plan/apply/verify path; preserve all Walter resource names
   - [x] T019b Add Walter legacy-owner/canonical-membership comparison and rollback coverage in `src/lib/__tests__/canonical-identity-compatibility.test.ts` before authority changes
-  - [ ] T019c Integrate Walter only, then complete the guarded production and browser evidence gates
+  - [x] T019c Integrate Walter only, then complete the guarded production and browser evidence gates
     - [x] T019c1 Connect authorization-code and token paths in `src/lib/hermes-oidc.ts` with `legacy`, legacy-authoritative `compare`, and separately confirmed `canonical` modes; leave non-Walter OIDC authorization unchanged
     - [x] T019c2 Add controlled and disposable-Neon coverage for active member, non-member, suspended/expired member, canonical unavailability, metadata-only comparison, and zero-canonical-work legacy rollback
     - [x] T019c3 From merged code, apply and verify the guarded Tenet 0 foundation and separate Gary membership, then deploy the new environment variables initially in `legacy`
-    - [ ] T019c4 Record member, non-member, suspended/expired, logout, direct-login, dashboard-button, compare, and rollback browser/audit evidence in the identity runbook
+    - [x] T019c4 Record member, non-member, suspended/expired, logout, direct-login, dashboard-button, compare, and rollback browser/audit evidence in the identity runbook
 - [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
   - [ ] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
   - [ ] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
@@ -85,10 +84,10 @@ platform/orchestrator link has been performed.
 
 ## Phase 5: Closeout
 
-- [ ] T028 Update the standard from verified implementation and deployment state
+- [x] T028 Update the standard from verified implementation and deployment state
 - [ ] T029 Add audit conformance checks for canonical relationships, orphaned bindings, duplicate active aliases, and membership state
-- [ ] T030 Complete browser authorization, migration rollback, resolver compatibility, and value-suppression evidence
-- [ ] T031 Run the required five-axis code review before merge and production authorization
+- [x] T030 Complete browser authorization, migration rollback, resolver compatibility, and value-suppression evidence
+- [x] T031 Run the required five-axis code review before merge and production authorization
 
 ## Dependencies and Execution Order
 
