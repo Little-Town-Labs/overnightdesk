@@ -72,11 +72,14 @@ function parseInvocation(args: string[]): {
     args[0] === "membership" ||
     args[0] === "compatibility"
   ) {
-    const hasExplicitTarget = isIdentityTarget(args[1]);
+    const requestedTarget = args[1];
+    const hasExplicitTarget = isIdentityTarget(requestedTarget);
     if (args[0] === "compatibility" && hasExplicitTarget) {
       throw new Error("Compatibility does not accept an identity target");
     }
-    const target = hasExplicitTarget ? args[1] : "mitchel-trevor";
+    const target: IdentityTarget = hasExplicitTarget
+      ? requestedTarget
+      : "mitchel-trevor";
     const commandIndex = hasExplicitTarget ? 2 : 1;
     return {
       scope: args[0] as Scope,
