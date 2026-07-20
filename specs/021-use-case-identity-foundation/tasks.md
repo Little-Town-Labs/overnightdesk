@@ -6,11 +6,12 @@
 verified in production with zero memberships. T018 and Walter's T019 canary
 plus final legacy rollback are complete. T020a's guarded Titus / Tenet 2
 foundation and separate Gary membership workflow are implemented and
-disposable-Neon qualified but not production-applied. T020b shadow coverage
-and T020c consumer/adapter selection remain next. Mitchel's verified membership
-is still a later fail-closed operation. No Titus Phase change, resource rename,
-Teams/Austin grant, production consumer, or platform/orchestrator link has been
-performed.
+disposable-Neon qualified but not production-applied. T020b's guarded
+legacy-authoritative Titus/Gary shadow coverage is implemented with no
+production consumer. T020c consumer/adapter selection remains next. Mitchel's
+verified membership is still a later fail-closed operation. No Titus Phase
+change, resource rename, Teams/Austin grant, production consumer, or
+platform/orchestrator link has been performed.
 
 ## Phase 1: Durable Contract
 
@@ -70,7 +71,7 @@ performed.
     - [x] T019c4 Record member, non-member, suspended/expired, logout, direct-login, dashboard-button, compare, and rollback browser/audit evidence in the identity runbook
 - [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
   - [x] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
-  - [ ] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
+  - [x] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
   - [ ] T020c Record the selected Titus production consumer and external-identity adapter contract in `specs/021-use-case-identity-foundation/plan.md` before cutover; Better Auth membership alone is not authority for Matrix, email, or Teams identities
 
 ## Phase 4: Open WebUI Dependency and Expansion

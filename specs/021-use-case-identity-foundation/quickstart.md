@@ -27,9 +27,11 @@ still requires every preflight in the runbook to pass.
    authorization cutover.
 10. Use the guarded `identity:titus:foundation:*` and
    `identity:titus:membership:*` commands to allocate and backfill Tenet 2 plus
-   Gary only after their separate confirmations. Preserve existing Matrix E2EE
-   and email sender controls until their external identities have a separately
-   approved canonical adapter; do not wait for Teams or Austin.
+   Gary only after their separate confirmations, then use the separately
+   confirmed Titus legacy-authoritative shadow boundary before selecting a
+   production consumer. Preserve existing Matrix E2EE and email sender controls
+   until their external identities have a separately approved canonical
+   adapter; do not wait for Teams or Austin.
 11. Attach Mitchel's membership later through the separate audited command only
    after his Better Auth user is email-verified. Trevor production activation
    remains blocked, but it does not block Walter or Titus.
