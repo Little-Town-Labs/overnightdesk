@@ -4,12 +4,16 @@ import {
   applyMembershipActivationPlan,
   compareMitchelTrevorLegacyAndCanonical,
   generateMitchelTrevorIdentityIds,
+  generateTitusIdentityIds,
   generateWalterIdentityIds,
   inspectMitchelTrevorIdentityBackfill,
   inspectMitchelTrevorIdentityFoundation,
+  inspectTitusIdentityBackfill,
+  inspectTitusIdentityFoundation,
   inspectWalterIdentityBackfill,
   inspectWalterIdentityFoundation,
   verifyMitchelTrevorCanonicalSelectors,
+  verifyTitusCanonicalSelectors,
   verifyWalterCanonicalSelectors,
 } from "@/db/use-case-identity-backfill-store";
 import { db } from "@/db";
@@ -22,6 +26,8 @@ import {
   planMitchelMembershipActivation,
   planMitchelTrevorBackfill,
   planMitchelTrevorFoundation,
+  planTitusFoundation,
+  planTitusMembershipActivation,
   planWalterFoundation,
   planWalterMembershipActivation,
   summarizeIdentityBackfillPlan,
@@ -36,7 +42,11 @@ import {
 
 type Scope = "backfill" | "foundation" | "membership" | "compatibility";
 type Command = "plan" | "apply" | "verify";
-type IdentityTarget = "mitchel-trevor" | "walter";
+type IdentityTarget = "mitchel-trevor" | "titus" | "walter";
+
+function isIdentityTarget(value: string | undefined): value is IdentityTarget {
+  return value === "mitchel-trevor" || value === "titus" || value === "walter";
+}
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -62,12 +72,14 @@ function parseInvocation(args: string[]): {
     args[0] === "membership" ||
     args[0] === "compatibility"
   ) {
-    const hasExplicitTarget =
-      args[1] === "walter" || args[1] === "mitchel-trevor";
+    const requestedTarget = args[1];
+    const hasExplicitTarget = isIdentityTarget(requestedTarget);
     if (args[0] === "compatibility" && hasExplicitTarget) {
       throw new Error("Compatibility does not accept an identity target");
     }
-    const target = args[1] === "walter" ? "walter" : "mitchel-trevor";
+    const target: IdentityTarget = hasExplicitTarget
+      ? requestedTarget
+      : "mitchel-trevor";
     const commandIndex = hasExplicitTarget ? 2 : 1;
     return {
       scope: args[0] as Scope,
@@ -90,7 +102,7 @@ function loadMembershipInput(target: IdentityTarget): IdentityBackfillInput {
   return {
     actor: requiredEnvironment("IDENTITY_MEMBERSHIP_ACTOR"),
     membershipUserId: requiredEnvironment(
-      target === "walter"
+      target === "walter" || target === "titus"
         ? "GARY_BETTER_AUTH_USER_ID"
         : "MITCHEL_BETTER_AUTH_USER_ID",
     ),
@@ -119,6 +131,13 @@ async function planFoundation(
       generateWalterIdentityIds(),
     );
   }
+  if (target === "titus") {
+    return planTitusFoundation(
+      input,
+      await inspectTitusIdentityFoundation(),
+      generateTitusIdentityIds(),
+    );
+  }
   return planMitchelTrevorFoundation(
     input,
     await inspectMitchelTrevorIdentityFoundation(),
@@ -135,6 +154,13 @@ async function planMembership(
       input,
       await inspectWalterIdentityBackfill(input),
       generateWalterIdentityIds().membershipId,
+    );
+  }
+  if (target === "titus") {
+    return planTitusMembershipActivation(
+      input,
+      await inspectTitusIdentityBackfill(input),
+      generateTitusIdentityIds().membershipId,
     );
   }
   return planMitchelMembershipActivation(
@@ -164,6 +190,12 @@ async function verifyFoundation(
       plan.runtimeIdentityId,
     );
   }
+  if (target === "titus") {
+    return verifyTitusCanonicalSelectors(
+      plan.useCaseId,
+      plan.runtimeIdentityId,
+    );
+  }
   return verifyMitchelTrevorCanonicalSelectors(
     plan.useCaseId,
     plan.runtimeIdentityId,
@@ -187,7 +219,7 @@ async function runFoundation(
   }
   requireConfirmation(
     "IDENTITY_FOUNDATION_CONFIRM",
-    target === "walter" ? "TENET_0_WALTER_FOUNDATION" : "TENET_1_FOUNDATION",
+    foundationConfirmation(target),
   );
   if (plan.status === "ready") await applyIdentityFoundationPlan(plan);
   const verified = await planFoundation(input, target);
@@ -213,9 +245,7 @@ async function runMembership(
   }
   requireConfirmation(
     "IDENTITY_MEMBERSHIP_CONFIRM",
-    target === "walter"
-      ? "ACTIVATE_TENET_0_GARY"
-      : "ACTIVATE_TENET_1_MITCHEL",
+    membershipConfirmation(target),
   );
   if (plan.status === "ready") await applyMembershipActivationPlan(plan);
   const verified = await planMembership(input, target);
@@ -293,6 +323,18 @@ function requireConfirmation(name: string, expected: string): void {
   if (process.env[name] !== expected) {
     throw new Error(`${name} must equal ${expected}`);
   }
+}
+
+function foundationConfirmation(target: IdentityTarget): string {
+  if (target === "walter") return "TENET_0_WALTER_FOUNDATION";
+  if (target === "titus") return "TENET_2_TITUS_FOUNDATION";
+  return "TENET_1_FOUNDATION";
+}
+
+function membershipConfirmation(target: IdentityTarget): string {
+  if (target === "walter") return "ACTIVATE_TENET_0_GARY";
+  if (target === "titus") return "ACTIVATE_TENET_2_GARY";
+  return "ACTIVATE_TENET_1_MITCHEL";
 }
 
 function failBlocked(plan: { status: "blocked"; reasons: string[] }): void {

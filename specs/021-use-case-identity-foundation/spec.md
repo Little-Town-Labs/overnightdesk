@@ -5,15 +5,13 @@
 **Created**: 2026-07-19
 
 **Status**: In progress — migration 0009 and the owner-approved Tenet 1
-foundation are deployed and verified in production. The foundation contains
-zero memberships, so human access remains blocked until Mitchel completes
-Better Auth registration and email verification and the separate membership
-operation is reviewed and applied. Existing authorization remains
-authoritative; no platform-instance link, orchestrator link, resource rename,
-or authorization cutover has been performed. Tenet 1 remains the completed
-historical backfill/resolver canary, but it no longer gates forward production
-work: shared authorization comes next, followed by Walter and Titus, while
-Trevor production activation waits for Mitchel.
+foundation are deployed and verified in production with zero memberships.
+Walter / Tenet 0 completed its foundation, Gary membership, canonical canary,
+and final rollback to legacy authority. T020a implements and disposable-Neon
+qualifies the guarded Titus / Tenet 2 foundation and separate Gary membership
+workflow without applying either to production. No platform-instance link,
+orchestrator link, resource rename, Teams/Austin grant, or Titus consumer
+cutover is included. Trevor production activation still waits for Mitchel.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or
@@ -151,8 +149,8 @@ use of the new tables without deleting them or changing resources.
   agent's default persona, and `hermes-mitchel` is the current runtime resource
   alias. The owner-approved initial allocations are `Tenet 0` for
   OvernightDesk/Walter, `Tenet 1` for Mitchel/Trevor, and `Tenet 2` for
-  TTS/Titus. Tenet 1 is deployed through its audited canonical allocation;
-  Tenets 0 and 2 remain pending their separate reviewed operations.
+  TTS/Titus. Tenets 0 and 1 are deployed through their audited canonical
+  allocations; Tenet 2 remains pending its separate production operation.
   Existing `tenant-0`, `tenet-0`, and `tenet0-postgres`
   names remain resource
   bindings; their use for Trevor data does not assign Mitchel to Tenet 0.

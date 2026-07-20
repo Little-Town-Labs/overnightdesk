@@ -150,6 +150,70 @@ T019 and T019c are complete. Production deliberately retains exact legacy
 owner authority after the proven canary; T020 Titus / Tenet 2 is the next
 engineering task.
 
+## Titus T020a implementation checkpoint
+
+On 2026-07-20, branch `021-titus-identity-foundation` added the guarded Tenet 2
+foundation and separate Gary membership workflow without applying production
+changes:
+
+- The foundation requires the exact `TENET_2_TITUS_FOUNDATION` confirmation
+  and creates zero memberships.
+- The membership operation accepts only `GARY_BETTER_AUTH_USER_ID`, verifies
+  that the referenced Better Auth account exists with verified email, and
+  requires the separate `ACTIVATE_TENET_2_GARY` confirmation.
+- The manifest preserves `hermes-titus`, `hermes-titus-data`, the active
+  runtime, Control Tower, memory, Matrix, and routed-intake Phase paths, the
+  rollback-only legacy email path, the staged Teams path as compatibility
+  metadata, and the active `titus` intake route. Seven Phase boundary records
+  point to App `timeless-tech-solutions`, environment `production`, without
+  storing secret values.
+- Disposable Neon applied Tenets 1, 0, and 2; attached Gary only after the
+  Titus foundation; matched all 11 Titus selectors; verified both Titus
+  operator commands and their idempotent apply retries; preserved the existing
+  Tenet 1 legacy/compare rollback and Walter gates; and dropped the database.
+- No production allocation, membership, consumer, Matrix E2EE policy, email
+  sender allowlist, Teams activation, Austin grant, or live resource changed.
+  T020b and T020c remain separate gates.
+
+The production operation, when separately approved after merge, runs from an
+environment where `DATABASE_URL` is already supplied through the protected
+deployment boundary and uses:
+
+```bash
+IDENTITY_FOUNDATION_ACTOR=operator:<stable-id> \
+  npm run identity:titus:foundation:plan
+
+IDENTITY_FOUNDATION_ACTOR=operator:<stable-id> \
+IDENTITY_FOUNDATION_CONFIRM=TENET_2_TITUS_FOUNDATION \
+  npm run identity:titus:foundation:apply
+
+IDENTITY_FOUNDATION_ACTOR=operator:<stable-id> \
+  npm run identity:titus:foundation:verify
+```
+
+Only after the foundation verifies and Gary's opaque Better Auth user ID is
+obtained through a metadata-only lookup may the separate membership operation
+run:
+
+```bash
+IDENTITY_MEMBERSHIP_ACTOR=operator:<stable-id> \
+GARY_BETTER_AUTH_USER_ID=<opaque-user-id> \
+  npm run identity:titus:membership:plan
+
+IDENTITY_MEMBERSHIP_ACTOR=operator:<stable-id> \
+IDENTITY_MEMBERSHIP_CONFIRM=ACTIVATE_TENET_2_GARY \
+GARY_BETTER_AUTH_USER_ID=<opaque-user-id> \
+  npm run identity:titus:membership:apply
+
+IDENTITY_MEMBERSHIP_ACTOR=operator:<stable-id> \
+GARY_BETTER_AUTH_USER_ID=<opaque-user-id> \
+  npm run identity:titus:membership:verify
+```
+
+Command output contains status, counts, linkage booleans, and selector
+match/mismatch labels only. It must not contain the Better Auth user ID,
+membership ID, resource values, Phase paths, email, or secret values.
+
 ## Production checkpoint
 
 On 2026-07-19, merged main commit

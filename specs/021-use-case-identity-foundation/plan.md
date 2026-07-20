@@ -134,6 +134,23 @@ from 14 to 15 while canonical and comparison totals remained frozen. The
 membership is active, unsuspended, and unexpired. T019 is complete; T020 Titus
 / Tenet 2 is next.
 
+**Titus foundation implementation checkpoint (2026-07-20):**
+`021-titus-identity-foundation` implements T020a without changing production.
+The guarded Tenet 2 template preserves the active `hermes-titus` container and
+`hermes-titus-data` volume, current runtime, Control Tower, memory, Matrix, and
+routed-intake Phase paths, the rollback-only legacy email path, the staged
+Teams path as compatibility metadata, and the active Titus intake route. All
+seven secret-boundary records point only to App `timeless-tech-solutions` and
+environment `production`; no secret value is stored. Foundation apply requires
+`TENET_2_TITUS_FOUNDATION`, creates zero memberships, and is separate from the
+Gary membership apply requiring `ACTIVATE_TENET_2_GARY` plus his existing
+email-verified Better Auth user ID. Disposable Neon passed 11 of 11 selectors,
+verified-noop retries, separate membership attachment, metadata-only audits,
+and the existing Tenet 1/Walter regression gates before dropping the database.
+No production allocation, membership, consumer, Matrix policy, email sender
+allowlist, Teams activation, or Austin grant is included. T020b shadow
+resolution and T020c consumer/adapter selection remain separate gates.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is

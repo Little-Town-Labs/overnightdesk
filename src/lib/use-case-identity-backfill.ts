@@ -1,12 +1,14 @@
 import { z } from "zod";
 import {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  TITUS_IDENTITY_TEMPLATE,
   WALTER_IDENTITY_TEMPLATE,
   type CanonicalIdentityTemplate,
 } from "@/lib/use-case-identity-templates";
 
 export {
   MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  TITUS_IDENTITY_TEMPLATE,
   WALTER_IDENTITY_TEMPLATE,
   type CanonicalIdentityTemplate,
 } from "@/lib/use-case-identity-templates";
@@ -716,5 +718,31 @@ export function planWalterMembershipActivation(
     snapshot,
     membershipId,
     WALTER_IDENTITY_TEMPLATE,
+  );
+}
+
+export function planTitusFoundation(
+  rawInput: IdentityFoundationInput,
+  snapshot: IdentityFoundationSnapshot,
+  ids: CanonicalIdentityIds,
+): IdentityFoundationPlan {
+  return planIdentityFoundation(
+    rawInput,
+    snapshot,
+    ids,
+    TITUS_IDENTITY_TEMPLATE,
+  );
+}
+
+export function planTitusMembershipActivation(
+  rawInput: IdentityBackfillInput,
+  snapshot: IdentityBackfillSnapshot,
+  membershipId: string,
+): MembershipActivationPlan {
+  return planIdentityMembershipActivation(
+    rawInput,
+    snapshot,
+    membershipId,
+    TITUS_IDENTITY_TEMPLATE,
   );
 }
