@@ -56,6 +56,40 @@ legacy-owner/canonical-membership comparison contract:
   T019c remains responsible for Walter's guarded OIDC integration and browser
   rollback evidence before canonical authority can be considered.
 
+## Walter T019c guarded OIDC implementation checkpoint
+
+On 2026-07-20, branch `021-walter-canonical-oidc` connected only Walter's
+authorization-code and token paths to the shared membership boundary:
+
+- `WALTER_MEMBERSHIP_AUTH_MODE=legacy` remains the default. It uses the exact
+  legacy instance owner and performs zero canonical lookup or audit work.
+- `compare` requires
+  `WALTER_MEMBERSHIP_COMPARISON_CONFIRM=COMPARE_WALTER_MEMBERSHIP_SHADOW`,
+  observes canonical membership, and keeps the legacy owner authoritative.
+- `canonical` requires
+  `WALTER_MEMBERSHIP_CANONICAL_CONFIRM=ENABLE_WALTER_CANONICAL_MEMBERSHIP` and
+  makes active, unexpired canonical membership authoritative. A missing
+  foundation, inactive runtime, unavailable storage, or audit failure denies
+  authorization.
+- The consumer recognizes Walter only from the server-loaded platform
+  instance `tenant-0`, resolves the explicit `overnightdesk` / platform
+  instance resource binding, verifies immutable Tenet number 0 and a runtime
+  UUID, and passes only the authenticated Better Auth user ID to the shared
+  authorizer. Browser-supplied tenant, persona, alias, or resource values are
+  never authorization inputs.
+- Non-Walter instances continue to use exact legacy-owner authorization in all
+  three Walter modes.
+- Unit tests cover both OIDC authorization-code and token paths. Disposable
+  Neon then exercised the real resolver, membership store, and audit adapter
+  for active member, non-member, suspended, expired, compare, and legacy
+  rollback states. The retry preserved all ten Walter selectors and the
+  separate verified membership fixture, then dropped the disposable database.
+
+This checkpoint does not claim production completion. The production
+foundation and Gary membership must be applied from merged code before the
+Vercel flag sequence and browser matrix below. T019c remains open until that
+evidence is recorded.
+
 ## Production checkpoint
 
 On 2026-07-19, merged main commit
@@ -280,6 +314,38 @@ membership. Its write batch contains only the active owner membership and its
 metadata-only audit event. This database grant is not selected as OIDC
 authority until T019b and T019c complete.
 
+## Roll out Walter OIDC membership authority
+
+Apply this sequence only from a reviewed, merged commit after the Walter
+foundation and Gary membership verification both return `verified_noop`:
+
+1. Deploy with `WALTER_MEMBERSHIP_AUTH_MODE=legacy`. Verify the existing
+   Walter dashboard button, direct login, and logout behavior before any
+   canonical read is enabled.
+2. Set `compare` plus the exact comparison confirmation and redeploy. Verify
+   the legacy owner still succeeds, then inspect only metadata fields for a
+   `walter_membership_authorization_shadow.match` audit.
+3. Roll back to `legacy`, redeploy, and verify the dashboard again. Confirm the
+   request adds no membership-authorization or shadow-comparison audit row.
+4. Set `canonical` plus the exact canonical confirmation and redeploy. Record
+   active-member success and controlled non-member, suspended, and expired
+   denial evidence. Restore the active membership immediately after each
+   controlled state test.
+5. Record that Hermes logout clears the dashboard session. If the central
+   Better Auth session remains active, clicking the dashboard sign-in button
+   may complete SSO without another credential prompt; signing out of the
+   OvernightDesk platform must clear that central session. Also record direct
+   navigation to `aegis-prod.overnightdesk.com` and the platform
+   dashboard-button flow.
+6. Exercise the production rollback once more by returning the mode to
+   `legacy`, redeploying, and verifying the legacy owner can sign in. Do not
+   delete the additive Tenet 0 foundation or membership as rollback.
+
+Do not place a confirmation value in a public `NEXT_PUBLIC_*` variable. Treat
+Vercel deployment completion, HTTP reachability, and an OIDC redirect as
+necessary but insufficient: browser acceptance and the metadata-only audit
+check are required before marking T019c complete.
+
 ## Failure and rollback
 
 - A failed Neon batch is atomic; investigate before retrying.
@@ -291,7 +357,8 @@ authority until T019b and T019c complete.
   orchestrator/platform instance UUID.
 - Do not delete identity rows or the immutable number allocation as rollback.
 - Existing legacy reads remain authoritative, so operational rollback is to
-  leave canonical reads disabled while retaining additive records for review.
+  set `WALTER_MEMBERSHIP_AUTH_MODE=legacy`, redeploy, and retain additive
+  records for review.
 - Do not rename or recreate the live container, volume, hostname, or Phase
   path.
 

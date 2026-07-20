@@ -2,7 +2,9 @@ import {
   authorizeHermesOidcOwner,
   type HermesOidcAuthorizationContext,
   type HermesOidcAuthorizationGateway,
+  type HermesOidcWalterAuthorizationConfig,
 } from "@/lib/hermes-oidc";
+import type { MembershipAuthorizationDecision } from "@/lib/use-case-membership-authorization";
 
 describe("Hermes OIDC owner authorization", () => {
   const query = new URLSearchParams({
@@ -22,6 +24,7 @@ describe("Hermes OIDC owner authorization", () => {
     return {
       instanceId: "instance-1",
       instanceUserId: "owner-1",
+      instanceTenantId: "tenant-a",
       instanceSubdomain: "tenant-a.overnightdesk.com",
       instanceStatus: "running",
       dashboardAuthStatus: "active",
@@ -53,6 +56,48 @@ describe("Hermes OIDC owner authorization", () => {
     value: HermesOidcAuthorizationContext | null = context()
   ): HermesOidcAuthorizationGateway {
     return { findByClientId: jest.fn().mockResolvedValue(value) };
+  }
+
+  function walterContext(): HermesOidcAuthorizationContext {
+    return context({
+      instanceTenantId: "tenant-0",
+      instanceSubdomain: "aegis-prod.overnightdesk.com",
+      client: {
+        ...context().client,
+        redirectUris: [
+          "https://aegis-prod.overnightdesk.com/auth/callback",
+        ],
+      },
+    });
+  }
+
+  function walterQuery(): string {
+    const value = new URLSearchParams(query);
+    value.set(
+      "redirect_uri",
+      "https://aegis-prod.overnightdesk.com/auth/callback",
+    );
+    return value.toString();
+  }
+
+  function walterAuthorization(
+    mode: "legacy" | "compare" | "canonical",
+    decision: MembershipAuthorizationDecision,
+  ): HermesOidcWalterAuthorizationConfig & {
+    gateway: {
+      authorize: jest.Mock;
+      recordComparison: jest.Mock;
+    };
+  } {
+    return {
+      mode,
+      comparisonConfirmation: "COMPARE_WALTER_MEMBERSHIP_SHADOW",
+      canonicalConfirmation: "ENABLE_WALTER_CANONICAL_MEMBERSHIP",
+      gateway: {
+        authorize: jest.fn().mockResolvedValue(decision),
+        recordComparison: jest.fn().mockResolvedValue(undefined),
+      },
+    };
   }
 
   it("authorizes only the verified canonical owner with the exact contract", async () => {
@@ -140,5 +185,185 @@ describe("Hermes OIDC owner authorization", () => {
         gateway()
       )
     ).rejects.toThrow("denied");
+  });
+
+  describe("Walter canonical membership cutover", () => {
+    const activeMembership: MembershipAuthorizationDecision = {
+      authorized: true,
+      membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+      role: "owner",
+      scope: "use_case",
+      useCaseId: "00000000-0000-4000-8000-000000000000",
+      runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
+    };
+
+    it("allows an active canonical member without legacy ownership", async () => {
+      const authorization = walterAuthorization(
+        "canonical",
+        activeMembership,
+      );
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "active-member", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: walterQuery(),
+          },
+          gateway(walterContext()),
+          authorization,
+        ),
+      ).resolves.toBe("instance-1");
+      expect(authorization.gateway.authorize).toHaveBeenCalledWith({
+        userId: "active-member",
+        legacyTenantId: "tenant-0",
+      });
+    });
+
+    it.each(["non-member", "suspended member", "expired member"])(
+      "denies the legacy owner when canonical authority sees a %s",
+      async () => {
+        const authorization = walterAuthorization("canonical", {
+          authorized: false,
+          reason: "not_authorized",
+        });
+
+        await expect(
+          authorizeHermesOidcOwner(
+            {
+              user: { id: "owner-1", emailVerified: true },
+              scopes: ["openid", "profile", "email"],
+              query: walterQuery(),
+            },
+            gateway(walterContext()),
+            authorization,
+          ),
+        ).rejects.toThrow("denied");
+      },
+    );
+
+    it("fails closed when canonical authorization is unavailable", async () => {
+      const authorization = walterAuthorization("canonical", {
+        authorized: false,
+        reason: "authorization_unavailable",
+      });
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "owner-1", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: walterQuery(),
+          },
+          gateway(walterContext()),
+          authorization,
+        ),
+      ).rejects.toThrow("denied");
+    });
+
+    it("keeps the legacy owner authoritative in compare mode", async () => {
+      const authorization = walterAuthorization("compare", {
+        authorized: false,
+        reason: "not_authorized",
+      });
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "owner-1", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: walterQuery(),
+          },
+          gateway(walterContext()),
+          authorization,
+        ),
+      ).resolves.toBe("instance-1");
+      expect(authorization.gateway.recordComparison).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authority: "legacy_owner",
+          comparison: "mismatch",
+          legacyDecision: "allow",
+          canonicalDecision: "deny",
+        }),
+      );
+    });
+
+    it("does not let a canonical grant override a legacy denial in compare mode", async () => {
+      const authorization = walterAuthorization("compare", activeMembership);
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "active-member", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: walterQuery(),
+          },
+          gateway(walterContext()),
+          authorization,
+        ),
+      ).rejects.toThrow("denied");
+    });
+
+    it("performs zero canonical work after rollback to legacy mode", async () => {
+      const authorization = walterAuthorization("legacy", {
+        authorized: false,
+        reason: "not_authorized",
+      });
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "owner-1", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: walterQuery(),
+          },
+          gateway(walterContext()),
+          authorization,
+        ),
+      ).resolves.toBe("instance-1");
+      expect(authorization.gateway.authorize).not.toHaveBeenCalled();
+      expect(authorization.gateway.recordComparison).not.toHaveBeenCalled();
+    });
+
+    it("requires the exact canonical confirmation before membership lookup", async () => {
+      const authorization = walterAuthorization(
+        "canonical",
+        activeMembership,
+      );
+      authorization.canonicalConfirmation = undefined;
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "owner-1", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: walterQuery(),
+          },
+          gateway(walterContext()),
+          authorization,
+        ),
+      ).rejects.toThrow("denied");
+      expect(authorization.gateway.authorize).not.toHaveBeenCalled();
+    });
+
+    it("leaves non-Walter OIDC clients on legacy owner authorization", async () => {
+      const authorization = walterAuthorization(
+        "canonical",
+        activeMembership,
+      );
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "owner-1", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query,
+          },
+          gateway(context()),
+          authorization,
+        ),
+      ).resolves.toBe("instance-1");
+      expect(authorization.gateway.authorize).not.toHaveBeenCalled();
+    });
   });
 });

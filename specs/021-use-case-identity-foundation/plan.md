@@ -94,6 +94,23 @@ Better Auth subject and membership identifiers. No OIDC, dashboard, API route,
 database, or production consumer is connected; T019c remains the separate
 authority and browser/rollback gate.
 
+**Walter guarded OIDC implementation checkpoint (2026-07-20):**
+`021-walter-canonical-oidc` implements T019c's code and disposable-database
+portion for Walter only. `legacy` remains the default and performs no
+canonical membership work; `compare` still returns the legacy owner decision
+and requires `COMPARE_WALTER_MEMBERSHIP_SHADOW`; `canonical` requires the
+separate `ENABLE_WALTER_CANONICAL_MEMBERSHIP` confirmation and makes active,
+unexpired Tenet 0 membership authoritative. The OIDC authorization-code and
+token paths derive `tenant-0` from the server-loaded instance, resolve its
+explicit platform resource binding to the canonical Walter runtime, and pass
+only the authenticated Better Auth user ID to the shared membership
+authorizer. Non-Walter instances retain exact legacy-owner authorization.
+Controlled and disposable-Neon tests cover active member, non-member,
+suspended, expired, storage-unavailable, comparison, metadata-only audit, and
+zero-canonical-work rollback behavior. Production foundation, membership,
+deployment, and browser evidence remain separate post-merge gates, so T019c
+and T019 are not complete at this checkpoint.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is

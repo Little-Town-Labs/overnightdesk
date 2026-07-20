@@ -8,14 +8,19 @@ const describeIntegration = safeDisposableDatabase ? describe : describe.skip;
 
 describeIntegration("Drizzle use-case membership store", () => {
   it("resolves only active, unexpired membership within an active canonical assignment", async () => {
-    const [{ eq, inArray }, { db }, schema, storeModule, authorizationModule] =
-      await Promise.all([
-        import("drizzle-orm"),
-        import("@/db"),
-        import("@/db/schema"),
-        import("@/lib/use-case-membership-store"),
-        import("@/lib/use-case-membership-authorization"),
-      ]);
+    const [
+      { and, eq, inArray },
+      { db },
+      schema,
+      storeModule,
+      authorizationModule,
+    ] = await Promise.all([
+      import("drizzle-orm"),
+      import("@/db"),
+      import("@/db/schema"),
+      import("@/lib/use-case-membership-store"),
+      import("@/lib/use-case-membership-authorization"),
+    ]);
     const {
       platformAuditLog,
       runtimeIdentity,
@@ -217,9 +222,12 @@ describeIntegration("Drizzle use-case membership store", () => {
         .select({ details: platformAuditLog.details })
         .from(platformAuditLog)
         .where(
-          eq(
-            platformAuditLog.action,
-            "use_case_membership_authorization.granted"
+          and(
+            eq(
+              platformAuditLog.action,
+              "use_case_membership_authorization.granted"
+            ),
+            eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`)
           )
         );
       expect(auditRows).toHaveLength(1);
@@ -239,9 +247,12 @@ describeIntegration("Drizzle use-case membership store", () => {
       await db
         .delete(platformAuditLog)
         .where(
-          eq(
-            platformAuditLog.action,
-            "use_case_membership_authorization.granted"
+          and(
+            eq(
+              platformAuditLog.action,
+              "use_case_membership_authorization.granted"
+            ),
+            eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`)
           )
         );
       await db.delete(useCase).where(inArray(useCase.id, useCaseIds));
