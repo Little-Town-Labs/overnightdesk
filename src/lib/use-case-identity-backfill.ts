@@ -1,4 +1,15 @@
 import { z } from "zod";
+import {
+  MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  WALTER_IDENTITY_TEMPLATE,
+  type CanonicalIdentityTemplate,
+} from "@/lib/use-case-identity-templates";
+
+export {
+  MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  WALTER_IDENTITY_TEMPLATE,
+  type CanonicalIdentityTemplate,
+} from "@/lib/use-case-identity-templates";
 
 const boundedId = z.string().min(1).max(512);
 
@@ -113,60 +124,6 @@ export interface IdentityFoundationSnapshot {
   canonicalConflict: boolean;
   existingCanonicalState: ExistingCanonicalState | null;
 }
-
-export const MITCHEL_TREVOR_IDENTITY_TEMPLATE = {
-  number: 1,
-  useCase: {
-    slug: "mitchel-business",
-    displayName: "Mitchel business workflows",
-    status: "active" as const,
-  },
-  runtime: {
-    slug: "hermes-mitchel",
-    memoryBoundaryKind: "docker_named_volume",
-    status: "active" as const,
-  },
-  persona: {
-    personaKey: "trevor",
-    displayName: "Trevor",
-    isDefault: true,
-    authorityProfile: "current-hermes-mitchel",
-    status: "active" as const,
-  },
-  resourceBindings: [
-    {
-      provider: "docker",
-      kind: "container" as const,
-      value: "hermes-mitchel",
-      state: "active" as const,
-    },
-    {
-      provider: "docker",
-      kind: "volume" as const,
-      value: "hermes-mitchel-data",
-      state: "active" as const,
-    },
-    {
-      provider: "nginx",
-      kind: "hostname" as const,
-      value: "aero-fett.overnightdesk.com",
-      state: "active" as const,
-    },
-    {
-      provider: "phase",
-      kind: "phase_path" as const,
-      value: "/agents/hermes-email-intake/mitchel",
-      state: "active" as const,
-    },
-  ],
-  secretBoundaryBindings: [
-    {
-      phaseApp: "overnightdesk",
-      environment: "production",
-      pathIdentifier: "/agents/hermes-email-intake/mitchel",
-    },
-  ],
-} as const;
 
 export type IdentityBackfillInput = z.infer<typeof backfillInputSchema>;
 export type IdentityFoundationInput = z.infer<typeof foundationInputSchema>;
@@ -448,18 +405,19 @@ function foundationBlockingReasons(
   return reasons;
 }
 
-function resourceTemplates() {
-  return [...MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings];
+function resourceTemplates(template: CanonicalIdentityTemplate) {
+  return [...template.resourceBindings];
 }
 
 function assertGeneratedIdCounts(
   ids: CanonicalIdentityIds,
   resources: ReturnType<typeof resourceTemplates>,
+  template: CanonicalIdentityTemplate,
 ): void {
   if (
     ids.resourceBindingIds.length !== resources.length ||
     ids.secretBoundaryBindingIds.length !==
-      MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.length
+      template.secretBoundaryBindings.length
   ) {
     throw new Error("Generated identity ID counts do not match the manifest");
   }
@@ -468,23 +426,24 @@ function assertGeneratedIdCounts(
 function buildFoundationRecords(
   input: IdentityFoundationInput,
   ids: CanonicalIdentityIds,
+  template: CanonicalIdentityTemplate,
 ) {
   return {
-    useCase: { id: ids.useCaseId, ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.useCase },
+    useCase: { id: ids.useCaseId, ...template.useCase },
     numberAllocation: {
-      number: MITCHEL_TREVOR_IDENTITY_TEMPLATE.number,
+      number: template.number,
       useCaseId: ids.useCaseId,
       allocatedBy: input.actor,
     },
     runtimeIdentity: {
       id: ids.runtimeIdentityId,
       useCaseId: ids.useCaseId,
-      ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.runtime,
+      ...template.runtime,
     },
     personaAssignment: {
       id: ids.personaAssignmentId,
       runtimeIdentityId: ids.runtimeIdentityId,
-      ...MITCHEL_TREVOR_IDENTITY_TEMPLATE.persona,
+      ...template.persona,
     },
   };
 }
@@ -508,6 +467,7 @@ function buildMembership(
 function buildBindings(
   ids: CanonicalIdentityIds,
   resources: ReturnType<typeof resourceTemplates>,
+  template: CanonicalIdentityTemplate,
 ) {
   return {
     resourceBindings: resources.map((binding, index) => ({
@@ -517,7 +477,7 @@ function buildBindings(
       ...binding,
     })),
     secretBoundaryBindings:
-      MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.map(
+      template.secretBoundaryBindings.map(
         (binding, index) => ({
           id: ids.secretBoundaryBindingIds[index],
           useCaseId: ids.useCaseId,
@@ -531,20 +491,21 @@ function buildBindings(
 function buildReadyFoundationPlan(
   input: IdentityFoundationInput,
   ids: CanonicalIdentityIds,
+  template: CanonicalIdentityTemplate,
 ): ReadyIdentityFoundationPlan {
-  const resources = resourceTemplates();
-  assertGeneratedIdCounts(ids, resources);
-  const bindings = buildBindings(ids, resources);
+  const resources = resourceTemplates(template);
+  assertGeneratedIdCounts(ids, resources, template);
+  const bindings = buildBindings(ids, resources, template);
   return {
     status: "ready",
-    ...buildFoundationRecords(input, ids),
+    ...buildFoundationRecords(input, ids, template),
     ...bindings,
     audit: {
       actor: input.actor,
       action: "use_case_identity_foundation_applied",
       target: ids.useCaseId,
       details: {
-        useCaseNumber: MITCHEL_TREVOR_IDENTITY_TEMPLATE.number,
+        useCaseNumber: template.number,
         membershipCount: 0,
         resourceBindingCount: resources.length,
         secretBoundaryBindingCount: bindings.secretBoundaryBindings.length,
@@ -558,8 +519,9 @@ function buildReadyFoundationPlan(
 function buildReadyPlan(
   input: IdentityBackfillInput,
   ids: CanonicalIdentityIds,
+  template: CanonicalIdentityTemplate,
 ): ReadyIdentityBackfillPlan {
-  const foundation = buildReadyFoundationPlan(input, ids);
+  const foundation = buildReadyFoundationPlan(input, ids, template);
   return {
     ...foundation,
     membership: buildMembership(input, ids.membershipId, ids.useCaseId),
@@ -579,15 +541,16 @@ function manifestSizedIds(existingIds: string[], count: number): string[] {
   );
 }
 
-export function planMitchelTrevorFoundation(
+function planIdentityFoundation(
   rawInput: IdentityFoundationInput,
   snapshot: IdentityFoundationSnapshot,
   ids: CanonicalIdentityIds,
+  template: CanonicalIdentityTemplate,
 ): IdentityFoundationPlan {
   const input = foundationInputSchema.parse(rawInput);
   const reasons = foundationBlockingReasons(snapshot);
   if (reasons.length > 0) return { status: "blocked", reasons };
-  const plan = buildReadyFoundationPlan(input, ids);
+  const plan = buildReadyFoundationPlan(input, ids, template);
 
   if (snapshot.existingCanonicalState) {
     if (existingFoundationStateMatches(snapshot.existingCanonicalState, plan)) {
@@ -603,10 +566,11 @@ export function planMitchelTrevorFoundation(
   return plan;
 }
 
-export function planMitchelMembershipActivation(
+function planIdentityMembershipActivation(
   rawInput: IdentityBackfillInput,
   snapshot: IdentityBackfillSnapshot,
   membershipId: string,
+  template: CanonicalIdentityTemplate,
 ): MembershipActivationPlan {
   const input = backfillInputSchema.parse(rawInput);
   const reasons = blockingReasons(input, snapshot);
@@ -616,22 +580,28 @@ export function planMitchelMembershipActivation(
     return { status: "blocked", reasons: ["canonical_foundation_missing"] };
   }
 
-  const foundation = buildReadyFoundationPlan(input, {
-    useCaseId: existing.useCase.id,
-    runtimeIdentityId:
-      existing.runtimeIdentity?.id ?? "00000000-0000-0000-0000-000000000000",
-    personaAssignmentId:
-      existing.personaAssignment?.id ?? "00000000-0000-0000-0000-000000000000",
-    membershipId,
-    resourceBindingIds: manifestSizedIds(
-      existing.resourceBindings.map((binding) => binding.id),
-      MITCHEL_TREVOR_IDENTITY_TEMPLATE.resourceBindings.length,
-    ),
-    secretBoundaryBindingIds: manifestSizedIds(
-      existing.secretBoundaryBindings.map((binding) => binding.id),
-      MITCHEL_TREVOR_IDENTITY_TEMPLATE.secretBoundaryBindings.length,
-    ),
-  });
+  const foundation = buildReadyFoundationPlan(
+    input,
+    {
+      useCaseId: existing.useCase.id,
+      runtimeIdentityId:
+        existing.runtimeIdentity?.id ??
+        "00000000-0000-0000-0000-000000000000",
+      personaAssignmentId:
+        existing.personaAssignment?.id ??
+        "00000000-0000-0000-0000-000000000000",
+      membershipId,
+      resourceBindingIds: manifestSizedIds(
+        existing.resourceBindings.map((binding) => binding.id),
+        template.resourceBindings.length,
+      ),
+      secretBoundaryBindingIds: manifestSizedIds(
+        existing.secretBoundaryBindings.map((binding) => binding.id),
+        template.secretBoundaryBindings.length,
+      ),
+    },
+    template,
+  );
   if (!existingFoundationStateMatches(existing, foundation)) {
     return { status: "blocked", reasons: ["canonical_state_drift"] };
   }
@@ -656,15 +626,16 @@ export function planMitchelMembershipActivation(
   };
 }
 
-export function planMitchelTrevorBackfill(
+function planIdentityBackfill(
   rawInput: IdentityBackfillInput,
   snapshot: IdentityBackfillSnapshot,
   ids: CanonicalIdentityIds,
+  template: CanonicalIdentityTemplate,
 ): IdentityBackfillPlan {
   const input = backfillInputSchema.parse(rawInput);
   const reasons = blockingReasons(input, snapshot);
   if (reasons.length > 0) return { status: "blocked", reasons };
-  const plan = buildReadyPlan(input, ids);
+  const plan = buildReadyPlan(input, ids, template);
 
   if (snapshot.existingCanonicalState) {
     if (
@@ -681,4 +652,69 @@ export function planMitchelTrevorBackfill(
   }
 
   return plan;
+}
+
+export function planMitchelTrevorFoundation(
+  rawInput: IdentityFoundationInput,
+  snapshot: IdentityFoundationSnapshot,
+  ids: CanonicalIdentityIds,
+): IdentityFoundationPlan {
+  return planIdentityFoundation(
+    rawInput,
+    snapshot,
+    ids,
+    MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  );
+}
+
+export function planMitchelMembershipActivation(
+  rawInput: IdentityBackfillInput,
+  snapshot: IdentityBackfillSnapshot,
+  membershipId: string,
+): MembershipActivationPlan {
+  return planIdentityMembershipActivation(
+    rawInput,
+    snapshot,
+    membershipId,
+    MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  );
+}
+
+export function planMitchelTrevorBackfill(
+  rawInput: IdentityBackfillInput,
+  snapshot: IdentityBackfillSnapshot,
+  ids: CanonicalIdentityIds,
+): IdentityBackfillPlan {
+  return planIdentityBackfill(
+    rawInput,
+    snapshot,
+    ids,
+    MITCHEL_TREVOR_IDENTITY_TEMPLATE,
+  );
+}
+
+export function planWalterFoundation(
+  rawInput: IdentityFoundationInput,
+  snapshot: IdentityFoundationSnapshot,
+  ids: CanonicalIdentityIds,
+): IdentityFoundationPlan {
+  return planIdentityFoundation(
+    rawInput,
+    snapshot,
+    ids,
+    WALTER_IDENTITY_TEMPLATE,
+  );
+}
+
+export function planWalterMembershipActivation(
+  rawInput: IdentityBackfillInput,
+  snapshot: IdentityBackfillSnapshot,
+  membershipId: string,
+): MembershipActivationPlan {
+  return planIdentityMembershipActivation(
+    rawInput,
+    snapshot,
+    membershipId,
+    WALTER_IDENTITY_TEMPLATE,
+  );
 }
