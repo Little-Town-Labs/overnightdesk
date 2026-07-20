@@ -26,7 +26,7 @@ authorization cutover has been performed.
 - [x] T011 Add dual-read comparison telemetry with no secret, prompt, response, token, or conversation content
 - [x] T012 Verify old application tests and provisioning callbacks pass with canonical identity reads disabled
 
-## Phase 3: Mitchel User / Trevor Agent Vertical Slice
+## Phase 3: Completed Tenet 1 Foundation and Shared Authorization Fixtures
 
 - [x] T013 Create `021b-mitchel-identity-canary` only after 021a has a stable reviewed base
 - [x] T014 Record explicit owner approval for Mitchel/Trevor as Tenet 1; keep the canonical database allocation as a separately reviewed operation
@@ -51,16 +51,26 @@ authorization cutover has been performed.
   wrong-use-case, suspended-member, membership-expiry, cache-expiry,
   cache-invalidation, and storage-unavailable authorization tests; retain the
   isolated policy as pre-cutover code with no production consumer
-- [ ] T018 Replace exact single-owner checks for the Mitchel canary with active canonical membership resolution
-- [ ] T019 Remove the hardcoded `hermes-mitchel` resource-alias special case only after compatibility and browser denial tests pass
-- [ ] T020 Run security, data, API-contract, migration, and operations review before enabling any production canary
+- [ ] T018 Build the reusable canonical membership integration without enabling a production consumer
+  - [ ] T018a Add a Drizzle membership store in `src/lib/use-case-membership-store.ts` with integration coverage in `src/db/__tests__/use-case-membership-store.integration.test.ts`; resolve by stable user ID, canonical use-case UUID, optional runtime scope, active state, and expiry
+  - [ ] T018b Add metadata-only denial/audit and server-derived runtime assignment in `src/lib/use-case-membership-authorization.ts`; never accept a client alias, persona, or Tenet number as authority
+  - [ ] T018c Keep authorization caching disabled by default and qualify any explicit cache mode in `src/lib/__tests__/use-case-membership-authorization.test.ts` against T017 expiry/invalidation behavior
+  - [ ] T018d Extend `src/lib/__tests__/fixtures/use-case-membership.ts` to prove the same integration with Walter, Titus, and Trevor fixtures while legacy production readers remain authoritative
+- [ ] T019 Make Walter / Tenet 0 the first real membership-authorization cutover
+  - [ ] T019a Extend `src/lib/use-case-identity-backfill.ts`, `src/db/use-case-identity-backfill-store.ts`, and `scripts/use-case-identity-backfill.ts` with a guarded Tenet 0 foundation plus separate Gary membership plan/apply/verify path; preserve all Walter resource names
+  - [ ] T019b Add Walter legacy-owner/canonical-membership comparison and rollback coverage in `src/lib/__tests__/canonical-identity-compatibility.test.ts` before authority changes
+  - [ ] T019c Integrate Walter only in `src/lib/hermes-oidc.ts` and `src/lib/__tests__/hermes-oidc-authorization.test.ts`, then record member, non-member, suspended/expired, logout, direct-login, and rollback browser evidence in the identity runbook
+- [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
+  - [ ] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
+  - [ ] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
+  - [ ] T020c Record the selected Titus production consumer and external-identity adapter contract in `specs/021-use-case-identity-foundation/plan.md` before cutover; Better Auth membership alone is not authority for Matrix, email, or Teams identities
 
 ## Phase 4: Open WebUI Dependency and Expansion
 
 - [ ] T021 Permit `020a-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
 - [ ] T022 Permit fixture-backed `020b-open-webui-mitchel-canary` implementation after accepted 020a auth evidence and completed canonical foundation; gate Mitchel activation and browser acceptance on active membership
 - [ ] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
-- [ ] T024 Allocate approved Tenet 0 and Tenet 2 and backfill Walter plus Titus with Gary as the current authorized person only through separately reviewed operations; keep Rex unassigned
+- [ ] T024 Complete Trevor production authorization only after Mitchel has an active verified membership; rerun shadow, browser denial, and rollback gates before removing the exact-owner/resource-alias compatibility path
 - [ ] T025 Add Austin to Titus only with the later Titus collaboration/Teams authorization design; do not make Teams a dependency for Gary's standalone Titus runtime
 - [ ] T026 Migrate remaining consumers one at a time and retire aliases only after observed zero use
 - [ ] T027 Treat numeric infrastructure renaming as optional future work; do not block identity completion on it
@@ -76,10 +86,14 @@ authorization cutover has been performed.
 
 - T001-T004 precede identity implementation and are the mergeable planning slice.
 - T005-T012 are additive and precede all membership authorization cutovers.
-- T015e-T016 and T021 permit fixture-backed platform work without Mitchel;
-  T015g and T018-T020 gate his production authorization and acceptance.
+- T015e-T017 permit the shared T018 implementation and fixture-backed platform
+  work without Mitchel. T015g gates only T024 and Mitchel acceptance.
+- T018 precedes all canonical membership consumers. T019 is the first real
+  cutover. T020 follows Walter's observation checkpoint and may establish
+  Titus/Gary without Austin or Teams.
 - T021 may overlap schema/backfill work after the contract. Fixture-backed T022
   may overlap after the canonical foundation; T023 and Mitchel activation may
   not proceed before active membership.
-- T024-T027 follow acceptance of the Mitchel vertical slice.
+- T024 is intentionally last among the three current Aegis runtimes because it
+  depends on Mitchel; it does not gate T018-T020. T025-T027 remain later work.
 - Feature 12 scheduler activation remains an independent owner-gated operation.

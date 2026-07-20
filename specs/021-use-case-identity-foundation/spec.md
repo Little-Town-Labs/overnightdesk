@@ -10,7 +10,10 @@ zero memberships, so human access remains blocked until Mitchel completes
 Better Auth registration and email verification and the separate membership
 operation is reviewed and applied. Existing authorization remains
 authoritative; no platform-instance link, orchestrator link, resource rename,
-or authorization cutover has been performed.
+or authorization cutover has been performed. Tenet 1 remains the completed
+historical backfill/resolver canary, but it no longer gates forward production
+work: shared authorization comes next, followed by Walter and Titus, while
+Trevor production activation waits for Mitchel.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or
@@ -141,8 +144,10 @@ use of the new tables without deleting them or changing resources.
   until each consumer is separately migrated and verified.
 - **FR-014**: Allocation, membership, alias changes, and authorization denials
   MUST produce metadata-only audit events without secrets or conversation data.
-- **FR-015**: The Mitchel business use case MUST be the first vertical-slice
-  backfill and resolver canary. Mitchel is the person/member, Trevor is the
+- **FR-015**: The Mitchel business use case MUST remain recorded as the first
+  completed vertical-slice backfill and resolver canary. This historical
+  ordering MUST NOT make Mitchel's unavailable membership a prerequisite for
+  Walter or Titus. Mitchel is the person/member, Trevor is the
   agent's default persona, and `hermes-mitchel` is the current runtime resource
   alias. The owner-approved initial allocations are `Tenet 0` for
   OvernightDesk/Walter, `Tenet 1` for Mitchel/Trevor, and `Tenet 2` for
@@ -165,6 +170,12 @@ use of the new tables without deleting them or changing resources.
   separate idempotent, audited operations. A missing membership MUST grant no
   access, and a membership MUST NOT be created from an email, fake user, or
   substituted operator identity.
+- **FR-018**: The database-backed membership resolver and denial/audit contract
+  MUST be use-case neutral and reusable by Walter, Titus, and Trevor. Production
+  authorization MUST move one use case at a time with separate shadow evidence
+  and rollback. Walter is the first real authorization cutover, Titus follows
+  with Gary without depending on Teams or Austin, and Trevor remains
+  production-blocked until Mitchel has an active verified membership.
 
 ### Key Entities
 
@@ -198,6 +209,9 @@ use of the new tables without deleting them or changing resources.
 - **SC-006**: Disposable-database qualification proves the foundation converges
   with zero memberships, a retry is a verified no-op, and later attachment of
   one verified membership does not rewrite the allocation or runtime IDs.
+- **SC-007**: One shared membership integration passes controlled Walter,
+  Titus, and Trevor fixtures without branching authorization policy on a
+  runtime alias, persona name, or Tenet number.
 
 ## Non-Goals
 

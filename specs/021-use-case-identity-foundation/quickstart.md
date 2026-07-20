@@ -13,19 +13,26 @@ still requires every preflight in the runbook to pass.
    hostname, volume, Phase path, OIDC client, and orchestrator UUID.
 6. Run dual resolution and compare canonical results without logging values
    classified as secrets or customer content.
-7. Create the Mitchel canary worktree from the reviewed schema branch.
+7. Build the database-backed membership integration once and qualify the same
+   policy with controlled Walter, Titus, and Trevor fixtures; do not enable a
+   production consumer yet.
 8. Allocate the stable number and canonical foundation only through an
    approved, audited operation. The foundation contains zero memberships and
    must converge without requiring a Better Auth user. The
    approved initial sequence is `Tenet 0` for OvernightDesk/Walter, `Tenet 1`
    for Mitchel/Trevor, and `Tenet 2` for TTS/Titus; approval alone does not
    create the canonical database row.
-9. Attach membership later through the separate audited command only after the
-   intended Better Auth user is email-verified. Prove active member, non-member,
-   and suspended-member behavior before any
-   OIDC or Open WebUI assignment uses the new resolver.
-10. Keep old reads and all infrastructure names available for rollback through
-    the observation window.
+9. Allocate and backfill Tenet 0/Walter, attach Gary's verified membership,
+   compare legacy and canonical decisions, and use Walter as the first real
+   authorization cutover.
+10. Allocate and backfill Tenet 2/Titus plus Gary next. Preserve existing
+   Matrix E2EE and email sender controls until their external identities have a
+   separately approved canonical adapter; do not wait for Teams or Austin.
+11. Attach Mitchel's membership later through the separate audited command only
+   after his Better Auth user is email-verified. Trevor production activation
+   remains blocked, but it does not block Walter or Titus.
+12. Keep old reads and all infrastructure names available for rollback through
+   the observation window.
 
 The exact commands, confirmation phrases, current production inventory, and
 rollback rules are in [identity-backfill-runbook.md](identity-backfill-runbook.md).
