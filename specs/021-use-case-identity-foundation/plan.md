@@ -43,6 +43,17 @@ canonical checks, the foundation remained `verified_noop` with four of four
 selectors, and a read-only closeout found exactly four recent metadata-only
 match audits, no forbidden values, and zero memberships.
 
+**Authorization fixture checkpoint (2026-07-19):**
+`021-membership-authorization-fixtures` defines the isolated canonical
+membership policy and controlled fixture users for active-member, non-member,
+wrong-use-case, suspended-member, membership-expiry, cache-expiry, explicit
+cache-invalidation, and storage-unavailable behavior. Successful grants are
+not cached by default because cross-process invalidation is not available;
+callers that explicitly opt into caching are bounded by both cache TTL and
+membership expiry, and failures are never cached. This checkpoint does not
+connect the policy to OIDC, dashboard, or API routes and does not change the
+legacy-authoritative production read path. That cutover remains T018.
+
 ## Summary
 
 Introduce an additive identity registry that separates canonical use-case and
