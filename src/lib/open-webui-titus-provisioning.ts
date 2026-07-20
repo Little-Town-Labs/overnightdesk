@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import { TITUS_OPEN_WEBUI } from "@/lib/open-webui-titus-canary";
 
 export interface TitusOpenWebuiIdentity {
@@ -101,7 +102,7 @@ export function buildTitusOpenWebuiProvisioningSpec(
 }
 
 function sameJson(left: unknown, right: unknown): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return isDeepStrictEqual(left, right);
 }
 
 export function verifyTitusOpenWebuiProvisioningSnapshot(

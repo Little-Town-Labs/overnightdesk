@@ -122,4 +122,30 @@ describe("Titus Open WebUI provisioning specification", () => {
       }),
     ).toThrow("Invalid Titus Open WebUI provisioning state");
   });
+
+  it("accepts JSONB metadata after PostgreSQL normalizes object key order", () => {
+    const spec = buildTitusOpenWebuiProvisioningSpec(identity);
+    const client = {
+      ...spec.client,
+      metadata: {
+        runtimeIdentityId: identity.runtimeIdentityId,
+        useCaseId: identity.useCaseId,
+        deploymentId: "open-webui-hermes-titus",
+        schemaVersion: 1 as const,
+        kind: "open-webui" as const,
+      },
+    };
+
+    expect(
+      verifyTitusOpenWebuiProvisioningSnapshot({
+        useCaseNumber: 2,
+        useCaseStatus: "active",
+        runtimeStatus: "active",
+        activeOwnerMemberships: 1,
+        resourceBindings: spec.resourceBindings,
+        secretBoundary: spec.secretBoundary,
+        client,
+      }),
+    ).toMatchObject({ state: "disabled" });
+  });
 });
