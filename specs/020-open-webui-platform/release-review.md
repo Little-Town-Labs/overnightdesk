@@ -1,8 +1,9 @@
-# T020d Open WebUI v0.10.2 Release and Authentication Review
+# T020d/T020e Open WebUI v0.10.2 Release and Authentication Review
 
 **Reviewed**: 2026-07-20
 
-**Decision**: GO for the disabled fixture contract; NOT APPROVED for production
+**Decision**: GO for the reviewed Titus/Gary canary sequence after merge;
+production remains disabled until each T020e gate passes
 
 **Production gate**: T020e must re-check the release/advisory state and pass the
 value-suppressed container, callback-log, Nginx, and browser canary checks.
@@ -146,3 +147,45 @@ The separate local Chromium fixture adds browser proof for approved versus
 unapproved framing, OIDC bootstrap/session reuse, workspace logout and
 re-login, platform logout with a retained upstream cookie, and assignment
 rollback. It contains no live identity, production endpoint, or secret.
+
+## T020e production-source and advisory recheck
+
+On 2026-07-20, the upstream release and advisory query were repeated before
+production source was prepared. `v0.10.2` remained the latest release, and no
+published Open WebUI advisory listed that version in an affected range. The
+Aegis source pins the Linux arm64 image directly as
+`ghcr.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3`;
+it never deploys the mutable tag.
+
+The platform dependency audit reports no high or critical findings. It does
+report the existing moderate `@better-auth/oauth-provider` resource-indicator
+advisory. OvernightDesk does not accept OAuth resource indicators: its outer
+Better Auth hook rejects every `/oauth2/token` request whose body contains
+`resource` before the provider handles the exchange. Unit coverage proves the
+rejection and the normal fixed client/audience path. This is an explicit
+mitigation pending a compatible fixed provider release, not a claim that the
+installed package itself is patched.
+
+The reviewed source adds:
+
+- an exact public S256 PKCE client whose canonical database row is disabled by
+  default and whose client contract is regression-tested against the OIDC
+  authorization adapter;
+- five exact Tenet 2 resource bindings, one dedicated Phase boundary, and
+  separate confirmations for provision, enable, and disable operations;
+- a pinned, rootless, read-only Open WebUI container with no published port,
+  a dedicated persistent volume, and a private `hermes-titus:8642/v1`
+  connection;
+- an Nginx route that rechecks the Better Auth session and current canonical
+  membership for HTTP, SSE, and WebSocket traffic, strips identity headers,
+  constrains framing, request size, rate, concurrency, and capabilities, and
+  logs URI metadata without query strings;
+- a malformed-callback sentinel that is a hard stop if its known marker
+  appears in Open WebUI or Nginx logs; and
+- rollback that removes public routing, disables the OIDC client and Vercel
+  canary mode, stops the service, and preserves the named volume and existing
+  Titus Matrix/email paths.
+
+This source review does not itself claim production identity rows, secrets,
+containers, certificates, routes, sessions, chats, or browser evidence. Those
+claims may be added only from the ordered post-merge T020e deployment record.

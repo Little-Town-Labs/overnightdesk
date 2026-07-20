@@ -306,6 +306,35 @@ one Gary/Titus assignment may be enabled. The upstream release can emit raw
 token or claim objects at warning level on malformed OIDC callbacks; any
 sentinel leakage during T020e is a hard stop requiring a patch or filter.
 
+## Titus T020e guarded production-canary source
+
+On 2026-07-20, branch `020-open-webui-titus-canary` added the production source
+for T020e. The operation remains ordered and fail closed:
+
+1. Merge the reviewed platform source and deploy the Vercel authorization
+   endpoint with `TITUS_OPEN_WEBUI_AUTH_MODE=disabled`.
+2. Apply and verify the Tenet 2 foundation and Gary membership through their
+   separate existing confirmations.
+3. Provision five exact Open WebUI resource bindings, one dedicated Phase
+   boundary, and the public PKCE client in disabled state using
+   `PROVISION_TITUS_OPEN_WEBUI_DISABLED`.
+4. Create only `OPENAI_API_KEY` and `WEBUI_SECRET_KEY` under Phase App
+   `timeless-tech-solutions`, environment `production`, path
+   `/agents/open-webui/hermes-titus`, without displaying either value.
+5. Start the digest-pinned private container with no host port, verify its
+   Titus-only model connection, and run the malformed-callback sentinel.
+6. Install and validate the TLS route while the Vercel gate and OIDC client
+   remain disabled, then enable the exact client and
+   `ENABLE_TITUS_OPEN_WEBUI_GARY` canary together.
+7. Complete Gary member, unauthenticated, non-member, suspended/expired,
+   logout, frame, streaming, persistence, and rollback evidence before an
+   observation decision.
+
+Rollback first restores Vercel mode `disabled`, disables the OIDC client with
+`ROLLBACK_TITUS_OPEN_WEBUI_CLIENT`, removes the Nginx route, and stops the
+service. It preserves the Open WebUI volume and proves Titus Hermes, Matrix,
+and email remain healthy. No T020e source grants Teams or Austin access.
+
 ## Production checkpoint
 
 On 2026-07-19, merged main commit
