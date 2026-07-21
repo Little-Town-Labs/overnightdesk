@@ -349,24 +349,29 @@ browser evidence.
 
 Owner-observed browser checks passed SSO, clean initial load, a real streaming
 Titus chat, logout to the OvernightDesk dashboard, and SSO re-entry without a
-second password. One earlier auxiliary OAuth-session refresh failed while the
-chat still completed through the static server-side Hermes credential; the
-refresh-token and session-lifetime contract remains open.
+second password. The original authorization-code-only client produced one
+failed auxiliary refresh, but the bounded replacement is now deployed. A
+fresh SSO session issued `openid email profile offline_access`, and a streamed
+chat at the renewal threshold returned HTTP 200 while the provider rotated the
+seven-day refresh token, issued a linked 15-minute access token, and rechecked
+canonical membership with zero OAuth or refresh failures.
 
-Metadata-only SQLite inspection showed one user, one active non-orphaned chat
-owned by that same user, valid chat structure, and two history nodes. After
-SSO re-entry, however, the prior conversation was not visible. Request logs
-showed successful auth initialization but no chat-list request. This is a
-failed user-visible history gate, not evidence of database deletion or a
-duplicate account. Do not mark persistence accepted until the UI shows the
-retained chat and the result survives controlled container recreation.
+Metadata-only SQLite inspection showed one user and one active non-orphaned
+chat owned by that same user. The user opened the restored collapsed sidebar,
+which triggered the chat-list request and displayed the retained conversation.
+The same metadata and visible history survived container recreation plus full
+rollback/restoration, proving the earlier result was discoverability rather
+than deletion or a duplicate account.
 
-The remaining T020e gates are retained-chat visibility, OAuth refresh/session
-lifetime, container recreation, controlled non-member and suspended/expired
-denial/restoration, rollback-time proof with volume retention, publication of
-the reconciled platform standard, and an observation decision. Walter Open
-WebUI, the dashboard redesign, broad rollout, Teams, and Austin remain blocked
-behind Titus acceptance or separate features as applicable.
+The full Vercel gate, OIDC client, Nginx route, and service rollback completed
+in 3 minutes 3 seconds while retaining the named volume, Hermes Titus, Matrix,
+and email. Restoration required and merged a narrow idempotent volume-helper
+repair, then passed health, persistence, route, client, Vercel, log, and
+standard-mount verification. The remaining T020e gates are controlled
+non-member and suspended/expired denial/restoration plus the observation
+decision. Walter Open WebUI, the dashboard redesign, broad rollout, Teams, and
+Austin remain blocked behind Titus acceptance or separate features as
+applicable.
 
 ## Production checkpoint
 

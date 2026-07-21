@@ -210,8 +210,19 @@ earlier auxiliary OAuth refresh failed because the original client had no
 refresh-token grant or `offline_access`, while chat itself completed through
 the static server-side Hermes credential.
 
-The refresh contract is implemented and regression-qualified in source but is
-not production evidence until the provider, canonical client, and Open WebUI
-runtime are deployed and observed through a successful renewal. Container
-recreation, controlled denial/restoration, rollback-time proof, standard
-publication, and observation also remain before broad rollout.
+The refresh contract is deployed across the provider, exact Titus client, and
+Open WebUI runtime. A fresh SSO session issued the exact four scopes, one
+linked 15-minute access token, and one seven-day refresh token. At Open WebUI's
+five-minute-before-expiry threshold, a streamed chat returned HTTP 200 while
+the provider revoked the original refresh token, issued a new active rotating
+refresh token and linked access token, and re-ran canonical membership checks.
+Open WebUI extended its auxiliary session and emitted zero OAuth or refresh
+failures.
+
+The named volume retained one active non-orphaned chat through container
+recreation and full rollback/restoration, and the user saw that history in the
+sidebar afterward. The full Vercel gate, OIDC client, Nginx route, and service
+rollback completed in 3 minutes 3 seconds while retaining Titus fallback
+services. The repaired restoration, deploy log, and production-mounted
+platform standard are complete. Controlled non-member and suspended/expired
+denial/restoration plus the observation decision remain before broad rollout.

@@ -8,12 +8,13 @@ plus final legacy rollback are complete. T020a-T020d are complete. Under
 T020e, the guarded Tenet 2 foundation, separate Gary membership, five resource
 bindings, Phase boundary, public PKCE client, isolated Open WebUI workload,
 TLS route, canonical assignment, SSO, streaming chat, logout, and SSO re-entry
-are deployed and verified. The retained database chat was not visible after
-re-entry, and OAuth refresh/session lifetime, container recreation,
-controlled denial/restoration, rollback-time proof, and standard publication
-remain open. Mitchel's verified membership remains a later fail-closed
-operation. No resource rename, Teams/Austin grant, or platform/orchestrator
-link has been performed.
+are deployed and verified. Retained history is visible after re-entry and
+after recreation plus rollback/restoration. Rotating OAuth refresh succeeded
+during a live chat with zero refresh failures; the timed rollback, restoration,
+deploy log, and production-mounted standard are complete. Controlled
+denial/restoration and the observation decision remain open. Mitchel's verified
+membership remains a later fail-closed operation. No resource rename,
+Teams/Austin grant, or platform/orchestrator link has been performed.
 
 ## Phase 1: Durable Contract
 
@@ -79,8 +80,10 @@ link has been performed.
   - [ ] T020e Apply and verify the guarded Tenet 2 foundation and separate Gary membership, then provision and canary Titus Open WebUI through its reviewed Feature 020 tasks without changing Matrix, email, Teams, or Austin access
     - [x] T020e1 Apply and verify Tenet 2, Gary membership, five resource bindings, one Phase boundary, and the disabled public PKCE client
     - [x] T020e2 Deploy and verify the isolated container/volume, private Titus connection, certificate, denied route, canonical assignment, SSO, clean load, streaming chat, logout, and SSO re-entry
-    - [ ] T020e3 Resolve retained-chat history visibility and the OAuth refresh/session-lifetime contract
+    - [x] T020e3 Resolve retained-chat history visibility and the OAuth refresh/session-lifetime contract
     - [ ] T020e4 Complete container recreation, controlled denial/restoration, rollback-time evidence, platform-standard publication, and the observation decision
+      - [x] T020e4a Complete container recreation, timed rollback/restoration, deploy-log evidence, and production-mounted platform-standard publication
+      - [ ] T020e4b Complete controlled denial/restoration and the observation decision
 
 ## Phase 4: Open WebUI Dependency and Expansion
 
