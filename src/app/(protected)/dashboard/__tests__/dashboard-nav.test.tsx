@@ -1,4 +1,8 @@
-import { tabs, type NavTab } from "../dashboard-nav";
+import {
+  getVisibleDashboardTabs,
+  tabs,
+  type NavTab,
+} from "../dashboard-nav";
 
 // The DashboardNav component uses usePathname and Link from next/navigation,
 // which require a browser/jsdom environment. We test the exported tab
@@ -32,7 +36,7 @@ describe("DashboardNav", () => {
     });
 
     it("includes Chat tab", () => {
-      const chat = tabs.find((t) => t.label === "Chat");
+      const chat = tabs.find((t) => t.label === "Open Chat");
       expect(chat).toBeDefined();
       expect(chat?.href).toBe("/dashboard/chat");
       expect(chat?.requiresRunning).toBe(false);
@@ -42,6 +46,7 @@ describe("DashboardNav", () => {
       const labels = tabs.map((t) => t.label);
       expect(labels).toEqual([
         "Overview",
+        "Open Chat",
         "Agents",
         "Issues",
         "Projects",
@@ -53,7 +58,6 @@ describe("DashboardNav", () => {
         "Logs",
         "Bridges",
         "Settings",
-        "Chat",
         "Security",
         "Admin",
       ]);
@@ -63,6 +67,7 @@ describe("DashboardNav", () => {
       const hrefs = tabs.map((t) => t.href);
       expect(hrefs).toEqual([
         "/dashboard",
+        "/dashboard/chat",
         "/dashboard/agents",
         "/dashboard/issues",
         "/dashboard/projects",
@@ -74,7 +79,6 @@ describe("DashboardNav", () => {
         "/dashboard/logs",
         "/dashboard/bridges",
         "/dashboard/settings",
-        "/dashboard/chat",
         "/dashboard/security",
         "/dashboard/admin/fleet",
       ]);
@@ -84,8 +88,8 @@ describe("DashboardNav", () => {
       const alwaysVisible = tabs.filter((t) => !t.requiresRunning);
       expect(alwaysVisible.map((t) => t.label)).toEqual([
         "Overview",
+        "Open Chat",
         "Settings",
-        "Chat",
         "Admin",
       ]);
     });
@@ -116,6 +120,30 @@ describe("DashboardNav", () => {
       const proTabs = tabs.filter((t) => t.requiresPro);
       expect(proTabs.map((t) => t.label)).toEqual(["Security"]);
     });
+
+    it("classifies global, workspace, and legacy single-instance tabs", () => {
+      expect(tabs.filter((tab) => tab.scope === "global").map((tab) => tab.label)).toEqual([
+        "Overview",
+        "Settings",
+        "Admin",
+      ]);
+      expect(tabs.filter((tab) => tab.scope === "workspace").map((tab) => tab.label)).toEqual([
+        "Open Chat",
+      ]);
+      expect(tabs.filter((tab) => tab.scope === "legacy-instance").map((tab) => tab.label)).toEqual([
+        "Agents",
+        "Issues",
+        "Projects",
+        "Routines",
+        "Approvals",
+        "Skills",
+        "Costs",
+        "Activity",
+        "Logs",
+        "Bridges",
+        "Security",
+      ]);
+    });
   });
 
   describe("tab visibility filtering", () => {
@@ -141,13 +169,22 @@ describe("DashboardNav", () => {
     it("hides management tabs when instance is not running", () => {
       const visible = getVisibleTabs(tabs, false, false);
       expect(visible).toHaveLength(3);
-      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Chat"]);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Open Chat", "Settings"]);
     });
 
     it("shows Admin tab for admin even when instance is not running", () => {
       const visible = getVisibleTabs(tabs, false, true);
       expect(visible).toHaveLength(4);
-      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Chat", "Admin"]);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Open Chat", "Settings", "Admin"]);
+    });
+
+    it("shows Overview, Open Chat, and Settings for a running Hermes workspace", () => {
+      expect(
+        getVisibleDashboardTabs({
+          instanceRunning: true,
+          isHermesTenant: true,
+        }).map((tab) => tab.label),
+      ).toEqual(["Overview", "Open Chat", "Settings"]);
     });
   });
 

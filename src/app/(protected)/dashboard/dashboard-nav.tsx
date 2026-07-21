@@ -7,26 +7,27 @@ interface NavTab {
   label: string;
   href: string;
   requiresRunning: boolean;
+  scope: "global" | "workspace" | "legacy-instance";
   adminOnly?: boolean;
   requiresPro?: boolean;
 }
 
 const tabs: NavTab[] = [
-  { label: "Overview", href: "/dashboard", requiresRunning: false },
-  { label: "Agents", href: "/dashboard/agents", requiresRunning: true },
-  { label: "Issues", href: "/dashboard/issues", requiresRunning: true },
-  { label: "Projects", href: "/dashboard/projects", requiresRunning: true },
-  { label: "Routines", href: "/dashboard/routines", requiresRunning: true },
-  { label: "Approvals", href: "/dashboard/approvals", requiresRunning: true },
-  { label: "Skills", href: "/dashboard/skills", requiresRunning: true },
-  { label: "Costs", href: "/dashboard/costs", requiresRunning: true },
-  { label: "Activity", href: "/dashboard/activity", requiresRunning: true },
-  { label: "Logs", href: "/dashboard/logs", requiresRunning: true },
-  { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true },
-  { label: "Settings", href: "/dashboard/settings", requiresRunning: false },
-  { label: "Chat", href: "/dashboard/chat", requiresRunning: false },
-  { label: "Security", href: "/dashboard/security", requiresRunning: true, requiresPro: true },
-  { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, adminOnly: true },
+  { label: "Overview", href: "/dashboard", requiresRunning: false, scope: "global" },
+  { label: "Open Chat", href: "/dashboard/chat", requiresRunning: false, scope: "workspace" },
+  { label: "Agents", href: "/dashboard/agents", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Issues", href: "/dashboard/issues", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Projects", href: "/dashboard/projects", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Routines", href: "/dashboard/routines", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Approvals", href: "/dashboard/approvals", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Skills", href: "/dashboard/skills", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Costs", href: "/dashboard/costs", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Activity", href: "/dashboard/activity", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Logs", href: "/dashboard/logs", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true, scope: "legacy-instance" },
+  { label: "Settings", href: "/dashboard/settings", requiresRunning: false, scope: "global" },
+  { label: "Security", href: "/dashboard/security", requiresRunning: true, scope: "legacy-instance", requiresPro: true },
+  { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, scope: "global", adminOnly: true },
 ];
 
 interface DashboardNavProps {
@@ -36,18 +37,37 @@ interface DashboardNavProps {
   isHermesTenant?: boolean;
 }
 
-const HERMES_ALLOWED_TABS = new Set(["/dashboard", "/dashboard/settings", "/dashboard/admin/fleet"]);
+const HERMES_ALLOWED_TABS = new Set([
+  "/dashboard",
+  "/dashboard/chat",
+  "/dashboard/settings",
+  "/dashboard/admin/fleet",
+]);
+
+export function getVisibleDashboardTabs({
+  instanceRunning,
+  isAdmin = false,
+  plan,
+  isHermesTenant = false,
+}: DashboardNavProps): NavTab[] {
+  return tabs.filter(
+    (tab) =>
+      (!tab.requiresRunning || instanceRunning) &&
+      (!tab.adminOnly || isAdmin) &&
+      (!tab.requiresPro || isAdmin || plan === "pro") &&
+      (!isHermesTenant || HERMES_ALLOWED_TABS.has(tab.href)),
+  );
+}
 
 export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, isHermesTenant = false }: DashboardNavProps) {
   const pathname = usePathname();
 
-  const visibleTabs = tabs.filter(
-    (tab) =>
-      (!tab.requiresRunning || instanceRunning) &&
-      (!tab.adminOnly || isAdminUser) &&
-      (!tab.requiresPro || isAdminUser || plan === "pro") &&
-      (!isHermesTenant || HERMES_ALLOWED_TABS.has(tab.href))
-  );
+  const visibleTabs = getVisibleDashboardTabs({
+    instanceRunning,
+    isAdmin: isAdminUser,
+    plan,
+    isHermesTenant,
+  });
 
   return (
     <nav className="mb-6 overflow-x-auto">
