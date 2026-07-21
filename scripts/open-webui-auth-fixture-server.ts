@@ -49,7 +49,7 @@ function parentPage(title: string): string {
     <h1 class="brand">OvernightDesk</h1>
     <nav aria-label="Dashboard">
       <a href="/dashboard">Overview</a>
-      <a href="/dashboard/chat?agent=titus" aria-current="page">Open Chat</a>
+      <a href="/dashboard/settings">Settings</a>
     </nav>
     <header class="identity">
       <span class="mark" aria-hidden="true">T</span>

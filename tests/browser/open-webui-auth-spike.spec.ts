@@ -50,17 +50,15 @@ test("an unapproved origin cannot frame the workspace", async ({ page }) => {
   await expect(workspace.getByRole("heading", { name: "Open WebUI sign in" })).toHaveCount(0);
 });
 
-test("desktop shell keeps Overview and Open Chat distinct around a full-height workspace", async ({
+test("desktop shell reaches a full-height workspace without a duplicate Open Chat tab", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
 
   await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open Chat" })).toHaveAttribute(
-    "aria-current",
-    "page",
-  );
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Chat" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
   await expect(page.getByText("Timeless Tech Solutions")).toBeVisible();
   await expect(page.getByText(/Matrix room and approved email channel/)).toBeVisible();
@@ -77,7 +75,8 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
   await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
 
   await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open Chat" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Open Chat" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
   await expect(page.getByText(/Matrix room and approved email channel/)).toBeVisible();
   expect(

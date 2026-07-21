@@ -7,14 +7,13 @@ interface NavTab {
   label: string;
   href: string;
   requiresRunning: boolean;
-  scope: "global" | "workspace" | "legacy-instance";
+  scope: "global" | "legacy-instance";
   adminOnly?: boolean;
   requiresPro?: boolean;
 }
 
 const tabs: NavTab[] = [
   { label: "Overview", href: "/dashboard", requiresRunning: false, scope: "global" },
-  { label: "Open Chat", href: "/dashboard/chat", requiresRunning: false, scope: "workspace" },
   { label: "Agents", href: "/dashboard/agents", requiresRunning: true, scope: "legacy-instance" },
   { label: "Issues", href: "/dashboard/issues", requiresRunning: true, scope: "legacy-instance" },
   { label: "Projects", href: "/dashboard/projects", requiresRunning: true, scope: "legacy-instance" },
@@ -39,7 +38,6 @@ interface DashboardNavProps {
 
 const HERMES_ALLOWED_TABS = new Set([
   "/dashboard",
-  "/dashboard/chat",
   "/dashboard/settings",
   "/dashboard/admin/fleet",
 ]);
