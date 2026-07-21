@@ -154,8 +154,9 @@ use of the new tables without deleting them or changing resources.
   agent's default persona, and `hermes-mitchel` is the current runtime resource
   alias. The owner-approved initial allocations are `Tenet 0` for
   OvernightDesk/Walter, `Tenet 1` for Mitchel/Trevor, and `Tenet 2` for
-  TTS/Titus. Tenets 0 and 1 are deployed through their audited canonical
-  allocations; Tenet 2 remains pending its separate production operation.
+  TTS/Titus. All three are deployed through their separately audited canonical
+  allocations. Tenets 0 and 2 have Gary's separately verified memberships;
+  Tenet 1 remains a zero-membership foundation pending Mitchel's registration.
   Existing `tenant-0`, `tenet-0`, and `tenet0-postgres`
   names remain resource
   bindings; their use for Trevor data does not assign Mitchel to Tenet 0.

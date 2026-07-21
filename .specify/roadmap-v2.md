@@ -3,7 +3,7 @@
 **Source:** PRD v3.0 (2026-04-24)
 **Constitution:** v2.0.0 (2026-04-24)
 **Generated:** 2026-04-24
-**Last Reconciled:** 2026-07-20
+**Last Reconciled:** 2026-07-21
 
 ---
 
@@ -13,8 +13,9 @@ OvernightDesk v3 is a managed hermes-agent hosting platform. The Go daemon and C
 
 **Total Features:** 6 (four original v3 features plus Features 020 and 021)
 **Phases:** 2
-**Current UX Path:** Titus/Tenet 2 foundation and Gary membership → Titus Open
-WebUI canary → Walter Open WebUI → dashboard cutover → Mitchel/Trevor after
+**Current UX Path:** Finish Titus history visibility, OAuth lifetime,
+container-recreation, denial/restoration, rollback, and standard gates → accept
+the Titus canary → Walter Open WebUI → dashboard cutover → Mitchel/Trevor after
 Mitchel membership
 
 ---
@@ -99,6 +100,16 @@ Open WebUI release; Nginx frame policy; Phase-backed secrets and persistent
 volume
 **Spec:** `specs/020-open-webui-platform/`
 
+**Production checkpoint (2026-07-21):** The isolated Titus deployment is live
+with canonical Tenet 2/Gary authorization. SSO, clean browser load, real chat
+streaming, logout, and SSO re-entry passed. SQLite metadata proves the same
+user retains one active, non-orphaned chat, but the prior conversation was not
+visible after re-entry and the browser did not request the chat-list endpoint.
+An earlier auxiliary OAuth refresh also failed. Persistence after container
+recreation, controlled denial/restoration, rollback-time proof, and standard
+publication remain acceptance gates; Walter and the dashboard redesign have
+not started.
+
 ---
 
 ### Feature 6: Use-Case Identity Foundation (Feature 021)
@@ -144,11 +155,12 @@ This order is the durable restart point. It supersedes the stale unchecked
 execution checklist below, which describes the original April v3 sequence but
 does not reflect the current deployed platform.
 
-Orders 1, 2, and 4 completed on 2026-07-20. Order 3 source and qualification
-are complete, but its production apply remains the first T020e gate. T020e
-then performs the guarded Order 5 Titus/Gary canary. Production activation
-must follow merged source, disabled provisioning, sentinel, rollback, and
-browser gates in that order.
+Orders 1 through 4 completed by 2026-07-21. Order 5 is an active, incomplete
+production canary: identity, workload, route, authorization, SSO, browser load,
+streaming chat, logout, and SSO re-entry passed. Retained-chat visibility,
+OAuth refresh/session lifetime, container recreation, controlled denial and
+restoration, rollback-time proof, standard publication, and observation remain
+before acceptance or Order 6.
 
 The three-phase provisioner/orchestrator convergence sketch recorded in the
 initial 2026-05-07 standard (`OPERATOR_RESEED` startup wiring,
@@ -176,15 +188,16 @@ Feature 021 (Use-Case Identity Foundation)
     ├──► shared membership integration (complete)
     │         └──► Walter / Tenet 0 canary and rollback (complete)
     │                   └──► Titus / Tenet 2 foundation and Gary membership
-    │                                  └──► Titus/Gary Open WebUI canary (next)
+    │                                  └──► Titus/Gary Open WebUI canary (active, incomplete)
     └──► Mitchel membership when verified
               └──► Feature 020 stateful Mitchel canary
 ```
 
-**Current chat path:** Establish Titus/Tenet 2 with Gary → run the isolated
-Titus/Gary Open WebUI canary → provision isolated Walter Open WebUI → dashboard
-cutover → attach Mitchel membership when verified → Mitchel/Trevor deployment
-→ custom-chat cleanup after all consumers show zero legacy use.
+**Current chat path:** Complete the active Titus/Gary persistence, OAuth,
+denial/restoration, rollback, standard, and observation gates → provision
+isolated Walter Open WebUI → dashboard cutover → attach Mitchel membership
+when verified → Mitchel/Trevor deployment → custom-chat cleanup after all
+consumers show zero legacy use.
 
 ---
 
