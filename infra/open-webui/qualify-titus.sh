@@ -106,6 +106,9 @@ require_pattern 'sentinel-logs' "$runtime_root/deploy-aegis.sh"
 require_pattern 'rollback' "$runtime_root/deploy-aegis.sh"
 require_pattern 'docker volume inspect open-webui-hermes-titus-data' "$runtime_root/deploy-aegis.sh"
 require_pattern 'mv .*titus-chat\.conf.*disabled' "$runtime_root/deploy-aegis.sh"
+if grep -Fq '. /run/secrets/open-webui-titus' "$runtime_root/deploy-aegis.sh"; then
+  fail 'private verification must not shell-source the Docker env file'
+fi
 
 if grep -ERq --exclude=qualify-titus.sh \
   '(^|[^a-z])sk-[A-Za-z0-9_-]{16,}|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,}|WEBUI_SECRET_KEY=[A-Za-z0-9_-]{16,}|OPENAI_API_KEY=[A-Za-z0-9_-]{16,}' \
