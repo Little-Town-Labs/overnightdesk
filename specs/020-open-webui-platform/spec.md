@@ -4,9 +4,10 @@
 
 **Created**: 2026-07-19
 
-**Status**: Titus reference canary accepted — dashboard redesign, isolated
-Walter rollout, Mitchel/Trevor expansion, and eventual custom-chat retirement
-remain separately gated
+**Status**: Titus reference canary accepted; dashboard redesign source and
+local browser coverage complete — deployment/acceptance, isolated Walter
+rollout, Mitchel/Trevor expansion, and eventual custom-chat retirement remain
+separately gated
 
 **Input**: Replace the custom chat inside the Vercel-hosted OvernightDesk
 dashboard with an authenticated Open WebUI workspace connected to each use
@@ -97,6 +98,13 @@ Matrix/email interaction paths.
 3. **Given** the canary is active, **when** Open WebUI is unavailable, **then**
    the user sees an honest error and the existing Titus Matrix and email paths
    remain available.
+4. **Given** one platform user has multiple active agent memberships, **when**
+   that user opens Overview or Open Chat, **then** one reusable selector lists
+   only the authorized agents and changes identity, logo, and supported actions
+   from server-provided data.
+5. **Given** another platform user has only one active agent membership,
+   **when** that user opens the same routes, **then** the same interface shows
+   only that agent and does not expose another agent as a placeholder.
 
 ---
 
@@ -178,6 +186,18 @@ Open WebUI volume remain intact.
 - **FR-016**: Request size, upload state, tool availability, model visibility,
   concurrent work, and model-cost consumption MUST use explicit bounded
   defaults before the canary is considered production-ready.
+- **FR-017**: Agent name, logo, use-case label, and supported actions MUST be
+  variable presentation data rendered through shared Overview and Open Chat
+  components; agent-specific UI branches MUST NOT select authority or runtime
+  state.
+- **FR-018**: An authenticated user with multiple active memberships MUST be
+  able to select among authorized agents. A user with one active membership
+  MUST see only that agent. A query-string selection MUST be accepted only when
+  it matches the server-resolved membership-filtered directory.
+- **FR-019**: Overview MAY list an authorized agent before Open WebUI exists,
+  but Open Chat MUST list that agent only after the exact active deployment,
+  OIDC client, hostname, container, use case, and runtime bindings agree. The UI
+  MUST NOT create a pending or pseudo-workspace.
 
 ### Key Entities
 

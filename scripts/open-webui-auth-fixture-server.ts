@@ -17,11 +17,51 @@ function html(response: ServerResponse, body: string, status = 200): void {
 
 function parentPage(title: string): string {
   return `<!doctype html>
-<html><body>
-  <h1>${title}</h1>
-  <button id="platform-logout">Platform logout</button>
-  <button id="rollback">Disable assignment</button>
-  <iframe id="workspace" title="Titus workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title}</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #0e0d0b; color: #f5f0e8; font-family: system-ui, sans-serif; }
+    body { padding: 24px; }
+    .shell { width: 100%; max-width: 1600px; margin: 0 auto; }
+    .brand { margin: 0 0 14px; font-size: 20px; }
+    nav { display: flex; gap: 8px; margin-bottom: 14px; border-bottom: 1px solid #2a2520; }
+    nav a { padding: 9px 12px; color: #9c9488; text-decoration: none; }
+    nav a[aria-current="page"] { color: #f5f0e8; border-bottom: 2px solid #f59e0b; }
+    .identity { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .mark { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 10px; background: #161410; color: #f59e0b; font-weight: 800; }
+    .identity h2, .identity p { margin: 0; }
+    .identity p { margin-top: 2px; color: #9c9488; font-size: 14px; }
+    #workspace { display: block; width: 100%; height: calc(100dvh - 235px); min-height: 500px; border: 1px solid #2a2520; border-radius: 12px; background: #161410; }
+    .fallback { margin: 10px 0 0; padding: 9px 12px; border: 1px solid #2a2520; border-radius: 8px; color: #9c9488; font-size: 12px; }
+    .controls { display: flex; gap: 8px; margin-top: 10px; }
+    .controls button { border: 1px solid #2a2520; border-radius: 6px; background: #1e1b17; color: #f5f0e8; padding: 7px 10px; }
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      #workspace { height: calc(100dvh - 250px); min-height: 400px; }
+      .controls { flex-wrap: wrap; }
+    }
+  </style>
+</head><body>
+  <div class="shell">
+    <h1 class="brand">OvernightDesk</h1>
+    <nav aria-label="Dashboard">
+      <a href="/dashboard">Overview</a>
+      <a href="/dashboard/chat?agent=titus" aria-current="page">Open Chat</a>
+    </nav>
+    <header class="identity">
+      <span class="mark" aria-hidden="true">T</span>
+      <div><h2>Titus</h2><p>Timeless Tech Solutions</p></div>
+    </header>
+    <iframe id="workspace" title="Titus workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
+    <p class="fallback">Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat.</p>
+    <div class="controls">
+      <button id="platform-logout">Platform logout</button>
+      <button id="rollback">Disable assignment</button>
+    </div>
+  </div>
   <script>
     const reload = () => {
       const frame = document.querySelector('#workspace');

@@ -15,9 +15,13 @@ verified. Controlled non-active, suspended, and expired membership denial plus
 immediate restoration are verified. Explicit provider logout, platform-session
 expiry, and server-side revocation each denied retained Open WebUI state with
 HTTP 401, fresh login restored access, and the owner completed a final live
-chat plus retained-history check. The Titus canary is accepted; Walter is now
-eligible for separate planning, while broad rollout, Mitchel/Trevor, Teams,
-Austin, dashboard redesign, and custom-chat removal remain separate.
+chat plus retained-history check. The Titus canary is accepted. The dashboard
+redesign is source-complete on its isolated implementation branch with a
+membership-filtered, data-driven agent directory, reusable identity selector,
+dedicated Open Chat route, and desktop/mobile fixture coverage; deployment and
+authenticated production acceptance remain separate. Walter is eligible for
+separate planning, while broad rollout, Mitchel/Trevor, Teams, Austin, and
+custom-chat removal remain separate.
 
 ## Phase 1: Decision and Source Baseline
 
@@ -64,10 +68,14 @@ confirmations and never delete the volume.
 
 ## Phase 4: Vercel Dashboard Redesign
 
-- [ ] T017 Add failing route, assignment, unavailable-state, and responsive layout tests
-- [ ] T018 Replace the fixed-width Chat card with a dedicated full-height `/dashboard/chat` workspace route
-- [ ] T019 Preserve concise Overview/Titus status surfaces and an honest fallback to the existing Matrix/email paths
-- [ ] T020 Add desktop and mobile browser coverage for navigation, chat, reload, auth expiry, and unavailable behavior
+- [x] T017 Add failing route, assignment, unavailable-state, and responsive layout tests
+- [x] T018 Replace the fixed-width Chat card with a dedicated full-height `/dashboard/chat` workspace route
+- [x] T019 Preserve a concise, variable-identity Overview and an honest fallback to each agent's established approved paths
+- [x] T020 Add desktop and mobile browser coverage for navigation, chat, reload, auth expiry, and unavailable behavior
+  - [x] T020a Derive the visible agent list from active, unexpired canonical membership and active default persona records
+  - [x] T020b Expose Open Chat only when an exact active Open WebUI client, container, hostname, use case, and runtime binding agree
+  - [x] T020c Let a multi-agent member select each authorized identity while a one-agent member sees only that identity
+  - [x] T020d Record the remaining dashboard routes that still depend on the legacy single-instance lookup and keep them out of the Hermes navigation until they adopt the shared selected-agent context
 
 ## Phase 5: Canary Review and Cleanup
 

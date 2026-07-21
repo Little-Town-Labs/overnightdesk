@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getSubscriptionForUser, isAdmin } from "@/lib/billing";
 import { ManageBillingButton } from "./manage-billing-button";
 import { db } from "@/db";
@@ -13,23 +13,31 @@ import { getEngineStatus } from "@/lib/engine-client";
 import { isHermesMitchelTenant, isHermesTenant } from "@/lib/instance";
 import { SetupWizard } from "./setup-wizard";
 import { ProvisioningProgress } from "./provisioning-progress";
-import { ChatInterface } from "./chat/chat-interface";
-import { provisionerClient } from "@/lib/provisioner";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
 import {
   getHermesDashboardUnavailableMessage,
   getHermesDashboardUrl,
 } from "@/lib/hermes-dashboard";
+import {
+  resolveAgentDirectory,
+  selectAgentDirectoryEntry,
+} from "@/lib/open-webui-workspace";
+import { AgentOverview, type AgentOverviewAction } from "./agent-overview";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ agent?: string | string[] }>;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 
   const userIsAdmin = isAdmin(session.user.email);
-  const [rawSub, instances] = await Promise.all([
+  const [rawSub, instances, agentDirectory] = await Promise.all([
     getSubscriptionForUser(session.user.id),
     db.select().from(instance).where(eq(instance.userId, session.user.id)),
+    resolveAgentDirectory(session.user.id),
   ]);
 
   const sub = rawSub
@@ -41,7 +49,20 @@ export default async function DashboardPage() {
       }
     : null;
 
-  const inst = instances[0] ?? null;
+  const rawAgent = (await searchParams).agent;
+  if (Array.isArray(rawAgent)) notFound();
+  const agents =
+    agentDirectory.status === "available" ? agentDirectory.agents : [];
+  const selectedAgent = selectAgentDirectoryEntry(agents, rawAgent);
+  if (rawAgent && !selectedAgent) notFound();
+  const inst =
+    instances.find(
+      (candidate) =>
+        selectedAgent &&
+        candidate.runtimeIdentityId === selectedAgent.runtimeIdentityId,
+    ) ??
+    instances[0] ??
+    null;
   const hermesAgent = isHermesTenant(inst);
   const mitchelTenant = isHermesMitchelTenant(inst);
 
@@ -51,26 +72,21 @@ export default async function DashboardPage() {
     engineStatus = await getEngineStatus(inst.subdomain, inst.engineApiKey);
   }
 
-  // Hermes: public status + sessions (fetched in parallel)
+  // Hermes: public status and agent-specific business data (fetched in parallel)
   let hermesStatus: Record<string, unknown> | null = null;
-  let initialSessions: import("./chat/chat-interface").HermesSession[] = [];
   let mitchelProspectingSummary: Awaited<ReturnType<typeof fetchMitchelProspectingSummary>> | null = null;
 
   if (hermesAgent && inst?.status === "running" && inst.subdomain && inst.containerId) {
-    const [statusRes, sessionsData, prospectingData] = await Promise.allSettled([
+    const [statusRes, prospectingData] = await Promise.allSettled([
       fetch(`https://${inst.subdomain}/api/status`, {
         signal: AbortSignal.timeout(8_000),
         next: { revalidate: 30 },
       }),
-      provisionerClient.getSessions(inst.containerId),
       mitchelTenant ? fetchMitchelProspectingSummary(inst.containerId) : Promise.resolve(null),
     ]);
 
     if (statusRes.status === "fulfilled" && statusRes.value.ok) {
       hermesStatus = await statusRes.value.json();
-    }
-    if (sessionsData.status === "fulfilled" && sessionsData.value?.sessions) {
-      initialSessions = sessionsData.value.sessions;
     }
     if (prospectingData.status === "fulfilled" && prospectingData.value) {
       mitchelProspectingSummary = prospectingData.value;
@@ -80,7 +96,7 @@ export default async function DashboardPage() {
   const showOnboarding = inst?.status === "running" && inst.claudeAuthStatus !== "connected";
   const isRunning = inst?.status === "running";
 
-  // ─── Hermes running: hero-first layout ──────────────────────────────────────
+  // ─── Hermes running: membership-filtered agent overview ────────────────────
   if (hermesAgent && isRunning && inst) {
     const hermesDashboardUrl = inst.subdomain
       ? getHermesDashboardUrl(inst.subdomain, {
@@ -92,128 +108,87 @@ export default async function DashboardPage() {
       authStatus: inst.hermesDashboardAuthStatus,
       clientId: inst.hermesOidcClientId,
     });
+    const instanceAgentKey = inst.containerId?.replace(/^hermes-/, "") ?? null;
+    const selectedUsesInstance =
+      selectedAgent?.runtimeIdentityId === inst.runtimeIdentityId ||
+      (inst.runtimeIdentityId === null && selectedAgent?.key === instanceAgentKey);
+    const actions: AgentOverviewAction[] = [];
+    if (selectedAgent?.workspace) {
+      actions.push({
+        href: `/dashboard/chat?agent=${selectedAgent.key}`,
+        label: "Open Chat",
+        primary: true,
+      });
+    }
+    if (selectedUsesInstance && hermesDashboardUrl) {
+      actions.push({
+        href: hermesDashboardUrl,
+        label: "Advanced Dashboard",
+        external: true,
+      });
+    }
+    const selectedStatusLabel = selectedUsesInstance
+      ? "Online"
+      : selectedAgent?.workspace
+        ? "Workspace ready"
+        : "Assigned";
 
     return (
       <>
         {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
 
-        {/* Hero agent card */}
-        <div
-          className="od-card p-8 mb-4 transition-all duration-500"
-          style={hermesStatus ? { boxShadow: "0 0 60px var(--color-od-glow), 0 1px 3px rgba(0,0,0,0.4)" } : {}}
-        >
-          {/* Status row */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "var(--color-od-accent)" }} />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full" style={{ background: "var(--color-od-accent)" }} />
-              </span>
-              <span className="text-xs font-medium uppercase tracking-widest" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-accent)" }}>
-                Online
-              </span>
-            </div>
-            {hermesStatus?.version != null && (
-              <span className="text-xs px-2 py-0.5 rounded" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-3)", background: "var(--color-od-raised)" }}>
-                v{String(hermesStatus.version)}
-              </span>
-            )}
-          </div>
-
-          {/* Agent identity */}
-          <div className="mb-8">
-            <h2
-              className="text-4xl font-extrabold tracking-tight mb-1"
-              style={{ fontFamily: "var(--font-display)", color: "var(--color-od-text)" }}
-            >
-              {inst.tenantId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+        {selectedAgent ? (
+          <AgentOverview
+            actions={actions}
+            agents={agents}
+            selected={selectedAgent}
+            statusLabel={selectedStatusLabel}
+          />
+        ) : (
+          <div className="od-card p-6" role="alert">
+            <h2 className="text-lg font-semibold" style={{ color: "var(--color-od-text)" }}>
+              Agent directory unavailable
             </h2>
-            <p className="text-sm" style={{ color: "var(--color-od-text-2)" }}>
-              Your AI agent — always on, always working
+            <p className="mt-2 text-sm" style={{ color: "var(--color-od-text-2)" }}>
+              Your authorized agents could not be safely verified. No agent
+              selection has been assumed.
             </p>
           </div>
+        )}
 
-          {/* Primary CTAs */}
-          <div className="flex flex-wrap gap-3 mb-8">
-            {hermesDashboardUrl && (
-              <a
-                href={hermesDashboardUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors btn-accent"
-              >
-                Launch Dashboard
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-              </a>
-            )}
-            <a
-              href="/dashboard/chat"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-colors"
-              style={{ background: "var(--color-od-raised)", color: "var(--color-od-text)", border: "1px solid var(--color-od-border)" }}
-            >
-              Open Chat
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-            </a>
+        {selectedUsesInstance && (
+          <div className="mt-3 flex flex-col gap-4 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ background: "var(--color-od-raised)", borderColor: "var(--color-od-border)" }}>
+            <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs" style={{ fontFamily: "var(--font-mono)" }}>
+              {hermesStatus?.version != null && (
+                <div>
+                  <dt style={{ color: "var(--color-od-text-3)" }}>Runtime</dt>
+                  <dd style={{ color: "var(--color-od-text-2)" }}>v{String(hermesStatus.version)}</dd>
+                </div>
+              )}
+              {hermesStatus?.active_sessions != null && (
+                <div>
+                  <dt style={{ color: "var(--color-od-text-3)" }}>Active sessions</dt>
+                  <dd style={{ color: "var(--color-od-text-2)" }}>{String(hermesStatus.active_sessions)}</dd>
+                </div>
+              )}
+            </dl>
             <RestartButton instanceRunning />
           </div>
-          {dashboardUnavailableMessage && (
-            <p
-              className="text-sm mb-8 rounded-lg px-4 py-3"
-              style={{
-                color: "var(--color-od-text-2)",
-                background: "var(--color-od-raised)",
-                border: "1px solid var(--color-od-border)",
-              }}
-            >
-              {dashboardUnavailableMessage}
-            </p>
-          )}
+        )}
 
-          {/* Secondary stats */}
-          <div className="flex flex-wrap gap-6 pt-6 border-t" style={{ borderColor: "var(--color-od-border)" }}>
-            {hermesStatus?.active_sessions != null && (
-              <div>
-                <div className="text-xs mb-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-3)" }}>Active Sessions</div>
-                <div className="text-lg font-bold" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text)" }}>
-                  {String(hermesStatus.active_sessions)}
-                </div>
-              </div>
-            )}
-            <div>
-              <div className="text-xs mb-0.5" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-3)" }}>Endpoint</div>
-              <a
-                href={`https://${inst.subdomain}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm underline"
-                style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}
-              >
-                {inst.subdomain}
-              </a>
-            </div>
-          </div>
-        </div>
+        {selectedUsesInstance && dashboardUnavailableMessage && (
+          <p className="mt-3 rounded-lg border px-4 py-3 text-sm" style={{ color: "var(--color-od-text-2)", background: "var(--color-od-raised)", borderColor: "var(--color-od-border)" }}>
+            {dashboardUnavailableMessage}
+          </p>
+        )}
 
         {mitchelProspectingSummary && (
           <MitchelProspectingWorkspace summary={mitchelProspectingSummary} />
         )}
 
-        {/* Embedded chat — full two-panel layout below hero */}
-        <div className="od-card overflow-hidden" style={{ height: "calc(100vh - 28rem)" }}>
-          <ChatInterface
-            instanceStatus={inst.status}
-            agentName={inst.tenantId.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-            initialSessions={initialSessions}
-            embedded
-          />
+        <div className="mt-4">
+          <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
         </div>
-
-        {/* Account strip — compact, secondary */}
-        <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
       </>
     );
   }

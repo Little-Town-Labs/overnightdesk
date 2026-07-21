@@ -5,6 +5,7 @@ import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
 import { isAdmin, getSubscriptionForUser } from "@/lib/billing";
 import { SignOutButton } from "./sign-out-button";
 import { DashboardNav } from "./dashboard-nav";
+import { DashboardContent } from "./dashboard-content";
 
 export default async function DashboardLayout({
   children,
@@ -28,9 +29,9 @@ export default async function DashboardLayout({
   const hermesAgent = isHermesTenant(inst);
 
   return (
-    <div className="min-h-screen p-6 md:p-8" style={{ backgroundColor: "var(--color-od-base)" }}>
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen p-3 sm:p-6 md:p-8" style={{ backgroundColor: "var(--color-od-base)" }}>
+      <div className="mx-auto max-w-[1600px]">
+        <div className="mb-5 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--color-od-text)" }}>
               OvernightDesk
@@ -44,7 +45,7 @@ export default async function DashboardLayout({
 
         <DashboardNav instanceRunning={instanceRunning} isAdmin={adminUser} plan={userSubscription?.plan} isHermesTenant={hermesAgent} />
 
-        {children}
+        <DashboardContent>{children}</DashboardContent>
       </div>
     </div>
   );
