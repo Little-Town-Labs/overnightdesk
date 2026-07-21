@@ -152,10 +152,11 @@ overnightdesk-platform-standard/
    memberships, shared membership authorization, and accepted Titus Open WebUI
    canary are deployed. Walter production authority remains on its documented
    legacy rollback state.
-2. **Next — Feature 020 dashboard redesign (P1)**: Build the dedicated
-   full-height Chat route, concise Overview and visible agent identity, honest
-   unavailable/fallback states, and desktop/mobile coverage without retiring
-   compatibility code.
+2. **Source complete — Feature 020 dashboard redesign (P1)**: The dedicated
+   full-height Chat route, concise Overview, variable agent identity, honest
+   unavailable/fallback states, and desktop/mobile coverage are implemented on
+   the isolated redesign branch without retiring compatibility code. Vercel
+   deployment and authenticated browser acceptance remain the next gate.
 3. **Next isolated rollout — Walter Open WebUI (P1)**: Plan and review a
    separate workload, state, client, administrator, Phase, and Hermes boundary.
    Titus acceptance makes this eligible; it does not authorize deployment.
@@ -218,4 +219,46 @@ Open WebUI, Hermes Titus, Titus email intake, and Nginx completed the observatio
 healthy with zero restarts, and metadata-only persistence checks found five
 valid active chats with zero orphans. The owner accepted the Titus canary.
 Walter may now begin as a separate isolated rollout; broad rollout, dashboard
-redesign, and custom-chat retirement remain separately gated.
+redesign deployment/acceptance, and custom-chat retirement remain separately
+gated.
+
+## Dashboard redesign implementation checkpoint — 2026-07-21
+
+The Vercel source now resolves a canonical, active-membership agent directory
+server-side. Agent identity is presentation data carrying a name and logo;
+authorization, runtime, use case, and Open WebUI capability remain canonical
+database facts. One reusable selector serves both Overview and Open Chat. A
+multi-agent member receives each authorized agent, while a one-agent member
+receives only that agent. The requested `agent` key is only a selection hint
+and must match the server-resolved directory or the route fails closed.
+
+Overview may show an authorized agent that has no Open WebUI deployment. Open
+Chat does not. A workspace becomes selectable only when exactly one enabled
+Open WebUI OIDC client and its callback host match active container and hostname
+bindings for the same use case and runtime. This prevents a Walter placeholder
+from masquerading as an available workspace while still allowing the general
+Overview to represent Gary's separate Walter membership. When Walter's own
+isolated assignment is later accepted, the shared directory and component can
+render it without Walter-specific interface code.
+
+The fixed Overview chat card is removed from the rendered page, but the custom
+chat component, engine routes, provisioner client, and dependencies remain in
+the repository under T024's zero-use and accepted-Walter gate. The dedicated
+`/dashboard/chat` route uses the wide shell and a full-height iframe with only
+clipboard permission. The established per-agent fallback remains visible.
+
+### Dashboard tab audit
+
+| Surface | Scope after this slice | Decision |
+| --- | --- | --- |
+| Overview | Global account plus selected canonical agent | Migrated to the shared membership-filtered agent context. |
+| Open Chat | Selected agent workspace | Migrated; lists only fully bound active Open WebUI capabilities. |
+| Settings | Global/mixed legacy instance | Remains visible, but agent-specific settings must migrate to the shared selected-agent context before expansion. |
+| Admin | Global owner surface | Unchanged; it is not an agent workspace. |
+| Agents, Issues, Projects, Routines, Approvals, Skills, Costs, Activity, Logs, Bridges, Security | Legacy single instance | Continue hidden for Hermes. Each currently calls `getInstanceForUser`; do not enable it for multi-agent use until it consumes the shared selected-agent context. |
+| Heartbeat, Jobs, Usage | Legacy single instance and absent from navigation | Keep unadvertised until their product role and selected-agent behavior are specified. |
+
+This audit establishes one follow-up interface contract: an agent-scoped tab
+must resolve the same canonical directory and selected runtime as Overview and
+Open Chat. It must not add Titus/Walter component branches or silently fall
+back to the user's first legacy instance.
