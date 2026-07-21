@@ -193,10 +193,13 @@ bindings, Phase boundary, OIDC client, isolated workload and volume, TLS route,
 canonical assignment, SSO, clean browser load, streaming chat, logout, and SSO
 re-entry are deployed and verified. The prior conversation remained in the
 Open WebUI database for the same user and became visible when the user opened
-the restored collapsed sidebar, which triggered the chat-list request. One
-earlier auxiliary OAuth refresh failed because the original client did not
-issue refresh tokens; the bounded replacement contract is implemented in
-source and awaits deployment plus renewal evidence. Container recreation,
-controlled denial/restoration, rollback-time proof, platform-standard
-publication, and observation remain required before the canary is accepted or
-Walter work begins.
+the restored collapsed sidebar, which triggered the chat-list request, and was
+again visible after recreation plus rollback/restoration. The provider, exact
+Titus client, and Open WebUI runtime now use the bounded refresh contract. A
+live chat at the renewal threshold returned HTTP 200 while Better Auth revoked
+the original refresh token, issued a new seven-day refresh token and linked
+15-minute access token, rechecked canonical membership, and produced zero
+OAuth/refresh failures. Container recreation, the 3-minute-3-second rollback,
+restoration, deploy log, and production-mounted platform standard are complete.
+Controlled denial/restoration and the observation decision remain before the
+canary is accepted or Walter work begins.

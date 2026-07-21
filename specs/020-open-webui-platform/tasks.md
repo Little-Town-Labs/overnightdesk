@@ -7,13 +7,13 @@
 membership, the isolated container/volume, TLS route, OIDC client, SSO, clean
 browser load, real streaming chat, logout, and SSO re-entry are verified.
 The retained database chat appeared after the user opened Open WebUI's
-collapsed sidebar, confirming persistence after re-entry. One earlier
-auxiliary OAuth refresh failed; bounded refresh support is implemented in
-source and passed disposable-database qualification, but still requires
-production deployment and renewal evidence. Container recreation, controlled denial/restoration, rollback-time
-proof, and standard publication remain open. Broad rollout, Walter,
-Mitchel/Trevor, Teams, Austin, dashboard redesign, and custom-chat removal
-remain separate.
+collapsed sidebar and again after recreation plus rollback/restoration.
+Bounded refresh support is deployed and passed a live rotating renewal during
+a streamed chat with zero OAuth/refresh errors. Container persistence, the
+3-minute-3-second rollback/restoration, and platform-standard publication are
+verified. Controlled denial/restoration and the observation decision remain
+open. Broad rollout, Walter, Mitchel/Trevor, Teams, Austin, dashboard redesign,
+and custom-chat removal remain separate.
 
 ## Phase 1: Decision and Source Baseline
 
@@ -45,10 +45,10 @@ runtime/resource bindings. It does not wait for Mitchel, Austin, or Teams.
 - [x] T013 Add a private `hermes-titus:8642/v1` Chat Completions connection with Ollama and unrelated connections disabled
 - [x] T014 Add a canary-only Nginx vhost and Better Auth active-membership gate derived from the canonical runtime assignment
 - [x] T015 Add metadata-only security audit events plus explicit request, concurrency, model, and cost bounds
-- [ ] T016 Verify container recreation preserves chats and no browser/log surface exposes protected values
+- [x] T016 Verify container recreation preserves chats and no browser/log surface exposes protected values
   - [x] T016a Verify the dedicated volume retains one active, non-orphaned chat for the same Open WebUI user without inspecting conversation content
   - [x] T016b Verify retained prior chats become visible after SSO re-entry; Open WebUI restores a collapsed sidebar and requests the chat list when the user opens it
-  - [ ] T016c Recreate the container, then repeat metadata-only retention and user-visible history checks
+  - [x] T016c Recreate the container, then repeat metadata-only retention and user-visible history checks
 
 The T011-T015 source checkpoint uses public S256 PKCE client
 `overnightdesk-open-webui-titus-v1`, hostname
@@ -67,14 +67,14 @@ confirmations and never delete the volume.
 
 ## Phase 5: Canary Review and Cleanup
 
-- [ ] T021 Run the five-axis code, security, data, operations, and UX review
-- [ ] T022 Perform approved Aegis/Vercel canary deployment with rollback evidence and deploy-log/standards updates
+- [x] T021 Run the five-axis code, security, data, operations, and UX review
+- [x] T022 Perform approved Aegis/Vercel canary deployment with rollback evidence and deploy-log/standards updates
   - [x] T022a Deploy the isolated stateful workload, certificate, denied route, exact canonical assignment, and public OIDC client; record each production stage in `deploys.log`
-  - [ ] T022b Publish the reconciled platform standard and complete the live rollback-time proof while retaining the named volume
+  - [x] T022b Publish the reconciled platform standard and complete the live rollback-time proof while retaining the named volume
 - [ ] T023 Complete member, non-member, suspended-member, and logout browser checks and an observation window
   - [x] T023a Verify Gary membership, SSO, clean browser load, streaming chat, logout, and SSO re-entry
   - [ ] T023b Complete controlled non-member and suspended/expired denial/restoration checks
-  - [ ] T023c Resolve the OAuth refresh/session-lifetime contract and observe the accepted canary without refresh failures
+  - [x] T023c Resolve the OAuth refresh/session-lifetime contract and observe a rotating renewal without refresh failures
 - [ ] T024 After Titus and Walter are accepted and remaining consumers are accounted for, prove zero use and remove the custom chat component, `/api/engine/chat`, `/api/engine/sessions`, provisioner `getSessions`, and dependencies/tests used only by that bridge
 - [ ] T025 Keep the native Hermes dashboard and Open WebUI volume until a separately approved retention decision
 
