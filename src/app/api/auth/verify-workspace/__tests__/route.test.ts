@@ -56,6 +56,17 @@ describe("GET /api/auth/verify-workspace", () => {
     expect(mockRecordAudit).toHaveBeenCalledTimes(1);
   });
 
+  it("bypasses Better Auth cookie cache for the current platform session", async () => {
+    const currentRequest = request("titus-chat.overnightdesk.com");
+
+    await expect(GET(currentRequest)).resolves.toMatchObject({ status: 200 });
+
+    expect(mockGetSession).toHaveBeenCalledWith({
+      headers: currentRequest.headers,
+      query: { disableCookieCache: true },
+    });
+  });
+
   it("denies missing session, host, invalid transport, or membership", async () => {
     mockGetSession.mockResolvedValueOnce(null);
     await expect(
