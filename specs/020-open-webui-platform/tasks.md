@@ -11,8 +11,9 @@ collapsed sidebar and again after recreation plus rollback/restoration.
 Bounded refresh support is deployed and passed a live rotating renewal during
 a streamed chat with zero OAuth/refresh errors. Container persistence, the
 3-minute-3-second rollback/restoration, and platform-standard publication are
-verified. Controlled denial/restoration and the observation decision remain
-open. Broad rollout, Walter, Mitchel/Trevor, Teams, Austin, dashboard redesign,
+verified. Controlled non-active, suspended, and expired membership denial plus
+immediate restoration are verified; the observation decision remains open.
+Broad rollout, Walter, Mitchel/Trevor, Teams, Austin, dashboard redesign,
 and custom-chat removal remain separate.
 
 ## Phase 1: Decision and Source Baseline
@@ -73,8 +74,9 @@ confirmations and never delete the volume.
   - [x] T022b Publish the reconciled platform standard and complete the live rollback-time proof while retaining the named volume
 - [ ] T023 Complete member, non-member, suspended-member, and logout browser checks and an observation window
   - [x] T023a Verify Gary membership, SSO, clean browser load, streaming chat, logout, and SSO re-entry
-  - [ ] T023b Complete controlled non-member and suspended/expired denial/restoration checks
+  - [x] T023b Complete controlled non-member and suspended/expired denial/restoration checks
   - [x] T023c Resolve the OAuth refresh/session-lifetime contract and observe a rotating renewal without refresh failures
+  - [ ] T023d Complete the observation window and record the canary acceptance decision
 - [ ] T024 After Titus and Walter are accepted and remaining consumers are accounted for, prove zero use and remove the custom chat component, `/api/engine/chat`, `/api/engine/sessions`, provisioner `getSessions`, and dependencies/tests used only by that bridge
 - [ ] T025 Keep the native Hermes dashboard and Open WebUI volume until a separately approved retention decision
 

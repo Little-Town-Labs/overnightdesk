@@ -12,7 +12,8 @@ are deployed and verified. Retained history is visible after re-entry and
 after recreation plus rollback/restoration. Rotating OAuth refresh succeeded
 during a live chat with zero refresh failures; the timed rollback, restoration,
 deploy log, and production-mounted standard are complete. Controlled
-denial/restoration and the observation decision remain open. Mitchel's verified
+non-active, suspended, and expired membership denial plus immediate restoration
+are verified; the observation decision remains open. Mitchel's verified
 membership remains a later fail-closed operation. No resource rename,
 Teams/Austin grant, or platform/orchestrator link has been performed.
 
@@ -83,7 +84,8 @@ Teams/Austin grant, or platform/orchestrator link has been performed.
     - [x] T020e3 Resolve retained-chat history visibility and the OAuth refresh/session-lifetime contract
     - [ ] T020e4 Complete container recreation, controlled denial/restoration, rollback-time evidence, platform-standard publication, and the observation decision
       - [x] T020e4a Complete container recreation, timed rollback/restoration, deploy-log evidence, and production-mounted platform-standard publication
-      - [ ] T020e4b Complete controlled denial/restoration and the observation decision
+      - [x] T020e4b Complete controlled non-active, suspended, and expired membership denial/restoration
+      - [ ] T020e4c Complete the observation window and record the canary acceptance decision
 
 ## Phase 4: Open WebUI Dependency and Expansion
 

@@ -367,11 +367,32 @@ The full Vercel gate, OIDC client, Nginx route, and service rollback completed
 in 3 minutes 3 seconds while retaining the named volume, Hermes Titus, Matrix,
 and email. Restoration required and merged a narrow idempotent volume-helper
 repair, then passed health, persistence, route, client, Vercel, log, and
-standard-mount verification. The remaining T020e gates are controlled
-non-member and suspended/expired denial/restoration plus the observation
-decision. Walter Open WebUI, the dashboard redesign, broad rollout, Teams, and
-Austin remain blocked behind Titus acceptance or separate features as
-applicable.
+standard-mount verification. Controlled non-active, suspended, and expired
+membership denial plus immediate restoration are now verified. The remaining
+T020e gate is the observation decision. Walter Open WebUI, the dashboard
+redesign, broad rollout, Teams, and Austin remain blocked behind Titus
+acceptance or separate features as applicable.
+
+## Titus T020e4b controlled denial/restoration checkpoint
+
+On 2026-07-21, the owner completed three bounded browser denial windows against
+the existing Tenet 2 membership. Production contained only one email-verified
+Better Auth user, so the non-active-member check used the model's reversible
+`revoked` state rather than creating a fake account or deleting the canonical
+membership row. The same row was then tested in `suspended` state and with an
+expiry one minute in the past. Each hard refresh returned HTTP 401 before the
+request reached Open WebUI, and each state was restored immediately.
+
+The revoked, suspended, and expired windows recorded 2, 5, and 8
+`use_case_membership_authorization.denied` rows respectively, with the same
+number of `open_webui_authorization.denied` rows. All bounded reasons were
+`not_authorized`; the audit details contained no email, raw subject, user ID,
+password, token, or secret fields. After the final restoration, the membership
+was active, unsuspended, unexpired, and unrevoked. The owner's final hard
+refresh produced 28 canonical grants and 28 Open WebUI edge successes with zero
+denials. Titus Open WebUI, Hermes Titus, Nginx, and Titus intake remained
+healthy with zero container restarts or Open WebUI errors. T020e4b and Feature
+020 T023b are complete; the observation/acceptance decision remains open.
 
 ## Production checkpoint
 
