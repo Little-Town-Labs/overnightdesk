@@ -21,7 +21,10 @@ export async function GET(request: NextRequest) {
     ? (rawTransport as "http" | "sse" | "websocket")
     : null;
 
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await auth.api.getSession({
+    headers: request.headers,
+    query: { disableCookieCache: true },
+  });
   if (!host || !transport || !session) {
     await recordOpenWebuiAuditEvent({
       category: "denied",
