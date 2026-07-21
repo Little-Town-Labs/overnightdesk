@@ -97,7 +97,11 @@ require_pattern 'proxy_hide_header Content-Security-Policy' "$runtime_root/nginx
 require_pattern 'proxy_set_header X-User-Email ""' "$runtime_root/nginx.conf"
 require_pattern 'proxy_set_header X-User-Name ""' "$runtime_root/nginx.conf"
 require_pattern 'proxy_set_header X-User-Id ""' "$runtime_root/nginx.conf"
+require_pattern 'proxy_set_header Connection "upgrade"' "$runtime_root/nginx.conf"
 require_pattern 'proxy_pass http://open-webui-hermes-titus:8080' "$runtime_root/nginx.conf"
+if grep -Fq '$connection_upgrade' "$runtime_root/nginx.conf"; then
+  fail 'Titus vhost must not depend on an undefined connection_upgrade map'
+fi
 
 require_pattern 'install-disabled' "$runtime_root/deploy-aegis.sh"
 require_pattern 'verify-private' "$runtime_root/deploy-aegis.sh"
