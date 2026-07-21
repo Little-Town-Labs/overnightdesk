@@ -93,12 +93,12 @@ Teams/Austin grant, or platform/orchestrator link has been performed.
 ## Phase 4: Open WebUI Dependency and Expansion
 
 - [x] T021 Permit `020-open-webui-auth-spike` to proceed after the identity contract is accepted; keep it independent from schema deployment
-- [ ] T022 Permit fixture-backed Titus Open WebUI implementation after accepted auth evidence and the completed canonical foundation; gate production activation on Tenet 2 foundation and Gary membership
-- [ ] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
+- [x] T022 Permit fixture-backed Titus Open WebUI implementation after accepted auth evidence and the completed canonical foundation; gate production activation on Tenet 2 foundation and Gary membership
+- [x] T023 Bind the Open WebUI assignment to canonical runtime UUID and active membership, with resource hostname derived server-side
 - [ ] T024 Complete Trevor production authorization only after Mitchel has an active verified membership; rerun shadow, browser denial, and rollback gates before removing the exact-owner/resource-alias compatibility path
 - [ ] T025 Add Austin to Titus only with the later Titus collaboration/Teams authorization design; do not make Teams a dependency for Gary's standalone Titus runtime
 - [ ] T026 Migrate remaining consumers one at a time and retire aliases only after observed zero use
-- [ ] T027 Treat numeric infrastructure renaming as optional future work; do not block identity completion on it
+- [x] T027 Classify numeric infrastructure renaming as optional future work; do not block identity completion on it or perform a rename through this feature
 
 ## Phase 5: Closeout
 

@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-24
 
-**Status**: Draft
+**Status**: Implemented — merged in PR #14 on 2026-06-24
 
 **Input**: User description: "Follow-up sent logging for Mitchel prospecting: record approved or manually sent follow-up messages back to trevor.interactions without sending outbound messages; support lookup of draft follow-ups awaiting send confirmation; mark drafts as manual_sent or sent only when explicitly confirmed; capture sent channel, sent timestamp, operator, and optional external message reference; preserve draft-only safety and do-not-contact boundaries."
 

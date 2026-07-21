@@ -353,25 +353,27 @@ docs/open-webui-platform-plan              standard planning baseline
   └── docs/use-case-identity-foundation    target identity standard
 ```
 
-Merge the two Open WebUI planning branches first because these worktrees are
-stacked on them. Then merge the two identity branches. After the identity
-contract is accepted, create implementation worktrees from updated `main`:
+The planning baselines and implementation worktrees through the accepted Titus
+canary are historical and merged. The remaining worktree names below are
+created only when their dependency and review gate are satisfied:
 
-1. `021a-identity-schema-resolver`
-2. `021b-mitchel-identity-canary` stacked on 021a
-3. `021-audited-identity-backfill` from merged `main`
-4. `021-decoupled-identity-provisioning` stacks on the verified-user safeguard
-5. `021-shared-membership-store` from merged T017; no production consumer
-6. `021-walter-canonical-authorization` after the shared store merges
-7. `021-titus-canonical-foundation` after Walter's observation checkpoint
-8. `020-open-webui-auth-spike` may run in parallel against Titus fixtures
-9. `020b-open-webui-titus-canary` follows accepted spike evidence plus the
-   verified Tenet 2 foundation and Gary membership
-10. `020c-open-webui-dashboard-cutover` follows the accepted Titus canary
-11. `020d-open-webui-walter` follows Titus observation and uses a fully
+1. **Complete** — `021a-identity-schema-resolver`
+2. **Complete** — `021b-mitchel-identity-canary` stacked on 021a
+3. **Complete** — `021-audited-identity-backfill` from merged `main`
+4. **Complete** — `021-decoupled-identity-provisioning` stacked on the
+   verified-user safeguard
+5. **Complete** — `021-shared-membership-store` from merged T017, with no
+   production consumer at that stage
+6. **Complete** — `021-walter-canonical-authorization`, including final legacy
+   rollback
+7. **Complete** — `021-titus-canonical-foundation`
+8. **Complete** — `020-open-webui-auth-spike`
+9. **Complete** — the isolated Titus canary implementation and acceptance
+10. **Next** — `020c-open-webui-dashboard-cutover`, after a fresh scoped plan
+11. **Next, separately reviewed** — `020d-open-webui-walter`, using a fully
     separate workload and identity boundary
-12. `021-trevor-canonical-authorization` only after Mitchel membership exists
-13. `020e-open-webui-mitchel-canary` only after Trevor authorization passes
+12. **Blocked on Mitchel membership** — `021-trevor-canonical-authorization`
+13. **Blocked on Trevor authorization** — `020e-open-webui-mitchel-canary`
 
 Teams remains a separate later channel feature.
 

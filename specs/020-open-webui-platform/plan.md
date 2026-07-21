@@ -147,26 +147,33 @@ overnightdesk-platform-standard/
 
 ## Priority Against Remaining Work
 
-1. **Now — Feature 021 identity contract and additive foundation (P0)**:
-   Establish canonical UUIDs, optional stable numbers, membership, persona
-   assignments, and resource bindings before a stateful shared-access canary.
-2. **Parallel after contract — Feature 020 release/auth spike (P1)**: OIDC,
-   embedding, frame policy, and pinned-release research can proceed while the
-   guarded Tenet 2 foundation and Gary membership are prepared.
-3. **Separate owner gate — Feature 12 scheduler activation**: Prospect deep
+1. **Complete — Feature 021 identity foundation and Titus reference canary**:
+   The canonical schema, Tenet 0/1/2 foundations, Gary's Tenet 0/2
+   memberships, shared membership authorization, and accepted Titus Open WebUI
+   canary are deployed. Walter production authority remains on its documented
+   legacy rollback state.
+2. **Next — Feature 020 dashboard redesign (P1)**: Build the dedicated
+   full-height Chat route, concise Overview and visible agent identity, honest
+   unavailable/fallback states, and desktop/mobile coverage without retiring
+   compatibility code.
+3. **Next isolated rollout — Walter Open WebUI (P1)**: Plan and review a
+   separate workload, state, client, administrator, Phase, and Hermes boundary.
+   Titus acceptance makes this eligible; it does not authorize deployment.
+4. **Separate owner gate — Feature 12 scheduler activation**: Prospect deep
    research is implemented and deployed; only task T024 remains, and it
    explicitly requires operator approval. It does not block Feature 020 source
    work.
-4. **Next — Feature 021 Titus foundation/membership, then the Feature 020
-   Titus canary and frontend cutover (P1)**.
-5. **After Titus — Walter Open WebUI (P1)**: Reuse the qualified pattern but
-   preserve a separate workload, state, client, and secret boundary.
-6. **After Mitchel membership — Mitchel/Trevor Open WebUI (P1)**: Do not block
+5. **After Mitchel membership — Mitchel/Trevor Open WebUI (P1)**: Do not block
    Titus or Walter on Mitchel's registration.
-7. **After canary — Mitchel landing page (P2)**: Public acquisition remains
-   valuable but depends on a trustworthy authenticated operator experience.
-8. **Deferred — provisioner `/sessions` route**: Do not implement a legacy
-   session bridge solely for the custom chat that Feature 020 will retire.
+6. **After authenticated workspace — Mitchel landing page (P2)**: Public
+   acquisition remains valuable but depends on a trustworthy authenticated
+   operator experience.
+7. **After accepted Walter evidence — custom-chat cleanup**: Account for every
+   remaining consumer and prove zero use before removing the custom chat,
+   legacy chat/session APIs, and bridge-only dependencies.
+8. **Deferred/superseded — provisioner `/sessions` route**: Do not implement a
+   legacy session bridge solely for the custom chat that Feature 020 will
+   retire.
 9. **Separate roadmap — Titus Teams integration and Austin membership**.
 
 The May 2026 three-phase provisioner/orchestrator convergence sketch

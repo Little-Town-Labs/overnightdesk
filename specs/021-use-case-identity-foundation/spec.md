@@ -4,19 +4,17 @@
 
 **Created**: 2026-07-19
 
-**Status**: In progress — migration 0009 and the owner-approved Tenet 1
-foundation are deployed and verified in production with zero memberships.
-Walter / Tenet 0 completed its foundation, Gary membership, canonical canary,
-and final rollback to legacy authority. T020a implements and disposable-Neon
-qualifies the guarded Titus / Tenet 2 foundation and separate Gary membership
-workflow without applying either to production. T020b adds a guarded
-Titus/Gary legacy-owner versus canonical-membership shadow boundary while
-keeping legacy authorization authoritative and enabling no production
-consumer. T020c selects a dedicated Titus Open WebUI deployment as the first
-consumer and defines its Better Auth OIDC `(issuer, subject)` adapter without
-deploying it. No platform-instance link, orchestrator link, resource rename,
-Teams/Austin grant, or Titus consumer cutover is included. Trevor production
-activation still waits for Mitchel.
+**Status**: In progress — migration 0009 and the owner-approved Tenet 0, 1,
+and 2 foundations are deployed. Gary has separate active Tenet 0 and Tenet 2
+memberships. Walter completed its guarded canonical canary and returned to
+legacy authority. Titus Open WebUI is the accepted canonical reference canary
+after SSO, streaming, persistence, rollback/restoration, rotating refresh,
+controlled membership denial/restoration, platform-session lifecycle, and
+observation evidence passed. Mitchel/Trevor membership and production
+authorization still wait for Mitchel's verified Better Auth account. Audit
+conformance, later consumer migration, Teams/Austin, and optional resource
+renaming remain separate work. No platform-instance or orchestrator link has
+been invented for Mitchel.
 
 **Input**: Establish stable platform identity for use cases, runtimes, people,
 personas, and infrastructure resources before expanding shared agent access or

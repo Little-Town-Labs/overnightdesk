@@ -4,7 +4,8 @@
 
 **Created**: 2026-06-25
 
-**Status**: Draft
+**Status**: MVP implemented — merged in PR #19 on 2026-06-25; P3 process
+status grouping and targeted dashboard/regression coverage remain follow-up work
 
 **Input**: User description: "Mitchel logs into OvernightDesk and should get a customized tenant frontend that lets him interact with Trevor/Hermes, review prospect data that is not in Agiled yet, use the existing Hermes chat/dashboard path, and keep the workflow safe and human-in-the-loop. Feature 10 replaces the landing page work, which moves to Feature 11. The API question needs research against Hermes docs and live Aegis reality."
 
