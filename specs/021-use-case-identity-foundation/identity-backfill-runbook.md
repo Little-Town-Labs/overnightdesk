@@ -4,7 +4,7 @@ This runbook covers the deployed Mitchel/Trevor `Tenet 1`, Walter `Tenet 0`,
 and Titus `Tenet 2` identity foundations. Tenet 1 has no production membership
 or consumer. Walter's Gary membership, guarded canonical canary, and final
 legacy rollback are verified below. Titus's separate Gary membership and Open
-WebUI production canary are active but incomplete. Teams, Austin, resource
+WebUI production canary are accepted as the reference pattern. Teams, Austin, resource
 renaming, and creation of a separate person record remain out of scope.
 
 ## Walter T019a implementation checkpoint
@@ -392,7 +392,34 @@ was active, unsuspended, unexpired, and unrevoked. The owner's final hard
 refresh produced 28 canonical grants and 28 Open WebUI edge successes with zero
 denials. Titus Open WebUI, Hermes Titus, Nginx, and Titus intake remained
 healthy with zero container restarts or Open WebUI errors. T020e4b and Feature
-020 T023b are complete; the observation/acceptance decision remains open.
+020 T023b are complete.
+
+## Titus T020e4c session lifecycle and acceptance checkpoint
+
+On 2026-07-21, the provider renewal, logout, platform-session expiry, and
+server-side revocation paths were exercised against the active Titus canary.
+The renewal rotated the seven-day refresh family during a successful live
+chat. Provider logout removed the current Better Auth session; explicit expiry
+removed a newly authenticated session after its next access; and guarded
+revocation deleted exactly one recent verified session. Each retained Open
+WebUI browser state failed closed with HTTP 401 and `session_required`, while
+fresh login restored the workspace. Membership, chat data, Matrix, email, and
+Hermes runtime state were not revoked by these session-only operations.
+
+The final restored browser window recorded 30 canonical grants and 30 Open
+WebUI edge successes with zero denials. The owner confirmed Titus responded
+and retained history was visible in the sidebar. Metadata-only SQLite evidence
+showed one Open WebUI user, five valid active chats, zero orphaned chats, and
+database integrity `ok`. From the 12:43:31Z Open WebUI start through acceptance,
+Open WebUI, Hermes Titus, Titus intake, and Nginx remained healthy with zero
+restarts; final OAuth, refresh, traceback, internal-server, Hermes, and Nginx
+upstream failure signatures were zero. The audit markers contained no raw
+identity, cookie, or credential values.
+
+The owner accepted the Titus canary. T020e4c, T020e, and Feature 020 T023 are
+complete. Walter is eligible only for a separate isolated rollout. Dashboard
+redesign, Mitchel/Trevor activation, Teams/Austin work, broad rollout, and
+custom-chat removal remain independent gates.
 
 ## Production checkpoint
 

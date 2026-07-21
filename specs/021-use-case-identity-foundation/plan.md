@@ -197,6 +197,17 @@ canonical membership gate. Production remains disabled until this source is
 merged and its identity, Phase, private-container, callback-sentinel, route,
 browser, persistence, and rollback gates pass in order.
 
+**Titus acceptance checkpoint (2026-07-21):** The ordered canary completed
+canonical identity, membership denial/restoration, SSO, rotating renewal,
+provider logout, platform-session expiry, guarded single-session revocation,
+chat persistence, container recreation, timed rollback/restoration, and a
+healthy observation window. Each session-only invalidation failed closed at
+HTTP 401 and fresh login restored access. The final live chat/history check
+passed with 30 canonical grants and 30 edge successes and no bounded denials.
+The owner accepted Titus. This closes T020e but authorizes no shared state or
+automatic expansion; Walter remains a separate isolated rollout and
+Mitchel/Trevor still waits for verified membership.
+
 **Authorization priority checkpoint (2026-07-19):** Tenet 1 remains the first
 completed database backfill and resolver comparison, but Mitchel/Trevor is the
 least-used runtime and Mitchel's membership is unavailable. Forward work is

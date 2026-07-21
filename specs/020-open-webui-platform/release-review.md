@@ -2,8 +2,9 @@
 
 **Reviewed**: 2026-07-20
 
-**Decision**: CONDITIONAL GO for the active Titus/Gary production canary;
-expansion remains blocked until each remaining T020e gate passes
+**Decision**: GO for the accepted Titus/Gary production canary pattern. Walter
+may proceed only through its separate isolated rollout; broad rollout and
+custom-chat retirement remain gated.
 
 **Production gate**: T020e must re-check the release/advisory state and pass the
 value-suppressed container, callback-log, Nginx, and browser canary checks.
@@ -231,5 +232,25 @@ membership denials respectively, with matching Open WebUI edge denials, only
 the `not_authorized` reason, and no forbidden identity or secret fields. After
 final restoration, the membership was active, unsuspended, unexpired, and
 unrevoked; the next owner refresh recorded 28 canonical grants and 28 Open
-WebUI edge successes with zero denials. The observation decision remains
-before broad rollout.
+WebUI edge successes with zero denials.
+
+The explicit session-lifecycle sequence then passed. Provider logout deleted
+the current Better Auth session and retained Open WebUI state failed closed at
+HTTP 401. A guarded expiry of the newly authenticated platform session again
+returned HTTP 401 and removed the expired row. A separately guarded,
+single-session server-side revocation deleted exactly one recent verified
+session and returned HTTP 401, without changing membership or chat data. Fresh
+login restored access after each boundary. The authorization subrequest bypasses
+the Better Auth cookie cache so all three changes are authoritative on the next
+request.
+
+The final restored browser window recorded 30 membership grants and 30 edge
+successes with zero denials. The owner confirmed a live Titus response and
+retained sidebar history. Metadata-only SQLite checks returned one user, five
+valid active chats, zero orphaned chats, and integrity `ok`. Open WebUI, Hermes
+Titus, Titus email intake, and Nginx remained healthy with zero restarts from
+the 12:43:31Z observation start; final OAuth, refresh, traceback, internal-
+server, Hermes, and Nginx upstream failure signatures were zero. Public checks
+returned HTTP 200 for the dashboard flow and HTTP 401 for anonymous Titus.
+The Titus canary is accepted. This decision does not authorize shared state,
+Walter deployment, dashboard redesign, or custom-chat removal by itself.
