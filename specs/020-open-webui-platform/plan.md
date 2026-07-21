@@ -202,5 +202,13 @@ the original refresh token, issued a new seven-day refresh token and linked
 OAuth/refresh failures. Container recreation, the 3-minute-3-second rollback,
 restoration, deploy log, and production-mounted platform standard are complete.
 Controlled non-active, suspended, and expired membership denial plus immediate
-restoration are verified. The observation decision remains before the canary
-is accepted or Walter work begins.
+restoration are verified. Explicit provider logout, platform-session expiry,
+and guarded server-side revocation each denied retained Open WebUI state with
+HTTP 401, and fresh login restored the workspace after every case. The final
+browser window recorded 30 canonical grants and 30 Open WebUI edge successes
+with zero denials; Titus responded and retained history remained visible.
+Open WebUI, Hermes Titus, Titus email intake, and Nginx completed the observation
+healthy with zero restarts, and metadata-only persistence checks found five
+valid active chats with zero orphans. The owner accepted the Titus canary.
+Walter may now begin as a separate isolated rollout; broad rollout, dashboard
+redesign, and custom-chat retirement remain separately gated.

@@ -13,7 +13,10 @@ after recreation plus rollback/restoration. Rotating OAuth refresh succeeded
 during a live chat with zero refresh failures; the timed rollback, restoration,
 deploy log, and production-mounted standard are complete. Controlled
 non-active, suspended, and expired membership denial plus immediate restoration
-are verified; the observation decision remains open. Mitchel's verified
+are verified. Explicit provider logout, platform-session expiry, and guarded
+single-session revocation failed closed at HTTP 401, fresh login restored
+access, and the final chat/history observation passed. The Titus canary is
+accepted. Mitchel's verified
 membership remains a later fail-closed operation. No resource rename,
 Teams/Austin grant, or platform/orchestrator link has been performed.
 
@@ -73,19 +76,19 @@ Teams/Austin grant, or platform/orchestrator link has been performed.
     - [x] T019c2 Add controlled and disposable-Neon coverage for active member, non-member, suspended/expired member, canonical unavailability, metadata-only comparison, and zero-canonical-work legacy rollback
     - [x] T019c3 From merged code, apply and verify the guarded Tenet 0 foundation and separate Gary membership, then deploy the new environment variables initially in `legacy`
     - [x] T019c4 Record member, non-member, suspended/expired, logout, direct-login, dashboard-button, compare, and rollback browser/audit evidence in the identity runbook
-- [ ] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
+- [x] T020 Establish Titus / Tenet 2 next without coupling it to Teams or Austin
   - [x] T020a Extend the guarded backfill/store/operator files from T019a with a separately confirmed Tenet 2 foundation plus Gary membership plan/apply/verify path; preserve all Titus resource names
   - [x] T020b Add Titus/Gary shadow-resolution coverage to `src/lib/__tests__/canonical-identity-compatibility.test.ts` without changing Matrix E2EE membership or email sender allowlists
   - [x] T020c Select the dedicated Titus Open WebUI deployment as the first production consumer and record its exact Better Auth OIDC `(issuer, subject)` adapter, server-derived workspace binding, channel isolation, evidence, and rollback contract; Better Auth membership does not authorize Matrix, email, or Teams identities
   - [x] T020d Complete Feature 020's pinned-release and OIDC/frame/session spike against Titus fixtures; keep the production Open WebUI assignment disabled
-  - [ ] T020e Apply and verify the guarded Tenet 2 foundation and separate Gary membership, then provision and canary Titus Open WebUI through its reviewed Feature 020 tasks without changing Matrix, email, Teams, or Austin access
+  - [x] T020e Apply and verify the guarded Tenet 2 foundation and separate Gary membership, then provision and canary Titus Open WebUI through its reviewed Feature 020 tasks without changing Matrix, email, Teams, or Austin access
     - [x] T020e1 Apply and verify Tenet 2, Gary membership, five resource bindings, one Phase boundary, and the disabled public PKCE client
     - [x] T020e2 Deploy and verify the isolated container/volume, private Titus connection, certificate, denied route, canonical assignment, SSO, clean load, streaming chat, logout, and SSO re-entry
     - [x] T020e3 Resolve retained-chat history visibility and the OAuth refresh/session-lifetime contract
-    - [ ] T020e4 Complete container recreation, controlled denial/restoration, rollback-time evidence, platform-standard publication, and the observation decision
+    - [x] T020e4 Complete container recreation, controlled denial/restoration, rollback-time evidence, platform-standard publication, and the observation decision
       - [x] T020e4a Complete container recreation, timed rollback/restoration, deploy-log evidence, and production-mounted platform-standard publication
       - [x] T020e4b Complete controlled non-active, suspended, and expired membership denial/restoration
-      - [ ] T020e4c Complete the observation window and record the canary acceptance decision
+      - [x] T020e4c Complete the observation window and record the canary acceptance decision
 
 ## Phase 4: Open WebUI Dependency and Expansion
 
