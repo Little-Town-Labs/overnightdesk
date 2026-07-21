@@ -12,6 +12,7 @@ docker run --rm \
   --read-only \
   --cap-drop ALL \
   --cap-add CHOWN \
+  --cap-add DAC_OVERRIDE \
   --cap-add FOWNER \
   --security-opt no-new-privileges \
   --pids-limit 32 \
