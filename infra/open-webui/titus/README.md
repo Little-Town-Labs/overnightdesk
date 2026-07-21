@@ -23,3 +23,8 @@ Rollout order:
 Rollback removes the Nginx vhost and stops the service. It never deletes the
 Open WebUI volume or changes Hermes Titus, Matrix, AgentMail, Teams, or Austin
 authorization.
+
+The OIDC client requests `openid email profile offline_access` with S256 PKCE.
+Access and ID tokens remain 15 minutes; the OvernightDesk provider rotates a
+seven-day refresh token and rechecks canonical membership during issuance.
+Native Hermes dashboard clients remain authorization-code-only.

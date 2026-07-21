@@ -6,11 +6,14 @@
 `v0.10.2` is pinned by Linux arm64 digest; canonical Tenet 2 identity and Gary
 membership, the isolated container/volume, TLS route, OIDC client, SSO, clean
 browser load, real streaming chat, logout, and SSO re-entry are verified.
-The retained database chat did not appear in the UI after re-entry, and one
-earlier auxiliary OAuth refresh failed. Container-recreation persistence,
-controlled denial/restoration, rollback-time proof, and standard publication
-remain open. Broad rollout, Walter, Mitchel/Trevor, Teams, Austin, dashboard
-redesign, and custom-chat removal remain separate.
+The retained database chat appeared after the user opened Open WebUI's
+collapsed sidebar, confirming persistence after re-entry. One earlier
+auxiliary OAuth refresh failed; bounded refresh support is implemented in
+source and passed disposable-database qualification, but still requires
+production deployment and renewal evidence. Container recreation, controlled denial/restoration, rollback-time
+proof, and standard publication remain open. Broad rollout, Walter,
+Mitchel/Trevor, Teams, Austin, dashboard redesign, and custom-chat removal
+remain separate.
 
 ## Phase 1: Decision and Source Baseline
 
@@ -44,7 +47,7 @@ runtime/resource bindings. It does not wait for Mitchel, Austin, or Teams.
 - [x] T015 Add metadata-only security audit events plus explicit request, concurrency, model, and cost bounds
 - [ ] T016 Verify container recreation preserves chats and no browser/log surface exposes protected values
   - [x] T016a Verify the dedicated volume retains one active, non-orphaned chat for the same Open WebUI user without inspecting conversation content
-  - [ ] T016b Make retained prior chats visible in the Open WebUI history after SSO re-entry; the 2026-07-21 owner check failed because the browser never requested the chat-list endpoint
+  - [x] T016b Verify retained prior chats become visible after SSO re-entry; Open WebUI restores a collapsed sidebar and requests the chat list when the user opens it
   - [ ] T016c Recreate the container, then repeat metadata-only retention and user-visible history checks
 
 The T011-T015 source checkpoint uses public S256 PKCE client

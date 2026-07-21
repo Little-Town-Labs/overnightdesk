@@ -26,9 +26,15 @@
 
 - Open WebUI uses a separate OIDC client per runtime deployment.
 - Redirect URI: `https://<assigned-webui-host>/oauth/oidc/callback`.
-- Scopes: `openid email profile`.
+- Scopes: `openid email profile offline_access` for Open WebUI only. Native
+  Hermes dashboard clients remain authorization-code-only and do not request
+  `offline_access`.
 - PKCE: S256 when supported by both the pinned Open WebUI release and the
   OvernightDesk provider.
+- Access and ID tokens remain limited to 15 minutes. Open WebUI receives a
+  rotating refresh token with a seven-day maximum lifetime so an active
+  Better Auth session can renew without storing platform credentials in the
+  browser. The refresh-token grant re-runs the canonical membership check.
 - Account linking by email remains disabled; stable issuer and subject claims
   identify the account.
 - The exact `(issuer, subject)` pair is the local account key. The subject is

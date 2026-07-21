@@ -1,5 +1,6 @@
 import {
   buildTitusOpenWebuiProvisioningSpec,
+  classifyTitusOpenWebuiProvisioningSnapshot,
   verifyTitusOpenWebuiProvisioningSnapshot,
 } from "@/lib/open-webui-titus-provisioning";
 import { TITUS_OPEN_WEBUI } from "@/lib/open-webui-titus-canary";
@@ -36,7 +37,8 @@ describe("Titus Open WebUI provisioning specification", () => {
       redirectUris: [
         "https://titus-chat.overnightdesk.com/oauth/oidc/callback",
       ],
-      scopes: ["openid", "email", "profile"],
+      scopes: ["openid", "email", "profile", "offline_access"],
+      grantTypes: ["authorization_code", "refresh_token"],
       tokenEndpointAuthMethod: "none",
       public: true,
       requirePKCE: true,
@@ -147,5 +149,39 @@ describe("Titus Open WebUI provisioning specification", () => {
         client,
       }),
     ).toMatchObject({ state: "disabled" });
+  });
+
+  it("recognizes only the exact pre-refresh contract as upgradeable", () => {
+    const spec = buildTitusOpenWebuiProvisioningSpec(identity);
+    const snapshot = {
+      useCaseNumber: 2,
+      useCaseStatus: "active",
+      runtimeStatus: "active",
+      activeOwnerMemberships: 1,
+      resourceBindings: spec.resourceBindings,
+      secretBoundary: spec.secretBoundary,
+      client: spec.client,
+    };
+    const legacyClient = {
+      ...spec.client,
+      scopes: ["openid", "email", "profile"],
+      grantTypes: ["authorization_code"] as ["authorization_code"],
+    };
+
+    expect(classifyTitusOpenWebuiProvisioningSnapshot(snapshot)).toBe(
+      "current",
+    );
+    expect(
+      classifyTitusOpenWebuiProvisioningSnapshot({
+        ...snapshot,
+        client: legacyClient,
+      }),
+    ).toBe("refresh-required");
+    expect(
+      classifyTitusOpenWebuiProvisioningSnapshot({
+        ...snapshot,
+        client: { ...legacyClient, requirePKCE: false as true },
+      }),
+    ).toBe("invalid");
   });
 });

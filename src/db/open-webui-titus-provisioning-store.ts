@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import {
   buildTitusOpenWebuiProvisioningSpec,
+  classifyTitusOpenWebuiProvisioningSnapshot,
   verifyTitusOpenWebuiProvisioningSnapshot,
   type TitusOpenWebuiClient,
   type TitusOpenWebuiProvisioningSnapshot,
@@ -25,6 +26,12 @@ type Database = typeof db;
 export type TitusOpenWebuiProvisioningInspection =
   | { status: "blocked"; reasons: string[] }
   | { status: "ready"; useCaseId: string; runtimeIdentityId: string }
+  | {
+      status: "refresh-required";
+      useCaseId: string;
+      runtimeIdentityId: string;
+      state: "disabled" | "enabled";
+    }
   | {
       status: "verified";
       useCaseId: string;
@@ -51,7 +58,7 @@ function mapClient(row: typeof oauthClient.$inferSelect): TitusOpenWebuiClient {
     redirectUris: row.redirectUris,
     postLogoutRedirectUris: row.postLogoutRedirectUris ?? [],
     tokenEndpointAuthMethod: row.tokenEndpointAuthMethod as "none",
-    grantTypes: row.grantTypes as ["authorization_code"],
+    grantTypes: row.grantTypes as TitusOpenWebuiClient["grantTypes"],
     responseTypes: row.responseTypes as ["code"],
     public: row.public as true,
     type: row.type as "user-agent-based",
@@ -189,7 +196,16 @@ export async function inspectTitusOpenWebuiProvisioning(
     secretBoundary: expected.secretBoundary,
     client: mapClient(clients[0]),
   };
-  try {
+  const classification = classifyTitusOpenWebuiProvisioningSnapshot(snapshot);
+  if (classification === "refresh-required") {
+    return {
+      status: "refresh-required",
+      useCaseId: identity.useCaseId,
+      runtimeIdentityId: identity.runtimeIdentityId,
+      state: snapshot.client.disabled ? "disabled" : "enabled",
+    };
+  }
+  if (classification === "current") {
     const summary = verifyTitusOpenWebuiProvisioningSnapshot(snapshot);
     return {
       status: "verified",
@@ -198,9 +214,8 @@ export async function inspectTitusOpenWebuiProvisioning(
       state: summary.state,
       summary,
     };
-  } catch {
-    return { status: "blocked", reasons: ["Titus Open WebUI provisioning contract has drifted"] };
   }
+  return { status: "blocked", reasons: ["Titus Open WebUI provisioning contract has drifted"] };
 }
 
 export async function applyTitusOpenWebuiProvisioning(
@@ -265,6 +280,45 @@ export async function setTitusOpenWebuiClientEnabled(
       details: {
         useCaseNumber: TITUS_OPEN_WEBUI.useCaseNumber,
         state: enabled ? "enabled" : "disabled",
+      },
+    }),
+  ] as const);
+}
+
+export async function applyTitusOpenWebuiRefreshContract(
+  inspection: Extract<
+    TitusOpenWebuiProvisioningInspection,
+    { status: "refresh-required" }
+  >,
+  actor: string,
+  database: Database = db,
+): Promise<void> {
+  const spec = buildTitusOpenWebuiProvisioningSpec(inspection);
+  await database.batch([
+    database
+      .update(oauthClient)
+      .set({
+        scopes: spec.client.scopes,
+        grantTypes: spec.client.grantTypes,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(oauthClient.clientId, TITUS_OPEN_WEBUI.oidcClientId),
+          eq(oauthClient.scopes, ["openid", "email", "profile"]),
+          eq(oauthClient.grantTypes, ["authorization_code"]),
+        ),
+      ),
+    database.insert(platformAuditLog).values({
+      actor,
+      action: "titus_open_webui_oauth_refresh_contract_enabled",
+      target: TITUS_OPEN_WEBUI.deploymentId,
+      details: {
+        useCaseNumber: TITUS_OPEN_WEBUI.useCaseNumber,
+        state: inspection.state,
+        grants: spec.client.grantTypes,
+        scopes: spec.client.scopes,
+        refreshTokenExpiresInSeconds: 7 * 24 * 60 * 60,
       },
     }),
   ] as const);

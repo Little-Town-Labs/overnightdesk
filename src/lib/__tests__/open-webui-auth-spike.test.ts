@@ -82,10 +82,10 @@ describe("separate Open WebUI OIDC client", () => {
       redirect_uris: [
         "https://titus-chat.overnightdesk.com/oauth/oidc/callback",
       ],
-      scope: "openid email profile",
+      scope: "openid email profile offline_access",
       client_name: "OvernightDesk Open WebUI - open-webui-hermes-titus",
       token_endpoint_auth_method: "none",
-      grant_types: ["authorization_code"],
+      grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       type: "user-agent-based",
       skip_consent: true,
@@ -122,7 +122,7 @@ describe("separate Open WebUI OIDC client", () => {
       client_id: assignment.oidcClientId,
       response_type: "code",
       redirect_uri: `https://${assignment.host}/oauth/oidc/callback`,
-      scope: "openid email profile",
+      scope: "openid email profile offline_access",
       state: "fixture-state",
       nonce: "fixture-nonce",
       code_challenge: "a".repeat(43),
@@ -133,7 +133,7 @@ describe("separate Open WebUI OIDC client", () => {
       authorizeOpenWebuiOidc(
         {
           user: { id: OPEN_WEBUI_TITUS_FIXTURE.userId, emailVerified: true },
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           query,
         },
         assignment,
@@ -153,7 +153,7 @@ describe("separate Open WebUI OIDC client", () => {
       authorizeOpenWebuiOidc(
         {
           user: { id: OPEN_WEBUI_TITUS_FIXTURE.userId, emailVerified: true },
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           query: wrongClient.toString(),
         },
         assignment,
@@ -199,7 +199,7 @@ describe("runtime, framing, cookie, and capability contract", () => {
       OAUTH_CLIENT_ID: assignment.oidcClientId,
       OAUTH_CLIENT_SECRET: "",
       OAUTH_CODE_CHALLENGE_METHOD: "S256",
-      OAUTH_SCOPES: "openid email profile",
+      OAUTH_SCOPES: "openid email profile offline_access",
       OAUTH_MERGE_ACCOUNTS_BY_EMAIL: "false",
       ENABLE_OAUTH_PERSISTENT_CONFIG: "false",
       ENABLE_OAUTH_ID_TOKEN_COOKIE: "false",

@@ -44,9 +44,9 @@ function context(
       redirectUris: [
         `https://${TITUS_OPEN_WEBUI.host}/oauth/oidc/callback`,
       ],
-      scopes: ["openid", "email", "profile"],
+      scopes: ["openid", "email", "profile", "offline_access"],
       tokenEndpointAuthMethod: "none",
-      grantTypes: ["authorization_code"],
+      grantTypes: ["authorization_code", "refresh_token"],
       responseTypes: ["code"],
       public: true,
       type: "user-agent-based",
@@ -86,7 +86,7 @@ function oidcQuery() {
     client_id: TITUS_OPEN_WEBUI.oidcClientId,
     response_type: "code",
     redirect_uri: `https://${TITUS_OPEN_WEBUI.host}/oauth/oidc/callback`,
-    scope: "openid email profile",
+    scope: "openid email profile offline_access",
     state: "fixture-state",
     nonce: "fixture-nonce",
     code_challenge: "a".repeat(43),
@@ -117,7 +117,7 @@ describe("Titus Open WebUI canary gate", () => {
       authorizeTitusOpenWebuiOidc(
         {
           user: { id: "gary-user-id", emailVerified: true },
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           query: oidcQuery(),
         },
         store,
@@ -146,7 +146,7 @@ describe("Titus Open WebUI canary gate", () => {
       authorizeTitusOpenWebuiOidc(
         {
           user: { id: "gary-user-id", emailVerified: true },
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           query: oidcQuery(),
         },
         gateway(value),
@@ -161,7 +161,7 @@ describe("Titus Open WebUI canary gate", () => {
       authorizeTitusOpenWebuiToken(
         {
           user: { id: "gary-user-id", emailVerified: true },
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           metadata: context().client.metadata ?? undefined,
         },
         store,
@@ -180,7 +180,7 @@ describe("Titus Open WebUI canary gate", () => {
       authorizeTitusOpenWebuiToken(
         {
           user: { id: "gary-user-id", emailVerified: true },
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           metadata: context().client.metadata ?? undefined,
         },
         store,

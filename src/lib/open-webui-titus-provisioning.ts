@@ -25,7 +25,7 @@ export interface TitusOpenWebuiClient {
   redirectUris: string[];
   postLogoutRedirectUris: string[];
   tokenEndpointAuthMethod: "none";
-  grantTypes: ["authorization_code"];
+  grantTypes: ("authorization_code" | "refresh_token")[];
   responseTypes: ["code"];
   public: true;
   type: "user-agent-based";
@@ -78,7 +78,7 @@ export function buildTitusOpenWebuiProvisioningSpec(
       skipConsent: true,
       enableEndSession: true,
       subjectType: "public",
-      scopes: ["openid", "email", "profile"],
+      scopes: ["openid", "email", "profile", "offline_access"],
       name: "Titus Open WebUI",
       uri: `https://${TITUS_OPEN_WEBUI.host}`,
       redirectUris: [`https://${TITUS_OPEN_WEBUI.host}/oauth/oidc/callback`],
@@ -86,7 +86,7 @@ export function buildTitusOpenWebuiProvisioningSpec(
         "https://www.overnightdesk.com/dashboard/chat?workspace=logged-out",
       ],
       tokenEndpointAuthMethod: "none",
-      grantTypes: ["authorization_code"],
+      grantTypes: ["authorization_code", "refresh_token"],
       responseTypes: ["code"],
       public: true,
       type: "user-agent-based",
@@ -108,22 +108,7 @@ function sameJson(left: unknown, right: unknown): boolean {
 export function verifyTitusOpenWebuiProvisioningSnapshot(
   snapshot: TitusOpenWebuiProvisioningSnapshot,
 ) {
-  const expected = buildTitusOpenWebuiProvisioningSpec(
-    snapshot.client.metadata,
-  );
-  const clientMatches = sameJson(
-    { ...snapshot.client, disabled: true },
-    expected.client,
-  );
-  if (
-    snapshot.useCaseNumber !== TITUS_OPEN_WEBUI.useCaseNumber ||
-    snapshot.useCaseStatus !== "active" ||
-    snapshot.runtimeStatus !== "active" ||
-    snapshot.activeOwnerMemberships !== 1 ||
-    !sameJson(snapshot.resourceBindings, expected.resourceBindings) ||
-    !sameJson(snapshot.secretBoundary, expected.secretBoundary) ||
-    !clientMatches
-  ) {
+  if (classifyTitusOpenWebuiProvisioningSnapshot(snapshot) !== "current") {
     throw new Error("Invalid Titus Open WebUI provisioning state");
   }
 
@@ -135,4 +120,34 @@ export function verifyTitusOpenWebuiProvisioningSnapshot(
     secretBoundaries: 1,
     oidcClients: 1,
   };
+}
+
+export function classifyTitusOpenWebuiProvisioningSnapshot(
+  snapshot: TitusOpenWebuiProvisioningSnapshot,
+): "current" | "refresh-required" | "invalid" {
+  const expected = buildTitusOpenWebuiProvisioningSpec(
+    snapshot.client.metadata,
+  );
+  if (
+    snapshot.useCaseNumber !== TITUS_OPEN_WEBUI.useCaseNumber ||
+    snapshot.useCaseStatus !== "active" ||
+    snapshot.runtimeStatus !== "active" ||
+    snapshot.activeOwnerMemberships !== 1 ||
+    !sameJson(snapshot.resourceBindings, expected.resourceBindings) ||
+    !sameJson(snapshot.secretBoundary, expected.secretBoundary)
+  ) {
+    return "invalid";
+  }
+
+  const normalizedClient = { ...snapshot.client, disabled: true };
+  if (sameJson(normalizedClient, expected.client)) return "current";
+
+  const legacyClient = {
+    ...expected.client,
+    scopes: ["openid", "email", "profile"],
+    grantTypes: ["authorization_code"],
+  };
+  return sameJson(normalizedClient, legacyClient)
+    ? "refresh-required"
+    : "invalid";
 }

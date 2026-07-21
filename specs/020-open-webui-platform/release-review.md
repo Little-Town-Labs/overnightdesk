@@ -70,10 +70,17 @@ Sources: [environment source at v0.10.2](https://github.com/open-webui/open-webu
 ## OIDC and session result
 
 The pinned release supports one generic OIDC provider, the exact
-`/oauth/oidc/callback` redirect, `openid email profile`, and secretless public
-client operation when `OAUTH_CODE_CHALLENGE_METHOD=S256`. The T020d client is
-therefore distinct from the native Hermes dashboard client and uses PKCE with
-`token_endpoint_auth_method=none`.
+`/oauth/oidc/callback` redirect, `openid email profile offline_access`, and
+secretless public-client operation when `OAUTH_CODE_CHALLENGE_METHOD=S256`.
+The T020d client is therefore distinct from the native Hermes dashboard
+client and uses PKCE with `token_endpoint_auth_method=none`.
+
+The provider retains 15-minute access and ID tokens, adds the
+`refresh_token` grant, and bounds rotating refresh tokens to seven days. Only
+the Open WebUI client requests `offline_access`; native Hermes dashboard
+clients remain authorization-code-only. The Open WebUI refresh path re-runs
+the canonical token-issuance membership check, while Nginx continues to gate
+every browser request with the current Better Auth session and membership.
 
 The OIDC audience is the exact client ID. The adapter does not set Open
 WebUI's optional `OAUTH_AUDIENCE`, which would add a separate authorization
@@ -195,13 +202,16 @@ claims may be added only from the ordered post-merge T020e deployment record.
 The ordered post-merge deployment is now active for the exact Gary/Titus
 canary. Canonical identity, isolated workload and volume, TLS ingress, SSO,
 clean browser load, real streaming chat, logout, and SSO re-entry passed. The
-database retained one active non-orphaned chat for the same user, but that
-conversation did not appear in the UI after re-entry and the browser made no
-chat-list request. One earlier auxiliary OAuth refresh failed and removed that
-auxiliary session while the chat itself completed through the static
-server-side Hermes credential.
+database retained one active non-orphaned chat for the same user. Open WebUI
+restored its collapsed-sidebar preference on re-entry and therefore made no
+chat-list request until the user opened the sidebar; that action returned the
+retained prior conversation and confirmed user-visible persistence. One
+earlier auxiliary OAuth refresh failed because the original client had no
+refresh-token grant or `offline_access`, while chat itself completed through
+the static server-side Hermes credential.
 
-This result leaves the release decision conditional. Resolve retained-history
-visibility and the OAuth refresh/session-lifetime contract, then complete
-container recreation, controlled denial/restoration, rollback-time proof,
-standard publication, and observation before broad rollout.
+The refresh contract is implemented and regression-qualified in source but is
+not production evidence until the provider, canonical client, and Open WebUI
+runtime are deployed and observed through a successful renewal. Container
+recreation, controlled denial/restoration, rollback-time proof, standard
+publication, and observation also remain before broad rollout.
