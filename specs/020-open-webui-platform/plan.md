@@ -201,5 +201,6 @@ the original refresh token, issued a new seven-day refresh token and linked
 15-minute access token, rechecked canonical membership, and produced zero
 OAuth/refresh failures. Container recreation, the 3-minute-3-second rollback,
 restoration, deploy log, and production-mounted platform standard are complete.
-Controlled denial/restoration and the observation decision remain before the
-canary is accepted or Walter work begins.
+Controlled non-active, suspended, and expired membership denial plus immediate
+restoration are verified. The observation decision remains before the canary
+is accepted or Walter work begins.

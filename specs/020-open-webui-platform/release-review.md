@@ -223,6 +223,13 @@ The named volume retained one active non-orphaned chat through container
 recreation and full rollback/restoration, and the user saw that history in the
 sidebar afterward. The full Vercel gate, OIDC client, Nginx route, and service
 rollback completed in 3 minutes 3 seconds while retaining Titus fallback
-services. The repaired restoration, deploy log, and production-mounted
-platform standard are complete. Controlled non-member and suspended/expired
-denial/restoration plus the observation decision remain before broad rollout.
+services. The repaired restoration, deploy log, and production-mounted platform
+standard are complete. Controlled revoked/no-active-membership, suspended, and
+expired browser windows returned HTTP 401 and were immediately restored on the
+same Tenet 2 membership row. The bounded windows recorded 2, 5, and 8 canonical
+membership denials respectively, with matching Open WebUI edge denials, only
+the `not_authorized` reason, and no forbidden identity or secret fields. After
+final restoration, the membership was active, unsuspended, unexpired, and
+unrevoked; the next owner refresh recorded 28 canonical grants and 28 Open
+WebUI edge successes with zero denials. The observation decision remains
+before broad rollout.
