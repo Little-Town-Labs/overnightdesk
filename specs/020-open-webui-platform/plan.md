@@ -252,7 +252,7 @@ clipboard permission. The established per-agent fallback remains visible.
 | Surface | Scope after this slice | Decision |
 | --- | --- | --- |
 | Overview | Global account plus selected canonical agent | Migrated to the shared membership-filtered agent context. |
-| Open Chat | Selected agent workspace | Migrated; lists only fully bound active Open WebUI capabilities. |
+| Open Chat | Selected agent workspace reached from the Overview action | Migrated; lists only fully bound active Open WebUI capabilities and is intentionally absent from primary navigation. |
 | Settings | Global/mixed legacy instance | Remains visible, but agent-specific settings must migrate to the shared selected-agent context before expansion. |
 | Admin | Global owner surface | Unchanged; it is not an agent workspace. |
 | Agents, Issues, Projects, Routines, Approvals, Skills, Costs, Activity, Logs, Bridges, Security | Legacy single instance | Continue hidden for Hermes. Each currently calls `getInstanceForUser`; do not enable it for multi-agent use until it consumes the shared selected-agent context. |
@@ -262,3 +262,8 @@ This audit establishes one follow-up interface contract: an agent-scoped tab
 must resolve the same canonical directory and selected runtime as Overview and
 Open Chat. It must not add Titus/Walter component branches or silently fall
 back to the user's first legacy instance.
+
+The agent selector is followed by the selected agent's supported actions on
+Overview. Open Chat and Advanced Dashboard are actions in that context, not
+permanent top-level tabs. The dedicated `/dashboard/chat` route remains
+bookmarkable and provides the full-height workspace after selection.

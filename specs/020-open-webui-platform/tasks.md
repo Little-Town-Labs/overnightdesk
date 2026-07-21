@@ -75,7 +75,7 @@ confirmations and never delete the volume.
   - [x] T020a Derive the visible agent list from active, unexpired canonical membership and active default persona records
   - [x] T020b Expose Open Chat only when an exact active Open WebUI client, container, hostname, use case, and runtime binding agree
   - [x] T020c Let a multi-agent member select each authorized identity while a one-agent member sees only that identity
-  - [x] T020d Record the remaining dashboard routes that still depend on the legacy single-instance lookup and keep them out of the Hermes navigation until they adopt the shared selected-agent context
+  - [x] T020d Keep Open Chat and Advanced Dashboard as selected-agent actions after the Overview selector; record the remaining routes that still depend on the legacy single-instance lookup and keep them out of Hermes navigation until they adopt the shared selected-agent context
 
 ## Phase 5: Canary Review and Cleanup
 

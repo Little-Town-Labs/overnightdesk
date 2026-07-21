@@ -31,22 +31,19 @@ function getActiveClass(
 
 describe("DashboardNav", () => {
   describe("tab configuration", () => {
-    it("exports all fifteen tabs", () => {
-      expect(tabs).toHaveLength(15);
+    it("exports fourteen tabs without duplicating Open Chat navigation", () => {
+      expect(tabs).toHaveLength(14);
     });
 
-    it("includes Chat tab", () => {
-      const chat = tabs.find((t) => t.label === "Open Chat");
-      expect(chat).toBeDefined();
-      expect(chat?.href).toBe("/dashboard/chat");
-      expect(chat?.requiresRunning).toBe(false);
+    it("keeps Open Chat as an Overview action rather than a tab", () => {
+      expect(tabs.map((tab) => tab.label)).not.toContain("Open Chat");
+      expect(tabs.map((tab) => tab.href)).not.toContain("/dashboard/chat");
     });
 
     it("has correct tab labels in order", () => {
       const labels = tabs.map((t) => t.label);
       expect(labels).toEqual([
         "Overview",
-        "Open Chat",
         "Agents",
         "Issues",
         "Projects",
@@ -67,7 +64,6 @@ describe("DashboardNav", () => {
       const hrefs = tabs.map((t) => t.href);
       expect(hrefs).toEqual([
         "/dashboard",
-        "/dashboard/chat",
         "/dashboard/agents",
         "/dashboard/issues",
         "/dashboard/projects",
@@ -84,11 +80,10 @@ describe("DashboardNav", () => {
       ]);
     });
 
-    it("marks Overview, Settings, Chat, and Admin as not requiring running instance", () => {
+    it("marks Overview, Settings, and Admin as not requiring running instance", () => {
       const alwaysVisible = tabs.filter((t) => !t.requiresRunning);
       expect(alwaysVisible.map((t) => t.label)).toEqual([
         "Overview",
-        "Open Chat",
         "Settings",
         "Admin",
       ]);
@@ -121,14 +116,11 @@ describe("DashboardNav", () => {
       expect(proTabs.map((t) => t.label)).toEqual(["Security"]);
     });
 
-    it("classifies global, workspace, and legacy single-instance tabs", () => {
+    it("classifies global and legacy single-instance tabs", () => {
       expect(tabs.filter((tab) => tab.scope === "global").map((tab) => tab.label)).toEqual([
         "Overview",
         "Settings",
         "Admin",
-      ]);
-      expect(tabs.filter((tab) => tab.scope === "workspace").map((tab) => tab.label)).toEqual([
-        "Open Chat",
       ]);
       expect(tabs.filter((tab) => tab.scope === "legacy-instance").map((tab) => tab.label)).toEqual([
         "Agents",
@@ -149,14 +141,14 @@ describe("DashboardNav", () => {
   describe("tab visibility filtering", () => {
     it("shows all non-admin non-pro tabs when instance is running (non-admin user)", () => {
       const visible = getVisibleTabs(tabs, true, false);
-      expect(visible).toHaveLength(13);
+      expect(visible).toHaveLength(12);
       expect(visible.map((t) => t.label)).not.toContain("Admin");
       expect(visible.map((t) => t.label)).not.toContain("Security");
     });
 
     it("shows all tabs including Admin and Security when instance is running and user is admin", () => {
       const visible = getVisibleTabs(tabs, true, true);
-      expect(visible).toHaveLength(15);
+      expect(visible).toHaveLength(14);
       expect(visible.map((t) => t.label)).toContain("Admin");
       expect(visible.map((t) => t.label)).toContain("Security");
     });
@@ -168,23 +160,23 @@ describe("DashboardNav", () => {
 
     it("hides management tabs when instance is not running", () => {
       const visible = getVisibleTabs(tabs, false, false);
-      expect(visible).toHaveLength(3);
-      expect(visible.map((t) => t.label)).toEqual(["Overview", "Open Chat", "Settings"]);
+      expect(visible).toHaveLength(2);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings"]);
     });
 
     it("shows Admin tab for admin even when instance is not running", () => {
       const visible = getVisibleTabs(tabs, false, true);
-      expect(visible).toHaveLength(4);
-      expect(visible.map((t) => t.label)).toEqual(["Overview", "Open Chat", "Settings", "Admin"]);
+      expect(visible).toHaveLength(3);
+      expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Admin"]);
     });
 
-    it("shows Overview, Open Chat, and Settings for a running Hermes workspace", () => {
+    it("shows Overview and Settings for a running Hermes workspace", () => {
       expect(
         getVisibleDashboardTabs({
           instanceRunning: true,
           isHermesTenant: true,
         }).map((tab) => tab.label),
-      ).toEqual(["Overview", "Open Chat", "Settings"]);
+      ).toEqual(["Overview", "Settings"]);
     });
   });
 

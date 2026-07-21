@@ -85,5 +85,8 @@ describe("AgentOverview", () => {
     expect(markup).toContain("Open Chat");
     expect(markup).toContain("Advanced Dashboard");
     expect(markup).toContain('target="_blank"');
+    expect(markup.indexOf('aria-label="Choose agent"')).toBeLessThan(
+      markup.indexOf("Open Chat"),
+    );
   });
 });
