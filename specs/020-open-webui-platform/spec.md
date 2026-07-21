@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-19
 
-**Status**: Planned
+**Status**: Titus reference canary accepted — dashboard redesign, isolated
+Walter rollout, Mitchel/Trevor expansion, and eventual custom-chat retirement
+remain separately gated
 
 **Input**: Replace the custom chat inside the Vercel-hosted OvernightDesk
 dashboard with an authenticated Open WebUI workspace connected to each use

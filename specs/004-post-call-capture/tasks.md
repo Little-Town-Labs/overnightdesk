@@ -103,7 +103,7 @@
 - [x] T025 Run `$code-review-and-quality`
 - [x] T026 Compare deployment expectations with `aegis-prod` using `$aegis-ssh`
 - [x] T027 Update `.specify/roadmap-hermes-mitchel-prospecting.md` with Feature 4 local implementation status
-- [ ] T028 Commit Feature 4 implementation and open PR
+- [x] T028 Commit Feature 4 implementation and merge PR #10
 
 ---
 

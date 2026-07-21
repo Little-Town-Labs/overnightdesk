@@ -4,6 +4,12 @@
 
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
 
+**Status**: The authenticated, read-only Mitchel prospecting workspace MVP
+merged in PR #19 on 2026-06-25. The remaining open tasks are targeted render
+and regression coverage, P3 process-status grouping, and conditional
+documentation/validation follow-up; they are not an unshipped MVP or an active
+worktree.
+
 **Tests**: Include focused tests because this feature touches authenticated
 tenant data, external/agent integration boundaries, and user-facing dashboard
 behavior.
@@ -16,10 +22,10 @@ implementation and testing.
 **Purpose**: Establish the feature workspace and preserve the stock Hermes
 compatibility constraint before coding.
 
-- [ ] T001 Confirm current dashboard, chat, and instance resolver files in `src/app/(protected)/dashboard/page.tsx`, `src/app/(protected)/dashboard/chat/chat-interface.tsx`, `src/lib/instance.ts`, and `src/lib/resolve-instance.ts`
-- [ ] T002 [P] Confirm available platform test scripts in `package.json`
-- [ ] T003 [P] Confirm existing Trevor MCP contracts in `specs/008-prospect-sourcing-pipeline/contracts/mcp-tools.yaml` and `specs/009-internal-buyer-intake/contracts/mcp-tools.yaml`
-- [ ] T004 Record live Hermes/Aegis API assumptions in `specs/010-mitchel-prospecting-dashboard/research.md` if they drift before implementation
+- [x] T001 Confirm current dashboard, chat, and instance resolver files in `src/app/(protected)/dashboard/page.tsx`, `src/app/(protected)/dashboard/chat/chat-interface.tsx`, `src/lib/instance.ts`, and `src/lib/resolve-instance.ts`
+- [x] T002 [P] Confirm available platform test scripts in `package.json`
+- [x] T003 [P] Confirm existing Trevor MCP contracts in `specs/008-prospect-sourcing-pipeline/contracts/mcp-tools.yaml` and `specs/009-internal-buyer-intake/contracts/mcp-tools.yaml`
+- [x] T004 Record live Hermes/Aegis API assumptions in `specs/010-mitchel-prospecting-dashboard/research.md` if they drift before implementation
 
 ---
 
@@ -173,14 +179,14 @@ of truth.
 **Purpose**: Validation, documentation, and production readiness.
 
 - [x] T037 [P] Update `specs/010-mitchel-prospecting-dashboard/quickstart.md` with final local validation commands and observed behavior
-- [ ] T038 [P] Update `README.md` if the Mitchel workspace changes documented dashboard behavior
+- [x] T038 [P] Review `README.md`; no update was required because it does not document tenant-specific dashboard behavior
 - [x] T039 Run `git diff --check`
-- [ ] T040 Run relevant platform tests and build from the repo root
-- [ ] T041 Run Trevor MCP tests/build if any `tenants/hermes-mitchel/mcp-servers/trevor-db` files changed
+- [x] T040 Run relevant platform tests and build from the repo root
+- [x] T041 Confirm no `tenants/hermes-mitchel/mcp-servers/trevor-db` files changed in the Feature 10 platform PR, so Trevor MCP tests/build were not required
 - [x] T042 Run `$code-review-and-quality` as the quality gate
 - [x] T043 Validate assumptions against `aegis-prod` with `$aegis-ssh`, including Hermes API/Kanban availability and no direct route exposure
-- [ ] T044 Validate initial workspace render target and stock-Hermes compatibility notes in `specs/010-mitchel-prospecting-dashboard/quickstart.md`
-- [ ] T045 Stop before commit for user review unless explicitly told to commit
+- [x] T044 Validate initial workspace render target and stock-Hermes compatibility notes in `specs/010-mitchel-prospecting-dashboard/quickstart.md`
+- [x] T045 Stop before commit for user review unless explicitly told to commit
 
 **T040 note**: Focused Feature 10 platform tests pass. `npm run build` with a
 dummy `DATABASE_URL` compiles and type-checks, then fails during page-data
