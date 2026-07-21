@@ -2,8 +2,8 @@
 
 **Reviewed**: 2026-07-20
 
-**Decision**: GO for the reviewed Titus/Gary canary sequence after merge;
-production remains disabled until each T020e gate passes
+**Decision**: CONDITIONAL GO for the active Titus/Gary production canary;
+expansion remains blocked until each remaining T020e gate passes
 
 **Production gate**: T020e must re-check the release/advisory state and pass the
 value-suppressed container, callback-log, Nginx, and browser canary checks.
@@ -189,3 +189,19 @@ The reviewed source adds:
 This source review does not itself claim production identity rows, secrets,
 containers, certificates, routes, sessions, chats, or browser evidence. Those
 claims may be added only from the ordered post-merge T020e deployment record.
+
+## Observed T020e production result — 2026-07-21
+
+The ordered post-merge deployment is now active for the exact Gary/Titus
+canary. Canonical identity, isolated workload and volume, TLS ingress, SSO,
+clean browser load, real streaming chat, logout, and SSO re-entry passed. The
+database retained one active non-orphaned chat for the same user, but that
+conversation did not appear in the UI after re-entry and the browser made no
+chat-list request. One earlier auxiliary OAuth refresh failed and removed that
+auxiliary session while the chat itself completed through the static
+server-side Hermes credential.
+
+This result leaves the release decision conditional. Resolve retained-history
+visibility and the OAuth refresh/session-lifetime contract, then complete
+container recreation, controlled denial/restoration, rollback-time proof,
+standard publication, and observation before broad rollout.

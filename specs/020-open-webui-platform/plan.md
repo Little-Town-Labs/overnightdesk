@@ -185,3 +185,15 @@ retire the existing platform orchestrator or its other responsibilities.
 - Verify the existing Titus Matrix and email paths remain healthy.
 - Record the canary outcome and any production state change in the platform
   standard and suite `deploys.log`.
+
+## Titus production canary checkpoint — 2026-07-21
+
+The Tenet 2 foundation, separate Gary membership, Open WebUI resource
+bindings, Phase boundary, OIDC client, isolated workload and volume, TLS route,
+canonical assignment, SSO, clean browser load, streaming chat, logout, and SSO
+re-entry are deployed and verified. The prior conversation remained in the
+Open WebUI database for the same user but was not visible after re-entry, and
+the browser did not request the chat-list endpoint. One earlier auxiliary
+OAuth refresh failed. Container recreation, controlled denial/restoration,
+rollback-time proof, platform-standard publication, and observation remain
+required before the canary is accepted or Walter work begins.

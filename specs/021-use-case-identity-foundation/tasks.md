@@ -4,17 +4,16 @@
 
 **Status**: Migration 0009 and the guarded Tenet 1 foundation are deployed and
 verified in production with zero memberships. T018 and Walter's T019 canary
-plus final legacy rollback are complete. T020a's guarded Titus / Tenet 2
-foundation and separate Gary membership workflow are implemented and
-disposable-Neon qualified but not production-applied. T020b's guarded
-legacy-authoritative Titus/Gary shadow coverage is implemented with no
-production consumer. T020c selects Titus Open WebUI and defines its Better
-Auth OIDC external-identity adapter. T020d pins Open WebUI `v0.10.2` and
-completes the disabled fixture-backed auth/frame/session/rollback gate; no
-production change is included. Mitchel's
-verified membership is still a later fail-closed operation. No Titus Phase
-change, resource rename, Teams/Austin grant, production consumer, or
-platform/orchestrator link has been performed.
+plus final legacy rollback are complete. T020a-T020d are complete. Under
+T020e, the guarded Tenet 2 foundation, separate Gary membership, five resource
+bindings, Phase boundary, public PKCE client, isolated Open WebUI workload,
+TLS route, canonical assignment, SSO, streaming chat, logout, and SSO re-entry
+are deployed and verified. The retained database chat was not visible after
+re-entry, and OAuth refresh/session lifetime, container recreation,
+controlled denial/restoration, rollback-time proof, and standard publication
+remain open. Mitchel's verified membership remains a later fail-closed
+operation. No resource rename, Teams/Austin grant, or platform/orchestrator
+link has been performed.
 
 ## Phase 1: Durable Contract
 
@@ -78,6 +77,10 @@ platform/orchestrator link has been performed.
   - [x] T020c Select the dedicated Titus Open WebUI deployment as the first production consumer and record its exact Better Auth OIDC `(issuer, subject)` adapter, server-derived workspace binding, channel isolation, evidence, and rollback contract; Better Auth membership does not authorize Matrix, email, or Teams identities
   - [x] T020d Complete Feature 020's pinned-release and OIDC/frame/session spike against Titus fixtures; keep the production Open WebUI assignment disabled
   - [ ] T020e Apply and verify the guarded Tenet 2 foundation and separate Gary membership, then provision and canary Titus Open WebUI through its reviewed Feature 020 tasks without changing Matrix, email, Teams, or Austin access
+    - [x] T020e1 Apply and verify Tenet 2, Gary membership, five resource bindings, one Phase boundary, and the disabled public PKCE client
+    - [x] T020e2 Deploy and verify the isolated container/volume, private Titus connection, certificate, denied route, canonical assignment, SSO, clean load, streaming chat, logout, and SSO re-entry
+    - [ ] T020e3 Resolve retained-chat history visibility and the OAuth refresh/session-lifetime contract
+    - [ ] T020e4 Complete container recreation, controlled denial/restoration, rollback-time evidence, platform-standard publication, and the observation decision
 
 ## Phase 4: Open WebUI Dependency and Expansion
 

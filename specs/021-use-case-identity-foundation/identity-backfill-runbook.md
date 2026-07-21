@@ -1,11 +1,11 @@
 # Audited Use-Case Identity Backfill
 
-This runbook covers the deployed Mitchel/Trevor `Tenet 1` foundation and the
-completed Walter `Tenet 0` operator and authorization workflow. Tenet 1 has no
-production membership or consumer. Walter's foundation and Gary membership
-are deployed; its guarded canonical canary and final legacy rollback are
-verified below. Tenet 2, Open WebUI, Teams, resource renaming, and creation of
-a person record remain out of scope.
+This runbook covers the deployed Mitchel/Trevor `Tenet 1`, Walter `Tenet 0`,
+and Titus `Tenet 2` identity foundations. Tenet 1 has no production membership
+or consumer. Walter's Gary membership, guarded canonical canary, and final
+legacy rollback are verified below. Titus's separate Gary membership and Open
+WebUI production canary are active but incomplete. Teams, Austin, resource
+renaming, and creation of a separate person record remain out of scope.
 
 ## Walter T019a implementation checkpoint
 
@@ -334,6 +334,39 @@ Rollback first restores Vercel mode `disabled`, disables the OIDC client with
 `ROLLBACK_TITUS_OPEN_WEBUI_CLIENT`, removes the Nginx route, and stops the
 service. It preserves the Open WebUI volume and proves Titus Hermes, Matrix,
 and email remain healthy. No T020e source grants Teams or Austin access.
+
+## Titus T020e observed production checkpoint
+
+On 2026-07-21, merged main through `83b76b2` completed the guarded Tenet 2
+foundation and separate Gary membership, matched all 11 canonical selectors,
+and provisioned five active resource bindings, one dedicated Phase boundary,
+and one public S256 PKCE client. Aegis runs the digest-pinned
+`open-webui-hermes-titus` container with its dedicated named volume, no
+published port, a private Titus-only Hermes connection, a valid TLS route, and
+the canonical Better Auth membership gate. The suite `deploys.log` records the
+ordered database, private runtime, denied-route, activation, throttle, and
+browser evidence.
+
+Owner-observed browser checks passed SSO, clean initial load, a real streaming
+Titus chat, logout to the OvernightDesk dashboard, and SSO re-entry without a
+second password. One earlier auxiliary OAuth-session refresh failed while the
+chat still completed through the static server-side Hermes credential; the
+refresh-token and session-lifetime contract remains open.
+
+Metadata-only SQLite inspection showed one user, one active non-orphaned chat
+owned by that same user, valid chat structure, and two history nodes. After
+SSO re-entry, however, the prior conversation was not visible. Request logs
+showed successful auth initialization but no chat-list request. This is a
+failed user-visible history gate, not evidence of database deletion or a
+duplicate account. Do not mark persistence accepted until the UI shows the
+retained chat and the result survives controlled container recreation.
+
+The remaining T020e gates are retained-chat visibility, OAuth refresh/session
+lifetime, container recreation, controlled non-member and suspended/expired
+denial/restoration, rollback-time proof with volume retention, publication of
+the reconciled platform standard, and an observation decision. Walter Open
+WebUI, the dashboard redesign, broad rollout, Teams, and Austin remain blocked
+behind Titus acceptance or separate features as applicable.
 
 ## Production checkpoint
 

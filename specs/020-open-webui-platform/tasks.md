@@ -2,12 +2,15 @@
 
 **Input**: Design documents from `/specs/020-open-webui-platform/`
 
-**Status**: T020e production source is implemented and production remains
-disabled pending merge and the ordered deployment gates. Open WebUI `v0.10.2`
-is pinned by Linux arm64 digest. Titus/Gary is the first canary, Walter is
-next, and Mitchel/Trevor remains gated on Mitchel's membership. T020e
-authorizes only the reviewed Titus/Gary canary sequence; broad rollout,
-Walter, Mitchel/Trevor, Teams, Austin, and custom-chat removal remain separate.
+**Status**: The Titus/Gary T020e canary is active in production. Open WebUI
+`v0.10.2` is pinned by Linux arm64 digest; canonical Tenet 2 identity and Gary
+membership, the isolated container/volume, TLS route, OIDC client, SSO, clean
+browser load, real streaming chat, logout, and SSO re-entry are verified.
+The retained database chat did not appear in the UI after re-entry, and one
+earlier auxiliary OAuth refresh failed. Container-recreation persistence,
+controlled denial/restoration, rollback-time proof, and standard publication
+remain open. Broad rollout, Walter, Mitchel/Trevor, Teams, Austin, dashboard
+redesign, and custom-chat removal remain separate.
 
 ## Phase 1: Decision and Source Baseline
 
@@ -40,6 +43,9 @@ runtime/resource bindings. It does not wait for Mitchel, Austin, or Teams.
 - [x] T014 Add a canary-only Nginx vhost and Better Auth active-membership gate derived from the canonical runtime assignment
 - [x] T015 Add metadata-only security audit events plus explicit request, concurrency, model, and cost bounds
 - [ ] T016 Verify container recreation preserves chats and no browser/log surface exposes protected values
+  - [x] T016a Verify the dedicated volume retains one active, non-orphaned chat for the same Open WebUI user without inspecting conversation content
+  - [ ] T016b Make retained prior chats visible in the Open WebUI history after SSO re-entry; the 2026-07-21 owner check failed because the browser never requested the chat-list endpoint
+  - [ ] T016c Recreate the container, then repeat metadata-only retention and user-visible history checks
 
 The T011-T015 source checkpoint uses public S256 PKCE client
 `overnightdesk-open-webui-titus-v1`, hostname
@@ -60,7 +66,12 @@ confirmations and never delete the volume.
 
 - [ ] T021 Run the five-axis code, security, data, operations, and UX review
 - [ ] T022 Perform approved Aegis/Vercel canary deployment with rollback evidence and deploy-log/standards updates
+  - [x] T022a Deploy the isolated stateful workload, certificate, denied route, exact canonical assignment, and public OIDC client; record each production stage in `deploys.log`
+  - [ ] T022b Publish the reconciled platform standard and complete the live rollback-time proof while retaining the named volume
 - [ ] T023 Complete member, non-member, suspended-member, and logout browser checks and an observation window
+  - [x] T023a Verify Gary membership, SSO, clean browser load, streaming chat, logout, and SSO re-entry
+  - [ ] T023b Complete controlled non-member and suspended/expired denial/restoration checks
+  - [ ] T023c Resolve the OAuth refresh/session-lifetime contract and observe the accepted canary without refresh failures
 - [ ] T024 After Titus and Walter are accepted and remaining consumers are accounted for, prove zero use and remove the custom chat component, `/api/engine/chat`, `/api/engine/sessions`, provisioner `getSessions`, and dependencies/tests used only by that bridge
 - [ ] T025 Keep the native Hermes dashboard and Open WebUI volume until a separately approved retention decision
 
