@@ -81,6 +81,7 @@ fi
 require_pattern '--network none' "$runtime_root/prepare-volume.sh"
 require_pattern '--cap-drop ALL' "$runtime_root/prepare-volume.sh"
 require_pattern '--cap-add CHOWN' "$runtime_root/prepare-volume.sh"
+require_pattern '--cap-add DAC_OVERRIDE' "$runtime_root/prepare-volume.sh"
 
 require_pattern 'User=open-webui-titus' "$runtime_root/open-webui-titus.service"
 require_pattern 'ExecStartPre=\+.*/load-phase-env\.sh' "$runtime_root/open-webui-titus.service"
