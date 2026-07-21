@@ -1,15 +1,35 @@
 import {
+  applyTitusOpenWebuiRefreshContract,
   applyTitusOpenWebuiProvisioning,
   inspectTitusOpenWebuiProvisioning,
   setTitusOpenWebuiClientEnabled,
 } from "@/db/open-webui-titus-provisioning-store";
 
-type Command = "plan" | "apply" | "verify" | "enable" | "disable";
+type Command =
+  | "plan"
+  | "apply"
+  | "verify"
+  | "enable"
+  | "disable"
+  | "refresh-plan"
+  | "refresh-apply"
+  | "refresh-verify";
 
 function commandFrom(value?: string): Command {
   const command = value ?? "plan";
-  if (!["plan", "apply", "verify", "enable", "disable"].includes(command)) {
-    throw new Error("Command must be plan, apply, verify, enable, or disable");
+  if (
+    ![
+      "plan",
+      "apply",
+      "verify",
+      "enable",
+      "disable",
+      "refresh-plan",
+      "refresh-apply",
+      "refresh-verify",
+    ].includes(command)
+  ) {
+    throw new Error("Invalid Titus Open WebUI provisioning command");
   }
   return command as Command;
 }
@@ -37,6 +57,14 @@ function printable(inspection: Awaited<ReturnType<typeof inspectTitusOpenWebuiPr
       disabledOidcClientsToCreate: 1,
     };
   }
+  if (inspection.status === "refresh-required") {
+    return {
+      status: inspection.status,
+      state: inspection.state,
+      scopesToAdd: ["offline_access"],
+      grantsToAdd: ["refresh_token"],
+    };
+  }
   return { status: inspection.status, ...inspection.summary };
 }
 
@@ -47,6 +75,27 @@ function output(value: unknown): void {
 async function main(): Promise<void> {
   const command = commandFrom(process.argv[2]);
   const before = await inspectTitusOpenWebuiProvisioning();
+  if (command === "refresh-plan") return output(printable(before));
+  if (command === "refresh-verify") {
+    if (before.status !== "verified") {
+      throw new Error("Titus Open WebUI refresh contract is not verified");
+    }
+    return output(printable(before));
+  }
+  if (command === "refresh-apply") {
+    if (before.status === "verified") return output(printable(before));
+    if (before.status !== "refresh-required") {
+      throw new Error("Titus Open WebUI refresh contract cannot be applied");
+    }
+    const actor = requiredEnvironment("TITUS_OPEN_WEBUI_ACTOR");
+    requireConfirmation("ENABLE_TITUS_OPEN_WEBUI_REFRESH_CONTRACT");
+    await applyTitusOpenWebuiRefreshContract(before, actor);
+    const after = await inspectTitusOpenWebuiProvisioning();
+    if (after.status !== "verified" || after.state !== before.state) {
+      throw new Error("Titus Open WebUI refresh contract did not converge");
+    }
+    return output(printable(after));
+  }
   if (command === "plan") return output(printable(before));
   if (command === "verify") {
     if (before.status !== "verified") {
@@ -56,6 +105,9 @@ async function main(): Promise<void> {
   }
   if (before.status === "blocked") {
     throw new Error(`Provisioning blocked: ${before.reasons.join("; ")}`);
+  }
+  if (before.status === "refresh-required") {
+    throw new Error("Apply the Titus Open WebUI refresh contract first");
   }
 
   const actor = requiredEnvironment("TITUS_OPEN_WEBUI_ACTOR");

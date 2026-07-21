@@ -99,12 +99,17 @@ describe("Better Auth OAuth provider authorization dispatch", () => {
       authorizeOAuthProviderToken(
         {
           user,
-          scopes: ["openid", "email", "profile"],
+          scopes: ["openid", "email", "profile", "offline_access"],
           metadata: { kind: "open-webui", schemaVersion: 1 },
         },
         openWebui,
       ),
     ).resolves.toEqual({});
     expect(openWebui.authorizeOpenWebuiToken).toHaveBeenCalledTimes(1);
+    expect(openWebui.authorizeOpenWebuiToken).toHaveBeenCalledWith({
+      user,
+      scopes: ["openid", "email", "profile", "offline_access"],
+      metadata: { kind: "open-webui", schemaVersion: 1 },
+    });
   });
 });

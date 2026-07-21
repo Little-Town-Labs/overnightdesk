@@ -1,4 +1,5 @@
 import {
+  OPEN_WEBUI_OIDC_SCOPES,
   authorizeOpenWebuiOidc,
   buildOpenWebuiOidcClientPayload,
   type OpenWebuiWorkspaceAssignment,
@@ -179,7 +180,7 @@ export async function authorizeTitusOpenWebuiToken(
     input.metadata.schemaVersion !== 1 ||
     input.metadata.deploymentId !== TITUS_OPEN_WEBUI.deploymentId ||
     !input.user.emailVerified ||
-    input.scopes.join(" ") !== "openid email profile"
+    input.scopes.join(" ") !== OPEN_WEBUI_OIDC_SCOPES.join(" ")
   ) {
     deny();
   }

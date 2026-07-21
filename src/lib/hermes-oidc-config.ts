@@ -1,7 +1,15 @@
 import type { OAuthOptions } from "@better-auth/oauth-provider";
 import type { JwtOptions } from "better-auth/plugins";
 
-export const HERMES_OIDC_SCOPES = ["openid", "profile", "email"] as const;
+export const HERMES_DASHBOARD_OIDC_SCOPES = [
+  "openid",
+  "profile",
+  "email",
+] as const;
+export const HERMES_OIDC_PROVIDER_SCOPES = [
+  ...HERMES_DASHBOARD_OIDC_SCOPES,
+  "offline_access",
+] as const;
 
 export function isHermesOidcProvisioningEnabled(): boolean {
   return process.env.HERMES_DASHBOARD_OIDC_ENABLED === "true";
@@ -39,10 +47,11 @@ export const HERMES_JWT_OPTIONS = {
 } satisfies JwtOptions;
 
 export const HERMES_OAUTH_PROVIDER_OPTIONS = {
-  scopes: [...HERMES_OIDC_SCOPES],
-  grantTypes: ["authorization_code"],
+  scopes: [...HERMES_OIDC_PROVIDER_SCOPES],
+  grantTypes: ["authorization_code", "refresh_token"],
   accessTokenExpiresIn: 15 * 60,
   idTokenExpiresIn: 15 * 60,
+  refreshTokenExpiresIn: 7 * 24 * 60 * 60,
   codeExpiresIn: 2 * 60,
   allowDynamicClientRegistration: false,
   allowUnauthenticatedClientRegistration: false,
@@ -53,4 +62,4 @@ export const HERMES_OAUTH_PROVIDER_OPTIONS = {
     openidConfig: true,
   },
   clientPrivileges: async (_context) => false,
-} satisfies OAuthOptions<(typeof HERMES_OIDC_SCOPES)[number][]>;
+} satisfies OAuthOptions<(typeof HERMES_OIDC_PROVIDER_SCOPES)[number][]>;

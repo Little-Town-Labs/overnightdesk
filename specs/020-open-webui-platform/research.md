@@ -68,6 +68,16 @@ The spike must verify:
 - account identity is based on a stable OIDC subject, with
   `OAUTH_MERGE_ACCOUNTS_BY_EMAIL=false`.
 
+The production canary established that Open WebUI attempts an OAuth refresh
+five minutes before the 15-minute access token expires. An authorization-code
+client without `offline_access` has no refresh token, so the auxiliary OAuth
+session fails even though static Hermes bearer authentication keeps chat
+working. The accepted contract adds `refresh_token` support to the provider,
+requests `offline_access` only for the exact Open WebUI client, retains S256
+PKCE and 15-minute access/ID tokens, and limits rotating refresh tokens to
+seven days. Native Hermes dashboard clients retain their original scopes and
+authorization-code-only grant.
+
 Trusted-header authentication is documented by Open WebUI but is not the
 default choice. It requires Nginx to assert identity headers and the upstream
 to be unreachable through any path that could spoof them.

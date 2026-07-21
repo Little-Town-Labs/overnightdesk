@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { HERMES_OIDC_SCOPES } from "@/lib/hermes-oidc-config";
+import { HERMES_DASHBOARD_OIDC_SCOPES } from "@/lib/hermes-oidc-config";
 import type { MembershipAuthorizationDecision } from "@/lib/use-case-membership-authorization";
 import {
   compareWalterLegacyOwnerWithCanonicalMembership,
@@ -157,7 +157,7 @@ export function buildHermesOidcClientPayload({
 
   return {
     redirect_uris: [getHermesOidcCallbackUrl(subdomain)],
-    scope: HERMES_OIDC_SCOPES.join(" "),
+    scope: HERMES_DASHBOARD_OIDC_SCOPES.join(" "),
     client_name: "OvernightDesk Hermes Dashboard",
     token_endpoint_auth_method: "none" as const,
     grant_types: ["authorization_code" as const],
@@ -203,7 +203,7 @@ function isActiveOidcContext(
   user: { id: string; emailVerified: boolean },
   scopes: string[]
 ): boolean {
-  const allowedScopes = new Set<string>(HERMES_OIDC_SCOPES);
+  const allowedScopes = new Set<string>(HERMES_DASHBOARD_OIDC_SCOPES);
   return (
     user.emailVerified &&
     context.instanceStatus === "running" &&
@@ -774,6 +774,6 @@ export function buildHermesDashboardAuthConfig({
     clientId,
     publicUrl: getHermesOidcPublicUrl(subdomain),
     callbackUrl: getHermesOidcCallbackUrl(subdomain),
-    scopes: HERMES_OIDC_SCOPES,
+    scopes: HERMES_DASHBOARD_OIDC_SCOPES,
   };
 }

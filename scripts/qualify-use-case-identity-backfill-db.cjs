@@ -179,6 +179,7 @@ function runTitusOpenWebuiCommand(targetUrl, command) {
     apply: "PROVISION_TITUS_OPEN_WEBUI_DISABLED",
     enable: "ENABLE_TITUS_OPEN_WEBUI_CLIENT",
     disable: "ROLLBACK_TITUS_OPEN_WEBUI_CLIENT",
+    "refresh:apply": "ENABLE_TITUS_OPEN_WEBUI_REFRESH_CONTRACT",
   };
   const result = spawnSync(
     "npm",
@@ -197,6 +198,21 @@ function runTitusOpenWebuiCommand(targetUrl, command) {
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`Titus Open WebUI ${command} exited ${result.status}`);
+  }
+}
+
+async function restoreLegacyTitusOpenWebuiRefreshFixture(targetUrl) {
+  const database = drizzle(neon(targetUrl));
+  const result = await database.execute(sql`
+    UPDATE oauth_client
+    SET scopes = ARRAY['openid', 'email', 'profile']::text[],
+        grant_types = ARRAY['authorization_code']::text[],
+        updated_at = NOW()
+    WHERE client_id = 'overnightdesk-open-webui-titus-v1'
+    RETURNING id
+  `);
+  if (result.rows.length !== 1) {
+    throw new Error("Expected one Titus Open WebUI client fixture");
   }
 }
 
@@ -309,6 +325,18 @@ async function main() {
 
     currentStage = "verify Titus Open WebUI disabled provisioning";
     runTitusOpenWebuiCommand(targetUrl, "verify");
+
+    currentStage = "restore pre-refresh Titus Open WebUI client fixture";
+    await restoreLegacyTitusOpenWebuiRefreshFixture(targetUrl);
+
+    currentStage = "plan Titus Open WebUI refresh contract update";
+    runTitusOpenWebuiCommand(targetUrl, "refresh:plan");
+
+    currentStage = "apply Titus Open WebUI refresh contract update";
+    runTitusOpenWebuiCommand(targetUrl, "refresh:apply");
+
+    currentStage = "verify Titus Open WebUI refresh contract update";
+    runTitusOpenWebuiCommand(targetUrl, "refresh:verify");
 
     currentStage = "enable Titus Open WebUI OIDC client";
     runTitusOpenWebuiCommand(targetUrl, "enable");

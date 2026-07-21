@@ -4,7 +4,12 @@ import type { UseCaseMembershipAuthorizer } from "@/lib/use-case-membership-auth
 
 export const OPEN_WEBUI_RELEASE = releasePin;
 export const OPEN_WEBUI_REQUEST_LIMIT_BYTES = 64 * 1024;
-export const OPEN_WEBUI_OIDC_SCOPES = ["openid", "email", "profile"] as const;
+export const OPEN_WEBUI_OIDC_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  "offline_access",
+] as const;
 
 const APPROVED_FRAME_ANCESTORS = [
   "https://overnightdesk.com",
@@ -126,7 +131,7 @@ export function buildOpenWebuiOidcClientPayload(
     scope: OPEN_WEBUI_OIDC_SCOPES.join(" "),
     client_name: `OvernightDesk Open WebUI - ${assignment.deploymentId}`,
     token_endpoint_auth_method: "none" as const,
-    grant_types: ["authorization_code" as const],
+    grant_types: ["authorization_code" as const, "refresh_token" as const],
     response_types: ["code" as const],
     type: "user-agent-based" as const,
     skip_consent: true,
