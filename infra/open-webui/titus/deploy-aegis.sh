@@ -66,12 +66,26 @@ verify_private() {
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" open-webui-hermes-titus | grep -q overnightdesk_overnightdesk
     ! sudo docker inspect -f "{{json .Config.Env}}" open-webui-hermes-titus | grep -Eq "(OPENAI_API_KEY|WEBUI_SECRET_KEY|PHASE_SERVICE_TOKEN)"
     sudo docker volume inspect open-webui-hermes-titus-data >/dev/null
-    sudo docker exec open-webui-hermes-titus /bin/sh -c '\''set -a; . /run/secrets/open-webui-titus; set +a; python - <<"PY"
+    sudo docker exec open-webui-hermes-titus /bin/sh -c '\''python - <<"PY"
 import json
-import os
+import shlex
 import urllib.request
+from pathlib import Path
+
+api_key = None
+for raw_line in Path("/run/secrets/open-webui-titus").read_text().splitlines():
+    if not raw_line or raw_line.startswith("#") or "=" not in raw_line:
+        continue
+    key, value = raw_line.split("=", 1)
+    if key != "OPENAI_API_KEY":
+        continue
+    parsed = shlex.split(value)
+    assert len(parsed) == 1
+    api_key = parsed[0]
+    break
+assert api_key is not None and len(api_key) >= 32
 request = urllib.request.Request("http://hermes-titus:8642/v1/models")
-request.add_header("Authorization", "Bearer " + os.environ["OPENAI_API_KEY"])
+request.add_header("Authorization", "Bearer " + api_key)
 with urllib.request.urlopen(request, timeout=10) as response:
     payload = json.loads(response.read())
 assert isinstance(payload.get("data"), list)
