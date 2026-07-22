@@ -177,3 +177,36 @@ resources are expected prerequisites, not production faults.
 the prior Walter dashboard-only state with a recoverable stopped candidate and
 retained isolated volume. Public activation and platform OIDC/resource changes
 remain unauthorized until the separate T022 increment is reviewed.
+
+## T022 controlled-activation preflight and source gate — 2026-07-22T17:12:05Z
+
+- A new dedicated worktree and branch were created from published `main` at
+  `6c59d9c`; no production state was changed by workspace setup.
+- Live Aegis preflight reconfirmed the Walter candidate service is disabled,
+  its container is absent, its dedicated volume is retained, the Walter native
+  runtime is running, and Walter remains `openai-codex` with default
+  `gpt-5.6-sol`. Titus Open WebUI remains healthy.
+- DNS now resolves `walter-chat.overnightdesk.com` to Aegis. This supersedes
+  the earlier unresolved observation. TLS is intentionally not ready yet: the
+  default certificate does not contain the Walter hostname, no Walter Nginx
+  route is installed, and the public endpoint remains unavailable.
+- The value-free production database plan returned `ready`: exactly five
+  Walter resource bindings, one Walter secret boundary, and one disabled OIDC
+  client remain to be created. The accepted Titus provisioning contract still
+  verifies enabled with five bindings, one boundary, one client, and one active
+  unexpired owner after the shared refactor.
+- RED coverage failed first on the absent shared registry, authorization,
+  provisioning modules, and absent route activation behavior. GREEN now uses
+  one typed deployment registry and one canonical authorization/provisioning
+  path for both Titus and Walter; presentation code has no agent-name policy.
+- Source gates pass: 86 Jest suites with 971 tests, TypeScript, the production
+  Next.js build, Titus and Walter deployment qualifiers, and `git diff --check`.
+  The sandbox-only Google Fonts failure recurred; the identical build passed
+  with network access. The dependency audit remains the inherited 7 total/3
+  production findings recorded by the prototype and this increment adds none.
+
+**Activation decision**: source is ready for review and publication. T022 is
+not complete until the application increment is deployed, the Walter records
+are applied disabled then enabled, the candidate is started, Walter TLS/Nginx
+is activated, unauthenticated access fails closed, and rollback readiness is
+reverified in that order.

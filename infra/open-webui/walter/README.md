@@ -25,8 +25,18 @@ Rollout order:
 3. Confirm `walter-chat.overnightdesk.com` remains unrouted and no Nginx vhost
    was installed.
 4. Run the log sentinel, restart-persistence, provider, and rollback gates.
-5. Add the separate platform OIDC/resource increment only after disabled
-   qualification passes.
+5. Apply the reviewed platform OIDC/resource increment with the Walter client
+   disabled, then verify the exact five bindings and one secret boundary.
+6. Deploy the shared canonical authorization increment and set the platform
+   `OPEN_WEBUI_AUTH_MODE=canonical` gate with its exact confirmation.
+7. Start the candidate, enable the Walter OIDC client, run `enable-route`, and
+   verify that unauthenticated access fails closed before owner acceptance.
+
+Controlled rollback first disables the Walter OIDC client, then runs
+`deploy-aegis.sh rollback`. That removes the Walter Nginx route and stops only
+the Walter Open WebUI candidate while preserving its volume. TLS material may
+remain for renewal and later recovery; it grants no route or application
+authority by itself.
 
 Rollback stops only this candidate and preserves its volume. It does not stop,
 restart, or reconfigure the native Walter dashboard, Hermes API, email intake,
