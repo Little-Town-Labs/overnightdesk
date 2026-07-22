@@ -20,15 +20,18 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Current Agent Control-Surface Delivery
 
-Production `main` at `bec8495` includes Feature 022's unified agent control
+Production `main` at `3c36e75` includes Feature 022's unified agent control
 surfaces from PR 85. Overview, Settings, and selected-agent Admin Configuration
 share one exact membership-filtered agent context and consistent Identity,
 Runtime, capability, and configuration structure. Variable name/logo
 presentation and the selected-agent Open Chat and Advanced Dashboard actions
 remain on Overview; Open Chat is intentionally not a permanent primary-
-navigation tab. Titus Open WebUI is the accepted reference canary, while Walter
-has no Open WebUI deployment. The owner accepted the authenticated Overview,
-Settings, Admin, Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
+navigation tab. Titus Open WebUI is the accepted reference canary. Walter Open
+WebUI now has its own container, volume, hostname, Phase boundary, OIDC client,
+and canonical use-case/runtime bindings; controlled activation passed on
+2026-07-22 and authenticated denial/session-lifecycle plus owner acceptance
+remain open. The owner accepted the authenticated Overview, Settings, Admin,
+Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
 are write-only, role checked, and metadata audited. The boundary-aware
@@ -45,9 +48,10 @@ capability-driven selected-agent workspace. The initial interaction keeps
 qualified chat embedded and launches the exact native Hermes dashboard in an
 independent safe window or tab; the shared contract remains layout-neutral.
 Agents with only one surface retain it with an explicit state for the other.
-Walter's future chat deployment remains a separate disabled-install,
-isolation, rollback, session-lifecycle, and owner-acceptance gate. Walter's
-primary Codex OAuth provider policy is unchanged. The
+Walter's isolated chat deployment has passed disabled installation, private
+qualification, rollback rehearsal, and controlled public activation. Denial,
+session-lifecycle, cross-surface health, and owner-acceptance gates remain.
+Walter's primary Codex OAuth provider policy is unchanged. The
 [Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is the
 current delivery source of truth.
 
