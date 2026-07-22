@@ -103,6 +103,19 @@ prove the complete user and session lifecycle.
 - [ ] T030 Update `.specify/roadmap.md`, `README.md`, Feature 023 status, `overnightdesk-platform-standard`, and ADR 006 with only verified prototype and deployment behavior
 - [ ] T031 Publish reviewed repository increments, wait for passing checks, merge only accepted changes, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
+---
+
+## Phase 8: Corrective workspace and persona identity increment
+
+- [x] T032 Capture owner feedback that the embedded chat and full-width capability panel are undersized/misproportioned and define a chat-dominant desktop rail plus mobile chat-first hierarchy
+- [x] T033 Add RED rendered/browser assertions for near-viewport chat height, a 17rem desktop context rail, safe full-size chat launch, and no desktop half-width or full-width capability panel
+- [x] T034 Implement and visually inspect the shared chat-dominant workspace at desktop and mobile viewports
+- [x] T035 Add RED logo validation, exact owner authorization, binary read, fallback, audit, directory-resolution, and migration tests
+- [x] T036 Implement nullable bounded persona presentation storage, owner-only replacement/removal, immutable image delivery, and shared Settings/Admin control
+- [x] T037 Add RED shared Open WebUI deployment tests for the existing model ID, persona name/avatar, public read-only model grant, Arena disablement, idempotency, and distinct volumes
+- [x] T038 Implement the DRY deployment-managed persona-model seed and Arena disablement for Titus and Walter without changing provider/runtime routes or Open WebUI product branding
+- [x] T039 Run focused RED/GREEN, full Jest/Chromium/build/audit/secret/diff gates and the five-axis review; update T026/T030 only after authenticated owner and production acceptance
+
 ## Dependencies and execution order
 
 - Phase 2 blocks every presentation task.
@@ -114,6 +127,8 @@ prove the complete user and session lifecycle.
   rollback rehearsal.
 - Publication and acceptance require all included increment tests and review
   gates; documenting Walter does not authorize deployment.
+- T035-T038 block T026, T030, and T031 because owner acceptance now includes
+  the corrective layout and canonical persona-model presentation.
 
 ## Parallel opportunities
 

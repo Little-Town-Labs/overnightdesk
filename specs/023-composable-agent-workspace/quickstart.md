@@ -372,3 +372,58 @@ rollback checks passed, and the owner confirmed Walter's newly available
 Advanced Dashboard opened successfully after the canonical link. The larger
 shared chat surface remains source-only until publication and owner acceptance
 in T026.
+
+## Corrective layout and persona source gate — 2026-07-22
+
+- The shared workspace now gives embedded chat the near-viewport primary area
+  and bounds identity, capability, and fallback context to a 17rem desktop
+  rail. The mobile order remains selector, actions, chat, then context.
+- Titus remains chat-only and shows Advanced Dashboard as not deployed with no
+  action. Walter retains the exact linked native dashboard action. The same
+  capability component renders both states without an identity branch.
+- Active exact-runtime owners may attach or remove a PNG, JPEG, or WebP persona
+  logo up to 256 KiB. Server validation checks structure, bounded dimensions,
+  type, and digest; mutation responses and audit records contain no filename or
+  image bytes. Other roles, suspended owners, and expired owners fail closed.
+- Open WebUI keeps the existing provider-facing `hermes-agent` ID but receives
+  one deployment-owned display override named Titus or Walter with the
+  canonical persona logo. One shared idempotent SQLite reconciler preserves
+  chats and unrelated records, grants public read only, removes wildcard
+  write, and has a separate read-only verification mode. Arena is forced off
+  with an empty model list for both deployments.
+- The additive `0010` platform migration has a guarded, value-free
+  `identity:persona-schema:plan/apply/verify` workflow. It rejects mixed schema
+  state, destructive or unexpected SQL, and unconfirmed production writes;
+  successful apply records one metadata-only platform audit event.
+- Focused logo, route, directory, component, schema, seeder, and deployment
+  qualifiers passed. The complete suite passed 91 suites with 1,026 tests;
+  four database suites were safely skipped without a disposable test database.
+  TypeScript, all 24 Chromium scenarios, the network-enabled production build,
+  both Open WebUI deployment qualifiers, and `git diff --check` passed.
+- The transitive `sharp` package is overridden from the vulnerable 0.34 line to
+  0.35.3 and Node 20.9+ is explicit. `npm audit --audit-level=high` now passes;
+  five moderate inherited findings remain (Better Auth has no available fix,
+  while npm's esbuild remedy is a breaking Drizzle downgrade).
+
+**Corrective source decision**: ready for review. Database migration, Vercel
+publication, Aegis persona reconciliation, browser confirmation that Arena is
+absent and Titus/Walter names/logos are present, and final layout acceptance
+remain required before T026/T030/T031 close.
+
+## Corrective read-only production preflight — 2026-07-22T23:22:43Z
+
+- Titus and Walter Open WebUI systemd services are active and both containers
+  are healthy. Anonymous public requests remain fail closed with HTTP 401.
+- Both durable databases expose the exact pinned v0.10.2 `model`,
+  `access_grant`, and `user` columns required by the reconciler. Neither
+  database currently contains a custom model presentation or model grant, so
+  the increment is an additive presentation write rather than a replacement.
+- Each isolated upstream returned exactly one value-free model ID,
+  `hermes-agent`, matching both reviewed persona data files. Each database has
+  exactly one admin owner record available for the deployment-owned model row.
+- No route, container, database, user, model, grant, secret, or runtime state
+  changed during this preflight. No secret value was printed.
+
+**Preflight decision**: the source contract matches live production. Publication
+may proceed through review; migration and Aegis reconciliation remain separate
+post-merge writes with rollback and authenticated owner acceptance gates.

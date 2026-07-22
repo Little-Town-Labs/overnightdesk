@@ -3,6 +3,7 @@ import type { ManagedVariableControlDescriptor } from "@/lib/managed-agent-varia
 import type { AgentDirectoryEntry } from "@/lib/open-webui-workspace";
 import { AgentCapabilityList } from "./agent-capability-list";
 import { AgentIdentityHeader } from "./agent-identity-header";
+import { AgentPersonaLogoControl } from "./agent-persona-logo-control";
 import { AgentRuntimePanel } from "./agent-runtime-panel";
 import { AgentSelector } from "./agent-selector";
 import { ManagedAgentVariables } from "./managed-agent-variables";
@@ -30,6 +31,7 @@ export function SelectedAgentConfiguration({
         selectedKey={selected.key}
       />
       <AgentIdentityHeader agent={selected} statusLabel={statusLabel} />
+      <AgentPersonaLogoControl agent={selected} />
       <AgentRuntimePanel agent={selected} />
       <AgentCapabilityList capabilities={capabilities} />
       <ManagedAgentVariables agent={selected} variables={managedVariables} />

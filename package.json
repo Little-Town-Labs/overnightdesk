@@ -2,6 +2,9 @@
   "name": "overnightdesk",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -37,6 +40,9 @@
     "identity:compatibility:verify": "tsx scripts/use-case-identity-backfill.ts compatibility verify",
     "identity:schema:plan": "node scripts/apply-use-case-identity-schema.cjs plan",
     "identity:schema:apply": "node scripts/apply-use-case-identity-schema.cjs apply",
+    "identity:persona-schema:plan": "node scripts/apply-persona-presentation-schema.cjs plan",
+    "identity:persona-schema:apply": "node scripts/apply-persona-presentation-schema.cjs apply",
+    "identity:persona-schema:verify": "node scripts/apply-persona-presentation-schema.cjs verify",
     "fixture:open-webui-auth": "node --import tsx scripts/open-webui-auth-fixture-server.ts",
     "open-webui:titus:plan": "tsx scripts/open-webui-titus-provisioning.ts plan",
     "open-webui:titus:apply": "tsx scripts/open-webui-titus-provisioning.ts apply",
@@ -98,6 +104,7 @@
     "typescript": "^5.7.0"
   },
   "overrides": {
-    "postcss": "$postcss"
+    "postcss": "$postcss",
+    "sharp": "0.35.3"
   }
 }

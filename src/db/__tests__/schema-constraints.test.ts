@@ -40,6 +40,28 @@ describe("Hermes OIDC schema definitions", () => {
   });
 });
 
+describe("persona presentation schema definitions", () => {
+  it("keeps bounded custom logo data on the canonical persona assignment", () => {
+    const config = getTableConfig(schema.personaAssignment);
+
+    expect(
+      config.columns.map((column) => column.name),
+    ).toEqual(expect.arrayContaining([
+      "logo_content_type",
+      "logo_data_base64",
+      "logo_sha256",
+    ]));
+    expect(config.checks.map((constraint) => constraint.name)).toEqual(
+      expect.arrayContaining([
+        "persona_assignment_logo_all_or_none",
+        "persona_assignment_logo_content_type",
+        "persona_assignment_logo_data_length",
+        "persona_assignment_logo_sha256",
+      ]),
+    );
+  });
+});
+
 /**
  * Integration tests — require DATABASE_TEST_URL and migrated test database.
  * These verify database-level constraints (unique, FK, enum).

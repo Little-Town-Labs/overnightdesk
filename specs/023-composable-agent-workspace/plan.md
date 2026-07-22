@@ -20,7 +20,7 @@ Titus resources or changing Walter's primary Codex OAuth provider path.
 
 **Primary Dependencies**: Next.js 15.5.18 App Router, Better Auth 1.6.23, Drizzle ORM 0.45.2, Zod 3.24, Tailwind CSS 4, Jest 30, Playwright 1.61
 
-**Storage**: Existing Neon membership/runtime/OIDC records; existing per-runtime Open WebUI persistent volumes on Aegis; no frontend schema change
+**Storage**: Existing Neon membership/runtime/OIDC records plus bounded optional raster presentation fields on `persona_assignment`; existing per-runtime Open WebUI persistent volumes on Aegis
 
 **Testing**: Jest server-rendered component and pure-model tests, existing Chromium browser suite/fixture server, production build, public endpoint and authenticated owner checks
 
@@ -28,9 +28,9 @@ Titus resources or changing Walter's primary Codex OAuth provider path.
 
 **Project Type**: Existing full-stack web application with repository-owned Aegis deployment source
 
-**Performance Goals**: One parallel server read for instances and the authorized agent directory; no extra client data fetch; no new always-loaded client bundle for the native-link prototype
+**Performance Goals**: One parallel server read for instances and the authorized agent directory; no extra client data fetch for workspace composition; at most 256 KiB per custom persona logo; immutable digest-addressed image caching
 
-**Constraints**: Fail closed; server-resolved HTTPS OvernightDesk hosts only; no agent-name branches; no cross-runtime session, data, OIDC, service-account, or provider reuse; responsive at 320/768/1024/1440px; Walter deployment disabled until qualified
+**Constraints**: Fail closed; server-resolved HTTPS OvernightDesk hosts only; no agent-name branches; safe raster uploads only; owner-only exact-runtime mutation; native Open WebUI branding preserved; no cross-runtime session, data, OIDC, service-account, or provider reuse; responsive at 320/768/1024/1440px
 
 **Scale/Scope**: Current owner/member population with 1-3 authorized agents; one shared workspace page and existing Overview capability actions; one later Walter Open WebUI deployment
 
@@ -59,6 +59,13 @@ Titus resources or changing Walter's primary Codex OAuth provider path.
   before the minimal implementation; browser coverage follows each increment.
 - **Cross-repository/runtime consistency — PASS**: Walter qualification uses
   separate runtime-scoped resources and requires the platform standard update.
+- **Persona presentation — PASS**: Optional logo bytes are bounded non-secret
+  presentation data on the existing persona assignment. Mutations require the
+  exact active owner membership, expose no filename or bytes in audit records,
+  and never change runtime/provider authority.
+- **Open WebUI license boundary — PASS**: Persona identity is attached to the
+  selected model; the native Open WebUI name, logo, and product marks remain
+  intact and are not replaced or co-branded.
 
 ## Phase 0 Research Decisions
 
@@ -142,6 +149,22 @@ health and exact configuration; prove rollback; enable route/OIDC mapping;
 repeat denial/restoration, persistence, session-lifecycle and chat canaries;
 owner acceptance; standard/deploy-ledger closeout.
 
+### Persona presentation and curated model
+
+The existing `persona_assignment` remains the only mutable presentation
+authority. An owner-only multipart endpoint validates a small raster by size,
+declared MIME type, and magic bytes before atomically storing base64 data,
+content type, and SHA-256 version. Directory reads select only the digest and
+construct a same-origin immutable image URL; binary bytes are served only by a
+bounded public image response with `nosniff`.
+
+Each isolated Open WebUI volume receives a deployment-managed override for the
+existing `hermes-agent` base-model ID. The override changes display name and
+avatar metadata only, grants authenticated users read access, and leaves the
+upstream model ID and Hermes provider path unchanged. Arena models are disabled
+through non-persistent environment authority. The native Open WebUI brand is
+not modified.
+
 ## Project Structure
 
 ### Documentation (this feature)
@@ -200,11 +223,19 @@ sibling of the existing Titus source only when its qualification slice begins.
 5. **Walter controlled activation**: enable only the Walter route/OIDC mapping,
    repeat the full denial/restoration and OAuth lifecycle matrix, obtain owner
    acceptance, and close documentation/evidence.
+6. **Corrective workspace and identity increment**: enlarge chat, confine
+   supporting context to a narrow desktop rail, add bounded canonical logo
+   replacement/removal, seed persona model presentation, disable Arena, and
+   repeat owner/browser/provider acceptance.
 
 ## Rollback
 
-- The frontend prototype is additive and reverts to the existing chat-only page
-  without database or runtime changes.
+- The workspace layout is additive and reverts to the prior composition without
+  changing chat/session data.
+- The persona migration is nullable and rolls back by clearing or ignoring the
+  new fields; bundled marks remain the fallback.
+- Open WebUI persona rollback removes the deployment-managed model override and
+  reenables the prior raw base-model presentation without deleting its volume.
 - The old `/dashboard/chat?agent=` URL remains valid throughout.
 - Walter installs disabled and can be removed from routing/OIDC assignment
   without deleting its persistent volume or changing Titus.

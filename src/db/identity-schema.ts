@@ -141,6 +141,9 @@ export const personaAssignment = pgTable(
       .references(() => runtimeIdentity.id, { onDelete: "restrict" }),
     personaKey: text("persona_key").notNull(),
     displayName: text("display_name").notNull(),
+    logoContentType: text("logo_content_type"),
+    logoDataBase64: text("logo_data_base64"),
+    logoSha256: text("logo_sha256"),
     isDefault: boolean("is_default").notNull().default(false),
     authorityProfile: text("authority_profile").notNull(),
     status: personaAssignmentStatusEnum("status")
@@ -160,6 +163,22 @@ export const personaAssignment = pgTable(
     uniqueIndex("persona_assignment_one_active_default")
       .on(table.runtimeIdentityId)
       .where(sql`${table.isDefault} = true AND ${table.status} = 'active'`),
+    check(
+      "persona_assignment_logo_all_or_none",
+      sql`(${table.logoContentType} IS NULL AND ${table.logoDataBase64} IS NULL AND ${table.logoSha256} IS NULL) OR (${table.logoContentType} IS NOT NULL AND ${table.logoDataBase64} IS NOT NULL AND ${table.logoSha256} IS NOT NULL)`
+    ),
+    check(
+      "persona_assignment_logo_content_type",
+      sql`${table.logoContentType} IS NULL OR ${table.logoContentType} IN ('image/png', 'image/jpeg', 'image/webp')`
+    ),
+    check(
+      "persona_assignment_logo_data_length",
+      sql`${table.logoDataBase64} IS NULL OR (char_length(${table.logoDataBase64}) BETWEEN 1 AND 349528)`
+    ),
+    check(
+      "persona_assignment_logo_sha256",
+      sql`${table.logoSha256} IS NULL OR ${table.logoSha256} ~ '^[0-9a-f]{64}$'`
+    ),
   ]
 );
 

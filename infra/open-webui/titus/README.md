@@ -32,3 +32,11 @@ The OIDC client requests `openid email profile offline_access` with S256 PKCE.
 Access and ID tokens remain 15 minutes; the OvernightDesk provider rotates a
 seven-day refresh token and rechecks canonical membership during issuance.
 Native Hermes dashboard clients remain authorization-code-only.
+
+The deployment keeps the provider-facing model ID `hermes-agent` unchanged but
+reconciles one public-read, deployment-owned model presentation named `Titus`.
+Its avatar resolves through the canonical platform persona-logo endpoint. Arena
+models are explicitly disabled and the runtime defaults to that single model
+ID. `deploy-aegis.sh reconcile-persona` installs the shared idempotent seeder,
+restarts only Titus Open WebUI, and preserves all chats and unrelated database
+records.

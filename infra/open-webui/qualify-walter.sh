@@ -3,6 +3,7 @@ set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 runtime_root="$repo_root/infra/open-webui/walter"
+common_root="$repo_root/infra/open-webui/common"
 
 fail() {
   printf 'Walter Open WebUI qualification: %s\n' "$*" >&2
@@ -27,6 +28,11 @@ files=(
   "$runtime_root/nginx.conf"
   "$runtime_root/deploy-aegis.sh"
   "$runtime_root/README.md"
+  "$runtime_root/persona-model.json"
+  "$common_root/seed-persona-model.sh"
+  "$common_root/verify-persona-model.sh"
+  "$common_root/seed_persona_model.py"
+  "$common_root/test_seed_persona_model.py"
 )
 for file in "${files[@]}"; do require_file "$file"; done
 
@@ -35,7 +41,13 @@ bash -n \
   "$runtime_root/prepare-volume.sh" \
   "$runtime_root/run-container.sh" \
   "$runtime_root/stop-container.sh" \
-  "$runtime_root/deploy-aegis.sh"
+  "$runtime_root/deploy-aegis.sh" \
+  "$common_root/seed-persona-model.sh" \
+  "$common_root/verify-persona-model.sh"
+
+python -m unittest "$common_root/test_seed_persona_model.py"
+jq -e 'keys == ["modelId", "name", "profileImageUrl"] and .modelId == "hermes-agent" and .name == "Walter" and .profileImageUrl == "https://www.overnightdesk.com/api/agent-identity/walter/logo"' \
+  "$runtime_root/persona-model.json" >/dev/null || fail 'invalid Walter persona model config'
 
 image='ghcr\.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3'
 require_pattern "$image" "$runtime_root/run-container.sh"
@@ -60,7 +72,9 @@ require_pattern 'ENABLE_OLLAMA_API=false' "$runtime_root/load-phase-env.sh"
 require_pattern 'ENABLE_DIRECT_CONNECTIONS=false' "$runtime_root/load-phase-env.sh"
 require_pattern 'GLOBAL_LOG_LEVEL=ERROR' "$runtime_root/load-phase-env.sh"
 require_pattern 'OPENAI_API_BASE_URL=http://hermes-walter:8642/v1' "$runtime_root/load-phase-env.sh"
-require_pattern 'DEFAULT_MODELS=gpt-5\.6-sol' "$runtime_root/load-phase-env.sh"
+require_pattern 'DEFAULT_MODELS=hermes-agent' "$runtime_root/load-phase-env.sh"
+require_pattern 'ENABLE_EVALUATION_ARENA_MODELS=false' "$runtime_root/load-phase-env.sh"
+require_pattern 'EVALUATION_ARENA_MODELS=\[\]' "$runtime_root/load-phase-env.sh"
 require_pattern 'WEBUI_AUTH_SIGNOUT_REDIRECT_URL=https://www\.overnightdesk\.com/dashboard/chat\?workspace=logged-out' "$runtime_root/load-phase-env.sh"
 
 require_pattern 'name=open-webui-hermes-walter' "$runtime_root/run-container.sh"
@@ -81,7 +95,15 @@ require_pattern '--cap-drop ALL' "$runtime_root/prepare-volume.sh"
 require_pattern '--cap-add CHOWN' "$runtime_root/prepare-volume.sh"
 require_pattern 'User=open-webui-walter' "$runtime_root/open-webui-walter.service"
 require_pattern 'ExecStartPre=\+.*/load-phase-env\.sh' "$runtime_root/open-webui-walter.service"
+require_pattern 'ExecStartPre=\+.*/seed-persona-model\.sh' "$runtime_root/open-webui-walter.service"
 require_pattern 'ExecStart=.*/run-container\.sh' "$runtime_root/open-webui-walter.service"
+require_pattern 'OPEN_WEBUI_DATA_VOLUME=open-webui-hermes-walter-data' "$runtime_root/open-webui-walter.service"
+require_pattern '--network none' "$common_root/seed-persona-model.sh"
+require_pattern '--read-only' "$common_root/seed-persona-model.sh"
+require_pattern '--cap-drop ALL' "$common_root/seed-persona-model.sh"
+require_pattern '--verify' "$common_root/verify-persona-model.sh"
+require_pattern "principal_id = '\*' AND permission = 'write'" "$common_root/seed_persona_model.py"
+require_pattern "'user', '\*', 'read'" "$common_root/seed_persona_model.py"
 
 require_pattern 'server_name walter-chat\.overnightdesk\.com' "$runtime_root/nginx.conf"
 require_pattern 'auth_request /auth-verify' "$runtime_root/nginx.conf"
@@ -96,6 +118,8 @@ require_pattern 'proxy_set_header X-User-Id ""' "$runtime_root/nginx.conf"
 require_pattern 'proxy_pass http://open-webui-hermes-walter:8080' "$runtime_root/nginx.conf"
 
 require_pattern 'install-disabled' "$runtime_root/deploy-aegis.sh"
+require_pattern 'reconcile-persona' "$runtime_root/deploy-aegis.sh"
+require_pattern 'verify-persona-model\.sh' "$runtime_root/deploy-aegis.sh"
 require_pattern 'verify-private' "$runtime_root/deploy-aegis.sh"
 require_pattern 'verify-restart-persistence' "$runtime_root/deploy-aegis.sh"
 require_pattern 'feature023-private-restart' "$runtime_root/deploy-aegis.sh"

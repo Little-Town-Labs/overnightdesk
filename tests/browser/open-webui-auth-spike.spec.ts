@@ -60,14 +60,22 @@ test("desktop shell reaches a full-height workspace without a duplicate Open Cha
     page.getByRole("link", { name: "Overview", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open Chat" })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Open Chat", exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
   await expect(page.getByText("Timeless Tech Solutions")).toBeVisible();
   await expect(page.getByText(/Matrix room and approved email channel/)).toBeVisible();
 
   const frame = await page.locator("#workspace").boundingBox();
   expect(frame?.width).toBeGreaterThan(1100);
-  expect(frame?.height).toBeGreaterThan(500);
+  expect(frame?.height).toBeGreaterThan(820);
+
+  const fullSizeChat = page.getByRole("link", {
+    name: "Open Chat in New Window",
+  });
+  await expect(fullSizeChat).toHaveAttribute("target", "_blank");
+  await expect(fullSizeChat).toHaveAttribute("rel", "noopener noreferrer");
 });
 
 test("mobile shell keeps navigation, identity, fallback, and workspace usable", async ({
@@ -80,7 +88,9 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
     page.getByRole("link", { name: "Overview", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open Chat" })).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Open Chat", exact: true }),
+  ).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
   await expect(page.getByText(/Matrix room and approved email channel/)).toBeVisible();
   expect(
@@ -91,7 +101,7 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
 
   const frame = await page.locator("#workspace").boundingBox();
   expect(frame?.width).toBeGreaterThan(280);
-  expect(frame?.height).toBeGreaterThan(360);
+  expect(frame?.height).toBeGreaterThan(650);
 });
 
 test("composable workspace keeps chat open and exposes a safe independent dashboard launch", async ({
@@ -113,6 +123,11 @@ test("composable workspace keeps chat open and exposes a safe independent dashbo
     "Advanced Dashboard",
   );
   const dashboard = page.getByRole("link", { name: "Open Advanced Dashboard" });
+  const fullSizeChat = page.getByRole("link", {
+    name: "Open Chat in New Window",
+  });
+  await expect(fullSizeChat).toHaveAttribute("target", "_blank");
+  await expect(fullSizeChat).toHaveAttribute("rel", "noopener noreferrer");
   await expect(dashboard).toHaveAttribute("target", "_blank");
   await expect(dashboard).toHaveAttribute("rel", "noopener noreferrer");
   await expect(page.locator("#workspace")).toBeVisible();

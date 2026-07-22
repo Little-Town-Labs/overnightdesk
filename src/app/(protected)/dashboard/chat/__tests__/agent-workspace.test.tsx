@@ -116,6 +116,8 @@ describe("AgentWorkspace", () => {
     expect(markup).toContain('href="https://primary-agent.overnightdesk.com"');
     expect(markup).toContain('target="_blank"');
     expect(markup).toContain('rel="noopener noreferrer"');
+    expect(markup).toContain('href="https://primary-agent-chat.overnightdesk.com/"');
+    expect(markup).toContain("Open Chat in New Window");
     expect(markup).toContain("Open Advanced Dashboard");
   });
 
@@ -157,7 +159,8 @@ describe("AgentWorkspace", () => {
     expect(markup).toContain("<iframe");
     expect(markup).toContain("Advanced Dashboard");
     expect(markup).toContain("Not deployed");
-    expect(markup).not.toContain('target="_blank"');
+    expect(markup).toContain("Open Chat in New Window");
+    expect(markup).not.toContain("Open Advanced Dashboard");
   });
 
   it("renders neither capability as explicit state without a launch URL", () => {
@@ -192,19 +195,24 @@ describe("AgentWorkspace", () => {
     const markup = renderWorkspace();
 
     expect(markup.indexOf("Primary Agent mark")).toBeLessThan(
-      markup.indexOf("Open Chat"),
-    );
-    expect(markup.indexOf("Open Chat")).toBeLessThan(
-      markup.indexOf("Advanced Dashboard"),
+      markup.indexOf('id="agent-capabilities"'),
     );
     expect(markup).toContain("min-h-[calc(100dvh-12rem)]");
     expect(markup).toContain("w-full");
   });
 
-  it("keeps the shared desktop chat surface at a usable viewport height", () => {
+  it("makes live chat the dominant non-collapsible workspace surface", () => {
     const markup = renderWorkspace();
 
-    expect(markup).toContain("lg:min-h-[70dvh]");
+    expect(markup).toContain("h-[calc(100dvh-2rem)]");
+    expect(markup).toContain("lg:min-h-[48rem]");
     expect(markup).not.toContain("lg:min-h-0");
+    expect(markup).toContain("xl:grid-cols-[minmax(0,1fr)_17rem]");
+    expect(markup).not.toContain("lg:grid-cols-2");
+    expect(markup).toContain('aria-label="Primary Agent workspace context"');
+    expect(markup).toContain('class="h-full w-full border-0"');
+    expect(markup.indexOf('data-testid="open-webui-frame"')).toBeLessThan(
+      markup.indexOf('id="agent-capabilities"'),
+    );
   });
 });

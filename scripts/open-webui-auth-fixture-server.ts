@@ -73,29 +73,36 @@ function parentPage(
     surfaces === "unavailable"
       ? `<section class="card" role="alert"><h2>Agent workspace is temporarily unavailable</h2><p>No capability URLs are shown until access can be verified.</p></section>`
       : `${agentSelector("/dashboard/chat")}
-        <header class="identity card">
-          <span class="mark" aria-hidden="true">${selected.mark}</span>
-          <div><h2>${selected.name}</h2><p>${selected.useCase}</p></div>
-        </header>
-        <section class="card" aria-labelledby="workspace-capabilities-heading">
-          <h3 id="workspace-capabilities-heading">Capabilities</h3>
-          <ul class="capabilities">
-            <li><span>Open Chat</span><span>${chatAvailable ? "Available" : "Not deployed"}</span></li>
-            <li><span>Advanced Dashboard</span><span>${dashboardAvailable ? "Available" : "Not deployed"}</span></li>
-          </ul>
-        </section>
         <nav class="workspace-actions" aria-label="${selected.name} workspace actions">
           <a href="/dashboard">Back to Overview</a>
-          ${dashboardAvailable ? '<a href="/runtime-dashboard" target="_blank" rel="noopener noreferrer">Open Advanced Dashboard</a>' : ""}
+          ${chatAvailable ? `<a href="http://127.0.0.1:${WORKSPACE_PORT}/workspace" target="_blank" rel="noopener noreferrer">Open Chat in New Window</a>` : ""}
+          ${dashboardAvailable ? '<a class="dashboard-launch" href="/runtime-dashboard" target="_blank" rel="noopener noreferrer">Open Advanced Dashboard</a>' : ""}
         </nav>
-        ${chatAvailable
-          ? `<iframe id="workspace" title="${selected.name} workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
-        <p class="fallback">${selectedKey === "titus" ? "Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat." : "Approved alternate channels remain available independently of Open Chat."}</p>
-        <div class="controls">
-          <button id="platform-logout">Platform logout</button>
-          <button id="rollback">Disable assignment</button>
-        </div>`
-          : `<section class="card empty-surface" role="status"><h3>Open Chat is not deployed</h3><p>No Open Chat deployment is assigned to this runtime.</p></section>`}`;
+        <div class="workspace-grid">
+          ${chatAvailable
+            ? `<div class="workspace-primary">
+                <iframe id="workspace" title="${selected.name} workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
+                <div class="controls">
+                  <button id="platform-logout">Platform logout</button>
+                  <button id="rollback">Disable assignment</button>
+                </div>
+              </div>`
+            : `<section class="card empty-surface" role="status"><h3>Open Chat is not deployed</h3><p>No Open Chat deployment is assigned to this runtime.</p></section>`}
+          <aside class="workspace-context" aria-label="${selected.name} workspace context">
+            <header class="identity card">
+              <span class="mark" aria-hidden="true">${selected.mark}</span>
+              <div><h2>${selected.name}</h2><p>${selected.useCase}</p></div>
+            </header>
+            <section class="card" aria-labelledby="workspace-capabilities-heading">
+              <h3 id="workspace-capabilities-heading">Capabilities</h3>
+              <ul class="capabilities">
+                <li><span>Open Chat</span><span>${chatAvailable ? "Available" : "Not deployed"}</span></li>
+                <li><span>Advanced Dashboard</span><span>${dashboardAvailable ? "Available" : "Not deployed"}</span></li>
+              </ul>
+            </section>
+            ${chatAvailable ? `<p class="fallback">${selectedKey === "titus" ? "Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat." : "Approved alternate channels remain available independently of Open Chat."}</p>` : ""}
+          </aside>
+        </div>`;
   const main =
     view === "overview"
       ? agentPanels("/dashboard")
@@ -151,7 +158,7 @@ function parentPage(
     .mark { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 10px; background: #161410; color: #f59e0b; font-weight: 800; }
     .identity h2, .identity p { margin: 0; }
     .identity p { margin-top: 2px; color: #9c9488; font-size: 14px; }
-    #workspace { display: block; width: 100%; height: calc(100dvh - 235px); min-height: 500px; border: 1px solid #2a2520; border-radius: 12px; background: #161410; }
+    #workspace { display: block; width: 100%; height: calc(100dvh - 32px); min-height: 768px; border: 1px solid #2a2520; border-radius: 12px; background: #161410; }
     .fallback { margin: 10px 0 0; padding: 9px 12px; border: 1px solid #2a2520; border-radius: 8px; color: #9c9488; font-size: 12px; }
     .controls { display: flex; gap: 8px; margin-top: 10px; }
     .controls button { border: 1px solid #2a2520; border-radius: 6px; background: #1e1b17; color: #f5f0e8; padding: 7px 10px; }
@@ -175,11 +182,16 @@ function parentPage(
     .admin-nav a[aria-current="page"] { border-color: #f59e0b; }
     .workspace-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; border: 0; }
     .workspace-actions a { border: 1px solid #2a2520; border-radius: 8px; color: #f5f0e8; padding: 9px 12px; }
-    .workspace-actions a[target="_blank"] { border-color: #f59e0b; background: #f59e0b; color: #17120a; font-weight: 700; }
+    .workspace-actions .dashboard-launch { border-color: #f59e0b; background: #f59e0b; color: #17120a; font-weight: 700; }
+    .workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; align-items: start; gap: 12px; }
+    .workspace-context { position: sticky; top: 12px; display: flex; flex-direction: column; gap: 12px; }
+    .workspace-context .card { margin-bottom: 0; }
     .empty-surface { min-height: 260px; display: grid; place-content: center; text-align: center; }
     @media (max-width: 480px) {
       body { padding: 12px; }
-      #workspace { height: calc(100dvh - 250px); min-height: 400px; }
+      #workspace { height: calc(100dvh - 32px); min-height: 512px; }
+      .workspace-grid { grid-template-columns: 1fr; }
+      .workspace-context { position: static; }
       .controls { flex-wrap: wrap; }
       .runtime-grid { grid-template-columns: 1fr; gap: 12px; }
     }

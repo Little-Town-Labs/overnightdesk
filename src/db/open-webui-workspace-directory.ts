@@ -24,6 +24,7 @@ interface AuthorizedRuntime {
   useCaseName: string;
   personaKey: string;
   personaName: string;
+  personaLogoSha256: string | null;
 }
 
 async function listAuthorizedRuntimes(
@@ -40,6 +41,7 @@ async function listAuthorizedRuntimes(
       useCaseName: useCase.displayName,
       personaKey: personaAssignment.personaKey,
       personaName: personaAssignment.displayName,
+      personaLogoSha256: personaAssignment.logoSha256,
     })
     .from(useCaseMembership)
     .innerJoin(useCase, eq(useCaseMembership.useCaseId, useCase.id))

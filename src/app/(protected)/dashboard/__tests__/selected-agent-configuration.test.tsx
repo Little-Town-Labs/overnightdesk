@@ -91,8 +91,46 @@ describe("SelectedAgentConfiguration", () => {
     expect(markup).toContain(selected.runtime.slug);
     expect(markup).toContain("Capabilities");
     expect(markup).toContain("Agent configuration");
+    expect(markup).toContain("Agent logo");
+    expect(markup).toContain('accept="image/png,image/jpeg,image/webp"');
+    expect(markup).toContain('name="agent-logo"');
     expect(markup).toContain("Read only");
     expect(markup).not.toContain("type=\"password\"");
+  });
+
+  it("offers removal only when the selected persona uses a custom logo", () => {
+    const markup = renderToStaticMarkup(
+      <SelectedAgentConfiguration
+        agents={[titus]}
+        capabilities={capabilities}
+        managedVariables={managedVariables}
+        selected={{
+          ...titus,
+          identity: {
+            ...titus.identity,
+            logo: { ...titus.identity.logo, custom: true },
+          },
+        }}
+        statusLabel="Active"
+      />,
+    );
+
+    expect(markup).toContain("Restore default logo");
+  });
+
+  it("keeps logo mutation controls owner-only", () => {
+    const markup = renderToStaticMarkup(
+      <SelectedAgentConfiguration
+        agents={[{ ...titus, membershipRole: "viewer" }]}
+        capabilities={capabilities}
+        managedVariables={managedVariables}
+        selected={{ ...titus, membershipRole: "viewer" }}
+        statusLabel="Active"
+      />,
+    );
+
+    expect(markup).toContain("Only an owner can replace this agent logo");
+    expect(markup).not.toContain('name="agent-logo"');
   });
 
   it("keeps a one-agent member on the same component without exposing another identity", () => {

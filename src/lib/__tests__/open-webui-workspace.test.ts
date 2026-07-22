@@ -16,6 +16,7 @@ const TITUS_RECORD: AgentWorkspaceRecord = {
   useCaseName: "Timeless Tech Solutions",
   personaKey: "titus",
   personaName: "Titus",
+  personaLogoSha256: null,
   deploymentId: "open-webui-hermes-titus",
   host: "titus-chat.overnightdesk.com",
 };
@@ -29,6 +30,7 @@ const WALTER_RECORD: AgentWorkspaceRecord = {
   useCaseName: "OvernightDesk platform operations",
   personaKey: "walter",
   personaName: "Walter",
+  personaLogoSha256: null,
   deploymentId: "open-webui-hermes-walter",
   host: "walter-chat.overnightdesk.com",
 };
@@ -100,6 +102,40 @@ describe("agent workspace directory", () => {
         },
       ],
     });
+  });
+
+  it("uses the canonical digest-addressed custom logo without changing identity authority", async () => {
+    const personaLogoSha256 = "b".repeat(64);
+    const result = await resolveAgentDirectory(
+      "gary-better-auth-id",
+      store([{ ...TITUS_RECORD, personaLogoSha256 }]),
+    );
+
+    expect(result).toEqual({
+      status: "available",
+      agents: [
+        expect.objectContaining({
+          runtimeIdentityId: TITUS_RECORD.runtimeIdentityId,
+          identity: {
+            name: "Titus",
+            logo: {
+              src: `/api/agent-identity/${TITUS_RECORD.runtimeIdentityId}/logo/${personaLogoSha256}`,
+              alt: "Titus agent mark",
+              custom: true,
+            },
+          },
+        }),
+      ],
+    });
+  });
+
+  it("fails closed instead of exposing a malformed stored logo digest", async () => {
+    await expect(
+      resolveAgentDirectory(
+        "gary-better-auth-id",
+        store([{ ...TITUS_RECORD, personaLogoSha256: "../malformed" }]),
+      ),
+    ).resolves.toEqual({ status: "unavailable" });
   });
 
   it("shows Gary both workspaces only when both are authorized and deployed", async () => {

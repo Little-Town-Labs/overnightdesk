@@ -27,9 +27,6 @@ export function AgentWorkspace({
         selectedKey={agent.key}
       />
 
-      <AgentIdentityHeader agent={agent} statusLabel="Agent workspace" />
-      <AgentCapabilityList capabilities={[chat, dashboard]} />
-
       <nav
         aria-label={`${agent.identity.name} workspace actions`}
         className="flex flex-wrap items-center gap-2"
@@ -45,6 +42,21 @@ export function AgentWorkspace({
         >
           Back to Overview
         </a>
+        {chat.workspace && (
+          <a
+            className="inline-flex items-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
+            href={chat.workspace.workspaceUrl}
+            rel="noopener noreferrer"
+            target="_blank"
+            style={{
+              background: "var(--color-od-raised)",
+              borderColor: "var(--color-od-border)",
+              color: "var(--color-od-text)",
+            }}
+          >
+            Open Chat in New Window
+          </a>
+        )}
         {dashboard.action && (
           <a
             className="btn-accent inline-flex items-center rounded-lg px-4 py-2.5 text-sm"
@@ -57,54 +69,62 @@ export function AgentWorkspace({
         )}
       </nav>
 
-      {chat.workspace ? (
-        <div
-          className="od-card flex min-h-[32rem] flex-1 overflow-hidden lg:min-h-[70dvh]"
-          data-testid="open-webui-frame"
-        >
-          <iframe
-            allow="clipboard-write"
-            className="min-h-full w-full flex-1 border-0"
-            src={chat.workspace.workspaceUrl}
-            title={`${agent.identity.name} chat workspace`}
-          />
-        </div>
-      ) : (
-        <div className="od-card flex min-h-64 items-center justify-center p-6" role="status">
-          <div className="max-w-xl text-center">
-            <h3
-              className="text-lg font-semibold"
-              style={{ color: "var(--color-od-text)" }}
-            >
-              Open Chat is {getAgentCapabilityStateLabel(chat.state).toLowerCase()}
-            </h3>
-            <p
-              className="mt-2 text-sm leading-6"
-              style={{ color: "var(--color-od-text-2)" }}
-            >
-              {chat.detail}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {chat.workspace && (
-        <aside
-          aria-label={`Other ways to reach ${agent.identity.name}`}
-          className="rounded-lg border px-3 py-2"
-          style={{
-            background: "var(--color-od-raised)",
-            borderColor: "var(--color-od-border)",
-          }}
-        >
-          <p
-            className="text-xs leading-5"
-            style={{ color: "var(--color-od-text-2)" }}
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_17rem]">
+        {chat.workspace ? (
+          <div
+            className="od-card flex h-[calc(100dvh-2rem)] min-h-[32rem] overflow-hidden lg:min-h-[48rem]"
+            data-testid="open-webui-frame"
           >
-            {chat.workspace.fallbackMessage}
-          </p>
+            <iframe
+              allow="clipboard-write"
+              className="h-full w-full border-0"
+              src={chat.workspace.workspaceUrl}
+              title={`${agent.identity.name} chat workspace`}
+            />
+          </div>
+        ) : (
+          <div className="od-card flex min-h-64 items-center justify-center p-6" role="status">
+            <div className="max-w-xl text-center">
+              <h3
+                className="text-lg font-semibold"
+                style={{ color: "var(--color-od-text)" }}
+              >
+                Open Chat is {getAgentCapabilityStateLabel(chat.state).toLowerCase()}
+              </h3>
+              <p
+                className="mt-2 text-sm leading-6"
+                style={{ color: "var(--color-od-text-2)" }}
+              >
+                {chat.detail}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <aside
+          aria-label={`${agent.identity.name} workspace context`}
+          className="space-y-3 xl:sticky xl:top-3"
+        >
+          <AgentIdentityHeader agent={agent} statusLabel="Agent workspace" />
+          <AgentCapabilityList capabilities={[chat, dashboard]} />
+          {chat.workspace && (
+            <div
+              className="rounded-lg border px-3 py-2"
+              style={{
+                background: "var(--color-od-raised)",
+                borderColor: "var(--color-od-border)",
+              }}
+            >
+              <p
+                className="text-xs leading-5"
+                style={{ color: "var(--color-od-text-2)" }}
+              >
+                {chat.workspace.fallbackMessage}
+              </p>
+            </div>
+          )}
         </aside>
-      )}
+      </div>
     </section>
   );
 }
