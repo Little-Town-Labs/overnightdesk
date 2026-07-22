@@ -11,7 +11,7 @@ describe("Provisioner Client", () => {
     jest.clearAllMocks();
     process.env = {
       ...originalEnv,
-      PROVISIONER_URL: "https://api.overnightdesk.com",
+      PROVISIONER_URL: "https://provisioner.overnightdesk.com",
       PROVISIONER_SECRET: "test-secret",
     };
   });
@@ -76,7 +76,7 @@ describe("Provisioner Client", () => {
       await provisionerClient.provision(validParams);
 
       expect(mockFetch.mock.calls[0][0]).toBe(
-        "https://api.overnightdesk.com/provision"
+        "https://provisioner.overnightdesk.com/provision"
       );
       expect(mockFetch.mock.calls[0][1].method).toBe("POST");
     });
@@ -115,7 +115,7 @@ describe("Provisioner Client", () => {
       await provisionerClient.deprovision("a1b2c3d4e5f6");
 
       expect(mockFetch.mock.calls[0][0]).toBe(
-        "https://api.overnightdesk.com/deprovision"
+        "https://provisioner.overnightdesk.com/deprovision"
       );
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.tenantId).toBe("a1b2c3d4e5f6");
@@ -143,7 +143,7 @@ describe("Provisioner Client", () => {
       await provisionerClient.restart("a1b2c3d4e5f6");
 
       expect(mockFetch.mock.calls[0][0]).toBe(
-        "https://api.overnightdesk.com/restart"
+        "https://provisioner.overnightdesk.com/restart"
       );
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.tenantId).toBe("a1b2c3d4e5f6");
@@ -177,7 +177,7 @@ describe("Provisioner Client", () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(1);
       expect(mockFetch.mock.calls[0][0]).toBe(
-        "https://api.overnightdesk.com/v1/managed-variable-replacements",
+        "https://provisioner.overnightdesk.com/v1/managed-variable-replacements",
       );
       expect(mockFetch.mock.calls[0][1]).toMatchObject({
         method: "POST",
@@ -335,7 +335,7 @@ describe("Provisioner Client", () => {
       ).resolves.toEqual({ success: true });
 
       expect(mockFetch.mock.calls[0][0]).toBe(
-        "https://api.overnightdesk.com/dashboard-auth"
+        "https://provisioner.overnightdesk.com/dashboard-auth"
       );
       expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual(params);
       expect(JSON.parse(mockFetch.mock.calls[0][1].body).dashboardAuth.clientSecret).toBeUndefined();
@@ -361,7 +361,7 @@ describe("Provisioner Client", () => {
     });
 
     it("rejects a provisioner URL with a hidden path before fetch", async () => {
-      process.env.PROVISIONER_URL = "https://api.overnightdesk.com/n";
+      process.env.PROVISIONER_URL = "https://provisioner.overnightdesk.com/n";
 
       const result = await provisionerClient.configureDashboardAuth({
         tenantId: "tenant-a",
@@ -392,7 +392,7 @@ describe("Provisioner Client", () => {
       const result = await provisionerClient.getMitchelProspectingSummary("hermes-mitchel");
 
       expect(mockFetch.mock.calls[0][0]).toBe(
-        "https://api.overnightdesk.com/mitchel/prospecting/summary?containerId=hermes-mitchel"
+        "https://provisioner.overnightdesk.com/mitchel/prospecting/summary?containerId=hermes-mitchel"
       );
       expect(mockFetch.mock.calls[0][1].headers.Authorization).toBe("Bearer test-secret");
       expect(result).toEqual({ tenantId: "hermes-mitchel", outboundSent: false });
