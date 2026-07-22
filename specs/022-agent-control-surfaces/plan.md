@@ -15,6 +15,23 @@ mutation contract. Full canonical Phase rotation remains disabled until the
 Aegis provisioner has a separately reviewed boundary-aware endpoint that can
 honor the selected runtime's exact Phase App, environment, and path.
 
+## Implementation Checkpoint — 2026-07-22
+
+The frontend P1-P4 increments are committed on
+`022-agent-control-surfaces` as `0beed93`, `9bf6c36`, `b2a3cc6`, and `9cf0adc`.
+The active worktree is clean. The latest complete verification passed 80 Jest
+suites with 919 active tests and a production Next.js build using the documented
+unreachable build-only database URL. Focused route review also verifies safe
+503 mapping when canonical context or boundary authorities fail unexpectedly.
+
+This is not production acceptance. The Chromium release suite, current
+dependency gate, provisioner follow-up, PR checks, Vercel/Aegis verification,
+platform-standard reconciliation, and authenticated owner acceptance remain.
+The 2026-07-22 dependency audit reports two high and five moderate findings;
+the high finding is inherited from `sharp <0.35.0` through Next.js, whose
+supported range does not yet admit the patched Sharp release. Do not use the
+audit tool's suggested breaking Next.js downgrade as an automatic fix.
+
 ## Technical Context
 
 **Language/Version**: TypeScript 5.7, React 19, Node.js 22; a later provisioner increment uses Go in the sibling `overnightdesk-engine` repository

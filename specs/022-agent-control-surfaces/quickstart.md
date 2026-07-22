@@ -60,3 +60,18 @@ Walter through Overview, Settings, and Admin, plus public fail-closed and Aegis
 health verification. A Phase write is not production-accepted until the
 separate provisioner endpoint, rollback, value-suppression, and standard update
 are complete.
+
+## Latest local checkpoint — 2026-07-22
+
+- `npm test -- --runInBand`: 80 suites passed, 3 skipped; 919 tests passed,
+  26 skipped.
+- `npm run build`: passed with an intentionally unreachable build-only database
+  URL; no production credential or database access was used.
+- `git diff --check`: passed before the P4 commit.
+- `npm audit --audit-level=high`: reports two high and five moderate findings.
+  The high advisory is inherited from `sharp <0.35.0` through Next.js; npm's
+  proposed automatic remediation is a breaking Next.js downgrade and is not an
+  approved fix.
+- Chromium release qualification, the boundary-aware provisioner, publication,
+  deployment, platform-standard reconciliation, and authenticated owner
+  acceptance remain incomplete.

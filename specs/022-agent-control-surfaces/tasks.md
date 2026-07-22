@@ -3,6 +3,13 @@
 **Input**: Design documents from `/specs/022-agent-control-surfaces/`
 **Tests**: Required by the constitution and feature specification. Execute RED before GREEN for every behavior change.
 
+**Status — 2026-07-22**: T001-T039 are committed locally and the feature
+worktree is clean. The complete Jest suite passed with 919 active tests and the
+production build passed. Feature 022 is not pushed or deployed. T040 is next;
+T041 must not create the `overnightdesk-engine` worktree until the
+server-to-server provisioner contract is reviewed. Current dependency audit and
+authenticated browser acceptance remain release gates.
+
 ## Phase 1: Setup and contract baseline
 
 - [x] T001 Create and validate Feature 022 spec, research, data model, contracts, quickstart, and requirements checklist in `specs/022-agent-control-surfaces/`

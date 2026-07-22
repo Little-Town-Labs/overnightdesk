@@ -4,7 +4,9 @@
 
 **Created**: 2026-07-21
 
-**Status**: In progress
+**Status**: Local implementation complete through P4; boundary-aware
+provisioner, release qualification, deployment, and authenticated owner
+acceptance remain open
 
 **Input**: User description: "Keep Open Chat and Advanced Dashboard as Overview actions after the agent selector; redesign Settings and Admin around variable agent identity, allow safe new values for selected Phase-managed variables, and make all agent-tab contents consistent across Titus, Walter, and single-agent users such as Austin."
 

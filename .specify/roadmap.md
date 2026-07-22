@@ -2,17 +2,44 @@
 
 **Source:** PRD v2.1 (2026-03-21)
 **Constitution:** v1.0.0 (2026-03-21)
-**Generated:** 2026-03-21
+**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-22
 
 ---
 
 ## Executive Summary
 
-OvernightDesk is a managed Claude Code hosting platform. The Go engine is complete (81.2% test coverage). The security team pipeline has its schema and migrations built. This roadmap covers the remaining work: the Next.js platform frontend, billing, provisioning orchestration, and customer-facing dashboard.
+OvernightDesk began as a managed Claude Code hosting platform. Production agent
+runtimes now use Hermes, with the Next.js application acting as the Better Auth,
+membership, billing, dashboard, and orchestration shell. The historical phase
+catalog below is retained for lineage; current delivery status is governed by
+the active Spec Kit feature artifacts and the production platform standard.
 
-**Total Features:** 10
-**Phases:** 5
-**Critical Path:** Auth → Stripe → Provisioning → Dashboard → Onboarding
+**Historical numbered features:** 61
+**Active Spec Kit feature:** 022 — Agent Control Surfaces
+**Current critical path:** provisioner contract → isolated engine increment →
+release verification → PR/deployment → authenticated owner acceptance
+
+## Current Delivery Checkpoint — 2026-07-22
+
+- **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
+  reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered
+  selector, variable agent identity, selected-agent Open Chat and Advanced
+  Dashboard actions, and removal of Open Chat from permanent navigation.
+- **Feature 022 — local implementation through P4:** four reviewed commits on
+  `022-agent-control-surfaces` unify Overview, Settings, and Admin agent context,
+  make Runtime structure consistent, remove ambiguous first-instance decisions
+  from migrated surfaces, and replace arbitrary secret maps with a cataloged,
+  exact-boundary, value-free mutation contract.
+- **Not production state:** Feature 022 has not been pushed, merged, deployed,
+  or accepted in an authenticated production browser. Titus and Walter
+  canonical Phase controls therefore remain read-only.
+- **Remaining gates:** T040-T044 boundary-aware provisioner work, T045-T047
+  analysis/review/qualification, T048 final documentation and platform-standard
+  reconciliation, T049 publication/deployment, and T050 owner acceptance.
+- **Dependency gate:** the 2026-07-22 audit reports two high and five moderate
+  findings, including the `sharp <0.35.0` advisory inherited through Next.js.
+  Do not apply npm's suggested breaking Next.js downgrade; resolve this in a
+  reviewed dependency increment before release.
 
 ---
 
@@ -994,7 +1021,11 @@ TENANT N (engine, slimmed)  ◄──gRPC──►  COMM-MODULE  ◄──HTTP�
 
 ## Completion Summary
 
-Phases 1-8 complete (26 features). Phase 7 (Security) 3 of 4 deployed. Phase 9 in progress: 21 of 22 features complete. Phase 10 (Tenet-0 corporate hierarchy) planning stage — architecture doc drafted, 9 features scoped (49–57), no implementation yet. Phase 11 (Multi-tenant platform foundation & messaging refactor) planning stage — architecture doc drafted at `docs/architecture/messaging-refactor-plan.md`, 4 features scoped (58–61), no implementation yet. Engine has 720+ tests across 18 packages. Platform dashboard live with all multi-agent management pages. Instance wired to aegis-prod tenant-0. Secrets managed via Phase.dev cloud.
+The phase inventory below is historical planning context, not a claim that each
+listed surface is current production architecture. Features 020 and 021 have
+the authoritative July 2026 Open WebUI and canonical-identity evidence.
+Feature 022 is the active local implementation and remains open at T040. The
+production platform standard remains authoritative for live Aegis behavior.
 
 ### Commit History
 
@@ -1017,7 +1048,7 @@ Phases 1-8 complete (26 features). Phase 7 (Security) 3 of 4 deployed. Phase 9 i
 | Phase 9 | engine `6eac2eb` | Features 31, 32, 33, 36: Wakeup coalescing, routine catch-up, org chart, goal hierarchy |
 | Phase 9 | engine `6fa0b27` | Features 34, 35, 42: Issue documents, work products, instruction files |
 
-### Remaining Operational Work
+### Historical Remaining Operational Work (2026-04 snapshot)
 
 - [ ] Oracle Cloud provisioner shell scripts (adapt from ironclaw-saas)
 - [ ] Production env vars in Vercel

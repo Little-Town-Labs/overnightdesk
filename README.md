@@ -18,6 +18,28 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 | [overnightdesk-SecurityCouncil](../overnightdesk-SecurityCouncil) | Go | Platform security scanning and review | Active |
 | [overnightdesk-communicationmodule](../overnightdesk-communicationmodule) | Go | gRPC notification bus for Telegram and Discord dispatch | Active |
 
+## Current Agent Control-Surface Delivery
+
+Production `main` at `92294ae` provides the canonical membership-filtered agent
+selector, variable name/logo presentation, and selected-agent Open Chat and
+Advanced Dashboard actions on Overview. Open Chat is intentionally not a
+permanent primary-navigation tab. Titus Open WebUI is the accepted reference
+canary; Walter has no Open WebUI deployment.
+
+Feature 022 is implemented locally on `022-agent-control-surfaces` through its
+frontend P4 checkpoint. Overview, Settings, and selected-agent Admin
+Configuration share one exact agent context and consistent Identity, Runtime,
+capability, and configuration structure. The legacy arbitrary credential map
+endpoint is retired; cataloged replacements are write-only, role checked,
+metadata audited, and disabled for unsupported canonical Phase boundaries.
+
+Feature 022 is not deployed. Its next gate is the reviewed boundary-aware
+provisioner contract in
+[`specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md`](specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md),
+followed by isolated `overnightdesk-engine` implementation and qualification.
+The [Spec Kit task list](specs/022-agent-control-surfaces/tasks.md) is the
+current delivery source of truth.
+
 ## Runtime Model
 
 Current agent runtimes use Hermes and are divided by use case and primary-memory

@@ -15,13 +15,14 @@ verified. Controlled non-active, suspended, and expired membership denial plus
 immediate restoration are verified. Explicit provider logout, platform-session
 expiry, and server-side revocation each denied retained Open WebUI state with
 HTTP 401, fresh login restored access, and the owner completed a final live
-chat plus retained-history check. The Titus canary is accepted. The dashboard
-redesign is source-complete on its isolated implementation branch with a
-membership-filtered, data-driven agent directory, reusable identity selector,
-dedicated Open Chat route, and desktop/mobile fixture coverage; deployment and
-authenticated production acceptance remain separate. Walter is eligible for
-separate planning, while broad rollout, Mitchel/Trevor, Teams, Austin, and
-custom-chat removal remain separate.
+chat plus retained-history check. The Titus canary is accepted. Dashboard PR 83
+and navigation-correction PR 84 are deployed with a membership-filtered,
+data-driven agent directory, reusable identity selector, dedicated Open Chat
+route, selected-agent Overview actions, and no permanent Open Chat tab.
+Feature 022 now owns the still-local consistent Overview/Settings/Admin Runtime
+and configuration follow-up. Walter is eligible for separate planning, while
+broad rollout, Mitchel/Trevor, Teams, Austin, and custom-chat removal remain
+separate.
 
 ## Phase 1: Decision and Source Baseline
 
