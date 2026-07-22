@@ -28,9 +28,12 @@ presentation and the selected-agent Open Chat and Advanced Dashboard actions
 remain on Overview; Open Chat is intentionally not a permanent primary-
 navigation tab. Titus Open WebUI is the accepted reference canary. Walter Open
 WebUI now has its own container, volume, hostname, Phase boundary, OIDC client,
-and canonical use-case/runtime bindings; controlled activation passed on
-2026-07-22 and authenticated denial/session-lifecycle plus owner acceptance
-remain open. The owner accepted the authenticated Overview, Settings, Admin,
+and canonical use-case/runtime bindings; controlled activation and membership
+denial/restoration, chat/history persistence, and the complete session
+lifecycle passed on 2026-07-22. Objective cross-surface health, provider,
+canonical linkage, isolation, rollback, and owner dashboard-click checks also
+pass. The qualified larger desktop chat surface remains open for production
+acceptance. The owner accepted the authenticated Overview, Settings, Admin,
 Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements

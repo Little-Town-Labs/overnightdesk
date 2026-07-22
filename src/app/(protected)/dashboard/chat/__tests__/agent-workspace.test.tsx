@@ -200,4 +200,11 @@ describe("AgentWorkspace", () => {
     expect(markup).toContain("min-h-[calc(100dvh-12rem)]");
     expect(markup).toContain("w-full");
   });
+
+  it("keeps the shared desktop chat surface at a usable viewport height", () => {
+    const markup = renderWorkspace();
+
+    expect(markup).toContain("lg:min-h-[70dvh]");
+    expect(markup).not.toContain("lg:min-h-0");
+  });
 });

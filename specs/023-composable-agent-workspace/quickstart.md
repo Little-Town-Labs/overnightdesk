@@ -248,3 +248,127 @@ reverified in that order.
 but not yet accepted. T023-T026 remain required for controlled denial and
 restoration, chat/history and session lifecycle, cross-surface health and
 rollback readiness, and authenticated owner acceptance.
+
+## T023 controlled membership denial and restoration — 2026-07-22T18:36:05Z to 18:42:56Z
+
+- The owner first confirmed Walter loaded through SSO and that no Titus
+  identity or conversation appeared. The same use-case-scoped owner
+  membership row was then changed through bounded, audited non-member,
+  suspended, and expired windows and restored immediately after each check.
+- The membership-filtered parent workspace returned fail-closed HTTP 404 for
+  all three denial states without rendering Walter or Titus chat content.
+  The direct Walter chat boundary independently returned HTTP 401 during the
+  repeated expired window, proving the edge as well as the parent workspace.
+- Metadata-only audit review found one canonical `not_authorized` denial and
+  one Walter edge `not_authorized` denial in each non-member and suspended
+  window. The direct expired window recorded two canonical and two Walter edge
+  denials from the page request, with zero Titus edge successes and zero
+  forbidden email, raw-subject, user-ID, cookie, password, token, or secret
+  detail keys across every bounded window.
+- The owner confirmed restoration after every state and completed the final
+  restored Walter load. Final database state is one active, use-case-scoped
+  owner membership with no suspension, expiry, or revocation.
+- Walter and Titus Open WebUI remained healthy; native Walter/Titus, Nginx,
+  and Ops remained running; all protected containers retained restart count
+  zero. Nginx syntax passed, Walter remained `openai-codex` with default
+  `gpt-5.6-sol`, and Walter Open WebUI, native Walter, and Nginx produced zero
+  bounded error signatures. Public checks returned HTTP 200 for the site and
+  Walter native status and HTTP 401 for anonymous Walter and Titus chat.
+- Owner feedback identified that the embedded Open WebUI region is too small.
+  This remains a shared responsive composition issue for T026 acceptance, not
+  a Walter-specific interface branch.
+
+**T023 decision**: pass. Controlled membership denial/restoration and zero
+cross-agent disclosure are accepted. T024-T026 remain open for chat/history
+and session lifecycle, cross-surface/rollback verification, responsive owner
+acceptance, and final production acceptance.
+
+## T024 chat persistence and session lifecycle — 2026-07-22T18:46:20Z to 19:19:26Z
+
+- The owner sent a live Walter message, received a complete response, and saw
+  the conversation in the Open WebUI sidebar. The pre-restart database held
+  one user, one active chat, one chat owner, zero orphaned chats, and passed
+  SQLite integrity.
+- Restarting only `open-webui-walter.service` recreated the Walter Open WebUI
+  container on the same named volume. Native Walter, Titus Open WebUI, native
+  Titus, and Nginx retained their exact start times. The same metadata counts
+  and integrity result survived, and the owner reopened the prior sidebar
+  conversation and received a second live response after restart.
+- Explicit logout removed the active Better Auth authority and the retained
+  Walter browser state failed closed. The stale Open WebUI client rendered a
+  generic internal-error page, but sanitized Nginx evidence recorded HTTP 401
+  for the page and protected assets, zero HTTP 500 responses, and
+  `session_required` audit denials. Reauthentication restored the existing
+  conversation.
+- At the natural five-minute renewal threshold, the owner completed a live
+  chat. The provider revoked the refresh token created at `18:53:13Z`, issued
+  a replacement seven-day token at `19:04:02Z`, and issued an exact 900-second
+  access token with `openid email profile offline_access`. The owner observed
+  a slow response of roughly half a minute; current access logs do not record
+  duration, but request sequencing showed completion without OAuth, refresh,
+  application, Hermes, or Nginx errors and with low container utilization.
+- The reauthentication path produced two Better Auth sessions 23 seconds
+  apart. The controlled expiry targeted exactly that fresh pair and no older
+  sessions. Walter returned HTTP 401 with `session_required`; both rows became
+  inactive, one was removed automatically on access, and fresh login restored
+  the retained chat.
+- A cutoff after expiry isolated exactly one new active session. Guarded
+  revocation deleted only that row and changed no older session. The stale
+  Open WebUI client again rendered a generic internal-error page while Nginx
+  recorded only HTTP 401 and zero HTTP 500 responses; audit evidence contained
+  `session_required`, zero `authorization_unavailable`, and no forbidden
+  identity or credential keys. Final reauthentication restored sidebar
+  history and a live Walter response.
+- Final metadata holds one Open WebUI user, three active chats owned by that
+  user, zero orphaned chats, and integrity `ok`. Walter and Titus Open WebUI
+  are healthy; native Walter/Titus, Nginx, and Ops are running; protected
+  containers retain restart count zero; Walter remains `openai-codex` with
+  default `gpt-5.6-sol`; and post-restart error signatures are zero.
+- Two owner-visible issues remain for T026: the embedded chat region is too
+  small even at maximum browser size, and stale Open WebUI state presents a
+  misleading generic 500 page for some underlying HTTP 401 logout/revocation
+  denials.
+
+**T024 decision**: pass for chat, persistence, and security/session behavior.
+The sizing and denial-rendering feedback remains an explicit owner-experience
+gate rather than being treated as a failed authorization boundary. T025-T026
+remain open for cross-surface/rollback verification, responsive correction,
+and final owner acceptance.
+
+## T025 cross-surface verification and correction — 2026-07-22T19:24:00Z to 20:07:43Z
+
+- The owner confirmed Titus chat passed. Anonymous Walter and Titus chat
+  remained fail closed with HTTP 401; Walter's public native-dashboard root
+  redirected to platform authentication and its status endpoint returned HTTP
+  200.
+- Both isolated Open WebUI containers were healthy, native Walter and Titus
+  were running, all four retained restart count zero, and both native
+  dashboard status probes returned HTTP 200. Walter retained exactly one
+  stored provider with `openai-codex` active and default `gpt-5.6-sol`.
+- Walter's Advanced Dashboard action was initially absent. Read-only
+  reconciliation found the native dashboard and OIDC client healthy but the
+  owner's sole platform `instance` still had null canonical use-case/runtime
+  foreign keys. The shared UI correctly failed closed instead of falling back
+  by agent name or array position.
+- A reusable canonical platform-instance plan/apply/verify contract was added
+  with ten RED/GREEN cases covering exact selection, current owner authority,
+  safe dashboard state, ambiguity, conflict, expiry, suspension, revocation,
+  and idempotency. The write is one atomic compare-and-set and emits one
+  metadata-only audit record; CLI output contains counts and state only.
+- The production plan found exactly one eligible unlinked instance. Apply
+  linked only its existing canonical use-case/runtime foreign keys and both
+  immediate and separate verification returned one `verified_noop`. Public,
+  runtime, provider, and restart evidence remained unchanged afterward.
+- The shared desktop chat-size regression failed first on the collapsing
+  `lg:min-h-0` override. GREEN gives every embedded agent chat at least 70% of
+  desktop viewport height while preserving the existing mobile minimum. The
+  complete Jest suite passed with 87 suites and 983 tests; TypeScript, the
+  network-enabled production build, both deployment qualifiers, and all 24
+  Chromium lifecycle/responsive tests passed. The dependency audit remains the
+  inherited seven findings and this increment adds no package.
+
+**T025 decision**: pass. Objective health, provider, linkage, isolation, and
+rollback checks passed, and the owner confirmed Walter's newly available
+Advanced Dashboard opened successfully after the canonical link. The larger
+shared chat surface remains source-only until publication and owner acceptance
+in T026.
