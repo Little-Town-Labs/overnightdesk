@@ -16,7 +16,7 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** 022 — Agent Control Surfaces
-**Current critical path:** typed frontend publication → authenticated owner acceptance
+**Current critical path:** authenticated owner acceptance
 
 ## Current Delivery Checkpoint — 2026-07-22
 
@@ -24,20 +24,20 @@ the active Spec Kit feature artifacts and the production platform standard.
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered
   selector, variable agent identity, selected-agent Open Chat and Advanced
   Dashboard actions, and removal of Open Chat from permanent navigation.
-- **Feature 022 — frontend deployed:** PR 85 merged and deployed at main commit
-  `1e44360`. Overview, Settings, and Admin now share one selected-agent context,
+- **Feature 022 — frontend deployed:** PR 85 deployed the shared selected-agent
+  surfaces; PRs 87 and 88 deployed typed provisioner adoption at `29e750e`.
+  Overview, Settings, and Admin now share one selected-agent context,
   Runtime structure is consistent for Titus and Walter, ambiguous first-instance
   decisions are removed from migrated surfaces, and arbitrary secret-map input
   is retired in favor of a cataloged, exact-boundary, value-free contract.
-- **Production boundary:** the unified presentation and boundary-aware
-  provisioner are live, but authenticated owner acceptance is still pending.
-  T043 qualified only Titus runtime/OpenRouter; Walter remains read-only.
-- **Completed release work:** T040-T043 and T045-T047 are complete. The initial
-  frontend publication/deployment portion of T049 completed through PR 85;
-  documentation reconciliation and the later engine/frontend increments retain
-  their own publication and verification gates.
-- **Remaining gates:** T044 typed frontend publication/deployment, final
-  documentation closeout, and T050 authenticated owner acceptance.
+- **Production boundary:** the unified presentation, boundary-aware
+  provisioner, and typed frontend adapter are live. Only the qualified Titus
+  runtime/OpenRouter tuple is write-only; Walter remains read-only.
+  Authenticated owner acceptance is still pending.
+- **Completed release work:** T040-T049 are complete. Engine PR 4 and frontend
+  PRs 87/88 passed their review, qualification, publication, rollback, and
+  post-deployment health gates; every production result is in `deploys.log`.
+- **Remaining gate:** T050 authenticated owner acceptance.
 - **Next feature after 022:** qualify Walter for product-level chat and managed
   runtime parity by establishing its provider-aware Phase catalog, deploying a
   Walter-scoped Open WebUI and authorization mapping, and repeating the Titus
@@ -1034,8 +1034,8 @@ TENANT N (engine, slimmed)  ◄──gRPC──►  COMM-MODULE  ◄──HTTP�
 The phase inventory below is historical planning context, not a claim that each
 listed surface is current production architecture. Features 020 and 021 have
 the authoritative July 2026 Open WebUI and canonical-identity evidence.
-Feature 022 is the active local implementation and remains open for T044
-publication/deployment plus T050 authenticated owner acceptance. The
+Feature 022 is deployed through T049 and remains open only for T050
+authenticated owner acceptance. The
 production platform standard remains authoritative for live Aegis behavior.
 
 ### Commit History
