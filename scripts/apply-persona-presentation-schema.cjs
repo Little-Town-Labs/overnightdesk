@@ -56,8 +56,19 @@ function classifySchema(state) {
   if (state.persona_assignment !== true) {
     throw new Error("persona_assignment_table_unavailable");
   }
-  const columns = [...(state.columns ?? [])].sort();
-  const constraints = [...(state.constraints ?? [])].sort();
+  const normalizeNames = (value) => {
+    if (Array.isArray(value)) return [...value];
+    if (value === "{}") return [];
+    if (
+      typeof value === "string" &&
+      /^\{[a-z0-9_]+(?:,[a-z0-9_]+)*\}$/.test(value)
+    ) {
+      return value.slice(1, -1).split(",");
+    }
+    throw new Error("invalid_persona_presentation_schema_result");
+  };
+  const columns = normalizeNames(state.columns).sort();
+  const constraints = normalizeNames(state.constraints).sort();
   const expectedSortedColumns = [...expectedColumns].sort();
   const expectedSortedConstraints = [...expectedConstraints].sort();
   if (columns.length === 0 && constraints.length === 0) return "ready";
