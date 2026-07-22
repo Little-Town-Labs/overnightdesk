@@ -48,7 +48,7 @@ export function buildOpenWebuiAuditRecord(event: OpenWebuiAuditEvent) {
     action: `open_webui_authorization.${event.category}`,
     target: event.deploymentId
       ? `open-webui:${event.deploymentId}`
-      : "open-webui:titus",
+      : "open-webui:unknown",
     details,
   };
 }

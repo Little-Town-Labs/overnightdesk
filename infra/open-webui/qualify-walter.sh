@@ -100,16 +100,18 @@ require_pattern 'verify-private' "$runtime_root/deploy-aegis.sh"
 require_pattern 'verify-restart-persistence' "$runtime_root/deploy-aegis.sh"
 require_pattern 'feature023-private-restart' "$runtime_root/deploy-aegis.sh"
 require_pattern 'sentinel-logs' "$runtime_root/deploy-aegis.sh"
+require_pattern 'enable-route' "$runtime_root/deploy-aegis.sh"
+require_pattern 'verify-public' "$runtime_root/deploy-aegis.sh"
 require_pattern 'rollback' "$runtime_root/deploy-aegis.sh"
 require_pattern 'docker volume inspect open-webui-hermes-walter-data' "$runtime_root/deploy-aegis.sh"
-require_pattern 'test ! -e /opt/overnightdesk/nginx/conf.d/walter-chat\.conf' "$runtime_root/deploy-aegis.sh"
+require_pattern 'certbot certonly.*--webroot' "$runtime_root/deploy-aegis.sh"
+require_pattern 'walter-chat\.conf' "$runtime_root/deploy-aegis.sh"
+require_pattern 'nginx -s reload' "$runtime_root/deploy-aegis.sh"
+require_pattern 'mv .*walter-chat\.conf.*disabled' "$runtime_root/deploy-aegis.sh"
 require_pattern 'model\.provider.*openai-codex' "$runtime_root/deploy-aegis.sh"
 require_pattern 'model\.default.*gpt-5\.6-sol' "$runtime_root/deploy-aegis.sh"
 require_pattern 'auth\.get\("active_provider"\).*openai-codex' "$runtime_root/deploy-aegis.sh"
 require_pattern 'openai-codex.*providers' "$runtime_root/deploy-aegis.sh"
-if grep -Eq 'enable-route|certbot|nginx -s reload' "$runtime_root/deploy-aegis.sh"; then
-  fail 'disabled Walter installer must not contain route activation behavior'
-fi
 if grep -Fq '. /run/secrets/open-webui-walter' "$runtime_root/deploy-aegis.sh"; then
   fail 'private verification must not shell-source the Docker env file'
 fi

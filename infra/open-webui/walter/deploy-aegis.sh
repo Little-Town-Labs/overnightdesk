@@ -9,7 +9,7 @@ remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 
 usage() {
-  printf 'usage: %s {prepare|install-disabled|verify-private|verify-restart-persistence|sentinel-logs|rollback|status}\n' "$0" >&2
+  printf 'usage: %s {prepare|install-disabled|verify-private|verify-restart-persistence|enable-route|verify-public|sentinel-logs|rollback|status}\n' "$0" >&2
   exit 2
 }
 
@@ -124,6 +124,42 @@ PY'\''
   '
 }
 
+enable_route() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    conf_dir=/opt/overnightdesk/nginx/conf.d
+    source=/opt/open-webui-walter/source
+    sudo systemctl is-active --quiet open-webui-walter.service
+    sudo install -o root -g root -m 0644 "$source/nginx-http.conf" "$conf_dir/walter-chat.conf"
+    sudo docker exec overnightdesk-nginx nginx -t
+    sudo docker exec overnightdesk-nginx nginx -s reload
+    if ! sudo test -f /opt/overnightdesk/certbot/conf/live/walter-chat.overnightdesk.com/fullchain.pem; then
+      cd /opt/overnightdesk
+      sudo docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+        -d walter-chat.overnightdesk.com --non-interactive --agree-tos
+    fi
+    sudo install -o root -g root -m 0644 "$source/nginx.conf" "$conf_dir/walter-chat.conf"
+    sudo docker exec overnightdesk-nginx nginx -t
+    sudo docker exec overnightdesk-nginx nginx -s reload
+  '
+}
+
+verify_public() {
+  headers=$(mktemp)
+  trap 'rm -f "$headers"' EXIT
+  curl -sS --connect-timeout 10 --max-time 20 -D "$headers" -o /dev/null \
+    https://walter-chat.overnightdesk.com/
+  code=$(awk '/^HTTP\// { value=$2 } END { print value }' "$headers")
+  case "$code" in
+    401|403) ;;
+    *)
+      printf 'Unexpected unauthenticated Walter Open WebUI status: %s\n' "${code:-none}" >&2
+      exit 1
+      ;;
+  esac
+  echo "open_webui_walter_unauthenticated_status=$code"
+}
+
 sentinel_logs() {
   "${ssh_cmd[@]}" '
     set -eu
@@ -155,7 +191,15 @@ PY"
 rollback() {
   "${ssh_cmd[@]}" '
     set -eu
-    test ! -e /opt/overnightdesk/nginx/conf.d/walter-chat.conf
+    conf=/opt/overnightdesk/nginx/conf.d/walter-chat.conf
+    disabled=/opt/open-webui-walter/disabled
+    sudo install -d -o root -g root -m 0750 "$disabled"
+    if sudo test -f "$conf"; then
+      stamp=$(date -u +%Y%m%dT%H%M%SZ)
+      sudo mv "$conf" "$disabled/walter-chat.conf.$stamp.disabled"
+      sudo docker exec overnightdesk-nginx nginx -t
+      sudo docker exec overnightdesk-nginx nginx -s reload
+    fi
     sudo systemctl disable --now open-webui-walter.service || true
     sudo docker volume inspect open-webui-hermes-walter-data >/dev/null
     test "$(sudo docker inspect -f "{{.State.Running}}" hermes-walter)" = true
@@ -164,7 +208,7 @@ rollback() {
 }
 
 status() {
-  "${ssh_cmd[@]}" 'sudo systemctl --no-pager --full status open-webui-walter.service | sed -n "1,28p"; sudo docker ps --filter name=^/open-webui-hermes-walter$ --format "{{.Names}} {{.Status}}"; sudo docker volume inspect open-webui-hermes-walter-data >/dev/null && echo volume=present; test ! -e /opt/overnightdesk/nginx/conf.d/walter-chat.conf && echo public_route=absent'
+  "${ssh_cmd[@]}" 'sudo systemctl --no-pager --full status open-webui-walter.service | sed -n "1,28p"; sudo docker ps --filter name=^/open-webui-hermes-walter$ --format "{{.Names}} {{.Status}}"; sudo docker volume inspect open-webui-hermes-walter-data >/dev/null && echo volume=present; if sudo test -e /opt/overnightdesk/nginx/conf.d/walter-chat.conf; then echo public_route=present; else echo public_route=absent; fi'
 }
 
 case "$action" in
@@ -172,6 +216,8 @@ case "$action" in
   install-disabled) install_disabled ;;
   verify-private) verify_private ;;
   verify-restart-persistence) verify_restart_persistence ;;
+  enable-route) enable_route ;;
+  verify-public) verify_public ;;
   sentinel-logs) sentinel_logs ;;
   rollback) rollback ;;
   status) status ;;
