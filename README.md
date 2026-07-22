@@ -20,14 +20,15 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Current Agent Control-Surface Delivery
 
-Production `main` at `29e750e` includes Feature 022's unified agent control
+Production `main` at `778b0bb` includes Feature 022's unified agent control
 surfaces from PR 85. Overview, Settings, and selected-agent Admin Configuration
 share one exact membership-filtered agent context and consistent Identity,
 Runtime, capability, and configuration structure. Variable name/logo
 presentation and the selected-agent Open Chat and Advanced Dashboard actions
 remain on Overview; Open Chat is intentionally not a permanent primary-
 navigation tab. Titus Open WebUI is the accepted reference canary, while Walter
-has no Open WebUI deployment.
+has no Open WebUI deployment. The owner accepted the authenticated Overview,
+Settings, Admin, Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
 are write-only, role checked, and metadata audited. The boundary-aware
@@ -37,9 +38,17 @@ runtime/OpenRouter tuple may be enabled through the server-only
 combinations remain read-only. The governing contract is
 [`specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md`](specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md),
 and the frontend uses its typed, value-free endpoint without legacy
-`writeSecrets` or separate restart calls. Authenticated owner acceptance of
-the deployed Overview, Settings, Admin, Open Chat, and Runtime consistency is
-the final user-facing gate.
+`writeSecrets` or separate restart calls. Feature 022 is complete.
+
+The next interface increment must reuse the shared capability model rather than
+add Walter-specific page code. Walter's existing native Hermes dashboard is an
+available capability. The selected-agent workspace should let the owner keep
+that dashboard and its chat surface open at the same time, using a split view,
+pop-out modal/window, or another responsive composition rather than prescribing
+one fixed layout. Agents without either capability keep an explicit unavailable
+state. Walter's
+future chat deployment and provider-aware authorization remain separately
+qualified work.
 The [Spec Kit task list](specs/022-agent-control-surfaces/tasks.md) is the
 current delivery source of truth.
 

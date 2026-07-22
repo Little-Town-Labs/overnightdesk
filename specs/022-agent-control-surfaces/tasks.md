@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/022-agent-control-surfaces/`
 **Tests**: Required by the constitution and feature specification. Execute RED before GREEN for every behavior change.
 
-**Status — 2026-07-22**: T001-T049 are complete except T050. PR 85 merged and
+**Status — 2026-07-22**: T001-T050 are complete. PR 85 merged and
 deployed the unified frontend at main commit `1e44360`; the complete Jest suite,
 production build, Chromium release suite, and public/Aegis post-deployment
 checks passed. The production audit reports two high, one moderate, and zero
@@ -11,7 +11,11 @@ critical findings. Engine PR 4 merged at `fc8211e`; T043 deployed and qualified
 only the Titus runtime/OpenRouter boundary with rollback, idempotency, exact
 restart, service-account isolation, and value-free evidence. Frontend PRs 87
 and 88 deployed T044 at `29e750e` with the certificate-valid provisioner origin.
-Walter remains read-only. Authenticated owner acceptance is the only open task.
+Walter remains read-only. The owner accepted the authenticated Overview,
+Settings, Admin, Open Chat, and Titus/Walter Runtime experience, closing the
+feature. Walter's native Hermes dashboard plus a simultaneous chat/dashboard
+workspace (split, pop-out, or another responsive composition) is follow-up
+scope, not unfinished Feature 022 work.
 
 ## Phase 1: Setup and contract baseline
 
@@ -127,7 +131,7 @@ Walter remains read-only. Authenticated owner acceptance is the only open task.
 - [x] T047 Perform five-axis code/security review and verify no `instances[0]`, agent-name branches, arbitrary secret maps, secret values, or hidden enabled agent-tab inconsistencies remain in touched surfaces
 - [x] T048 Update Feature 020/022 status, `.specify/roadmap.md`, `README.md`, and `overnightdesk-platform-standard` with verified behavior and remaining gates
 - [x] T049 Publish reviewed pull request(s), wait for checks, merge only passing increments, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T050 Complete authenticated owner browser acceptance for Titus/Walter Overview, Settings, Admin, Open Chat, and Runtime consistency before marking Feature 022 complete
+- [x] T050 Complete authenticated owner browser acceptance for Titus/Walter Overview, Settings, Admin, Open Chat, and Runtime consistency before marking Feature 022 complete
 
 ---
 
@@ -138,7 +142,7 @@ Walter remains read-only. Authenticated owner acceptance is the only open task.
 - US2 and US3 are independently testable after US1.
 - US4 depends on US2 presentation and the foundational exact context; it does not depend on Admin styling.
 - The provisioner follow-up is a separate repository gate after frontend contract review and before any canonical multi-App variable is enabled.
-- Release tasks require all included increment tests and review gates; Feature 022 remains open if T040-T044 or owner acceptance are deferred.
+- Release tasks require all included increment tests and review gates; Feature 022 closed only after T040-T044 and owner acceptance completed.
 
 ## Parallel opportunities
 

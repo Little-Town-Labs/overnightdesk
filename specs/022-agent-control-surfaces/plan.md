@@ -24,9 +24,11 @@ database URL, and the Chromium release suite. Focused route review also verifies
 safe 503 mapping when canonical context or boundary authorities fail
 unexpectedly. Public Vercel and read-only Aegis post-deployment checks passed.
 
-This is not final production acceptance. The isolated provisioner follow-up,
-typed frontend adoption, their PR/deployment checks, and authenticated owner
-acceptance remain. The 2026-07-22 production dependency audit reports two high
+The later engine and frontend increments completed the provisioner follow-up,
+typed adoption, rollback proof, and production qualification. The owner
+accepted the authenticated Overview, Settings, Admin, Open Chat, and
+Titus/Walter Runtime experience on 2026-07-22, completing Feature 022. The
+2026-07-22 production dependency audit reports two high
 and one moderate finding;
 the high finding is inherited from `sharp <0.35.0` through Next.js, whose
 supported range does not yet admit the patched Sharp release. Do not use the
