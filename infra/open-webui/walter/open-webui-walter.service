@@ -1,0 +1,28 @@
+[Unit]
+Description=OvernightDesk Walter Open WebUI
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=open-webui-walter
+Group=open-webui-walter
+SupplementaryGroups=docker
+RuntimeDirectory=open-webui-walter
+RuntimeDirectoryMode=0750
+ExecStartPre=+/opt/open-webui-walter/bin/load-phase-env.sh
+ExecStart=/opt/open-webui-walter/bin/run-container.sh
+ExecStop=/opt/open-webui-walter/bin/stop-container.sh
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=240
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/run/open-webui-walter
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,21 @@ export interface AgentCapability {
   action?: AgentCapabilityAction;
 }
 
+export function getAgentCapabilityStateLabel(
+  state: AgentCapabilityState,
+): string {
+  switch (state) {
+    case "available":
+      return "Available";
+    case "not_deployed":
+      return "Not deployed";
+    case "unavailable":
+      return "Unavailable";
+    case "not_applicable":
+      return "Not applicable";
+  }
+}
+
 export function buildAgentCapabilities({
   agentKey,
   dashboardUnavailableMessage,

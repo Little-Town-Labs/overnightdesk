@@ -4,7 +4,7 @@ const APPROVED_PARENT_PORT = 4173;
 const WORKSPACE_PORT = 4174;
 const UNAPPROVED_PARENT_PORT = 4175;
 
-let platformSessionActive = true;
+let platformAuthority: "active" | "expired" | "revoked" = "active";
 let assignmentEnabled = true;
 
 function html(response: ServerResponse, body: string, status = 200): void {
@@ -20,6 +20,8 @@ function parentPage(
   view: "admin" | "chat" | "overview" | "settings" = "chat",
   selectedKey: "titus" | "walter" = "titus",
   adminSection: "configuration" | "fleet" | "metrics" = "fleet",
+  surfaces: "default" | "neither" | "unavailable" = "default",
+  singleMember = false,
 ): string {
   const selected =
     selectedKey === "walter"
@@ -39,10 +41,11 @@ function parentPage(
           openChat: "Available",
           dashboard: "Not deployed",
         };
-  const agentPanels = (basePath: string) => `<div class="selector" aria-label="Choose agent">
+  const agentSelector = (basePath: string) => `<nav class="selector" aria-label="Choose agent">
           <a href="${basePath}?agent=titus" aria-current="${selectedKey === "titus" ? "true" : "false"}">Titus</a>
-          <a href="${basePath}?agent=walter" aria-current="${selectedKey === "walter" ? "true" : "false"}">Walter</a>
-        </div>
+          ${singleMember ? "" : `<a href="${basePath}?agent=walter" aria-current="${selectedKey === "walter" ? "true" : "false"}">Walter</a>`}
+        </nav>`;
+  const agentPanels = (basePath: string) => `${agentSelector(basePath)}
         <header class="identity card">
           <span class="mark" aria-hidden="true">${selected.mark}</span>
           <div><h2>${selected.name}</h2><p>${selected.useCase}</p></div>
@@ -62,6 +65,37 @@ function parentPage(
             <li><span>Advanced Dashboard</span><span>${selected.dashboard}</span></li>
           </ul>
         </section>`;
+  const chatAvailable = surfaces !== "neither" && selectedKey === "titus";
+  const dashboardAvailable =
+    surfaces !== "neither" &&
+    (selectedKey === "walter" || selectedKey === "titus");
+  const chatMain =
+    surfaces === "unavailable"
+      ? `<section class="card" role="alert"><h2>Agent workspace is temporarily unavailable</h2><p>No capability URLs are shown until access can be verified.</p></section>`
+      : `${agentSelector("/dashboard/chat")}
+        <header class="identity card">
+          <span class="mark" aria-hidden="true">${selected.mark}</span>
+          <div><h2>${selected.name}</h2><p>${selected.useCase}</p></div>
+        </header>
+        <section class="card" aria-labelledby="workspace-capabilities-heading">
+          <h3 id="workspace-capabilities-heading">Capabilities</h3>
+          <ul class="capabilities">
+            <li><span>Open Chat</span><span>${chatAvailable ? "Available" : "Not deployed"}</span></li>
+            <li><span>Advanced Dashboard</span><span>${dashboardAvailable ? "Available" : "Not deployed"}</span></li>
+          </ul>
+        </section>
+        <nav class="workspace-actions" aria-label="${selected.name} workspace actions">
+          <a href="/dashboard">Back to Overview</a>
+          ${dashboardAvailable ? '<a href="/runtime-dashboard" target="_blank" rel="noopener noreferrer">Open Advanced Dashboard</a>' : ""}
+        </nav>
+        ${chatAvailable
+          ? `<iframe id="workspace" title="${selected.name} workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
+        <p class="fallback">${selectedKey === "titus" ? "Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat." : "Approved alternate channels remain available independently of Open Chat."}</p>
+        <div class="controls">
+          <button id="platform-logout">Platform logout</button>
+          <button id="rollback">Disable assignment</button>
+        </div>`
+          : `<section class="card empty-surface" role="status"><h3>Open Chat is not deployed</h3><p>No Open Chat deployment is assigned to this runtime.</p></section>`}`;
   const main =
     view === "overview"
       ? agentPanels("/dashboard")
@@ -97,16 +131,7 @@ function parentPage(
               ? `<section class="scope"><span>Selected-agent scope</span><h2>Configuration</h2>${agentPanels("/dashboard/admin/configuration")}<section class="card" aria-labelledby="admin-configuration-heading"><h3 id="admin-configuration-heading">Agent configuration</h3><strong>Read only</strong></section></section>`
               : `<section class="scope"><span>Global scope</span><h2>${adminSection === "fleet" ? "Fleet" : "Metrics"}</h2><div class="card"><p>${adminSection === "fleet" ? "Health status and event history for all instances." : "Business metrics overview for the platform."}</p></div></section>`}
             `
-      : `<header class="identity">
-          <span class="mark" aria-hidden="true">T</span>
-          <div><h2>Titus</h2><p>Timeless Tech Solutions</p></div>
-        </header>
-        <iframe id="workspace" title="Titus workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
-        <p class="fallback">Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat.</p>
-        <div class="controls">
-          <button id="platform-logout">Platform logout</button>
-          <button id="rollback">Disable assignment</button>
-        </div>`;
+      : chatMain;
 
   return `<!doctype html>
 <html lang="en"><head>
@@ -148,6 +173,10 @@ function parentPage(
     .admin-nav { display: flex; gap: 8px; margin: 14px 0 0; border: 0; }
     .admin-nav a { border: 1px solid #2a2520; border-radius: 8px; }
     .admin-nav a[aria-current="page"] { border-color: #f59e0b; }
+    .workspace-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; border: 0; }
+    .workspace-actions a { border: 1px solid #2a2520; border-radius: 8px; color: #f5f0e8; padding: 9px 12px; }
+    .workspace-actions a[target="_blank"] { border-color: #f59e0b; background: #f59e0b; color: #17120a; font-weight: 700; }
+    .empty-surface { min-height: 260px; display: grid; place-content: center; text-align: center; }
     @media (max-width: 480px) {
       body { padding: 12px; }
       #workspace { height: calc(100dvh - 250px); min-height: 400px; }
@@ -170,14 +199,14 @@ function parentPage(
       const frame = document.querySelector('#workspace');
       frame.src = frame.src;
     };
-    document.querySelector('#platform-logout').onclick = async () => {
+    document.querySelector('#platform-logout')?.addEventListener('click', async () => {
       await fetch('/control/platform-logout', { method: 'POST' });
       reload();
-    };
-    document.querySelector('#rollback').onclick = async () => {
+    });
+    document.querySelector('#rollback')?.addEventListener('click', async () => {
       await fetch('/control/rollback', { method: 'POST' });
       reload();
-    };
+    });
   </script>` : ""}
 </body></html>`;
 }
@@ -200,7 +229,7 @@ function hasWorkspaceSession(cookie = ""): boolean {
 
 function serveWorkspace(response: ServerResponse, cookie?: string): void {
   workspaceHeaders(response);
-  if (!assignmentEnabled || !platformSessionActive) {
+  if (!assignmentEnabled || platformAuthority !== "active") {
     html(response, "<h2>Access denied</h2>", 403);
     return;
   }
@@ -220,7 +249,7 @@ function serveWorkspace(response: ServerResponse, cookie?: string): void {
 const approvedParent = createServer((request, response) => {
   if (request.url === "/health") return html(response, "ok");
   if (request.url === "/control/platform-logout" && request.method === "POST") {
-    platformSessionActive = false;
+    platformAuthority = "expired";
     response.writeHead(204).end();
     return;
   }
@@ -230,8 +259,23 @@ const approvedParent = createServer((request, response) => {
     return;
   }
   if (request.url === "/control/reset" && request.method === "POST") {
-    platformSessionActive = true;
+    platformAuthority = "active";
     assignmentEnabled = true;
+    response.writeHead(204).end();
+    return;
+  }
+  if (request.url === "/control/session-expire" && request.method === "POST") {
+    platformAuthority = "expired";
+    response.writeHead(204).end();
+    return;
+  }
+  if (request.url === "/control/revoke" && request.method === "POST") {
+    platformAuthority = "revoked";
+    response.writeHead(204).end();
+    return;
+  }
+  if (request.url === "/control/restore" && request.method === "POST") {
+    platformAuthority = "active";
     response.writeHead(204).end();
     return;
   }
@@ -239,6 +283,38 @@ const approvedParent = createServer((request, response) => {
     request.url ?? "/",
     `http://127.0.0.1:${APPROVED_PARENT_PORT}`,
   );
+  if (requestUrl.pathname === "/runtime-dashboard") {
+    if (!assignmentEnabled || platformAuthority === "revoked") {
+      return html(response, "<h2>Access denied</h2>", 403);
+    }
+    if (platformAuthority === "expired") {
+      return html(response, "<h2>Authorization required</h2>", 401);
+    }
+    return html(response, "<h2>Native runtime dashboard</h2>");
+  }
+  if (requestUrl.pathname === "/dashboard/chat") {
+    const requestedAgent = requestUrl.searchParams.get("agent");
+    if (requestedAgent && requestedAgent !== "titus" && requestedAgent !== "walter") {
+      return html(response, "<h2>Not found</h2>", 404);
+    }
+    const selectedKey = requestedAgent === "walter" ? "walter" : "titus";
+    const requestedSurfaces = requestUrl.searchParams.get("surfaces");
+    const surfaces =
+      requestedSurfaces === "neither" || requestedSurfaces === "unavailable"
+        ? requestedSurfaces
+        : "default";
+    return html(
+      response,
+      parentPage(
+        "Approved OvernightDesk workspace",
+        "chat",
+        selectedKey,
+        "fleet",
+        surfaces,
+        requestUrl.searchParams.get("member") === "single",
+      ),
+    );
+  }
   if (requestUrl.pathname === "/dashboard") {
     const selectedKey =
       requestUrl.searchParams.get("agent") === "walter" ? "walter" : "titus";
@@ -279,7 +355,7 @@ const approvedParent = createServer((request, response) => {
 const workspace = createServer((request, response) => {
   if (request.url === "/health") return html(response, "ok");
   if (request.url === "/oauth/oidc/login") {
-    if (!platformSessionActive || !assignmentEnabled) {
+    if (platformAuthority !== "active" || !assignmentEnabled) {
       return serveWorkspace(response, request.headers.cookie);
     }
     response.writeHead(302, {
