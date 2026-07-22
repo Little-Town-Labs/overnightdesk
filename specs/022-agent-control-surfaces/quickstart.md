@@ -89,4 +89,7 @@ are complete.
   strict typed call. The server-only Titus boundary ID defaults absent/read-only;
   Walter remains read-only because its current canonical path has no qualified
   catalog variable. PRs 87 and 88 deployed the adapter and certificate-valid
-  provisioner origin at `29e750e`. Only authenticated owner acceptance remains.
+  provisioner origin at `29e750e`.
+- The owner completed authenticated acceptance on 2026-07-22 across Overview,
+  Settings, Admin, Open Chat, and Titus/Walter Runtime consistency. Feature 022
+  is complete.

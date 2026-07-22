@@ -403,3 +403,7 @@ changed by T040.
   `provisioner.overnightdesk.com` route; the failed origin produced no Phase
   call or runtime effect. Vercel, provisioner, Nginx, Open WebUI, Titus, Walter,
   Mitchel, Ops, and all three intake routes completed healthy.
+- The owner accepted the authenticated Overview, Settings, Admin, Open Chat,
+  and Titus/Walter Runtime experience on 2026-07-22. This closes Feature 022;
+  it does not qualify a Walter managed-variable tuple or broaden the Titus-only
+  production allowlist.
