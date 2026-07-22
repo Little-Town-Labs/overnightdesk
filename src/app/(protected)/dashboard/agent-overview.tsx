@@ -1,25 +1,29 @@
 import type { AgentDirectoryEntry } from "@/lib/open-webui-workspace";
 import Image from "next/image";
 import { AgentSelector } from "./agent-selector";
-
-export interface AgentOverviewAction {
-  href: string;
-  label: string;
-  primary?: boolean;
-  external?: boolean;
-}
+import { AgentRuntimePanel } from "./agent-runtime-panel";
+import {
+  AgentCapabilityList,
+  type AgentCapability,
+} from "./agent-capability-list";
 
 export function AgentOverview({
-  actions,
   agents,
+  capabilities,
   selected,
   statusLabel,
 }: {
-  actions: AgentOverviewAction[];
   agents: AgentDirectoryEntry[];
+  capabilities: readonly AgentCapability[];
   selected: AgentDirectoryEntry;
   statusLabel: string;
 }) {
+  const actions = capabilities.flatMap((capability) =>
+    capability.action
+      ? [{ ...capability.action, label: capability.label }]
+      : [],
+  );
+
   return (
     <section className="space-y-3">
       <AgentSelector
@@ -99,6 +103,9 @@ export function AgentOverview({
           </div>
         </div>
       </div>
+
+      <AgentRuntimePanel agent={selected} />
+      <AgentCapabilityList capabilities={capabilities} />
     </section>
   );
 }

@@ -89,3 +89,56 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
   expect(frame?.width).toBeGreaterThan(280);
   expect(frame?.height).toBeGreaterThan(360);
 });
+
+test("desktop overview keeps the same Runtime and capability structure for Titus and Walter", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${approvedParent}/dashboard?agent=titus`);
+
+  await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "hermes-titus",
+  );
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "owner",
+  );
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Open Chat" }),
+  ).toContainText("Available");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
+  ).toContainText("Not deployed");
+
+  await page.getByRole("link", { name: "Walter" }).click();
+  await expect(page).toHaveURL(/\/dashboard\?agent=walter$/);
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "hermes-walter",
+  );
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "owner",
+  );
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Open Chat" }),
+  ).toContainText("Not deployed");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
+  ).toContainText("Available");
+});
+
+test("mobile overview keeps selected-agent sections usable without horizontal overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto(`${approvedParent}/dashboard?agent=walter`);
+
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Capabilities" })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});

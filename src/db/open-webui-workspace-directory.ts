@@ -18,6 +18,9 @@ type Database = typeof db;
 interface AuthorizedRuntime {
   useCaseId: string;
   runtimeIdentityId: string;
+  runtimeSlug: string;
+  runtimeStatus: "planned" | "active" | "suspended" | "retired";
+  membershipRole: "owner" | "operator" | "member" | "viewer";
   useCaseName: string;
   personaKey: string;
   personaName: string;
@@ -31,6 +34,9 @@ async function listAuthorizedRuntimes(
     .select({
       useCaseId: useCase.id,
       runtimeIdentityId: runtimeIdentity.id,
+      runtimeSlug: runtimeIdentity.slug,
+      runtimeStatus: runtimeIdentity.status,
+      membershipRole: useCaseMembership.role,
       useCaseName: useCase.displayName,
       personaKey: personaAssignment.personaKey,
       personaName: personaAssignment.displayName,

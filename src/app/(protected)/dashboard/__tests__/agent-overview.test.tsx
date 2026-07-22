@@ -1,10 +1,28 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import type { AgentDirectoryEntry } from "@/lib/open-webui-workspace";
+import { AgentAccessState } from "../agent-access-state";
 import { AgentOverview } from "../agent-overview";
+
+const capabilities = [
+  {
+    id: "open_chat" as const,
+    label: "Open Chat",
+    state: "available" as const,
+    detail: "Stateful chat is assigned.",
+  },
+  {
+    id: "advanced_dashboard" as const,
+    label: "Advanced Dashboard",
+    state: "not_deployed" as const,
+    detail: "No dashboard is assigned.",
+  },
+];
 
 const titus: AgentDirectoryEntry = {
   key: "titus",
   runtimeIdentityId: "22222222-2222-4222-8222-222222222222",
+  runtime: { slug: "hermes-titus", status: "active" },
+  membershipRole: "owner",
   identity: {
     name: "Titus",
     logo: { src: "/agents/titus-mark.svg", alt: "Titus agent mark" },
@@ -25,6 +43,8 @@ const titus: AgentDirectoryEntry = {
 const walter: AgentDirectoryEntry = {
   key: "walter",
   runtimeIdentityId: "44444444-4444-4444-8444-444444444444",
+  runtime: { slug: "hermes-walter", status: "active" },
+  membershipRole: "owner",
   identity: {
     name: "Walter",
     logo: { src: "/agents/walter-mark.svg", alt: "Walter agent mark" },
@@ -38,7 +58,7 @@ describe("AgentOverview", () => {
     const markup = renderToStaticMarkup(
       <AgentOverview
         agents={[titus, walter]}
-        actions={[]}
+        capabilities={capabilities}
         selected={titus}
         statusLabel="Workspace ready"
       />,
@@ -55,7 +75,7 @@ describe("AgentOverview", () => {
     const markup = renderToStaticMarkup(
       <AgentOverview
         agents={[titus]}
-        actions={[]}
+        capabilities={capabilities}
         selected={titus}
         statusLabel="Workspace ready"
       />,
@@ -70,9 +90,16 @@ describe("AgentOverview", () => {
     const markup = renderToStaticMarkup(
       <AgentOverview
         agents={[titus, walter]}
-        actions={[
-          { href: "/dashboard/chat?agent=titus", label: "Open Chat", primary: true },
-          { href: "https://example.overnightdesk.com", label: "Advanced Dashboard", external: true },
+        capabilities={[
+          {
+            ...capabilities[0],
+            action: { href: "/dashboard/chat?agent=titus", primary: true },
+          },
+          {
+            ...capabilities[1],
+            state: "available",
+            action: { href: "https://example.overnightdesk.com", external: true },
+          },
         ]}
         selected={titus}
         statusLabel="Workspace ready"
@@ -88,5 +115,56 @@ describe("AgentOverview", () => {
     expect(markup.indexOf('aria-label="Choose agent"')).toBeLessThan(
       markup.indexOf("Open Chat"),
     );
+  });
+
+  it.each([
+    ["Titus", titus],
+    ["Walter", walter],
+  ])("keeps the Runtime section in the same structure for %s", (_name, selected) => {
+    const markup = renderToStaticMarkup(
+      <AgentOverview
+        agents={[titus, walter]}
+        capabilities={capabilities}
+        selected={selected}
+        statusLabel="Online"
+      />,
+    );
+
+    expect(markup).toContain("Runtime");
+    expect(markup).toContain(selected.runtime.slug);
+    expect(markup.indexOf(selected.identity.name)).toBeLessThan(
+      markup.indexOf("Runtime"),
+    );
+  });
+
+  it("keeps Open Chat and Advanced Dashboard rows visible when availability differs", () => {
+    const markup = renderToStaticMarkup(
+      <AgentOverview
+        agents={[titus, walter]}
+        capabilities={capabilities}
+        selected={titus}
+        statusLabel="Online"
+      />,
+    );
+
+    expect(markup).toContain("Capabilities");
+    expect(markup).toContain("Open Chat");
+    expect(markup).toContain("Available");
+    expect(markup).toContain("Advanced Dashboard");
+    expect(markup).toContain("Not deployed");
+  });
+});
+
+describe("AgentAccessState", () => {
+  it.each([
+    ["empty" as const, "No active agent access"],
+    ["unavailable" as const, "Agent access is temporarily unavailable"],
+  ])("renders the fail-closed %s state", (state, message) => {
+    const markup = renderToStaticMarkup(<AgentAccessState state={state} />);
+
+    expect(markup).toContain(message);
+    expect(markup).not.toContain("Runtime");
+    expect(markup).not.toContain("Open Chat");
+    expect(markup).not.toContain("Advanced Dashboard");
   });
 });

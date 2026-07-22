@@ -15,7 +15,65 @@ function html(response: ServerResponse, body: string, status = 200): void {
   response.end(body);
 }
 
-function parentPage(title: string): string {
+function parentPage(
+  title: string,
+  view: "chat" | "overview" = "chat",
+  selectedKey: "titus" | "walter" = "titus",
+): string {
+  const selected =
+    selectedKey === "walter"
+      ? {
+          name: "Walter",
+          mark: "W",
+          useCase: "OvernightDesk platform operations",
+          runtime: "hermes-walter",
+          openChat: "Not deployed",
+          dashboard: "Available",
+        }
+      : {
+          name: "Titus",
+          mark: "T",
+          useCase: "Timeless Tech Solutions",
+          runtime: "hermes-titus",
+          openChat: "Available",
+          dashboard: "Not deployed",
+        };
+  const main =
+    view === "overview"
+      ? `<div class="selector" aria-label="Choose agent">
+          <a href="/dashboard?agent=titus" aria-current="${selectedKey === "titus" ? "true" : "false"}">Titus</a>
+          <a href="/dashboard?agent=walter" aria-current="${selectedKey === "walter" ? "true" : "false"}">Walter</a>
+        </div>
+        <header class="identity card">
+          <span class="mark" aria-hidden="true">${selected.mark}</span>
+          <div><h2>${selected.name}</h2><p>${selected.useCase}</p></div>
+        </header>
+        <section class="card" aria-labelledby="runtime-heading">
+          <h3 id="runtime-heading">Runtime</h3>
+          <dl class="runtime-grid">
+            <div><dt>Identity</dt><dd>${selected.runtime}</dd></div>
+            <div><dt>State</dt><dd>Active</dd></div>
+            <div><dt>Access</dt><dd>owner</dd></div>
+          </dl>
+        </section>
+        <section class="card" aria-labelledby="capabilities-heading">
+          <h3 id="capabilities-heading">Capabilities</h3>
+          <ul class="capabilities">
+            <li><span>Open Chat</span><span>${selected.openChat}</span></li>
+            <li><span>Advanced Dashboard</span><span>${selected.dashboard}</span></li>
+          </ul>
+        </section>`
+      : `<header class="identity">
+          <span class="mark" aria-hidden="true">T</span>
+          <div><h2>Titus</h2><p>Timeless Tech Solutions</p></div>
+        </header>
+        <iframe id="workspace" title="Titus workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
+        <p class="fallback">Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat.</p>
+        <div class="controls">
+          <button id="platform-logout">Platform logout</button>
+          <button id="rollback">Disable assignment</button>
+        </div>`;
+
   return `<!doctype html>
 <html lang="en"><head>
   <meta charset="utf-8">
@@ -38,31 +96,34 @@ function parentPage(title: string): string {
     .fallback { margin: 10px 0 0; padding: 9px 12px; border: 1px solid #2a2520; border-radius: 8px; color: #9c9488; font-size: 12px; }
     .controls { display: flex; gap: 8px; margin-top: 10px; }
     .controls button { border: 1px solid #2a2520; border-radius: 6px; background: #1e1b17; color: #f5f0e8; padding: 7px 10px; }
+    .selector { display: flex; gap: 8px; margin-bottom: 12px; }
+    .selector a { border: 1px solid #2a2520; border-radius: 999px; color: #9c9488; padding: 7px 12px; text-decoration: none; }
+    .selector a[aria-current="true"] { border-color: #f59e0b; color: #f5f0e8; }
+    .card { margin-bottom: 12px; border: 1px solid #2a2520; border-radius: 12px; background: #161410; padding: 18px; }
+    .card h3 { margin: 0; color: #9c9488; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .runtime-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 16px 0 0; }
+    .runtime-grid dt { color: #9c9488; font-size: 12px; }
+    .runtime-grid dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+    .capabilities { margin: 12px 0 0; padding: 0; list-style: none; }
+    .capabilities li { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid #2a2520; padding: 10px 0; }
+    .capabilities li:first-child { border-top: 0; }
     @media (max-width: 480px) {
       body { padding: 12px; }
       #workspace { height: calc(100dvh - 250px); min-height: 400px; }
       .controls { flex-wrap: wrap; }
+      .runtime-grid { grid-template-columns: 1fr; gap: 12px; }
     }
   </style>
 </head><body>
   <div class="shell">
     <h1 class="brand">OvernightDesk</h1>
     <nav aria-label="Dashboard">
-      <a href="/dashboard">Overview</a>
+      <a href="/dashboard"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a>
       <a href="/dashboard/settings">Settings</a>
     </nav>
-    <header class="identity">
-      <span class="mark" aria-hidden="true">T</span>
-      <div><h2>Titus</h2><p>Timeless Tech Solutions</p></div>
-    </header>
-    <iframe id="workspace" title="Titus workspace" src="http://127.0.0.1:${WORKSPACE_PORT}/workspace"></iframe>
-    <p class="fallback">Your existing Titus Matrix room and approved email channel remain available and independent of Open Chat.</p>
-    <div class="controls">
-      <button id="platform-logout">Platform logout</button>
-      <button id="rollback">Disable assignment</button>
-    </div>
+    ${main}
   </div>
-  <script>
+  ${view === "chat" ? `<script>
     const reload = () => {
       const frame = document.querySelector('#workspace');
       frame.src = frame.src;
@@ -75,7 +136,7 @@ function parentPage(title: string): string {
       await fetch('/control/rollback', { method: 'POST' });
       reload();
     };
-  </script>
+  </script>` : ""}
 </body></html>`;
 }
 
@@ -131,6 +192,18 @@ const approvedParent = createServer((request, response) => {
     assignmentEnabled = true;
     response.writeHead(204).end();
     return;
+  }
+  const requestUrl = new URL(
+    request.url ?? "/",
+    `http://127.0.0.1:${APPROVED_PARENT_PORT}`,
+  );
+  if (requestUrl.pathname === "/dashboard") {
+    const selectedKey =
+      requestUrl.searchParams.get("agent") === "walter" ? "walter" : "titus";
+    return html(
+      response,
+      parentPage("Approved OvernightDesk overview", "overview", selectedKey),
+    );
   }
   html(response, parentPage("Approved OvernightDesk shell"));
 });

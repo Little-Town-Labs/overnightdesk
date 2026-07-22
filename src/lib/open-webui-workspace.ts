@@ -1,4 +1,7 @@
 import { z } from "zod";
+import type { MembershipRole } from "@/lib/use-case-membership-authorization";
+
+export type AgentRuntimeStatus = "planned" | "active" | "suspended" | "retired";
 
 export interface AgentIdentity {
   name: string;
@@ -11,6 +14,9 @@ export interface AgentIdentity {
 export interface AgentWorkspaceRecord {
   useCaseId: string;
   runtimeIdentityId: string;
+  runtimeSlug: string;
+  runtimeStatus: AgentRuntimeStatus;
+  membershipRole: MembershipRole;
   useCaseName: string;
   personaKey: string;
   personaName: string;
@@ -21,6 +27,11 @@ export interface AgentWorkspaceRecord {
 export interface AgentDirectoryEntry {
   key: string;
   runtimeIdentityId: string;
+  runtime: {
+    slug: string;
+    status: AgentRuntimeStatus;
+  };
+  membershipRole: MembershipRole;
   identity: AgentIdentity;
   useCaseName: string;
   workspace: AgentWorkspace | null;
@@ -85,6 +96,9 @@ const workspaceRecordSchema = z
   .object({
     useCaseId: z.string().uuid(),
     runtimeIdentityId: z.string().uuid(),
+    runtimeSlug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(128),
+    runtimeStatus: z.enum(["planned", "active", "suspended", "retired"]),
+    membershipRole: z.enum(["owner", "operator", "member", "viewer"]),
     useCaseName: z.string().min(1).max(160),
     personaKey: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
     personaName: z.string().min(1).max(120),
@@ -107,6 +121,9 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
     personaKey,
     personaName,
     runtimeIdentityId,
+    runtimeSlug,
+    runtimeStatus,
+    membershipRole,
     useCaseName,
   } = parsed.data;
   if ((deploymentId === null) !== (host === null)) return null;
@@ -120,6 +137,8 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
     return {
       key: personaKey,
       runtimeIdentityId,
+      runtime: { slug: runtimeSlug, status: runtimeStatus },
+      membershipRole,
       identity,
       useCaseName,
       workspace: null,
@@ -139,6 +158,8 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
   return {
     key: personaKey,
     runtimeIdentityId,
+    runtime: { slug: runtimeSlug, status: runtimeStatus },
+    membershipRole,
     identity,
     useCaseName,
     workspace: {

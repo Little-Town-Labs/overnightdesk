@@ -21,9 +21,11 @@ import {
 } from "@/lib/hermes-dashboard";
 import {
   resolveAgentDirectory,
-  selectAgentDirectoryEntry,
 } from "@/lib/open-webui-workspace";
-import { AgentOverview, type AgentOverviewAction } from "./agent-overview";
+import { resolveSelectedAgentContext } from "@/lib/selected-agent-context";
+import { buildAgentCapabilities } from "@/lib/agent-capabilities";
+import { AgentOverview } from "./agent-overview";
+import { AgentAccessState } from "./agent-access-state";
 
 export default async function DashboardPage({
   searchParams,
@@ -51,18 +53,28 @@ export default async function DashboardPage({
 
   const rawAgent = (await searchParams).agent;
   if (Array.isArray(rawAgent)) notFound();
+  const agentResolution = resolveSelectedAgentContext(
+    agentDirectory,
+    rawAgent,
+    instances,
+  );
+  if (agentResolution.status === "not_found") notFound();
   const agents =
-    agentDirectory.status === "available" ? agentDirectory.agents : [];
-  const selectedAgent = selectAgentDirectoryEntry(agents, rawAgent);
-  if (rawAgent && !selectedAgent) notFound();
+    agentResolution.status === "available" ? agentResolution.agents : [];
+  const selectedAgent =
+    agentResolution.status === "available"
+      ? agentResolution.selected.agent
+      : null;
+  const hasAgentScopedInstance = instances.some(
+    (candidate) =>
+      candidate.runtimeIdentityId !== null || isHermesTenant(candidate),
+  );
   const inst =
-    instances.find(
-      (candidate) =>
-        selectedAgent &&
-        candidate.runtimeIdentityId === selectedAgent.runtimeIdentityId,
-    ) ??
-    instances[0] ??
-    null;
+    agentResolution.status === "available"
+      ? agentResolution.selected.instance
+      : hasAgentScopedInstance
+        ? null
+        : instances[0] ?? null;
   const hermesAgent = isHermesTenant(inst);
   const mitchelTenant = isHermesMitchelTenant(inst);
 
@@ -96,72 +108,54 @@ export default async function DashboardPage({
   const showOnboarding = inst?.status === "running" && inst.claudeAuthStatus !== "connected";
   const isRunning = inst?.status === "running";
 
-  // ─── Hermes running: membership-filtered agent overview ────────────────────
-  if (hermesAgent && isRunning && inst) {
-    const hermesDashboardUrl = inst.subdomain
+  // ─── Membership-filtered selected-agent overview ───────────────────────────
+  if (selectedAgent) {
+    const hermesDashboardUrl = inst?.subdomain
       ? getHermesDashboardUrl(inst.subdomain, {
           authStatus: inst.hermesDashboardAuthStatus,
           clientId: inst.hermesOidcClientId,
         })
       : null;
-    const dashboardUnavailableMessage = getHermesDashboardUnavailableMessage({
-      authStatus: inst.hermesDashboardAuthStatus,
-      clientId: inst.hermesOidcClientId,
+    const dashboardUnavailableMessage = inst
+      ? getHermesDashboardUnavailableMessage({
+          authStatus: inst.hermesDashboardAuthStatus,
+          clientId: inst.hermesOidcClientId,
+        })
+      : null;
+    const capabilities = buildAgentCapabilities({
+      agentKey: selectedAgent.key,
+      dashboardUnavailableMessage,
+      dashboardUrl: hermesDashboardUrl,
+      hasOpenChat: selectedAgent.workspace !== null,
     });
-    const instanceAgentKey = inst.containerId?.replace(/^hermes-/, "") ?? null;
-    const selectedUsesInstance =
-      selectedAgent?.runtimeIdentityId === inst.runtimeIdentityId ||
-      (inst.runtimeIdentityId === null && selectedAgent?.key === instanceAgentKey);
-    const actions: AgentOverviewAction[] = [];
-    if (selectedAgent?.workspace) {
-      actions.push({
-        href: `/dashboard/chat?agent=${selectedAgent.key}`,
-        label: "Open Chat",
-        primary: true,
-      });
-    }
-    if (selectedUsesInstance && hermesDashboardUrl) {
-      actions.push({
-        href: hermesDashboardUrl,
-        label: "Advanced Dashboard",
-        external: true,
-      });
-    }
-    const selectedStatusLabel = selectedUsesInstance
+    const selectedStatusLabel = isRunning
       ? "Online"
-      : selectedAgent?.workspace
+      : selectedAgent.workspace
         ? "Workspace ready"
-        : "Assigned";
+        : selectedAgent.runtime.status === "active"
+          ? "Active"
+          : selectedAgent.runtime.status;
+    const isWizard = inst?.status === "queued";
+    const isProvisioning =
+      inst?.status === "awaiting_provisioning" || inst?.status === "provisioning";
 
     return (
       <>
         {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
 
-        {selectedAgent ? (
-          <AgentOverview
-            actions={actions}
-            agents={agents}
-            selected={selectedAgent}
-            statusLabel={selectedStatusLabel}
-          />
-        ) : (
-          <div className="od-card p-6" role="alert">
-            <h2 className="text-lg font-semibold" style={{ color: "var(--color-od-text)" }}>
-              Agent directory unavailable
-            </h2>
-            <p className="mt-2 text-sm" style={{ color: "var(--color-od-text-2)" }}>
-              Your authorized agents could not be safely verified. No agent
-              selection has been assumed.
-            </p>
-          </div>
-        )}
+        <AgentOverview
+          agents={agents}
+          capabilities={capabilities}
+          selected={selectedAgent}
+          statusLabel={selectedStatusLabel}
+        />
 
-        {selectedUsesInstance && (
+        {isRunning && (
           <div className="mt-3 flex flex-col gap-4 rounded-lg border px-4 py-3 sm:flex-row sm:items-center sm:justify-between" style={{ background: "var(--color-od-raised)", borderColor: "var(--color-od-border)" }}>
             <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs" style={{ fontFamily: "var(--font-mono)" }}>
               {hermesStatus?.version != null && (
                 <div>
-                  <dt style={{ color: "var(--color-od-text-3)" }}>Runtime</dt>
+                  <dt style={{ color: "var(--color-od-text-3)" }}>Version</dt>
                   <dd style={{ color: "var(--color-od-text-2)" }}>v{String(hermesStatus.version)}</dd>
                 </div>
               )}
@@ -176,7 +170,7 @@ export default async function DashboardPage({
           </div>
         )}
 
-        {selectedUsesInstance && dashboardUnavailableMessage && (
+        {dashboardUnavailableMessage && (
           <p className="mt-3 rounded-lg border px-4 py-3 text-sm" style={{ color: "var(--color-od-text-2)", background: "var(--color-od-raised)", borderColor: "var(--color-od-border)" }}>
             {dashboardUnavailableMessage}
           </p>
@@ -186,6 +180,28 @@ export default async function DashboardPage({
           <MitchelProspectingWorkspace summary={mitchelProspectingSummary} />
         )}
 
+        {isWizard && inst && (
+          <div className="mt-4">
+            <SetupWizard
+              instanceId={inst.id}
+              tenantId={inst.tenantId}
+              wizardState={inst.wizardState ?? null}
+            />
+          </div>
+        )}
+        {isProvisioning && inst && (
+          <div className="mt-4">
+            <ProvisioningProgress initialStatus={inst.status} />
+          </div>
+        )}
+        {inst && !isRunning && !isWizard && !isProvisioning && (
+          <div className="od-card mt-4 p-6">
+            <StatusBadge
+              instConfig={{ label: inst.status, color: "text-zinc-400", detail: "" }}
+            />
+          </div>
+        )}
+
         <div className="mt-4">
           <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
         </div>
@@ -193,24 +209,18 @@ export default async function DashboardPage({
     );
   }
 
-  // ─── Hermes wizard / provisioning states ────────────────────────────────────
-  if (hermesAgent && inst) {
-    const isWizard = inst.status === "queued";
-    const isProvisioning = inst.status === "awaiting_provisioning" || inst.status === "provisioning";
-
+  if (
+    hasAgentScopedInstance &&
+    (agentResolution.status === "empty" ||
+      agentResolution.status === "unavailable")
+  ) {
     return (
       <>
         {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
-        {isWizard && (
-          <SetupWizard tenantId={inst.tenantId} instanceId={inst.id} wizardState={inst.wizardState ?? null} />
-        )}
-        {isProvisioning && <ProvisioningProgress initialStatus={inst.status} />}
-        {!isWizard && !isProvisioning && (
-          <div className="od-card p-6 mt-2">
-            <StatusBadge instConfig={{ label: inst.status, color: "text-zinc-400", detail: "" }} />
-          </div>
-        )}
-        <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
+        <AgentAccessState state={agentResolution.status} />
+        <div className="mt-4">
+          <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
+        </div>
       </>
     );
   }
