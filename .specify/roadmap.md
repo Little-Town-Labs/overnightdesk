@@ -16,8 +16,7 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** 022 — Agent Control Surfaces
-**Current critical path:** isolated engine increment → provisioner qualification →
-typed frontend adoption → authenticated owner acceptance
+**Current critical path:** typed frontend publication → authenticated owner acceptance
 
 ## Current Delivery Checkpoint — 2026-07-22
 
@@ -30,17 +29,23 @@ typed frontend adoption → authenticated owner acceptance
   Runtime structure is consistent for Titus and Walter, ambiguous first-instance
   decisions are removed from migrated surfaces, and arbitrary secret-map input
   is retired in favor of a cataloged, exact-boundary, value-free contract.
-- **Production boundary:** the unified presentation is live, but authenticated
-  owner acceptance is still pending. Titus and Walter canonical Phase controls
-  remain read-only until the boundary-aware provisioner and typed frontend
-  adapter pass T041-T044.
-- **Completed release work:** T040 and T045-T047 are complete. The initial
+- **Production boundary:** the unified presentation and boundary-aware
+  provisioner are live, but authenticated owner acceptance is still pending.
+  T043 qualified only Titus runtime/OpenRouter; Walter remains read-only.
+- **Completed release work:** T040-T043 and T045-T047 are complete. The initial
   frontend publication/deployment portion of T049 completed through PR 85;
   documentation reconciliation and the later engine/frontend increments retain
   their own publication and verification gates.
-- **Remaining gates:** T041-T044 boundary-aware provisioner implementation,
-  production qualification, and typed frontend adoption; final documentation
-  closeout; and T050 authenticated owner acceptance.
+- **Remaining gates:** T044 typed frontend publication/deployment, final
+  documentation closeout, and T050 authenticated owner acceptance.
+- **Next feature after 022:** qualify Walter for product-level chat and managed
+  runtime parity by establishing its provider-aware Phase catalog, deploying a
+  Walter-scoped Open WebUI and authorization mapping, and repeating the Titus
+  denial, persistence, session-lifecycle, rollback, and owner-visibility gates.
+  Walter's Codex OAuth subscription remains its primary LLM path; OpenRouter may
+  be cataloged only as a distinct supplemental/fallback credential. The shared
+  variable-driven UI will be reused without copying Titus's provider policy or
+  creating a Walter-specific surface.
 - **Dependency gate:** the 2026-07-22 production audit reports two high and one
   moderate finding, including the `sharp <0.35.0` advisory inherited through Next.js.
   Do not apply npm's suggested breaking Next.js downgrade; resolve this in a
@@ -1029,7 +1034,8 @@ TENANT N (engine, slimmed)  ◄──gRPC──►  COMM-MODULE  ◄──HTTP�
 The phase inventory below is historical planning context, not a claim that each
 listed surface is current production architecture. Features 020 and 021 have
 the authoritative July 2026 Open WebUI and canonical-identity evidence.
-Feature 022 is the active local implementation and remains open at T040. The
+Feature 022 is the active local implementation and remains open for T044
+publication/deployment plus T050 authenticated owner acceptance. The
 production platform standard remains authoritative for live Aegis behavior.
 
 ### Commit History

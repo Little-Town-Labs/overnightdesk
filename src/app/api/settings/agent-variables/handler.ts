@@ -11,6 +11,10 @@ import {
 } from "@/lib/managed-agent-variable";
 import type { ManagedVariableAuditEvent } from "@/lib/managed-agent-variable-audit";
 import type { AgentDirectoryEntry } from "@/lib/open-webui-workspace";
+import type {
+  ManagedVariableReplacementParams,
+  ManagedVariableReplacementResult,
+} from "@/lib/provisioner";
 
 const MAX_BODY_BYTES = 8_192;
 const requestSchema = z
@@ -50,8 +54,6 @@ type AvailableManagedVariableContext = Extract<
   { status: "available" }
 >;
 
-type ProvisionerResult = { success: boolean; error?: string };
-
 export interface ManagedVariableRouteDependencies {
   getSession(request: NextRequest): Promise<{ user: { id: string } } | null>;
   checkRateLimit(userId: string): boolean;
@@ -68,11 +70,9 @@ export interface ManagedVariableRouteDependencies {
     event: Omit<ManagedVariableAuditEvent, "stage" | "outcome">,
   ): Promise<"claimed" | "duplicate" | "rate_limited">;
   recordOutcome(event: ManagedVariableAuditEvent): Promise<void>;
-  writeSecrets(input: {
-    tenantId: string;
-    secrets: Record<string, string>;
-  }): Promise<ProvisionerResult>;
-  restart(tenantId: string): Promise<ProvisionerResult>;
+  replaceManagedVariable(
+    input: ManagedVariableReplacementParams,
+  ): Promise<ManagedVariableReplacementResult>;
 }
 
 function errorResponse(
@@ -310,6 +310,7 @@ async function recordOutcome(
 async function writeFailureResponse(
   dependencies: ManagedVariableRouteDependencies,
   auditBase: Omit<ManagedVariableAuditEvent, "stage" | "outcome">,
+  code: Extract<ManagedVariableReplacementResult, { success: false }>["code"],
 ): Promise<NextResponse> {
   const recorded = await recordOutcome(dependencies, {
     ...auditBase,
@@ -317,17 +318,46 @@ async function writeFailureResponse(
     outcome: "write_failed",
     reason: "external_failure",
   });
-  return recorded
-    ? errorResponse(
-        502,
-        "SECRET_WRITE_FAILED",
-        "The replacement could not be completed.",
-      )
-    : errorResponse(
+  if (!recorded) {
+    return errorResponse(
         503,
         "AUTHORITY_UNAVAILABLE",
         "The audit authority is temporarily unavailable.",
       );
+  }
+  switch (code) {
+    case "BOUNDARY_NOT_FOUND":
+    case "BOUNDARY_DISABLED":
+      return errorResponse(
+        423,
+        "VARIABLE_UNAVAILABLE",
+        "Replacement is not enabled for this agent boundary.",
+      );
+    case "RATE_LIMITED":
+      return errorResponse(
+        429,
+        "RATE_LIMITED",
+        "Too many replacement attempts. Try again later.",
+      );
+    case "INVALID_VALUE":
+      return errorResponse(
+        422,
+        "INVALID_VALUE",
+        "The replacement value was rejected.",
+      );
+    case "STATE_UNAVAILABLE":
+      return errorResponse(
+        503,
+        "AUTHORITY_UNAVAILABLE",
+        "The configuration authority is temporarily unavailable.",
+      );
+    default:
+      return errorResponse(
+        502,
+        "SECRET_WRITE_FAILED",
+        "The replacement could not be completed.",
+      );
+  }
 }
 
 async function runtimeEffectFailureResponse(
@@ -407,19 +437,21 @@ async function executeMutation(
   const claimResponse = await claimMutationAttempt(dependencies, auditBase);
   if (claimResponse) return claimResponse;
 
-  const writeResult = await dependencies.writeSecrets({
-    tenantId: boundary.tenantId,
-    secrets: { [definition.phaseKey]: request.value },
+  const replacement = await dependencies.replaceManagedVariable({
+    requestId: request.requestId,
+    boundaryId: boundary.boundaryId,
+    variableId: definition.id,
+    value: request.value,
   });
-  if (!writeResult.success) {
-    return writeFailureResponse(dependencies, auditBase);
-  }
-
-  if (definition.runtimeEffect === "restart") {
-    const restartResult = await dependencies.restart(boundary.tenantId);
-    if (!restartResult.success) {
+  if (!replacement.success) {
+    if (
+      replacement.code === "RUNTIME_EFFECT_FAILED" &&
+      replacement.data?.outcome === "replaced" &&
+      replacement.data.runtimeEffectStatus === "failed"
+    ) {
       return runtimeEffectFailureResponse(dependencies, definition, auditBase);
     }
+    return writeFailureResponse(dependencies, auditBase, replacement.code);
   }
   return completeMutation(dependencies, definition, auditBase);
 }
@@ -515,13 +547,9 @@ export const defaultManagedVariableDependencies: ManagedVariableRouteDependencie
     const audit = await import("@/lib/managed-agent-variable-audit");
     return audit.recordManagedVariableAuditEvent(event);
   },
-  async writeSecrets(input) {
+  async replaceManagedVariable(input) {
     const { provisionerClient } = await import("@/lib/provisioner");
-    return provisionerClient.writeSecrets(input);
-  },
-  async restart(tenantId) {
-    const { provisionerClient } = await import("@/lib/provisioner");
-    return provisionerClient.restart(tenantId);
+    return provisionerClient.replaceManagedVariable(input);
   },
 };
 

@@ -6,6 +6,7 @@ import {
   listManagedVariableDescriptors,
   type ManagedVariableControlDescriptor,
   type ManagedVariableDefinition,
+  type ManagedVariableId,
 } from "@/lib/managed-agent-variable";
 
 export interface ManagedVariableBoundaryRow {
@@ -21,23 +22,25 @@ export interface ManagedVariableBoundaryStore {
   }): Promise<ManagedVariableBoundaryRow[]>;
 }
 
-export interface LegacyProvisionerBoundaryConfig {
+export interface ManagedVariableProvisionerBoundaryConfig {
+  boundaryId: string;
   phaseApp: string;
   environment: string;
+  pathIdentifier: string;
+  variableIds: readonly ManagedVariableId[];
 }
 
 export type ManagedVariableBoundaryResolution =
   | {
       status: "ready";
-      boundaryKind: "legacy_tenant_path";
-      tenantId: string;
+      boundaryKind: "managed_variable_v1";
+      boundaryId: string;
     }
   | {
       status: "unavailable";
       reason:
         | "authority_unavailable"
         | "binding_ambiguous"
-        | "instance_mismatch"
         | "provisioner_unsupported";
     };
 
@@ -60,30 +63,49 @@ const databaseStore: ManagedVariableBoundaryStore = {
   },
 };
 
-export function getLegacyProvisionerBoundaryConfig(): LegacyProvisionerBoundaryConfig | null {
-  const phaseApp = process.env.LEGACY_PROVISIONER_PHASE_APP?.trim();
-  const environment = process.env.LEGACY_PROVISIONER_PHASE_ENVIRONMENT?.trim();
-  return phaseApp && environment ? { phaseApp, environment } : null;
+const qualifiedBoundaryPolicies = [
+  {
+    boundaryIdEnvironmentVariable:
+      "MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID",
+    phaseApp: "timeless-tech-solutions",
+    environment: "production",
+    pathIdentifier: "/agents/hermes-titus/runtime",
+    variableIds: ["openrouter_api_key"],
+  },
+] as const;
+
+const canonicalUuid =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+export function getQualifiedManagedVariableBoundaries(): ManagedVariableProvisionerBoundaryConfig[] {
+  return qualifiedBoundaryPolicies.flatMap((policy) => {
+    const boundaryId =
+      process.env[policy.boundaryIdEnvironmentVariable]?.trim() ?? "";
+    return canonicalUuid.test(boundaryId)
+      ? [{
+          boundaryId,
+          phaseApp: policy.phaseApp,
+          environment: policy.environment,
+          pathIdentifier: policy.pathIdentifier,
+          variableIds: [...policy.variableIds],
+        }]
+      : [];
+  });
 }
 
 export async function resolveManagedAgentVariableBoundary(
   {
     agent,
     definition,
-    instance,
-    legacyConfig = getLegacyProvisionerBoundaryConfig(),
+    qualifiedBoundaries = getQualifiedManagedVariableBoundaries(),
   }: {
     agent: AgentDirectoryEntry;
     definition: ManagedVariableDefinition;
     instance: { runtimeIdentityId: string | null; tenantId: string } | null;
-    legacyConfig?: LegacyProvisionerBoundaryConfig | null;
+    qualifiedBoundaries?: readonly ManagedVariableProvisionerBoundaryConfig[];
   },
   store: ManagedVariableBoundaryStore = databaseStore,
 ): Promise<ManagedVariableBoundaryResolution> {
-  if (!instance || instance.runtimeIdentityId !== agent.runtimeIdentityId) {
-    return { status: "unavailable", reason: "instance_mismatch" };
-  }
-
   let bindings: ManagedVariableBoundaryRow[];
   try {
     bindings = await store.listExactBindings({
@@ -97,54 +119,50 @@ export async function resolveManagedAgentVariableBoundary(
   return resolveBoundaryFromBindings({
     bindings,
     definition,
-    instance,
-    legacyConfig,
+    qualifiedBoundaries,
   });
 }
 
 function resolveBoundaryFromBindings({
   bindings,
   definition,
-  instance,
-  legacyConfig,
+  qualifiedBoundaries,
 }: {
   bindings: ManagedVariableBoundaryRow[];
   definition: ManagedVariableDefinition;
-  instance: { tenantId: string };
-  legacyConfig: LegacyProvisionerBoundaryConfig | null;
+  qualifiedBoundaries: readonly ManagedVariableProvisionerBoundaryConfig[];
 }): ManagedVariableBoundaryResolution {
-  if (bindings.length !== 1) {
+  const matches = qualifiedBoundaries.filter(
+    (candidate) =>
+      candidate.variableIds.includes(definition.id) &&
+      bindings.some(
+        (binding) =>
+          binding.phaseApp === candidate.phaseApp &&
+          binding.environment === candidate.environment &&
+          binding.pathIdentifier === candidate.pathIdentifier,
+      ),
+  );
+  if (matches.length > 1) {
     return { status: "unavailable", reason: "binding_ambiguous" };
   }
-
-  const binding = bindings[0];
-  const supportsLegacyBoundary =
-    definition.enabledBoundaryKinds.includes("legacy_tenant_path") &&
-    legacyConfig !== null &&
-    binding.phaseApp === legacyConfig.phaseApp &&
-    binding.environment === legacyConfig.environment &&
-    binding.pathIdentifier === `/${instance.tenantId}`;
-
-  if (!supportsLegacyBoundary) {
+  if (matches.length === 0) {
     return { status: "unavailable", reason: "provisioner_unsupported" };
   }
-
   return {
     status: "ready",
-    boundaryKind: "legacy_tenant_path",
-    tenantId: instance.tenantId,
+    boundaryKind: "managed_variable_v1",
+    boundaryId: matches[0].boundaryId,
   };
 }
 
 export async function resolveManagedVariableControlDescriptors(
   {
     agent,
-    instance,
-    legacyConfig = getLegacyProvisionerBoundaryConfig(),
+    qualifiedBoundaries = getQualifiedManagedVariableBoundaries(),
   }: {
     agent: AgentDirectoryEntry;
     instance: { runtimeIdentityId: string | null; tenantId: string } | null;
-    legacyConfig?: LegacyProvisionerBoundaryConfig | null;
+    qualifiedBoundaries?: readonly ManagedVariableProvisionerBoundaryConfig[];
   },
   store: ManagedVariableBoundaryStore = databaseStore,
 ): Promise<ManagedVariableControlDescriptor[]> {
@@ -155,10 +173,6 @@ export async function resolveManagedVariableControlDescriptors(
       availability: "read_only" as const,
       availabilityDetail,
     }));
-
-  if (!instance || instance.runtimeIdentityId !== agent.runtimeIdentityId) {
-    return readOnly("No exact platform runtime is available for replacement.");
-  }
 
   let bindings: ManagedVariableBoundaryRow[];
   try {
@@ -176,8 +190,7 @@ export async function resolveManagedVariableControlDescriptors(
     const boundary = resolveBoundaryFromBindings({
       bindings,
       definition,
-      instance,
-      legacyConfig,
+      qualifiedBoundaries,
     });
     const writeOnly = roleAllowed && boundary.status === "ready";
     return {

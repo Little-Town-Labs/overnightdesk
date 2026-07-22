@@ -3,6 +3,8 @@
  * Requires DATABASE_TEST_URL environment variable.
  */
 
+export {};
+
 const SKIP_REASON = !process.env.DATABASE_TEST_URL
   ? "DATABASE_TEST_URL not set — skipping integration tests"
   : undefined;

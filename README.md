@@ -30,11 +30,14 @@ navigation tab. Titus Open WebUI is the accepted reference canary, while Walter
 has no Open WebUI deployment.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
-are write-only, role checked, metadata audited, and remain disabled for Titus
-and Walter until the boundary-aware provisioner contract in
+are write-only, role checked, and metadata audited. The boundary-aware
+provisioner from engine PR 4 is deployed at `fc8211e`; only the qualified Titus
+runtime/OpenRouter tuple may be enabled through the server-only
+`MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID`. Walter and all other catalog
+combinations remain read-only. The governing contract is
 [`specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md`](specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md),
-its isolated `overnightdesk-engine` implementation, and the separate typed
-frontend adoption increment are qualified. Authenticated owner acceptance of
+and the frontend uses its typed, value-free endpoint without legacy
+`writeSecrets` or separate restart calls. Authenticated owner acceptance of
 the deployed Overview, Settings, Admin, Open Chat, and Runtime consistency is
 the final user-facing gate.
 The [Spec Kit task list](specs/022-agent-control-surfaces/tasks.md) is the
@@ -104,6 +107,7 @@ See `.env.example` for the full list. Key groups:
 - `NEXT_PUBLIC_BILLING_ENABLED`, `ADMIN_EMAILS`, `INVITED_EMAILS`
 - `RESEND_API_KEY`, `EMAIL_FROM`
 - `PROVISIONER_URL`, `PROVISIONER_SECRET`
+- `MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID` (server-only; unset means read-only)
 - `CRON_SECRET`, owner notification settings
 
 ## Notes
