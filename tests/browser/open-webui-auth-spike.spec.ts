@@ -143,6 +143,30 @@ test("mobile overview keeps selected-agent sections usable without horizontal ov
   ).toBe(true);
 });
 
+for (const width of [768, 1024]) {
+  test(`${width}px overview supports keyboard agent selection without overflow`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${approvedParent}/dashboard?agent=titus`);
+
+    const walter = page.getByRole("link", { name: "Walter" });
+    await walter.focus();
+    await expect(walter).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/dashboard\?agent=walter$/);
+    await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Runtime" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Capabilities" })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
 test("settings separates global account controls from selected-agent context", async ({
   page,
 }) => {

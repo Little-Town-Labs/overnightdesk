@@ -119,9 +119,9 @@ acceptance remain release gates.
 
 ## Phase 8: Polish, analysis, review, and release
 
-- [ ] T045 Run Spec Kit cross-artifact analysis and remediate all critical/high findings before implementation completion
-- [ ] T046 Run the complete Jest suite, production build, Chromium browser suite, `npm audit --audit-level=high`, and `git diff --check`
-- [ ] T047 Perform five-axis code/security review and verify no `instances[0]`, agent-name branches, arbitrary secret maps, secret values, or hidden enabled agent-tab inconsistencies remain in touched surfaces
+- [x] T045 Run Spec Kit cross-artifact analysis and remediate all critical/high findings before implementation completion
+- [x] T046 Run the complete Jest suite, production build, Chromium browser suite, `npm audit --audit-level=high`, and `git diff --check`
+- [x] T047 Perform five-axis code/security review and verify no `instances[0]`, agent-name branches, arbitrary secret maps, secret values, or hidden enabled agent-tab inconsistencies remain in touched surfaces
 - [ ] T048 Update Feature 020/022 status, `.specify/roadmap.md`, `README.md`, and `overnightdesk-platform-standard` with verified behavior and remaining gates
 - [ ] T049 Publish reviewed pull request(s), wait for checks, merge only passing increments, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T050 Complete authenticated owner browser acceptance for Titus/Walter Overview, Settings, Admin, Open Chat, and Runtime consistency before marking Feature 022 complete
