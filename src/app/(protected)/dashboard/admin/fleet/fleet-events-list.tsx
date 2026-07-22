@@ -107,13 +107,14 @@ export function FleetEventsList({ initialEvents }: FleetEventsListProps) {
   }, [offset, total, filterType, fetchEvents]);
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="od-card p-5 sm:p-6" aria-labelledby="fleet-events-heading">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-zinc-300">Fleet Events</h3>
+        <h3 className="text-sm font-medium" id="fleet-events-heading" style={{ color: "var(--color-od-text)" }}>Fleet events</h3>
         <select
           value={filterType}
           onChange={(e) => handleFilterChange(e.target.value)}
-          className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 focus:border-zinc-600 focus:outline-none"
+          className="rounded-lg border px-3 py-1.5 text-xs focus:outline-none"
+          style={{ background: "var(--color-od-raised)", borderColor: "var(--color-od-border)", color: "var(--color-od-text-2)" }}
         >
           <option value="">All events</option>
           {EVENT_TYPES.map((type) => (
@@ -125,15 +126,16 @@ export function FleetEventsList({ initialEvents }: FleetEventsListProps) {
       </div>
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading...</p>
+        <p className="text-sm" style={{ color: "var(--color-od-text-3)" }}>Loading...</p>
       ) : events.length === 0 ? (
-        <p className="text-sm text-zinc-500">No events found.</p>
+        <p className="text-sm" style={{ color: "var(--color-od-text-3)" }}>No events found.</p>
       ) : (
         <div className="space-y-2">
           {events.map((event) => (
             <div
               key={event.id}
-              className="flex items-start gap-3 rounded-lg border border-zinc-800/50 bg-zinc-950/50 px-3 py-2"
+              className="flex items-start gap-3 rounded-lg border px-3 py-2"
+              style={{ background: "var(--color-od-base)", borderColor: "var(--color-od-border)" }}
             >
               <span
                 className={`mt-0.5 inline-block rounded border px-2 py-0.5 text-xs font-medium ${getEventBadgeColor(event.eventType)}`}
@@ -141,14 +143,14 @@ export function FleetEventsList({ initialEvents }: FleetEventsListProps) {
                 {event.eventType}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                <div className="flex items-center gap-2 text-xs" style={{ color: "var(--color-od-text-3)" }}>
                   {event.instanceId && (
                     <span className="font-mono">{event.instanceId.slice(0, 8)}</span>
                   )}
                   <span>{formatTimestamp(event.createdAt)}</span>
                 </div>
                 {event.details != null && (
-                  <p className="mt-0.5 truncate text-xs text-zinc-400">
+                  <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-od-text-2)" }}>
                     {String(JSON.stringify(event.details))}
                   </p>
                 )}
@@ -159,7 +161,7 @@ export function FleetEventsList({ initialEvents }: FleetEventsListProps) {
       )}
 
       {total > limit && (
-        <div className="mt-4 flex items-center justify-between text-xs text-zinc-500">
+        <div className="mt-4 flex items-center justify-between text-xs" style={{ color: "var(--color-od-text-3)" }}>
           <span>
             Showing {offset + 1}–{Math.min(offset + limit, total)} of {total}
           </span>
@@ -181,6 +183,6 @@ export function FleetEventsList({ initialEvents }: FleetEventsListProps) {
           </div>
         </div>
       )}
-    </div>
+    </section>
   );
 }

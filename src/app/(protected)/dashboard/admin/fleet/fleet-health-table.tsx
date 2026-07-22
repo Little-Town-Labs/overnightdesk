@@ -73,25 +73,26 @@ export function FleetHealthTable({ instances }: FleetHealthTableProps) {
   }, []);
 
   return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+    <section className="od-card p-5 sm:p-6" aria-labelledby="instance-health-heading">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-zinc-300">Instance Health</h3>
+        <h3 className="text-sm font-medium" id="instance-health-heading" style={{ color: "var(--color-od-text)" }}>Instance health</h3>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+          className="rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+          style={{ background: "var(--color-od-raised)", borderColor: "var(--color-od-border)", color: "var(--color-od-text-2)" }}
         >
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
       {data.length === 0 ? (
-        <p className="text-sm text-zinc-500">No instances found.</p>
+        <p className="text-sm" style={{ color: "var(--color-od-text-3)" }}>No instances found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-zinc-800 text-zinc-500">
+              <tr className="border-b" style={{ borderColor: "var(--color-od-border)", color: "var(--color-od-text-3)" }}>
                 <th className="pb-2 pr-4 font-medium">Tenant</th>
                 <th className="pb-2 pr-4 font-medium">Status</th>
                 <th className="pb-2 pr-4 font-medium">Subdomain</th>
@@ -104,18 +105,19 @@ export function FleetHealthTable({ instances }: FleetHealthTableProps) {
               {data.map((inst) => (
                 <tr
                   key={inst.id}
-                  className="border-b border-zinc-800/50 last:border-0"
+                  className="border-b last:border-0"
+                  style={{ borderColor: "var(--color-od-border)" }}
                 >
-                  <td className="py-2 pr-4 font-mono text-xs text-zinc-300">
+                  <td className="py-2 pr-4 text-xs" style={{ color: "var(--color-od-text)", fontFamily: "var(--font-mono)" }}>
                     {inst.tenantId}
                   </td>
                   <td className={`py-2 pr-4 ${getStatusColor(inst.status)}`}>
                     {inst.status}
                   </td>
-                  <td className="py-2 pr-4 text-zinc-400">
+                  <td className="py-2 pr-4" style={{ color: "var(--color-od-text-2)" }}>
                     {inst.subdomain ?? "—"}
                   </td>
-                  <td className="py-2 pr-4 text-zinc-400">
+                  <td className="py-2 pr-4" style={{ color: "var(--color-od-text-2)" }}>
                     {formatRelativeTime(inst.lastHealthCheck)}
                   </td>
                   <td
@@ -123,7 +125,7 @@ export function FleetHealthTable({ instances }: FleetHealthTableProps) {
                   >
                     {inst.consecutiveHealthFailures}
                   </td>
-                  <td className="py-2 text-zinc-400">
+                  <td className="py-2" style={{ color: "var(--color-od-text-2)" }}>
                     {inst.claudeAuthStatus}
                   </td>
                 </tr>
@@ -132,6 +134,6 @@ export function FleetHealthTable({ instances }: FleetHealthTableProps) {
           </table>
         </div>
       )}
-    </div>
+    </section>
   );
 }

@@ -12,7 +12,11 @@ export function AgentSelector({
   selectedKey,
 }: {
   agents: readonly SelectableAgent[];
-  basePath: "/dashboard" | "/dashboard/chat";
+  basePath:
+    | "/dashboard"
+    | "/dashboard/chat"
+    | "/dashboard/settings"
+    | "/dashboard/admin/configuration";
   selectedKey: string;
 }) {
   return (

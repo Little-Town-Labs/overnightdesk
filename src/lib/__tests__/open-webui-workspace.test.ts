@@ -10,6 +10,9 @@ import {
 const TITUS_RECORD: AgentWorkspaceRecord = {
   useCaseId: "11111111-1111-4111-8111-111111111111",
   runtimeIdentityId: "22222222-2222-4222-8222-222222222222",
+  runtimeSlug: "hermes-titus",
+  runtimeStatus: "active",
+  membershipRole: "owner",
   useCaseName: "Timeless Tech Solutions",
   personaKey: "titus",
   personaName: "Titus",
@@ -20,6 +23,9 @@ const TITUS_RECORD: AgentWorkspaceRecord = {
 const WALTER_RECORD: AgentWorkspaceRecord = {
   useCaseId: "33333333-3333-4333-8333-333333333333",
   runtimeIdentityId: "44444444-4444-4444-8444-444444444444",
+  runtimeSlug: "hermes-walter",
+  runtimeStatus: "active",
+  membershipRole: "owner",
   useCaseName: "OvernightDesk platform operations",
   personaKey: "walter",
   personaName: "Walter",
@@ -50,8 +56,20 @@ describe("agent workspace directory", () => {
     expect(directory).toEqual({
       status: "available",
       agents: [
-        expect.objectContaining({ key: "titus", identity: expect.objectContaining({ name: "Titus" }) }),
-        expect.objectContaining({ key: "walter", identity: expect.objectContaining({ name: "Walter" }) }),
+        expect.objectContaining({
+          key: "titus",
+          useCaseId: TITUS_RECORD.useCaseId,
+          runtime: { slug: "hermes-titus", status: "active" },
+          membershipRole: "owner",
+          identity: expect.objectContaining({ name: "Titus" }),
+        }),
+        expect.objectContaining({
+          key: "walter",
+          useCaseId: WALTER_RECORD.useCaseId,
+          runtime: { slug: "hermes-walter", status: "active" },
+          membershipRole: "owner",
+          identity: expect.objectContaining({ name: "Walter" }),
+        }),
       ],
     });
     expect(chat).toEqual({

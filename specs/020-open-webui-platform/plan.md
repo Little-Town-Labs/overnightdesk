@@ -152,11 +152,11 @@ overnightdesk-platform-standard/
    memberships, shared membership authorization, and accepted Titus Open WebUI
    canary are deployed. Walter production authority remains on its documented
    legacy rollback state.
-2. **Source complete — Feature 020 dashboard redesign (P1)**: The dedicated
-   full-height Chat route, concise Overview, variable agent identity, honest
-   unavailable/fallback states, and desktop/mobile coverage are implemented on
-   the isolated redesign branch without retiring compatibility code. Vercel
-   deployment and authenticated browser acceptance remain the next gate.
+2. **Deployed — Feature 020 dashboard redesign (P1)**: PRs 83 and 84 deployed
+   the dedicated full-height Chat route, concise Overview, variable agent
+   identity, honest unavailable/fallback states, and selected-agent actions
+   without retiring compatibility code. Feature 022 owns the still-local
+   consistent Overview/Settings/Admin Runtime and configuration follow-up.
 3. **Next isolated rollout — Walter Open WebUI (P1)**: Plan and review a
    separate workload, state, client, administrator, Phase, and Hermes boundary.
    Titus acceptance makes this eligible; it does not authorize deployment.
@@ -218,14 +218,13 @@ with zero denials; Titus responded and retained history remained visible.
 Open WebUI, Hermes Titus, Titus email intake, and Nginx completed the observation
 healthy with zero restarts, and metadata-only persistence checks found five
 valid active chats with zero orphans. The owner accepted the Titus canary.
-Walter may now begin as a separate isolated rollout; broad rollout, dashboard
-redesign deployment/acceptance, and custom-chat retirement remain separately
-gated.
+Walter may now begin as a separate isolated rollout; broad rollout, Feature 022
+authenticated acceptance, and custom-chat retirement remain separately gated.
 
-## Dashboard redesign implementation checkpoint — 2026-07-21
+## Dashboard redesign production checkpoint — 2026-07-21
 
-The Vercel source now resolves a canonical, active-membership agent directory
-server-side. Agent identity is presentation data carrying a name and logo;
+Production `main` at `92294ae` resolves a canonical, active-membership agent
+directory server-side. Agent identity is presentation data carrying a name and logo;
 authorization, runtime, use case, and Open WebUI capability remain canonical
 database facts. One reusable selector serves both Overview and Open Chat. A
 multi-agent member receives each authorized agent, while a one-agent member
@@ -253,8 +252,8 @@ clipboard permission. The established per-agent fallback remains visible.
 | --- | --- | --- |
 | Overview | Global account plus selected canonical agent | Migrated to the shared membership-filtered agent context. |
 | Open Chat | Selected agent workspace reached from the Overview action | Migrated; lists only fully bound active Open WebUI capabilities and is intentionally absent from primary navigation. |
-| Settings | Global/mixed legacy instance | Remains visible, but agent-specific settings must migrate to the shared selected-agent context before expansion. |
-| Admin | Global owner surface | Unchanged; it is not an agent workspace. |
+| Settings | Production global/mixed legacy instance | Feature 022 migrates account and selected-agent scopes locally; it is not deployed. |
+| Admin | Production global owner surface | Feature 022 adds shared Fleet/Metrics/Configuration navigation and selected-agent Configuration locally; it is not deployed. |
 | Agents, Issues, Projects, Routines, Approvals, Skills, Costs, Activity, Logs, Bridges, Security | Legacy single instance | Continue hidden for Hermes. Each currently calls `getInstanceForUser`; do not enable it for multi-agent use until it consumes the shared selected-agent context. |
 | Heartbeat, Jobs, Usage | Legacy single instance and absent from navigation | Keep unadvertised until their product role and selected-agent behavior are specified. |
 
@@ -267,3 +266,8 @@ The agent selector is followed by the selected agent's supported actions on
 Overview. Open Chat and Advanced Dashboard are actions in that context, not
 permanent top-level tabs. The dedicated `/dashboard/chat` route remains
 bookmarkable and provides the full-height workspace after selection.
+
+The production platform standard continues to describe this deployed Feature
+020 baseline. Feature 022 planning documents describe local implementation only
+until its separate provisioner, release, deployment, and owner-acceptance gates
+are complete.

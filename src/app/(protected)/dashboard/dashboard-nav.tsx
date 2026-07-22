@@ -26,45 +26,39 @@ const tabs: NavTab[] = [
   { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true, scope: "legacy-instance" },
   { label: "Settings", href: "/dashboard/settings", requiresRunning: false, scope: "global" },
   { label: "Security", href: "/dashboard/security", requiresRunning: true, scope: "legacy-instance", requiresPro: true },
-  { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, scope: "global", adminOnly: true },
+  { label: "Admin", href: "/dashboard/admin", requiresRunning: false, scope: "global", adminOnly: true },
 ];
 
 interface DashboardNavProps {
   instanceRunning: boolean;
   isAdmin?: boolean;
   plan?: string;
-  isHermesTenant?: boolean;
+  usesCanonicalAgentContext?: boolean;
 }
-
-const HERMES_ALLOWED_TABS = new Set([
-  "/dashboard",
-  "/dashboard/settings",
-  "/dashboard/admin/fleet",
-]);
 
 export function getVisibleDashboardTabs({
   instanceRunning,
   isAdmin = false,
   plan,
-  isHermesTenant = false,
+  usesCanonicalAgentContext = false,
 }: DashboardNavProps): NavTab[] {
   return tabs.filter(
     (tab) =>
       (!tab.requiresRunning || instanceRunning) &&
       (!tab.adminOnly || isAdmin) &&
       (!tab.requiresPro || isAdmin || plan === "pro") &&
-      (!isHermesTenant || HERMES_ALLOWED_TABS.has(tab.href)),
+      (!usesCanonicalAgentContext || tab.scope === "global"),
   );
 }
 
-export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, isHermesTenant = false }: DashboardNavProps) {
+export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, usesCanonicalAgentContext = false }: DashboardNavProps) {
   const pathname = usePathname();
 
   const visibleTabs = getVisibleDashboardTabs({
     instanceRunning,
     isAdmin: isAdminUser,
     plan,
-    isHermesTenant,
+    usesCanonicalAgentContext,
   });
 
   return (

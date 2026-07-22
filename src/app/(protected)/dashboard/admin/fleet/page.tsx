@@ -1,7 +1,4 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-import { isAdmin } from "@/lib/billing";
+import { requireAdminPage } from "@/lib/admin-page-authorization";
 import { db } from "@/db";
 import { instance, fleetEvent } from "@/db/schema";
 import { desc } from "drizzle-orm";
@@ -9,24 +6,7 @@ import { FleetHealthTable } from "./fleet-health-table";
 import { FleetEventsList } from "./fleet-events-list";
 
 export default async function FleetMonitoringPage() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    redirect("/sign-in");
-  }
-
-  if (!isAdmin(session.user.email)) {
-    return (
-      <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-lg font-semibold text-white">Access Denied</h2>
-        <p className="mt-2 text-zinc-400">
-          You do not have permission to view this page.
-        </p>
-      </div>
-    );
-  }
+  await requireAdminPage();
 
   const [instances, recentEvents] = await Promise.all([
     db
@@ -50,8 +30,9 @@ export default async function FleetMonitoringPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-lg font-semibold text-white">Fleet Monitoring</h2>
-        <p className="mt-1 text-sm text-zinc-400">
+        <p className="text-xs font-medium uppercase tracking-wider" style={{ color: "var(--color-od-accent)", fontFamily: "var(--font-mono)" }}>Global scope</p>
+        <h2 className="mt-1 text-xl font-semibold" style={{ color: "var(--color-od-text)" }}>Fleet</h2>
+        <p className="mt-1 text-sm" style={{ color: "var(--color-od-text-2)" }}>
           Health status and event history for all instances.
         </p>
       </div>

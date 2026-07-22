@@ -76,7 +76,7 @@ describe("DashboardNav", () => {
         "/dashboard/bridges",
         "/dashboard/settings",
         "/dashboard/security",
-        "/dashboard/admin/fleet",
+        "/dashboard/admin",
       ]);
     });
 
@@ -170,13 +170,23 @@ describe("DashboardNav", () => {
       expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Admin"]);
     });
 
-    it("shows Overview and Settings for a running Hermes workspace", () => {
+    it("shows only shared account surfaces for canonical agent context", () => {
       expect(
         getVisibleDashboardTabs({
           instanceRunning: true,
-          isHermesTenant: true,
+          usesCanonicalAgentContext: true,
         }).map((tab) => tab.label),
       ).toEqual(["Overview", "Settings"]);
+    });
+
+    it("keeps Admin visible for an administrator in canonical agent context", () => {
+      expect(
+        getVisibleDashboardTabs({
+          instanceRunning: true,
+          isAdmin: true,
+          usesCanonicalAgentContext: true,
+        }).map((tab) => tab.label),
+      ).toEqual(["Overview", "Settings", "Admin"]);
     });
   });
 
@@ -218,6 +228,15 @@ describe("DashboardNav", () => {
     it("marks Settings as active on /dashboard/settings", () => {
       expect(
         getActiveClass("/dashboard/settings", "/dashboard/settings")
+      ).toBe("active");
+    });
+
+    it("keeps Admin active across every internal admin section", () => {
+      expect(
+        getActiveClass(
+          "/dashboard/admin/configuration",
+          "/dashboard/admin",
+        ),
       ).toBe("active");
     });
   });

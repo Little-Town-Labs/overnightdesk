@@ -67,15 +67,16 @@ export function DeleteAccount() {
   );
 
   return (
-    <div className="bg-zinc-900 border border-red-500/30 rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-red-400 mb-2">Delete Account</h2>
-      <p className="text-zinc-400 text-sm mb-4">
+    <section className="rounded-lg border border-red-500/30 p-5 sm:p-6" style={{ background: "var(--color-od-surface)" }} aria-labelledby="delete-account-heading">
+      <p className="mb-1 text-xs font-medium uppercase tracking-wider text-red-400" style={{ fontFamily: "var(--font-mono)" }}>Danger zone</p>
+      <h2 className="mb-2 text-lg font-semibold text-red-400" id="delete-account-heading">Delete account</h2>
+      <p className="mb-4 text-sm" style={{ color: "var(--color-od-text-2)" }}>
         Deleting your account is permanent. Your subscription will be canceled and your instance will be deprovisioned.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
         <div>
-          <label htmlFor="deletePassword" className="block text-sm text-zinc-400 mb-1">
+          <label htmlFor="deletePassword" className="mb-1 block text-sm" style={{ color: "var(--color-od-text-2)" }}>
             Current Password
           </label>
           <input
@@ -85,12 +86,13 @@ export function DeleteAccount() {
             onChange={handleChange("password")}
             required
             autoComplete="current-password"
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-1"
+            style={{ background: "var(--color-od-base)", borderColor: "var(--color-od-border)", color: "var(--color-od-text)" }}
           />
         </div>
 
         <div>
-          <label htmlFor="deleteConfirmation" className="block text-sm text-zinc-400 mb-1">
+          <label htmlFor="deleteConfirmation" className="mb-1 block text-sm" style={{ color: "var(--color-od-text-2)" }}>
             Type <span className="font-mono text-red-400">DELETE</span> to confirm
           </label>
           <input
@@ -101,7 +103,8 @@ export function DeleteAccount() {
             required
             autoComplete="off"
             placeholder="DELETE"
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-1"
+            style={{ background: "var(--color-od-base)", borderColor: "var(--color-od-border)", color: "var(--color-od-text)" }}
           />
         </div>
 
@@ -117,6 +120,6 @@ export function DeleteAccount() {
           {submitting ? "Deleting..." : "Delete Account"}
         </button>
       </form>
-    </div>
+    </section>
   );
 }

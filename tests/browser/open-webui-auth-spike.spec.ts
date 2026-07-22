@@ -89,3 +89,154 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
   expect(frame?.width).toBeGreaterThan(280);
   expect(frame?.height).toBeGreaterThan(360);
 });
+
+test("desktop overview keeps the same Runtime and capability structure for Titus and Walter", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${approvedParent}/dashboard?agent=titus`);
+
+  await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "hermes-titus",
+  );
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "owner",
+  );
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Open Chat" }),
+  ).toContainText("Available");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
+  ).toContainText("Not deployed");
+
+  await page.getByRole("link", { name: "Walter" }).click();
+  await expect(page).toHaveURL(/\/dashboard\?agent=walter$/);
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "hermes-walter",
+  );
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText(
+    "owner",
+  );
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Open Chat" }),
+  ).toContainText("Not deployed");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
+  ).toContainText("Available");
+});
+
+test("mobile overview keeps selected-agent sections usable without horizontal overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto(`${approvedParent}/dashboard?agent=walter`);
+
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Capabilities" })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+for (const width of [768, 1024]) {
+  test(`${width}px overview supports keyboard agent selection without overflow`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${approvedParent}/dashboard?agent=titus`);
+
+    const walter = page.getByRole("link", { name: "Walter" });
+    await walter.focus();
+    await expect(walter).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/dashboard\?agent=walter$/);
+    await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Runtime" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Capabilities" })).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test("settings separates global account controls from selected-agent context", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${approvedParent}/dashboard/settings?agent=walter`);
+
+  await expect(page.getByRole("heading", { name: "Account-wide settings" })).toBeVisible();
+  await expect(page.getByText("owner@example.test")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agent settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-walter");
+  await expect(page.getByRole("region", { name: "Agent configuration" })).toContainText("Read only");
+
+  await page.getByRole("link", { name: "Titus" }).click();
+  await expect(page).toHaveURL(/\/dashboard\/settings\?agent=titus$/);
+  await expect(page.getByText("owner@example.test")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-titus");
+});
+
+test("mobile settings preserves scope and selected-agent hierarchy", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto(`${approvedParent}/dashboard/settings?agent=titus`);
+
+  await expect(page.getByRole("heading", { name: "Account-wide settings" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agent settings" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("admin keeps global Fleet and Metrics separate from selected-agent Configuration", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${approvedParent}/dashboard/admin/fleet`);
+
+  await expect(page.getByRole("heading", { name: "Administration" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toContainText("Fleet");
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toContainText("Metrics");
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toContainText("Configuration");
+  await expect(page.getByRole("heading", { name: "Fleet" })).toBeVisible();
+  await expect(page.getByText("Global scope")).toBeVisible();
+
+  await page.getByRole("link", { name: "Metrics" }).click();
+  await expect(page.getByRole("heading", { name: "Metrics" })).toBeVisible();
+  await expect(page.getByText("Global scope")).toBeVisible();
+
+  await page.getByRole("link", { name: "Configuration" }).click();
+  await expect(page.getByRole("heading", { name: "Configuration", exact: true })).toBeVisible();
+  await expect(page.getByText("Selected-agent scope")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-titus");
+});
+
+test("mobile admin configuration preserves navigation and selected-agent hierarchy", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto(`${approvedParent}/dashboard/admin/configuration?agent=walter`);
+
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-walter");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});
