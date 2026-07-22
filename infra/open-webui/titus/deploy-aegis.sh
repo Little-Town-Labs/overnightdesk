@@ -9,7 +9,7 @@ remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 
 usage() {
-  printf 'usage: %s {prepare|install-disabled|verify-private|enable-route|verify-public|sentinel-logs|rollback|status}\n' "$0" >&2
+  printf 'usage: %s {prepare|install-disabled|reconcile-persona|verify-private|enable-route|verify-public|sentinel-logs|rollback|status}\n' "$0" >&2
   exit 2
 }
 
@@ -17,6 +17,7 @@ prepare() {
   "$repo_root/infra/open-webui/qualify-titus.sh"
   "${ssh_cmd[@]}" 'install -d -m 0700 /tmp/open-webui-titus-deploy'
   rsync -az --delete -e "ssh -i $ssh_key" "$source_root/" "$remote:/tmp/open-webui-titus-deploy/"
+  rsync -az -e "ssh -i $ssh_key" "$repo_root/infra/open-webui/common/" "$remote:/tmp/open-webui-titus-deploy/common/"
   "${ssh_cmd[@]}" '
     set -eu
     sudo install -d -o root -g root -m 0755 /opt/open-webui-titus/source /opt/open-webui-titus/bin
@@ -24,12 +25,22 @@ prepare() {
     for script in load-phase-env prepare-volume run-container stop-container; do
       sudo install -o root -g root -m 0755 "/opt/open-webui-titus/source/$script.sh" "/opt/open-webui-titus/bin/$script.sh"
     done
+    sudo install -o root -g root -m 0755 /opt/open-webui-titus/source/common/seed-persona-model.sh /opt/open-webui-titus/bin/seed-persona-model.sh
+    sudo install -o root -g root -m 0755 /opt/open-webui-titus/source/common/verify-persona-model.sh /opt/open-webui-titus/bin/verify-persona-model.sh
+    sudo install -o root -g root -m 0555 /opt/open-webui-titus/source/common/seed_persona_model.py /opt/open-webui-titus/bin/seed_persona_model.py
     sudo install -o root -g root -m 0644 /opt/open-webui-titus/source/open-webui-titus.service /etc/systemd/system/open-webui-titus.service
+    sudo systemctl daemon-reload
     sudo find /opt/open-webui-titus/source -type d -exec chmod go-w {} +
     sudo find /opt/open-webui-titus/source -type f -exec chmod go-w {} +
     find /tmp/open-webui-titus-deploy -mindepth 1 -delete
     rmdir /tmp/open-webui-titus-deploy
   '
+}
+
+reconcile_persona() {
+  prepare
+  "${ssh_cmd[@]}" 'sudo systemctl restart open-webui-titus.service'
+  verify_private
 }
 
 install_disabled() {
@@ -66,6 +77,12 @@ verify_private() {
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" open-webui-hermes-titus | grep -q overnightdesk_overnightdesk
     ! sudo docker inspect -f "{{json .Config.Env}}" open-webui-hermes-titus | grep -Eq "(OPENAI_API_KEY|WEBUI_SECRET_KEY|PHASE_SERVICE_TOKEN)"
     sudo docker volume inspect open-webui-hermes-titus-data >/dev/null
+    sudo env \
+      OPEN_WEBUI_IMAGE=ghcr.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3 \
+      OPEN_WEBUI_DATA_VOLUME=open-webui-hermes-titus-data \
+      OPEN_WEBUI_PERSONA_CONFIG=/opt/open-webui-titus/source/persona-model.json \
+      OPEN_WEBUI_PERSONA_SEED_SCRIPT=/opt/open-webui-titus/bin/seed_persona_model.py \
+      /opt/open-webui-titus/bin/verify-persona-model.sh
     sudo docker exec open-webui-hermes-titus /bin/sh -c '\''python - <<"PY"
 import json
 import shlex
@@ -190,6 +207,7 @@ status() {
 case "$action" in
   prepare) prepare ;;
   install-disabled) install_disabled ;;
+  reconcile-persona) reconcile_persona ;;
   verify-private) verify_private ;;
   enable-route) enable_route ;;
   verify-public) verify_public ;;

@@ -81,6 +81,31 @@ session lifecycle, rollback, and owner acceptance matrix.
 3. **Given** a non-member, suspended member, or expired member, **When** Walter chat or dashboard is requested, **Then** access is denied and no other runtime's session or content is returned.
 4. **Given** Walter chat is rolled back, **When** the prior production state is restored, **Then** Walter's native dashboard, Codex OAuth provider path, runtime data, and Titus deployment remain healthy.
 
+### User Story 4 - Recognize the selected persona everywhere (Priority: P1)
+
+An authorized owner sees the selected agent's canonical name and logo in the
+OvernightDesk workspace and on that agent's curated model inside Open WebUI.
+The owner may attach a bounded custom raster logo without creating agent-name
+branches or replacing Open WebUI's own product branding.
+
+**Why this priority**: A generic `hermes-agent` model label makes it unclear
+which authorized agent receives a message, especially for an owner with Titus
+and Walter. Identity continuity is part of safe agent selection, not cosmetic
+white-labeling.
+
+**Independent Test**: Upload a valid owner-scoped logo, refresh Overview,
+Settings, Admin, and Open Chat, and confirm the same selected name/logo appears
+on every OvernightDesk surface and the one curated Open WebUI model while the
+raw model and Arena entries are absent.
+
+**Acceptance Scenarios**:
+
+1. **Given** an owner authorized for an active agent, **When** the owner uploads a valid PNG, JPEG, or WebP logo, **Then** only that agent's canonical presentation changes and a value-free audit event is recorded.
+2. **Given** a member who is not an owner or is not authorized for the agent, **When** that member attempts a logo change, **Then** the write is denied without disclosing another agent's presentation data.
+3. **Given** an invalid, oversized, mislabeled, or active-content file, **When** it is submitted as a logo, **Then** it is rejected without storage or runtime changes.
+4. **Given** Titus or Walter Open WebUI, **When** its model selector opens, **Then** it shows one persona-named model with that persona's logo, omits Arena Model, and retains the existing underlying Hermes/provider behavior.
+5. **Given** no custom logo or a failed presentation lookup, **When** any agent surface renders, **Then** the established bundled fallback logo is used without breaking chat.
+
 ### Edge Cases
 
 - An explicit unknown, malformed, duplicate, or unauthorized agent selector
@@ -93,6 +118,12 @@ session lifecycle, rollback, and owner acceptance matrix.
   OvernightDesk host boundary.
 - One capability is healthy while the other is not deployed, unavailable,
   logged out, expired, or revoked.
+- A logo upload declares an allowed MIME type but its magic bytes disagree.
+- A logo is empty, larger than the bounded limit, malformed, or an SVG/active
+  document rather than a safe raster image.
+- A custom logo is removed, returning every surface to the bundled fallback.
+- Open WebUI already contains a raw base-model override or an Arena model when
+  the curated persona configuration is reconciled.
 - The independent dashboard window is closed, refreshed, reopened, or blocked
   while chat remains active.
 - The selected member has exactly one authorized agent and must never see a
@@ -145,6 +176,27 @@ session lifecycle, rollback, and owner acceptance matrix.
 - **FR-016**: Qualification and production results MUST be value-free, recorded
   in the feature artifacts and platform standard, and appended to
   `deploys.log` for production changes.
+- **FR-017**: Agent name and logo MUST be presentation values attached to the
+  canonical persona assignment and MUST NOT define or merge runtime, memory,
+  credential, membership, or use-case boundaries.
+- **FR-018**: Only an active owner membership scoped to the exact active runtime
+  MAY replace or remove that runtime's default persona logo.
+- **FR-019**: Custom logo input MUST be limited to PNG, JPEG, or WebP, validated
+  by declared type and magic bytes, capped at 256 KiB, and MUST reject SVG and
+  other active content.
+- **FR-020**: Logo mutations MUST be auditable without recording image bytes,
+  filenames, member email, or other unbounded user-controlled values.
+- **FR-021**: Logo reads MUST expose only the active default persona's image,
+  use an immutable digest-addressed URL, emit a correct image content type and
+  `nosniff`, and fail closed to the bundled presentation when unavailable.
+- **FR-022**: Overview, Settings, Admin, the selected-agent workspace, and the
+  Open WebUI persona model MUST consume the same canonical persona name/logo
+  contract with no agent-name rendering branches.
+- **FR-023**: Each curated Open WebUI deployment MUST expose one
+  persona-named override of its existing Hermes base model, MUST disable Arena
+  models, and MUST retain the established model ID and provider/runtime route.
+- **FR-024**: Persona presentation MUST remain subordinate to and MUST NOT
+  remove, obscure, replace, or co-brand Open WebUI's own product identity.
 
 ### Key Entities
 
@@ -163,6 +215,12 @@ session lifecycle, rollback, and owner acceptance matrix.
 - **Qualification Evidence**: Value-free proof for membership denial and
   restoration, persistence, session lifecycle, rollback, provider isolation,
   health, and owner acceptance.
+- **Persona Presentation**: The mutable display name and optional bounded
+  custom raster logo associated with a canonical persona assignment. It never
+  changes the underlying runtime or authority boundary.
+- **Curated Persona Model**: A deployment-managed Open WebUI presentation
+  override for the existing Hermes base-model ID, carrying only the persona
+  name and avatar metadata.
 
 ## Success Criteria
 
@@ -187,6 +245,14 @@ session lifecycle, rollback, and owner acceptance matrix.
   affecting Titus.
 - **SC-008**: Production activation occurs only after automated checks pass and
   the owner accepts the authenticated Walter chat/dashboard experience.
+- **SC-009**: Valid logo replacement and removal are visible on all shared
+  OvernightDesk identity surfaces after one refresh and never alter another
+  runtime's presentation.
+- **SC-010**: Every invalid-type, magic-byte mismatch, oversized, unauthorized,
+  ambiguous, or unavailable-storage test performs zero presentation writes.
+- **SC-011**: Titus and Walter each show exactly one persona-named Open WebUI
+  model, zero Arena models, and the same successful chat/provider canary as
+  before the presentation change.
 
 ## Assumptions
 
@@ -199,7 +265,9 @@ session lifecycle, rollback, and owner acceptance matrix.
   window.
 - No new database schema is required for the frontend prototype; canonical
   membership, runtime, instance, and OIDC assignment records remain sources of
-  truth.
+  truth. The later owner-approved persona-logo increment may add bounded
+  presentation columns to the existing persona assignment; it does not store
+  conversations or change runtime authority.
 - Walter Open WebUI follows the established Titus qualification sequence but
   receives new Walter-scoped resources rather than copied credentials or
   provider policy.

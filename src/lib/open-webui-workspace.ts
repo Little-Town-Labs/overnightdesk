@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { MembershipRole } from "@/lib/use-case-membership-authorization";
+import { buildAgentPersonaLogoUrl } from "@/lib/agent-persona-logo";
 
 export type AgentRuntimeStatus = "planned" | "active" | "suspended" | "retired";
 
@@ -8,6 +9,7 @@ export interface AgentIdentity {
   logo: {
     src: string;
     alt: string;
+    custom?: boolean;
   };
 }
 
@@ -20,6 +22,7 @@ export interface AgentWorkspaceRecord {
   useCaseName: string;
   personaKey: string;
   personaName: string;
+  personaLogoSha256: string | null;
   deploymentId: string | null;
   host: string | null;
 }
@@ -103,6 +106,7 @@ const workspaceRecordSchema = z
     useCaseName: z.string().min(1).max(160),
     personaKey: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
     personaName: z.string().min(1).max(120),
+    personaLogoSha256: z.string().regex(/^[0-9a-f]{64}$/).nullable(),
     deploymentId: z
       .string()
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
@@ -121,6 +125,7 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
     host,
     personaKey,
     personaName,
+    personaLogoSha256,
     runtimeIdentityId,
     runtimeSlug,
     runtimeStatus,
@@ -131,9 +136,16 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
   if ((deploymentId === null) !== (host === null)) return null;
 
   const presentation = AGENT_PRESENTATION[personaKey] ?? DEFAULT_AGENT_PRESENTATION;
+  const logo = personaLogoSha256
+    ? {
+        src: buildAgentPersonaLogoUrl(runtimeIdentityId, personaLogoSha256),
+        alt: `${personaName} agent mark`,
+        custom: true,
+      }
+    : presentation.logo;
   const identity = {
     name: personaName,
-    logo: presentation.logo,
+    logo,
   };
   if (host === null) {
     return {

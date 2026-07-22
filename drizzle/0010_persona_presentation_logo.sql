@@ -1,0 +1,7 @@
+ALTER TABLE "persona_assignment" ADD COLUMN "logo_content_type" text;--> statement-breakpoint
+ALTER TABLE "persona_assignment" ADD COLUMN "logo_data_base64" text;--> statement-breakpoint
+ALTER TABLE "persona_assignment" ADD COLUMN "logo_sha256" text;--> statement-breakpoint
+ALTER TABLE "persona_assignment" ADD CONSTRAINT "persona_assignment_logo_all_or_none" CHECK (("persona_assignment"."logo_content_type" IS NULL AND "persona_assignment"."logo_data_base64" IS NULL AND "persona_assignment"."logo_sha256" IS NULL) OR ("persona_assignment"."logo_content_type" IS NOT NULL AND "persona_assignment"."logo_data_base64" IS NOT NULL AND "persona_assignment"."logo_sha256" IS NOT NULL));--> statement-breakpoint
+ALTER TABLE "persona_assignment" ADD CONSTRAINT "persona_assignment_logo_content_type" CHECK ("persona_assignment"."logo_content_type" IS NULL OR "persona_assignment"."logo_content_type" IN ('image/png', 'image/jpeg', 'image/webp'));--> statement-breakpoint
+ALTER TABLE "persona_assignment" ADD CONSTRAINT "persona_assignment_logo_data_length" CHECK ("persona_assignment"."logo_data_base64" IS NULL OR (char_length("persona_assignment"."logo_data_base64") BETWEEN 1 AND 349528));--> statement-breakpoint
+ALTER TABLE "persona_assignment" ADD CONSTRAINT "persona_assignment_logo_sha256" CHECK ("persona_assignment"."logo_sha256" IS NULL OR "persona_assignment"."logo_sha256" ~ '^[0-9a-f]{64}$');

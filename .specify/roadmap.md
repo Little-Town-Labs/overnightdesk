@@ -66,11 +66,17 @@ the active Spec Kit feature artifacts and the production platform standard.
   cross-surface health, provider, linkage, isolation, rollback, and owner
   dashboard-click checks pass. A shared desktop chat-height correction is
   qualified locally and awaits publication plus authenticated owner acceptance
-  in T026.
-- **Dependency gate:** the 2026-07-22 production audit reports two high and one
-  moderate finding, including the `sharp <0.35.0` advisory inherited through Next.js.
-  Do not apply npm's suggested breaking Next.js downgrade; resolve this in a
-  reviewed dependency increment before release.
+  in T026. The corrective source increment also adds owner-managed bounded
+  persona logos, deployment-managed Titus/Walter model presentation, and
+  explicit Arena disablement while preserving the underlying `hermes-agent`
+  provider ID. Titus honestly retains no Advanced Dashboard assignment; Walter
+  retains its independently linked native dashboard.
+- **Dependency gate:** production `351e1f1` still inherits the July 22
+  `sharp <0.35.0` high advisory through Next.js. The corrective source
+  increment overrides only that compatible transitive package to `0.35.3`,
+  requires Node 20.9 or newer, and passes `npm audit --audit-level=high` with
+  five moderate findings remaining. Do not apply npm's suggested breaking
+  Next.js or Drizzle downgrade.
 
 ---
 

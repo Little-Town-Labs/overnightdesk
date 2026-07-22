@@ -11,7 +11,12 @@ Group=open-webui-titus
 SupplementaryGroups=docker
 RuntimeDirectory=open-webui-titus
 RuntimeDirectoryMode=0750
+Environment=OPEN_WEBUI_IMAGE=ghcr.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3
+Environment=OPEN_WEBUI_DATA_VOLUME=open-webui-hermes-titus-data
+Environment=OPEN_WEBUI_PERSONA_CONFIG=/opt/open-webui-titus/source/persona-model.json
+Environment=OPEN_WEBUI_PERSONA_SEED_SCRIPT=/opt/open-webui-titus/bin/seed_persona_model.py
 ExecStartPre=+/opt/open-webui-titus/bin/load-phase-env.sh
+ExecStartPre=+/opt/open-webui-titus/bin/seed-persona-model.sh
 ExecStart=/opt/open-webui-titus/bin/run-container.sh
 ExecStop=/opt/open-webui-titus/bin/stop-container.sh
 Restart=on-failure

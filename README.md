@@ -20,7 +20,7 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Current Agent Control-Surface Delivery
 
-Production `main` at `3c36e75` includes Feature 022's unified agent control
+Production `main` at `351e1f1` includes Feature 022's unified agent control
 surfaces from PR 85. Overview, Settings, and selected-agent Admin Configuration
 share one exact membership-filtered agent context and consistent Identity,
 Runtime, capability, and configuration structure. Variable name/logo
@@ -32,9 +32,13 @@ and canonical use-case/runtime bindings; controlled activation and membership
 denial/restoration, chat/history persistence, and the complete session
 lifecycle passed on 2026-07-22. Objective cross-surface health, provider,
 canonical linkage, isolation, rollback, and owner dashboard-click checks also
-pass. The qualified larger desktop chat surface remains open for production
-acceptance. The owner accepted the authenticated Overview, Settings, Admin,
-Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
+pass. PR 94 supplied the first desktop chat-height correction. The stronger
+chat-dominant layout, bounded owner-managed persona logos, persona-named Open
+WebUI model presentation, and Arena removal are qualified source changes that
+remain open for publication and production acceptance. Titus correctly has no
+Advanced Dashboard assignment; Walter retains its independently linked native
+Hermes dashboard. The owner accepted the authenticated Overview, Settings,
+Admin, Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
 are write-only, role checked, and metadata audited. The boundary-aware
@@ -52,8 +56,9 @@ qualified chat embedded and launches the exact native Hermes dashboard in an
 independent safe window or tab; the shared contract remains layout-neutral.
 Agents with only one surface retain it with an explicit state for the other.
 Walter's isolated chat deployment has passed disabled installation, private
-qualification, rollback rehearsal, and controlled public activation. Denial,
-session-lifecycle, cross-surface health, and owner-acceptance gates remain.
+qualification, rollback rehearsal, controlled public activation, denial and
+restoration, session lifecycle, history persistence, cross-surface health, and
+initial owner acceptance. Corrective layout/persona acceptance remains.
 Walter's primary Codex OAuth provider policy is unchanged. The
 [Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is the
 current delivery source of truth.

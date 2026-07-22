@@ -1,7 +1,34 @@
 # Data Model: Composable Agent Workspace
 
-No database migration is planned for the frontend prototype. These models are
-derived views over existing canonical records.
+The initial frontend prototype is derived over existing canonical records. The
+owner-approved persona presentation increment adds bounded optional logo data
+to the existing canonical persona assignment; it does not add a second agent
+identity source.
+
+## PersonaPresentation
+
+| Field | Meaning | Rule |
+| --- | --- | --- |
+| `displayName` | Mutable persona label | Existing canonical `persona_assignment.display_name`; 1-120 characters |
+| `logoContentType` | Stored custom raster type | Nullable; exactly `image/png`, `image/jpeg`, or `image/webp` |
+| `logoDataBase64` | Bounded raster bytes | Nullable; base64 only, decoded size at most 256 KiB; never logged or returned as JSON |
+| `logoSha256` | Immutable presentation version | Nullable lowercase SHA-256; all three logo fields are null or all are present |
+| `updatedAt` | Presentation change time | Updated with a successful name/logo mutation |
+
+The browser receives a digest-addressed URL, never `logoDataBase64`. A public
+image response is allowed because agent marks are presentation assets, not
+credentials or tenant conversation data. A missing, malformed, ambiguous, or
+inactive record falls back to the bundled persona mark in the authenticated
+directory and returns no custom bytes from the image route.
+
+### Persona presentation transitions
+
+```text
+bundled fallback -> owner uploads valid raster -> custom digest-addressed logo
+custom logo      -> owner replaces valid raster -> new digest-addressed logo
+custom logo      -> owner removes logo          -> bundled fallback
+any state        -> invalid or unauthorized     -> unchanged
+```
 
 ## SelectedAgentContext
 
@@ -53,6 +80,17 @@ derived views over existing canonical records.
 | Runtime binding | Canonical Walter assignment | Exact use case and runtime identity |
 | Provider policy | Chat integration and Hermes primary provider | Codex OAuth remains primary; supplemental OpenRouter named separately |
 | Rollback target | Prior dashboard-only production state | Preserves data and Titus health |
+
+## CuratedOpenWebuiPersonaModel
+
+| Field | Meaning | Qualification rule |
+| --- | --- | --- |
+| Model ID | Existing Hermes OpenAI-compatible ID | Remains unchanged; no provider reroute |
+| Name | Canonical persona display name | Titus/Walter value supplied as deployment data |
+| Avatar | Stable platform logo URL | HTTPS `www.overnightdesk.com` persona-image route only |
+| Access | Read for authenticated deployment members | Public within the already membership-gated Open WebUI instance; no write grant |
+| Arena | Evaluation comparison model | Disabled and empty |
+| Product brand | Native Open WebUI identity | Preserved without replacement or co-branding |
 
 ## QualificationEvidence
 

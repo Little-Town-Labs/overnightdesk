@@ -41,3 +41,11 @@ authority by itself.
 Rollback stops only this candidate and preserves its volume. It does not stop,
 restart, or reconfigure the native Walter dashboard, Hermes API, email intake,
 or primary Codex OAuth provider.
+
+The deployment keeps the provider-facing model ID `hermes-agent` unchanged but
+reconciles one public-read, deployment-owned model presentation named `Walter`.
+Its avatar resolves through the canonical platform persona-logo endpoint. Arena
+models are explicitly disabled and the runtime defaults to that single model
+ID. `deploy-aegis.sh reconcile-persona` installs the same shared idempotent
+seeder used by Titus, restarts only Walter Open WebUI, and preserves chats,
+native-dashboard state, and unrelated database records.
