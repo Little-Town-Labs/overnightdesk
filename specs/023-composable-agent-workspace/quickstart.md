@@ -210,3 +210,41 @@ not complete until the application increment is deployed, the Walter records
 are applied disabled then enabled, the candidate is started, Walter TLS/Nginx
 is activated, unauthenticated access fails closed, and rollback readiness is
 reverified in that order.
+
+## T022 controlled activation — 2026-07-22T17:37:13Z to 18:07:35Z
+
+- PR 92 was squash-merged at `3c36e75`. Vercel production deployment
+  `dpl_3T1UxPdFcLkscNjiygrqv72M1QCs` reached Ready on all live aliases after
+  the generic canonical Open WebUI authorization controls were installed as
+  encrypted production values.
+- Before any public exposure, the value-free production plan returned the
+  exact ready contract. Walter use case 0 was created with one active owner
+  membership, five resource bindings, one isolated secret boundary, and one
+  disabled OIDC client; post-apply verification returned
+  `verified/disabled`.
+- The merged Walter candidate then passed private qualification with no
+  published port or public route, a distinct retained volume and Phase
+  boundary, an unprivileged read-only container, no direct secret or
+  OpenRouter Docker environment, and a value-free OAuth log sentinel.
+  Candidate-only restart persistence passed without restarting native
+  `hermes-walter`.
+- Only Walter's OIDC client was enabled next. The record set re-verified
+  `enabled` with the same exact counts before TLS or Nginx changed.
+- The HTTP challenge route passed Nginx syntax, Let's Encrypt issued the
+  `walter-chat.overnightdesk.com` certificate through 2026-10-20, and the
+  reviewed TLS route passed a second syntax check and reload. Anonymous Walter
+  and Titus chat requests each returned HTTP 401 with valid TLS.
+- Final health evidence: Walter and Titus Open WebUI were healthy; native
+  Walter/Titus, Nginx, and Ops were running; all six containers reported
+  restart count zero; both Ops health listeners returned HTTP 200; Walter's
+  native dashboard returned HTTP 302 to platform sign-in and HTTP 200 at its
+  unauthenticated status endpoint. Walter remained `openai-codex` with
+  default `gpt-5.6-sol`.
+- Rollback remains ordered and value-preserving: disable only Walter's OIDC
+  client, remove the Walter route and stop its candidate, retain its volume
+  and Phase records, and verify Titus plus native Walter health.
+
+**Activation decision**: T022 passes. The Walter boundary is publicly active
+but not yet accepted. T023-T026 remain required for controlled denial and
+restoration, chat/history and session lifecycle, cross-surface health and
+rollback readiness, and authenticated owner acceptance.

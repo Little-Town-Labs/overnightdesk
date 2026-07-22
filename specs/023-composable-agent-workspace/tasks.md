@@ -87,7 +87,7 @@ dashboard-only production state.
 **Goal**: Enable only the qualified Walter route and canonical assignment, then
 prove the complete user and session lifecycle.
 
-- [ ] T022 [US3] Enable only the Walter Nginx route, Better Auth OIDC client, and canonical use-case/runtime resource mappings
+- [x] T022 [US3] Enable only the Walter Nginx route, Better Auth OIDC client, and canonical use-case/runtime resource mappings
 - [ ] T023 [US3] Complete controlled non-member, suspended-member, expired-member denial/restoration checks with zero cross-agent disclosure
 - [ ] T024 [US3] Complete chat response, sidebar history, restart persistence, explicit logout, OAuth expiry/renewal, revocation/reauthentication, and final restoration checks
 - [ ] T025 [US3] Verify Titus chat, Walter/Titus native dashboards, effective Walter Codex OAuth primary provider, public health, and rollback readiness after activation
