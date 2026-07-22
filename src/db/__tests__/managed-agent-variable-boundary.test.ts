@@ -4,132 +4,159 @@ import {
   resolveManagedVariableControlDescriptors,
   resolveManagedAgentVariableBoundary,
   type ManagedVariableBoundaryStore,
+  type ManagedVariableProvisionerBoundaryConfig,
 } from "@/db/managed-agent-variable-boundary";
 
 const agent: AgentDirectoryEntry = {
-  key: "example-agent",
+  key: "titus",
   useCaseId: "11111111-1111-4111-8111-111111111111",
   runtimeIdentityId: "22222222-2222-4222-8222-222222222222",
-  runtime: { slug: "hermes-example", status: "active" },
+  runtime: { slug: "hermes-titus", status: "active" },
   membershipRole: "owner",
   identity: {
-    name: "Example",
-    logo: { src: "/agents/default-mark.svg", alt: "Example agent mark" },
+    name: "Titus",
+    logo: { src: "/agents/default-mark.svg", alt: "Titus agent mark" },
   },
-  useCaseName: "Example use case",
+  useCaseName: "Timeless Tech Solutions",
   workspace: null,
 };
 
-const instance = {
-  runtimeIdentityId: agent.runtimeIdentityId,
-  tenantId: "tenant-example",
-};
-
-const binding = {
-  phaseApp: "legacy-app",
+const runtimeBinding = {
+  phaseApp: "timeless-tech-solutions",
   environment: "production",
-  pathIdentifier: "/tenant-example",
+  pathIdentifier: "/agents/hermes-titus/runtime",
 };
 
-const legacyConfig = {
-  phaseApp: "legacy-app",
-  environment: "production",
+const bindings = [
+  runtimeBinding,
+  { ...runtimeBinding, pathIdentifier: "/agents/hermes-titus/memory" },
+  { ...runtimeBinding, pathIdentifier: "/agents/hermes-titus/teams" },
+];
+
+const qualifiedBoundary: ManagedVariableProvisionerBoundaryConfig = {
+  boundaryId: "cdb9a259-7e99-4dd1-a023-bf2fa9e8c033",
+  phaseApp: runtimeBinding.phaseApp,
+  environment: runtimeBinding.environment,
+  pathIdentifier: runtimeBinding.pathIdentifier,
+  variableIds: ["openrouter_api_key"],
 };
 
-function store(rows: typeof binding[]): ManagedVariableBoundaryStore {
+function store(rows: typeof bindings): ManagedVariableBoundaryStore {
   return { listExactBindings: jest.fn().mockResolvedValue(rows) };
 }
 
 describe("resolveManagedAgentVariableBoundary", () => {
   const definition = getManagedVariableDefinition("openrouter_api_key")!;
 
-  it("accepts exactly one binding equivalent to the deployed legacy provisioner boundary", async () => {
-    await expect(
-      resolveManagedAgentVariableBoundary(
-        { agent, definition, instance, legacyConfig },
-        store([binding]),
-      ),
-    ).resolves.toEqual({
-      status: "ready",
-      boundaryKind: "legacy_tenant_path",
-      tenantId: "tenant-example",
-    });
-  });
-
-  it.each([
-    ["missing", []],
-    ["multiple", [binding, { ...binding, pathIdentifier: "/other" }]],
-  ])("fails closed for %s bindings", async (_name, rows) => {
-    await expect(
-      resolveManagedAgentVariableBoundary(
-        { agent, definition, instance, legacyConfig },
-        store(rows),
-      ),
-    ).resolves.toEqual({ status: "unavailable", reason: "binding_ambiguous" });
-  });
-
-  it("rejects a cross-runtime instance association", async () => {
+  it("resolves one qualified canonical binding without requiring a legacy instance", async () => {
     await expect(
       resolveManagedAgentVariableBoundary(
         {
           agent,
           definition,
-          instance: { ...instance, runtimeIdentityId: "44444444-4444-4444-8444-444444444444" },
-          legacyConfig,
+          instance: null,
+          qualifiedBoundaries: [qualifiedBoundary],
         },
-        store([binding]),
+        store(bindings),
       ),
-    ).resolves.toEqual({ status: "unavailable", reason: "instance_mismatch" });
+    ).resolves.toEqual({
+      status: "ready",
+      boundaryKind: "managed_variable_v1",
+      boundaryId: qualifiedBoundary.boundaryId,
+    });
   });
 
   it.each([
-    [{ ...binding, phaseApp: "another-app" }, legacyConfig],
-    [{ ...binding, environment: "staging" }, legacyConfig],
-    [{ ...binding, pathIdentifier: "/agents/example/runtime" }, legacyConfig],
-    [binding, null],
-  ])("rejects unsupported provisioner coordinates", async (row, config) => {
+    ["missing canonical binding", bindings.slice(1), [qualifiedBoundary]],
+    ["missing qualified mapping", bindings, []],
+    [
+      "ambiguous qualified mapping",
+      bindings,
+      [
+        qualifiedBoundary,
+        { ...qualifiedBoundary, boundaryId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" },
+      ],
+    ],
+  ] as const)("fails closed for %s", async (_name, rows, configs) => {
     await expect(
       resolveManagedAgentVariableBoundary(
-        { agent, definition, instance, legacyConfig: config },
-        store([row]),
+        {
+          agent,
+          definition,
+          instance: null,
+          qualifiedBoundaries: [...configs],
+        },
+        store([...rows]),
       ),
-    ).resolves.toEqual({ status: "unavailable", reason: "provisioner_unsupported" });
+    ).resolves.toEqual({
+      status: "unavailable",
+      reason: _name === "ambiguous qualified mapping"
+        ? "binding_ambiguous"
+        : "provisioner_unsupported",
+    });
+  });
+
+  it("does not enable a variable omitted from the qualified mapping", async () => {
+    const telegram = getManagedVariableDefinition("telegram_bot_token")!;
+
+    await expect(
+      resolveManagedAgentVariableBoundary(
+        {
+          agent,
+          definition: telegram,
+          instance: null,
+          qualifiedBoundaries: [qualifiedBoundary],
+        },
+        store(bindings),
+      ),
+    ).resolves.toEqual({
+      status: "unavailable",
+      reason: "provisioner_unsupported",
+    });
   });
 });
 
 describe("resolveManagedVariableControlDescriptors", () => {
-  it("exposes write-only controls only for an authorized compatible boundary", async () => {
+  it("enables only the qualified Titus variable and exposes no boundary coordinates", async () => {
     const controls = await resolveManagedVariableControlDescriptors(
-      { agent, instance, legacyConfig },
-      store([binding]),
+      {
+        agent,
+        instance: null,
+        qualifiedBoundaries: [qualifiedBoundary],
+      },
+      store(bindings),
     );
 
     expect(controls).toHaveLength(3);
-    expect(controls).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "openrouter_api_key",
-          availability: "write_only",
-          confirmation: "replace:openrouter_api_key:restart",
-        }),
-      ]),
-    );
+    expect(controls.find((item) => item.id === "openrouter_api_key")).toMatchObject({
+      availability: "write_only",
+      confirmation: "replace:openrouter_api_key:restart",
+    });
+    expect(
+      controls
+        .filter((item) => item.id !== "openrouter_api_key")
+        .every((item) => item.availability === "read_only"),
+    ).toBe(true);
     expect(JSON.stringify(controls)).not.toMatch(
-      /phaseKey|phaseApp|environment|pathIdentifier|tenantId/i,
+      /boundaryId|phaseKey|phaseApp|environment|pathIdentifier|tenantId/i,
     );
   });
 
-  it("keeps unsupported or unauthorized controls explicitly read-only", async () => {
-    const unsupported = await resolveManagedVariableControlDescriptors(
-      { agent, instance, legacyConfig: null },
-      store([binding]),
+  it("keeps unqualified and unauthorized agents explicitly read-only", async () => {
+    const unqualified = await resolveManagedVariableControlDescriptors(
+      { agent, instance: null, qualifiedBoundaries: [] },
+      store(bindings),
     );
     const unauthorized = await resolveManagedVariableControlDescriptors(
-      { agent: { ...agent, membershipRole: "viewer" }, instance, legacyConfig },
-      store([binding]),
+      {
+        agent: { ...agent, membershipRole: "viewer" },
+        instance: null,
+        qualifiedBoundaries: [qualifiedBoundary],
+      },
+      store(bindings),
     );
 
-    expect(unsupported.every((item) => item.availability === "read_only")).toBe(true);
+    expect(unqualified.every((item) => item.availability === "read_only")).toBe(true);
     expect(unauthorized.every((item) => item.availability === "read_only")).toBe(true);
   });
 });
