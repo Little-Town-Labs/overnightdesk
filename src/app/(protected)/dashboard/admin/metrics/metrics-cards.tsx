@@ -20,11 +20,9 @@ function MetricCard({
   children?: React.ReactNode;
 }) {
   return (
-    <div
-      className={`bg-zinc-900 border rounded-lg p-6 ${accent}`}
-    >
-      <p className="text-sm text-zinc-400 mb-1">{title}</p>
-      <p className="text-3xl font-bold text-white">{value}</p>
+    <div className={`od-card border p-5 sm:p-6 ${accent}`}>
+      <p className="mb-1 text-sm" style={{ color: "var(--color-od-text-2)" }}>{title}</p>
+      <p className="text-3xl font-bold" style={{ color: "var(--color-od-text)", fontFamily: "var(--font-display)" }}>{value}</p>
       {children}
     </div>
   );
@@ -56,7 +54,7 @@ export function MetricsCards({
         value={avgDailyClaudeCalls}
         accent="border-purple-500/30"
       >
-        <p className="text-xs text-zinc-500 mt-1">Last 7 days</p>
+        <p className="mt-1 text-xs" style={{ color: "var(--color-od-text-3)" }}>Last 7 days</p>
       </MetricCard>
 
       <MetricCard
@@ -65,7 +63,7 @@ export function MetricsCards({
         accent={
           atRiskTenants.length > 0
             ? "border-red-500/30"
-            : "border-zinc-800"
+            : "border-[var(--color-od-border)]"
         }
       >
         {atRiskTenants.length > 0 && (
@@ -77,7 +75,8 @@ export function MetricsCards({
               {atRiskTenants.map((tenantId) => (
                 <li
                   key={tenantId}
-                  className="text-xs text-zinc-400 font-mono bg-zinc-800/50 rounded px-2 py-1"
+                  className="rounded px-2 py-1 text-xs"
+                  style={{ background: "var(--color-od-raised)", color: "var(--color-od-text-2)", fontFamily: "var(--font-mono)" }}
                 >
                   {tenantId}
                 </li>

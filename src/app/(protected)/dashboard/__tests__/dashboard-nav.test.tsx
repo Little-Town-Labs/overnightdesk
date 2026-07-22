@@ -76,7 +76,7 @@ describe("DashboardNav", () => {
         "/dashboard/bridges",
         "/dashboard/settings",
         "/dashboard/security",
-        "/dashboard/admin/fleet",
+        "/dashboard/admin",
       ]);
     });
 
@@ -218,6 +218,15 @@ describe("DashboardNav", () => {
     it("marks Settings as active on /dashboard/settings", () => {
       expect(
         getActiveClass("/dashboard/settings", "/dashboard/settings")
+      ).toBe("active");
+    });
+
+    it("keeps Admin active across every internal admin section", () => {
+      expect(
+        getActiveClass(
+          "/dashboard/admin/configuration",
+          "/dashboard/admin",
+        ),
       ).toBe("active");
     });
   });

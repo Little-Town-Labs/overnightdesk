@@ -8,11 +8,13 @@ import { AgentCredentials } from "./agent-credentials";
 
 export function AgentSettings({
   agents,
+  basePath = "/dashboard/settings",
   capabilities,
   selected,
   statusLabel,
 }: {
   agents: readonly AgentDirectoryEntry[];
+  basePath?: "/dashboard/settings" | "/dashboard/admin/configuration";
   capabilities: readonly AgentCapability[];
   selected: AgentDirectoryEntry;
   statusLabel: string;
@@ -21,7 +23,7 @@ export function AgentSettings({
     <div className="space-y-3">
       <AgentSelector
         agents={agents}
-        basePath="/dashboard/settings"
+        basePath={basePath}
         selectedKey={selected.key}
       />
       <AgentIdentityHeader agent={selected} statusLabel={statusLabel} />

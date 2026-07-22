@@ -63,13 +63,13 @@
 
 **Independent Test**: Admin sees global Fleet/Metrics and selected-agent Configuration; non-admin requests reveal no content; selected identity matches Overview/Settings.
 
-- [ ] T021 [US3] Add failing server authorization and internal-navigation tests for all Admin routes in `src/app/(protected)/dashboard/admin/__tests__/admin-surface.test.tsx`
-- [ ] T022 [P] [US3] Add failing Configuration tests for Titus/Walter/one-agent selected context and Runtime consistency in `src/app/(protected)/dashboard/admin/__tests__/admin-configuration.test.tsx`
-- [ ] T023 [US3] Create one owner-only Admin layout and scoped internal navigation in `src/app/(protected)/dashboard/admin/layout.tsx` and `src/app/(protected)/dashboard/admin/admin-nav.tsx`
-- [ ] T024 [US3] Restyle Fleet as explicitly global while preserving its data and events in `src/app/(protected)/dashboard/admin/fleet/page.tsx`
-- [ ] T025 [US3] Move Metrics into the shared Admin layout and label it global in `src/app/(protected)/dashboard/admin/metrics/page.tsx`
-- [ ] T026 [US3] Add selected-agent Configuration using the shared context and catalog status in `src/app/(protected)/dashboard/admin/configuration/page.tsx`
-- [ ] T027 [US3] Run focused Admin tests and desktop/mobile keyboard assertions and mark T021-T026 complete in `specs/022-agent-control-surfaces/tasks.md`
+- [x] T021 [US3] Add failing server authorization and internal-navigation tests for all Admin routes in `src/app/(protected)/dashboard/admin/__tests__/admin-surface.test.tsx`
+- [x] T022 [P] [US3] Add failing Configuration tests for Titus/Walter/one-agent selected context and Runtime consistency in `src/app/(protected)/dashboard/admin/__tests__/admin-configuration.test.tsx`
+- [x] T023 [US3] Create one owner-only Admin layout and scoped internal navigation in `src/app/(protected)/dashboard/admin/layout.tsx` and `src/app/(protected)/dashboard/admin/admin-nav.tsx`
+- [x] T024 [US3] Restyle Fleet as explicitly global while preserving its data and events in `src/app/(protected)/dashboard/admin/fleet/page.tsx`
+- [x] T025 [US3] Move Metrics into the shared Admin layout and label it global in `src/app/(protected)/dashboard/admin/metrics/page.tsx`
+- [x] T026 [US3] Add selected-agent Configuration using the shared context and read-only managed-variable status in `src/app/(protected)/dashboard/admin/configuration/page.tsx`
+- [x] T027 [US3] Run focused Admin tests and desktop/mobile keyboard assertions and mark T021-T026 complete in `specs/022-agent-control-surfaces/tasks.md`
 
 **Checkpoint**: Admin scope is coherent and no mutation capability has been broadened.
 

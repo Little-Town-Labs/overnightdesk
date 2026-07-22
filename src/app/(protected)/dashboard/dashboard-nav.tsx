@@ -26,7 +26,7 @@ const tabs: NavTab[] = [
   { label: "Bridges", href: "/dashboard/bridges", requiresRunning: true, scope: "legacy-instance" },
   { label: "Settings", href: "/dashboard/settings", requiresRunning: false, scope: "global" },
   { label: "Security", href: "/dashboard/security", requiresRunning: true, scope: "legacy-instance", requiresPro: true },
-  { label: "Admin", href: "/dashboard/admin/fleet", requiresRunning: false, scope: "global", adminOnly: true },
+  { label: "Admin", href: "/dashboard/admin", requiresRunning: false, scope: "global", adminOnly: true },
 ];
 
 interface DashboardNavProps {
@@ -39,7 +39,7 @@ interface DashboardNavProps {
 const HERMES_ALLOWED_TABS = new Set([
   "/dashboard",
   "/dashboard/settings",
-  "/dashboard/admin/fleet",
+  "/dashboard/admin",
 ]);
 
 export function getVisibleDashboardTabs({

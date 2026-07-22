@@ -176,3 +176,43 @@ test("mobile settings preserves scope and selected-agent hierarchy", async ({ pa
     ),
   ).toBe(true);
 });
+
+test("admin keeps global Fleet and Metrics separate from selected-agent Configuration", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${approvedParent}/dashboard/admin/fleet`);
+
+  await expect(page.getByRole("heading", { name: "Administration" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toContainText("Fleet");
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toContainText("Metrics");
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toContainText("Configuration");
+  await expect(page.getByRole("heading", { name: "Fleet" })).toBeVisible();
+  await expect(page.getByText("Global scope")).toBeVisible();
+
+  await page.getByRole("link", { name: "Metrics" }).click();
+  await expect(page.getByRole("heading", { name: "Metrics" })).toBeVisible();
+  await expect(page.getByText("Global scope")).toBeVisible();
+
+  await page.getByRole("link", { name: "Configuration" }).click();
+  await expect(page.getByRole("heading", { name: "Configuration", exact: true })).toBeVisible();
+  await expect(page.getByText("Selected-agent scope")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-titus");
+});
+
+test("mobile admin configuration preserves navigation and selected-agent hierarchy", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 720 });
+  await page.goto(`${approvedParent}/dashboard/admin/configuration?agent=walter`);
+
+  await expect(page.getByRole("navigation", { name: "Admin sections" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-walter");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+});

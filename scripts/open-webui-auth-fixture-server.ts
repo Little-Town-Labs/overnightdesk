@@ -17,8 +17,9 @@ function html(response: ServerResponse, body: string, status = 200): void {
 
 function parentPage(
   title: string,
-  view: "chat" | "overview" | "settings" = "chat",
+  view: "admin" | "chat" | "overview" | "settings" = "chat",
   selectedKey: "titus" | "walter" = "titus",
+  adminSection: "configuration" | "fleet" | "metrics" = "fleet",
 ): string {
   const selected =
     selectedKey === "walter"
@@ -81,6 +82,21 @@ function parentPage(
               <strong>Read only</strong>
             </section>
           </section>`
+        : view === "admin"
+          ? `<section class="scope">
+              <span>Owner-only controls</span>
+              <h2>Administration</h2>
+              <p>Platform-wide operations and selected-agent configuration.</p>
+              <nav aria-label="Admin sections" class="admin-nav">
+                <a href="/dashboard/admin/fleet" aria-current="${adminSection === "fleet" ? "page" : "false"}">Fleet</a>
+                <a href="/dashboard/admin/metrics" aria-current="${adminSection === "metrics" ? "page" : "false"}">Metrics</a>
+                <a href="/dashboard/admin/configuration" aria-current="${adminSection === "configuration" ? "page" : "false"}">Configuration</a>
+              </nav>
+            </section>
+            ${adminSection === "configuration"
+              ? `<section class="scope"><span>Selected-agent scope</span><h2>Configuration</h2>${agentPanels("/dashboard/admin/configuration")}<section class="card" aria-labelledby="admin-configuration-heading"><h3 id="admin-configuration-heading">Agent configuration</h3><strong>Read only</strong></section></section>`
+              : `<section class="scope"><span>Global scope</span><h2>${adminSection === "fleet" ? "Fleet" : "Metrics"}</h2><div class="card"><p>${adminSection === "fleet" ? "Health status and event history for all instances." : "Business metrics overview for the platform."}</p></div></section>`}
+            `
       : `<header class="identity">
           <span class="mark" aria-hidden="true">T</span>
           <div><h2>Titus</h2><p>Timeless Tech Solutions</p></div>
@@ -129,6 +145,9 @@ function parentPage(
     .scope > span { color: #f59e0b; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
     .scope > h2 { margin: 4px 0; }
     .scope > p, .card > p { color: #9c9488; }
+    .admin-nav { display: flex; gap: 8px; margin: 14px 0 0; border: 0; }
+    .admin-nav a { border: 1px solid #2a2520; border-radius: 8px; }
+    .admin-nav a[aria-current="page"] { border-color: #f59e0b; }
     @media (max-width: 480px) {
       body { padding: 12px; }
       #workspace { height: calc(100dvh - 250px); min-height: 400px; }
@@ -142,6 +161,7 @@ function parentPage(
     <nav aria-label="Dashboard">
       <a href="/dashboard"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a>
       <a href="/dashboard/settings"${view === "settings" ? ' aria-current="page"' : ""}>Settings</a>
+      <a href="/dashboard/admin"${view === "admin" ? ' aria-current="page"' : ""}>Admin</a>
     </nav>
     ${main}
   </div>
@@ -233,6 +253,24 @@ const approvedParent = createServer((request, response) => {
     return html(
       response,
       parentPage("Approved OvernightDesk settings", "settings", selectedKey),
+    );
+  }
+  if (requestUrl.pathname.startsWith("/dashboard/admin")) {
+    const selectedKey =
+      requestUrl.searchParams.get("agent") === "walter" ? "walter" : "titus";
+    const pathSection = requestUrl.pathname.split("/").at(-1);
+    const adminSection =
+      pathSection === "metrics" || pathSection === "configuration"
+        ? pathSection
+        : "fleet";
+    return html(
+      response,
+      parentPage(
+        "Approved OvernightDesk administration",
+        "admin",
+        selectedKey,
+        adminSection,
+      ),
     );
   }
   html(response, parentPage("Approved OvernightDesk shell"));
