@@ -59,9 +59,14 @@ the active Spec Kit feature artifacts and the production platform standard.
   and provisioning path. Walter's distinct Open WebUI candidate, persistent
   volume, Phase boundary, OIDC client, TLS hostname, and canonical bindings are
   active and passed T022's private, persistence, fail-closed, provider, and
-  rollback-readiness gates. T023-T026 denial/restoration, chat/history,
-  session-lifecycle, cross-surface health, and authenticated owner acceptance
-  are now the release blockers.
+  rollback-readiness gates. T023 controlled non-member, suspended-member, and
+  expired-member denial/restoration now passes with zero cross-agent
+  disclosure. T024 chat/history, restart persistence, rotating renewal,
+  logout, expiry, revocation, and final restoration also pass. T025
+  cross-surface health, provider, linkage, isolation, rollback, and owner
+  dashboard-click checks pass. A shared desktop chat-height correction is
+  qualified locally and awaits publication plus authenticated owner acceptance
+  in T026.
 - **Dependency gate:** the 2026-07-22 production audit reports two high and one
   moderate finding, including the `sharp <0.35.0` advisory inherited through Next.js.
   Do not apply npm's suggested breaking Next.js downgrade; resolve this in a

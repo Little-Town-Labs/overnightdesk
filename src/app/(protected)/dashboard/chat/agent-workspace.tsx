@@ -59,7 +59,7 @@ export function AgentWorkspace({
 
       {chat.workspace ? (
         <div
-          className="od-card flex min-h-[32rem] flex-1 overflow-hidden lg:min-h-0"
+          className="od-card flex min-h-[32rem] flex-1 overflow-hidden lg:min-h-[70dvh]"
           data-testid="open-webui-frame"
         >
           <iframe
