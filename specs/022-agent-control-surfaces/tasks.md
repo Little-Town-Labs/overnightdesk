@@ -46,12 +46,12 @@
 
 **Independent Test**: Switch Titus/Walter in Settings and confirm only agent-scoped content changes; account controls remain; invalid selectors fail closed; one-agent users see only one identity.
 
-- [ ] T015 [US2] Add failing Settings page tests for global account content, multi-agent selection, one-agent selection, unavailable directory, and invalid explicit selector in `src/app/(protected)/dashboard/settings/__tests__/settings-page.test.tsx`
-- [ ] T016 [P] [US2] Add failing presentational tests for shared Settings scope headings and Runtime consistency in `src/app/(protected)/dashboard/settings/__tests__/agent-settings.test.tsx`
-- [ ] T017 [US2] Redesign Settings around global account and selected-agent sections in `src/app/(protected)/dashboard/settings/page.tsx`
-- [ ] T018 [US2] Replace the legacy credential cards with catalog-driven write-only or explicit read-only agent configuration presentation in `src/app/(protected)/dashboard/settings/agent-credentials.tsx`
-- [ ] T019 [US2] Remove `getInstanceForUser` and first-instance selection from Settings and preserve account controls when the directory is unavailable in `src/app/(protected)/dashboard/settings/page.tsx`
-- [ ] T020 [US2] Run focused Settings tests and responsive browser assertions and mark T015-T019 complete in `specs/022-agent-control-surfaces/tasks.md`
+- [x] T015 [US2] Add failing Settings presentation tests for global account content, multi-agent selection, one-agent selection, unavailable directory, and invalid explicit selector in `src/app/(protected)/dashboard/settings/__tests__/settings-page.test.tsx`
+- [x] T016 [P] [US2] Add failing presentational tests for shared Settings scope headings and Runtime consistency in `src/app/(protected)/dashboard/settings/__tests__/agent-settings.test.tsx`
+- [x] T017 [US2] Redesign Settings around global account and selected-agent sections in `src/app/(protected)/dashboard/settings/page.tsx`
+- [x] T018 [US2] Replace the legacy credential cards with explicit read-only agent configuration presentation in `src/app/(protected)/dashboard/settings/agent-credentials.tsx`
+- [x] T019 [US2] Remove `getInstanceForUser` and first-instance selection from Settings and preserve account controls when the directory is unavailable in `src/app/(protected)/dashboard/settings/page.tsx`
+- [x] T020 [US2] Run focused Settings tests and responsive browser assertions and mark T015-T019 complete in `specs/022-agent-control-surfaces/tasks.md`
 
 **Checkpoint**: Settings has visible global/agent scope and never selects an agent by legacy array position.
 

@@ -17,7 +17,7 @@ function html(response: ServerResponse, body: string, status = 200): void {
 
 function parentPage(
   title: string,
-  view: "chat" | "overview" = "chat",
+  view: "chat" | "overview" | "settings" = "chat",
   selectedKey: "titus" | "walter" = "titus",
 ): string {
   const selected =
@@ -38,11 +38,9 @@ function parentPage(
           openChat: "Available",
           dashboard: "Not deployed",
         };
-  const main =
-    view === "overview"
-      ? `<div class="selector" aria-label="Choose agent">
-          <a href="/dashboard?agent=titus" aria-current="${selectedKey === "titus" ? "true" : "false"}">Titus</a>
-          <a href="/dashboard?agent=walter" aria-current="${selectedKey === "walter" ? "true" : "false"}">Walter</a>
+  const agentPanels = (basePath: string) => `<div class="selector" aria-label="Choose agent">
+          <a href="${basePath}?agent=titus" aria-current="${selectedKey === "titus" ? "true" : "false"}">Titus</a>
+          <a href="${basePath}?agent=walter" aria-current="${selectedKey === "walter" ? "true" : "false"}">Walter</a>
         </div>
         <header class="identity card">
           <span class="mark" aria-hidden="true">${selected.mark}</span>
@@ -62,7 +60,27 @@ function parentPage(
             <li><span>Open Chat</span><span>${selected.openChat}</span></li>
             <li><span>Advanced Dashboard</span><span>${selected.dashboard}</span></li>
           </ul>
-        </section>`
+        </section>`;
+  const main =
+    view === "overview"
+      ? agentPanels("/dashboard")
+      : view === "settings"
+        ? `<section class="scope">
+            <span>Global scope</span>
+            <h2>Account-wide settings</h2>
+            <p>These controls do not change when you select an agent.</p>
+            <div class="card"><h3>Profile</h3><p>Owner</p><p>owner@example.test</p></div>
+          </section>
+          <section class="scope">
+            <span>Selected-agent scope</span>
+            <h2>Agent settings</h2>
+            ${agentPanels("/dashboard/settings")}
+            <section class="card" aria-labelledby="configuration-heading">
+              <h3 id="configuration-heading">Agent configuration</h3>
+              <p>Existing values are never displayed.</p>
+              <strong>Read only</strong>
+            </section>
+          </section>`
       : `<header class="identity">
           <span class="mark" aria-hidden="true">T</span>
           <div><h2>Titus</h2><p>Timeless Tech Solutions</p></div>
@@ -107,6 +125,10 @@ function parentPage(
     .capabilities { margin: 12px 0 0; padding: 0; list-style: none; }
     .capabilities li { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid #2a2520; padding: 10px 0; }
     .capabilities li:first-child { border-top: 0; }
+    .scope { margin-bottom: 32px; }
+    .scope > span { color: #f59e0b; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .scope > h2 { margin: 4px 0; }
+    .scope > p, .card > p { color: #9c9488; }
     @media (max-width: 480px) {
       body { padding: 12px; }
       #workspace { height: calc(100dvh - 250px); min-height: 400px; }
@@ -119,7 +141,7 @@ function parentPage(
     <h1 class="brand">OvernightDesk</h1>
     <nav aria-label="Dashboard">
       <a href="/dashboard"${view === "overview" ? ' aria-current="page"' : ""}>Overview</a>
-      <a href="/dashboard/settings">Settings</a>
+      <a href="/dashboard/settings"${view === "settings" ? ' aria-current="page"' : ""}>Settings</a>
     </nav>
     ${main}
   </div>
@@ -203,6 +225,14 @@ const approvedParent = createServer((request, response) => {
     return html(
       response,
       parentPage("Approved OvernightDesk overview", "overview", selectedKey),
+    );
+  }
+  if (requestUrl.pathname === "/dashboard/settings") {
+    const selectedKey =
+      requestUrl.searchParams.get("agent") === "walter" ? "walter" : "titus";
+    return html(
+      response,
+      parentPage("Approved OvernightDesk settings", "settings", selectedKey),
     );
   }
   html(response, parentPage("Approved OvernightDesk shell"));

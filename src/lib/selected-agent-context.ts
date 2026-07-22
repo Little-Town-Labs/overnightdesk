@@ -8,6 +8,10 @@ export interface RuntimeLinkedInstance {
   runtimeIdentityId: string | null;
 }
 
+export interface RuntimeStatusInstance extends RuntimeLinkedInstance {
+  status: string;
+}
+
 export type SelectedAgentResolution<T extends RuntimeLinkedInstance> =
   | {
       status: "available";
@@ -45,4 +49,14 @@ export function resolveSelectedAgentContext<T extends RuntimeLinkedInstance>(
       instance: exactInstances[0] ?? null,
     },
   };
+}
+
+export function getSelectedAgentStatusLabel(
+  agent: AgentDirectoryEntry,
+  instance: RuntimeStatusInstance | null,
+): string {
+  if (instance?.status === "running") return "Online";
+  if (agent.workspace) return "Workspace ready";
+  if (agent.runtime.status === "active") return "Active";
+  return agent.runtime.status[0].toUpperCase() + agent.runtime.status.slice(1);
 }

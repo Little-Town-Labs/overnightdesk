@@ -66,11 +66,20 @@ export function ChangePassword() {
   );
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-6">
-      <h2 className="text-lg font-semibold text-white mb-4">Change Password</h2>
+    <section className="od-card p-5 sm:p-6" aria-labelledby="change-password-heading">
+      <h2
+        className="mb-1 text-lg font-semibold"
+        id="change-password-heading"
+        style={{ color: "var(--color-od-text)" }}
+      >
+        Account security
+      </h2>
+      <p className="mb-5 text-sm" style={{ color: "var(--color-od-text-2)" }}>
+        Change the password used for your OvernightDesk account.
+      </p>
       <form onSubmit={handleSubmit} className="space-y-4 max-w-md">
         <div>
-          <label htmlFor="currentPassword" className="block text-sm text-zinc-400 mb-1">
+          <label htmlFor="currentPassword" className="mb-1 block text-sm" style={{ color: "var(--color-od-text-2)" }}>
             Current Password
           </label>
           <input
@@ -80,12 +89,13 @@ export function ChangePassword() {
             onChange={handleChange("currentPassword")}
             required
             autoComplete="current-password"
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-1"
+            style={{ background: "var(--color-od-base)", borderColor: "var(--color-od-border)", color: "var(--color-od-text)" }}
           />
         </div>
 
         <div>
-          <label htmlFor="newPassword" className="block text-sm text-zinc-400 mb-1">
+          <label htmlFor="newPassword" className="mb-1 block text-sm" style={{ color: "var(--color-od-text-2)" }}>
             New Password
           </label>
           <input
@@ -96,13 +106,14 @@ export function ChangePassword() {
             required
             minLength={8}
             autoComplete="new-password"
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-1"
+            style={{ background: "var(--color-od-base)", borderColor: "var(--color-od-border)", color: "var(--color-od-text)" }}
           />
-          <p className="text-zinc-600 text-xs mt-1">Minimum 8 characters</p>
+          <p className="mt-1 text-xs" style={{ color: "var(--color-od-text-3)" }}>Minimum 8 characters</p>
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm text-zinc-400 mb-1">
+          <label htmlFor="confirmPassword" className="mb-1 block text-sm" style={{ color: "var(--color-od-text-2)" }}>
             Confirm New Password
           </label>
           <input
@@ -112,7 +123,8 @@ export function ChangePassword() {
             onChange={handleChange("confirmPassword")}
             required
             autoComplete="new-password"
-            className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+            className="w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus:ring-1"
+            style={{ background: "var(--color-od-base)", borderColor: "var(--color-od-border)", color: "var(--color-od-text)" }}
           />
         </div>
 
@@ -125,12 +137,12 @@ export function ChangePassword() {
         <button
           type="submit"
           disabled={submitting || !!validationError}
-          className="px-4 py-2 text-sm rounded-lg bg-zinc-700 text-white hover:bg-zinc-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="btn-accent rounded-lg px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitting ? "Changing..." : "Change Password"}
         </button>
       </form>
-    </div>
+    </section>
   );
 }
 

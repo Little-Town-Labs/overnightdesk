@@ -22,7 +22,10 @@ import {
 import {
   resolveAgentDirectory,
 } from "@/lib/open-webui-workspace";
-import { resolveSelectedAgentContext } from "@/lib/selected-agent-context";
+import {
+  getSelectedAgentStatusLabel,
+  resolveSelectedAgentContext,
+} from "@/lib/selected-agent-context";
 import { buildAgentCapabilities } from "@/lib/agent-capabilities";
 import { AgentOverview } from "./agent-overview";
 import { AgentAccessState } from "./agent-access-state";
@@ -128,13 +131,7 @@ export default async function DashboardPage({
       dashboardUrl: hermesDashboardUrl,
       hasOpenChat: selectedAgent.workspace !== null,
     });
-    const selectedStatusLabel = isRunning
-      ? "Online"
-      : selectedAgent.workspace
-        ? "Workspace ready"
-        : selectedAgent.runtime.status === "active"
-          ? "Active"
-          : selectedAgent.runtime.status;
+    const selectedStatusLabel = getSelectedAgentStatusLabel(selectedAgent, inst);
     const isWizard = inst?.status === "queued";
     const isProvisioning =
       inst?.status === "awaiting_provisioning" || inst?.status === "provisioning";

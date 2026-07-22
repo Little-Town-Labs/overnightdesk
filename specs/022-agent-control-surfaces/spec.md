@@ -1,10 +1,10 @@
 # Feature Specification: Agent Control Surfaces
 
-**Feature Branch**: `agent/root/agent-context-settings-admin`
+**Feature Branch**: `022-agent-control-surfaces`
 
 **Created**: 2026-07-21
 
-**Status**: Draft
+**Status**: In progress
 
 **Input**: User description: "Keep Open Chat and Advanced Dashboard as Overview actions after the agent selector; redesign Settings and Admin around variable agent identity, allow safe new values for selected Phase-managed variables, and make all agent-tab contents consistent across Titus, Walter, and single-agent users such as Austin."
 

@@ -1,5 +1,8 @@
 import type { AgentDirectory } from "@/lib/open-webui-workspace";
-import { resolveSelectedAgentContext } from "@/lib/selected-agent-context";
+import {
+  getSelectedAgentStatusLabel,
+  resolveSelectedAgentContext,
+} from "@/lib/selected-agent-context";
 
 const agents: Extract<AgentDirectory, { status: "available" }>["agents"] = [
   {
@@ -98,5 +101,13 @@ describe("resolveSelectedAgentContext", () => {
         [walterInstance],
       ),
     ).toEqual({ status: "unavailable" });
+  });
+});
+
+describe("getSelectedAgentStatusLabel", () => {
+  it("derives one label for every selected-agent consumer", () => {
+    expect(getSelectedAgentStatusLabel(agents[0], { runtimeIdentityId: agents[0].runtimeIdentityId, status: "running" })).toBe("Online");
+    expect(getSelectedAgentStatusLabel({ ...agents[0], workspace: { key: "titus", identity: agents[0].identity, useCaseName: agents[0].useCaseName, workspaceUrl: "https://example.test", fallbackMessage: "Fallback" } }, null)).toBe("Workspace ready");
+    expect(getSelectedAgentStatusLabel(agents[1], null)).toBe("Active");
   });
 });
