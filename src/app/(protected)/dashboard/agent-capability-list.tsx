@@ -1,22 +1,9 @@
 import type {
   AgentCapability,
-  AgentCapabilityState,
 } from "@/lib/agent-capabilities";
+import { getAgentCapabilityStateLabel } from "@/lib/agent-capabilities";
 
 export type { AgentCapability } from "@/lib/agent-capabilities";
-
-function stateLabel(state: AgentCapabilityState): string {
-  switch (state) {
-    case "available":
-      return "Available";
-    case "not_deployed":
-      return "Not deployed";
-    case "unavailable":
-      return "Unavailable";
-    case "not_applicable":
-      return "Not applicable";
-  }
-}
 
 export function AgentCapabilityList({
   capabilities,
@@ -61,7 +48,7 @@ export function AgentCapabilityList({
                 fontFamily: "var(--font-mono)",
               }}
             >
-              {stateLabel(capability.state)}
+              {getAgentCapabilityStateLabel(capability.state)}
             </span>
           </li>
         ))}

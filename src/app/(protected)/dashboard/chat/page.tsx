@@ -1,14 +1,19 @@
 import { auth } from "@/lib/auth";
+import { db } from "@/db";
+import { instance } from "@/db/schema";
+import { buildAgentCapabilities } from "@/lib/agent-capabilities";
+import { buildAgentWorkspaceComposition } from "@/lib/agent-workspace";
 import {
-  resolveAgentWorkspaceDirectory,
-  selectAgentWorkspace,
-} from "@/lib/open-webui-workspace";
+  getHermesDashboardUnavailableMessage,
+  getHermesDashboardUrl,
+} from "@/lib/hermes-dashboard";
+import { resolveAgentDirectory } from "@/lib/open-webui-workspace";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import {
-  OpenChatUnavailable,
-  OpenWebuiWorkspace,
-} from "./open-webui-workspace";
+import { AgentWorkspace } from "./agent-workspace";
+import { OpenChatUnavailable } from "./open-webui-workspace";
+import { resolveAgentWorkspacePageContext } from "./page-resolution";
 
 export default async function ChatPage({
   searchParams,
@@ -18,22 +23,51 @@ export default async function ChatPage({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 
-  const directory = await resolveAgentWorkspaceDirectory(session.user.id);
-  if (directory.status === "unavailable") return <OpenChatUnavailable />;
-
+  const [directory, instances] = await Promise.all([
+    resolveAgentDirectory(session.user.id),
+    db.select().from(instance).where(eq(instance.userId, session.user.id)),
+  ]);
   const rawAgent = (await searchParams).agent;
   if (Array.isArray(rawAgent)) notFound();
-  if (directory.workspaces.length === 0) {
-    if (rawAgent) notFound();
+
+  const resolution = resolveAgentWorkspacePageContext(
+    directory,
+    rawAgent,
+    instances,
+  );
+  if (resolution.status === "not_found") notFound();
+  if (resolution.status === "unavailable") return <OpenChatUnavailable />;
+  if (resolution.status === "empty") {
     return <OpenChatUnavailable reason="not-configured" />;
   }
-  const selected = selectAgentWorkspace(directory.workspaces, rawAgent);
-  if (!selected) notFound();
+
+  const selected = resolution.selected.agent;
+  const selectedInstance = resolution.selected.instance;
+  const dashboardUrl = selectedInstance?.subdomain
+    ? getHermesDashboardUrl(selectedInstance.subdomain, {
+        authStatus: selectedInstance.hermesDashboardAuthStatus,
+        clientId: selectedInstance.hermesOidcClientId,
+      })
+    : null;
+  const dashboardUnavailableMessage = selectedInstance
+    ? getHermesDashboardUnavailableMessage({
+        authStatus: selectedInstance.hermesDashboardAuthStatus,
+        clientId: selectedInstance.hermesOidcClientId,
+      })
+    : null;
+  const capabilities = buildAgentCapabilities({
+    agentKey: selected.key,
+    dashboardUnavailableMessage,
+    dashboardUrl,
+    hasOpenChat: selected.workspace !== null,
+  });
+  const composition = buildAgentWorkspaceComposition({
+    agent: selected,
+    capabilities,
+  });
+  if (composition.status === "unavailable") return <OpenChatUnavailable />;
 
   return (
-    <OpenWebuiWorkspace
-      selected={selected}
-      workspaces={directory.workspaces}
-    />
+    <AgentWorkspace agents={resolution.agents} composition={composition} />
   );
 }

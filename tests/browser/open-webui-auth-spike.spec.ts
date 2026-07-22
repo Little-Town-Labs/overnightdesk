@@ -56,7 +56,9 @@ test("desktop shell reaches a full-height workspace without a duplicate Open Cha
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
 
-  await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Overview", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Chat" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
@@ -74,7 +76,9 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
   await page.setViewportSize({ width: 320, height: 720 });
   await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
 
-  await expect(page.getByRole("link", { name: "Overview" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Overview", exact: true }),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Open Chat" })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
@@ -88,6 +92,152 @@ test("mobile shell keeps navigation, identity, fallback, and workspace usable", 
   const frame = await page.locator("#workspace").boundingBox();
   expect(frame?.width).toBeGreaterThan(280);
   expect(frame?.height).toBeGreaterThan(360);
+});
+
+test("composable workspace keeps chat open and exposes a safe independent dashboard launch", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
+
+  await expect(page.getByRole("navigation", { name: "Choose agent" })).toContainText(
+    "Titus",
+  );
+  await expect(page.getByRole("navigation", { name: "Choose agent" })).toContainText(
+    "Walter",
+  );
+  await expect(page.getByRole("region", { name: "Capabilities" })).toContainText(
+    "Open Chat",
+  );
+  await expect(page.getByRole("region", { name: "Capabilities" })).toContainText(
+    "Advanced Dashboard",
+  );
+  const dashboard = page.getByRole("link", { name: "Open Advanced Dashboard" });
+  await expect(dashboard).toHaveAttribute("target", "_blank");
+  await expect(dashboard).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(page.locator("#workspace")).toBeVisible();
+});
+
+test("opening, closing, and reopening the dashboard preserves the active chat", async ({
+  page,
+}) => {
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
+  const workspace = page.frameLocator("#workspace");
+  await workspace.getByRole("link", { name: "Continue with OvernightDesk" }).click();
+  await expect(workspace.getByText("Embedded session active")).toBeVisible();
+
+  const dashboardLink = page.getByRole("link", {
+    name: "Open Advanced Dashboard",
+  });
+  const firstDashboardPromise = page.waitForEvent("popup");
+  await dashboardLink.click();
+  const firstDashboard = await firstDashboardPromise;
+  await expect(firstDashboard.getByRole("heading", { name: "Native runtime dashboard" })).toBeVisible();
+  await firstDashboard.close();
+  await expect(workspace.getByText("Embedded session active")).toBeVisible();
+
+  const reopenedDashboardPromise = page.waitForEvent("popup");
+  await dashboardLink.click();
+  const reopenedDashboard = await reopenedDashboardPromise;
+  await expect(reopenedDashboard.getByRole("heading", { name: "Native runtime dashboard" })).toBeVisible();
+  await expect(workspace.getByText("Embedded session active")).toBeVisible();
+  await reopenedDashboard.close();
+});
+
+test("dashboard-only and neither states stay explicit without a chat frame", async ({
+  page,
+}) => {
+  await page.goto(`${approvedParent}/dashboard/chat?agent=walter`);
+
+  await expect(page.getByRole("heading", { name: "Walter" })).toBeVisible();
+  await expect(page.getByText("Open Chat is not deployed")).toBeVisible();
+  await expect(page.locator("#workspace")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Open Advanced Dashboard" }),
+  ).toBeVisible();
+
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus&surfaces=neither`);
+  await expect(page.getByText("Open Chat is not deployed")).toBeVisible();
+  await expect(page.locator("#workspace")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Open Advanced Dashboard" }),
+  ).toHaveCount(0);
+});
+
+test("a one-agent member receives no selector or capability for another agent", async ({
+  page,
+}) => {
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus&member=single`);
+
+  await expect(page.getByRole("navigation", { name: "Choose agent" })).toContainText(
+    "Titus",
+  );
+  await expect(page.getByRole("navigation", { name: "Choose agent" })).not.toContainText(
+    "Walter",
+  );
+  await expect(page.getByRole("link", { name: "Walter" })).toHaveCount(0);
+});
+
+test("invalid and unavailable workspace selection fails closed", async ({ page }) => {
+  const invalid = await page.goto(`${approvedParent}/dashboard/chat?agent=unknown`);
+  expect(invalid?.status()).toBe(404);
+  await expect(page.locator("#workspace")).toHaveCount(0);
+
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus&surfaces=unavailable`);
+  await expect(page.getByRole("alert")).toContainText(
+    "Agent workspace is temporarily unavailable",
+  );
+  await expect(page.locator("#workspace")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Open Advanced Dashboard" }),
+  ).toHaveCount(0);
+});
+
+for (const width of [320, 768, 1024, 1440]) {
+  test(`${width}px composable workspace keeps keyboard actions usable without overflow`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
+
+    const dashboard = page.getByRole("link", { name: "Open Advanced Dashboard" });
+    await dashboard.focus();
+    await expect(dashboard).toBeFocused();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+}
+
+test("expiry, revocation, and restoration deny both independent surfaces", async ({
+  page,
+  request,
+}) => {
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus`);
+  const workspace = page.frameLocator("#workspace");
+  await workspace.getByRole("link", { name: "Continue with OvernightDesk" }).click();
+
+  await request.post(`${approvedParent}/control/session-expire`);
+  await page.reload();
+  await expect(workspace.getByRole("heading", { name: "Access denied" })).toBeVisible();
+  expect((await request.get(`${approvedParent}/runtime-dashboard`)).status()).toBe(401);
+
+  await request.post(`${approvedParent}/control/restore`);
+  await page.reload();
+  await expect(workspace.getByText("Embedded session active")).toBeVisible();
+  expect((await request.get(`${approvedParent}/runtime-dashboard`)).status()).toBe(200);
+
+  await request.post(`${approvedParent}/control/revoke`);
+  await page.reload();
+  await expect(workspace.getByRole("heading", { name: "Access denied" })).toBeVisible();
+  expect((await request.get(`${approvedParent}/runtime-dashboard`)).status()).toBe(403);
+
+  await request.post(`${approvedParent}/control/restore`);
+  await page.reload();
+  await expect(workspace.getByText("Embedded session active")).toBeVisible();
+  expect((await request.get(`${approvedParent}/runtime-dashboard`)).status()).toBe(200);
 });
 
 test("desktop overview keeps the same Runtime and capability structure for Titus and Walter", async ({

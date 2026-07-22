@@ -15,8 +15,8 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** 022 — Agent Control Surfaces
-**Current critical path:** define the capability-driven agent workspace and qualify Walter chat
+**Active Spec Kit feature:** 023 — Composable Agent Workspace
+**Current critical path:** prototype the shared chat/dashboard composition, then qualify Walter chat in isolation
 
 ## Current Delivery Checkpoint — 2026-07-22
 
@@ -40,7 +40,7 @@ the active Spec Kit feature artifacts and the production platform standard.
   post-deployment health gates; every production result is in `deploys.log`.
 - **Completed gate:** T050 authenticated owner acceptance passed; Feature 022
   is closed.
-- **Next feature after 022:** specify one capability-driven selected-agent
+- **Feature 023 — active:** specify and prototype one capability-driven selected-agent
   workspace that can keep chat and the native Hermes dashboard open at the same
   time through a split view, pop-out modal/window, or another responsive
   composition, then qualify Walter for product-level chat and managed
@@ -53,7 +53,8 @@ the active Spec Kit feature artifacts and the production platform standard.
   creating a Walter-specific surface. Walter's existing native Hermes dashboard
   is the initial advanced-dashboard capability; its auth, framing, and
   simultaneous chat/dashboard interaction require their own reviewed
-  specification. This roadmap does not prescribe one fixed layout.
+  specification. The initial prototype uses embedded chat plus a safe
+  independent dashboard window/tab while preserving a layout-neutral contract.
 - **Dependency gate:** the 2026-07-22 production audit reports two high and one
   moderate finding, including the `sharp <0.35.0` advisory inherited through Next.js.
   Do not apply npm's suggested breaking Next.js downgrade; resolve this in a

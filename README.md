@@ -20,7 +20,7 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Current Agent Control-Surface Delivery
 
-Production `main` at `778b0bb` includes Feature 022's unified agent control
+Production `main` at `bec8495` includes Feature 022's unified agent control
 surfaces from PR 85. Overview, Settings, and selected-agent Admin Configuration
 share one exact membership-filtered agent context and consistent Identity,
 Runtime, capability, and configuration structure. Variable name/logo
@@ -40,16 +40,15 @@ combinations remain read-only. The governing contract is
 and the frontend uses its typed, value-free endpoint without legacy
 `writeSecrets` or separate restart calls. Feature 022 is complete.
 
-The next interface increment must reuse the shared capability model rather than
-add Walter-specific page code. Walter's existing native Hermes dashboard is an
-available capability. The selected-agent workspace should let the owner keep
-that dashboard and its chat surface open at the same time, using a split view,
-pop-out modal/window, or another responsive composition rather than prescribing
-one fixed layout. Agents without either capability keep an explicit unavailable
-state. Walter's
-future chat deployment and provider-aware authorization remain separately
-qualified work.
-The [Spec Kit task list](specs/022-agent-control-surfaces/tasks.md) is the
+Feature 023 now defines and prototypes that follow-up through one composable,
+capability-driven selected-agent workspace. The initial interaction keeps
+qualified chat embedded and launches the exact native Hermes dashboard in an
+independent safe window or tab; the shared contract remains layout-neutral.
+Agents with only one surface retain it with an explicit state for the other.
+Walter's future chat deployment remains a separate disabled-install,
+isolation, rollback, session-lifecycle, and owner-acceptance gate. Walter's
+primary Codex OAuth provider policy is unchanged. The
+[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is the
 current delivery source of truth.
 
 ## Runtime Model
