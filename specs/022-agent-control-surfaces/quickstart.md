@@ -85,8 +85,8 @@ are complete.
   proved disabled denial and full binary/environment rollback, and qualified
   only the Titus runtime/OpenRouter tuple with one exact restart, durable replay,
   separate service-account scope, and value-free response/log/state evidence.
-- T044 replaces the managed-variable route's legacy write/restart pair with one
+- T044 replaced the managed-variable route's legacy write/restart pair with one
   strict typed call. The server-only Titus boundary ID defaults absent/read-only;
   Walter remains read-only because its current canonical path has no qualified
-  catalog variable. Frontend publication and authenticated owner acceptance
-  remain incomplete.
+  catalog variable. PRs 87 and 88 deployed the adapter and certificate-valid
+  provisioner origin at `29e750e`. Only authenticated owner acceptance remains.

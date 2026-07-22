@@ -20,7 +20,7 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Current Agent Control-Surface Delivery
 
-Production `main` at `1e44360` includes Feature 022's unified agent control
+Production `main` at `29e750e` includes Feature 022's unified agent control
 surfaces from PR 85. Overview, Settings, and selected-agent Admin Configuration
 share one exact membership-filtered agent context and consistent Identity,
 Runtime, capability, and configuration structure. Variable name/logo

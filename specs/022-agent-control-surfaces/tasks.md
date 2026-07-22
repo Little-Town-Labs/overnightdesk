@@ -3,15 +3,15 @@
 **Input**: Design documents from `/specs/022-agent-control-surfaces/`
 **Tests**: Required by the constitution and feature specification. Execute RED before GREEN for every behavior change.
 
-**Status — 2026-07-22**: T001-T043 and T045-T048 are complete. PR 85 merged and
+**Status — 2026-07-22**: T001-T049 are complete except T050. PR 85 merged and
 deployed the unified frontend at main commit `1e44360`; the complete Jest suite,
 production build, Chromium release suite, and public/Aegis post-deployment
 checks passed. The production audit reports two high, one moderate, and zero
 critical findings. Engine PR 4 merged at `fc8211e`; T043 deployed and qualified
 only the Titus runtime/OpenRouter boundary with rollback, idempotency, exact
-restart, service-account isolation, and value-free evidence. T044 is implemented
-on its separate frontend branch and retains its publication/deployment gate.
-Walter remains read-only. Authenticated owner acceptance remains T050.
+restart, service-account isolation, and value-free evidence. Frontend PRs 87
+and 88 deployed T044 at `29e750e` with the certificate-valid provisioner origin.
+Walter remains read-only. Authenticated owner acceptance is the only open task.
 
 ## Phase 1: Setup and contract baseline
 
@@ -114,7 +114,7 @@ Walter remains read-only. Authenticated owner acceptance remains T050.
 - [x] T041 Create a dedicated `overnightdesk-engine` worktree and feature branch only after frontend contract review, following suite `AGENTS.md`
 - [x] T042 Add RED/GREEN Go tests for one-key allowlist, App/environment/path resolution, stdin-only values, service-account separation, idempotency, audit-safe errors, and runtime effect in `overnightdesk-engine/internal/hermes/`
 - [x] T043 Deploy the provisioner increment with read-only preflight, rollback proof, value-suppressed logs, and a `deploys.log` record
-- [ ] T044 Replace the managed-variable route's legacy secret-map/restart calls with the reviewed typed provisioner adapter and enable only qualified catalog/boundary mappings after production provisioner qualification (implementation complete; publication/deployment pending)
+- [x] T044 Replace the managed-variable route's legacy secret-map/restart calls with the reviewed typed provisioner adapter and enable only qualified catalog/boundary mappings after production provisioner qualification
 
 **Checkpoint**: Canonical Titus/Walter Phase replacement may be enabled only after T040-T044 and owner acceptance.
 
@@ -126,7 +126,7 @@ Walter remains read-only. Authenticated owner acceptance remains T050.
 - [x] T046 Run the complete Jest suite, production build, Chromium browser suite, `npm audit --audit-level=high`, and `git diff --check`
 - [x] T047 Perform five-axis code/security review and verify no `instances[0]`, agent-name branches, arbitrary secret maps, secret values, or hidden enabled agent-tab inconsistencies remain in touched surfaces
 - [x] T048 Update Feature 020/022 status, `.specify/roadmap.md`, `README.md`, and `overnightdesk-platform-standard` with verified behavior and remaining gates
-- [ ] T049 Publish reviewed pull request(s), wait for checks, merge only passing increments, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log` (initial frontend increment complete through PR 85 at `1e44360`; repeat for T041-T044 and final closeout)
+- [x] T049 Publish reviewed pull request(s), wait for checks, merge only passing increments, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T050 Complete authenticated owner browser acceptance for Titus/Walter Overview, Settings, Admin, Open Chat, and Runtime consistency before marking Feature 022 complete
 
 ---

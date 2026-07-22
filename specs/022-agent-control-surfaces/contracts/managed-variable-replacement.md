@@ -397,3 +397,9 @@ changed by T040.
   `replaceManagedVariable` call, strictly validates the bounded value-free
   response, and contains no legacy write/restart fallback. An absent or invalid
   boundary ID renders every control read-only.
+- Frontend PRs 87 and 88 deployed T044 at `29e750e`. The production server-only
+  mapping enables only Titus runtime/OpenRouter. Post-deployment verification
+  corrected the stale `api.overnightdesk.com` origin to the certificate-valid
+  `provisioner.overnightdesk.com` route; the failed origin produced no Phase
+  call or runtime effect. Vercel, provisioner, Nginx, Open WebUI, Titus, Walter,
+  Mitchel, Ops, and all three intake routes completed healthy.
