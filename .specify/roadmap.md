@@ -16,8 +16,8 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** 022 — Agent Control Surfaces
-**Current critical path:** provisioner contract → isolated engine increment →
-release verification → PR/deployment → authenticated owner acceptance
+**Current critical path:** isolated engine increment → provisioner qualification →
+typed frontend adoption → authenticated owner acceptance
 
 ## Current Delivery Checkpoint — 2026-07-22
 
@@ -25,19 +25,24 @@ release verification → PR/deployment → authenticated owner acceptance
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered
   selector, variable agent identity, selected-agent Open Chat and Advanced
   Dashboard actions, and removal of Open Chat from permanent navigation.
-- **Feature 022 — local implementation through P4:** four reviewed commits on
-  `022-agent-control-surfaces` unify Overview, Settings, and Admin agent context,
-  make Runtime structure consistent, remove ambiguous first-instance decisions
-  from migrated surfaces, and replace arbitrary secret maps with a cataloged,
-  exact-boundary, value-free mutation contract.
-- **Not production state:** Feature 022 has not been pushed, merged, deployed,
-  or accepted in an authenticated production browser. Titus and Walter
-  canonical Phase controls therefore remain read-only.
-- **Remaining gates:** T040-T044 boundary-aware provisioner work, T045-T047
-  analysis/review/qualification, T048 final documentation and platform-standard
-  reconciliation, T049 publication/deployment, and T050 owner acceptance.
-- **Dependency gate:** the 2026-07-22 audit reports two high and five moderate
-  findings, including the `sharp <0.35.0` advisory inherited through Next.js.
+- **Feature 022 — frontend deployed:** PR 85 merged and deployed at main commit
+  `1e44360`. Overview, Settings, and Admin now share one selected-agent context,
+  Runtime structure is consistent for Titus and Walter, ambiguous first-instance
+  decisions are removed from migrated surfaces, and arbitrary secret-map input
+  is retired in favor of a cataloged, exact-boundary, value-free contract.
+- **Production boundary:** the unified presentation is live, but authenticated
+  owner acceptance is still pending. Titus and Walter canonical Phase controls
+  remain read-only until the boundary-aware provisioner and typed frontend
+  adapter pass T041-T044.
+- **Completed release work:** T040 and T045-T047 are complete. The initial
+  frontend publication/deployment portion of T049 completed through PR 85;
+  documentation reconciliation and the later engine/frontend increments retain
+  their own publication and verification gates.
+- **Remaining gates:** T041-T044 boundary-aware provisioner implementation,
+  production qualification, and typed frontend adoption; final documentation
+  closeout; and T050 authenticated owner acceptance.
+- **Dependency gate:** the 2026-07-22 production audit reports two high and one
+  moderate finding, including the `sharp <0.35.0` advisory inherited through Next.js.
   Do not apply npm's suggested breaking Next.js downgrade; resolve this in a
   reviewed dependency increment before release.
 

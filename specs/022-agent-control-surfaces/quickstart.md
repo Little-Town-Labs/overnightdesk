@@ -79,6 +79,7 @@ are complete.
   critical/high feature findings after adding the missing 768/1024 keyboard
   coverage and decomposing the managed-variable handler into sub-50-line
   helpers.
-- The boundary-aware provisioner, publication, deployment, platform-standard
-  reconciliation, and authenticated production owner acceptance remain
+- The initial frontend increment was published and deployed through PR 85 at
+  main commit `1e44360`. The boundary-aware provisioner, typed frontend adoption,
+  their release evidence, and authenticated production owner acceptance remain
   incomplete.

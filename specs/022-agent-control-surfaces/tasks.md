@@ -3,12 +3,13 @@
 **Input**: Design documents from `/specs/022-agent-control-surfaces/`
 **Tests**: Required by the constitution and feature specification. Execute RED before GREEN for every behavior change.
 
-**Status — 2026-07-22**: T001-T039 are committed locally. T040's
-server-to-server provisioner contract is complete and reviewed against the
-current frontend adapter and Go provisioner. The complete Jest suite passed
-with 919 active tests and the production build passed. Feature 022 is not pushed
-or deployed. T041 is next; current dependency audit and authenticated browser
-acceptance remain release gates.
+**Status — 2026-07-22**: T001-T040 and T045-T048 are complete. PR 85 merged and
+deployed the unified frontend at main commit `1e44360`; the complete Jest suite,
+production build, Chromium release suite, and public/Aegis post-deployment
+checks passed. The production audit reports two high, one moderate, and zero
+critical findings. T041 is next. The T049 publication/deployment work is
+complete for the initial frontend increment but remains open for T041-T044 and
+final closeout; authenticated owner acceptance remains T050.
 
 ## Phase 1: Setup and contract baseline
 
@@ -122,8 +123,8 @@ acceptance remain release gates.
 - [x] T045 Run Spec Kit cross-artifact analysis and remediate all critical/high findings before implementation completion
 - [x] T046 Run the complete Jest suite, production build, Chromium browser suite, `npm audit --audit-level=high`, and `git diff --check`
 - [x] T047 Perform five-axis code/security review and verify no `instances[0]`, agent-name branches, arbitrary secret maps, secret values, or hidden enabled agent-tab inconsistencies remain in touched surfaces
-- [ ] T048 Update Feature 020/022 status, `.specify/roadmap.md`, `README.md`, and `overnightdesk-platform-standard` with verified behavior and remaining gates
-- [ ] T049 Publish reviewed pull request(s), wait for checks, merge only passing increments, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T048 Update Feature 020/022 status, `.specify/roadmap.md`, `README.md`, and `overnightdesk-platform-standard` with verified behavior and remaining gates
+- [ ] T049 Publish reviewed pull request(s), wait for checks, merge only passing increments, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log` (initial frontend increment complete through PR 85 at `1e44360`; repeat for T041-T044 and final closeout)
 - [ ] T050 Complete authenticated owner browser acceptance for Titus/Walter Overview, Settings, Admin, Open Chat, and Runtime consistency before marking Feature 022 complete
 
 ---
