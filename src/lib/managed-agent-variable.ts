@@ -7,7 +7,7 @@ export type ManagedVariableId =
 export type ManagedVariableSensitivity = "config" | "secret";
 export type ManagedVariableScope = "runtime" | "use_case";
 export type ManagedVariableRuntimeEffect = "none" | "reload" | "restart" | "manual";
-export type ManagedVariableBoundaryKind = "legacy_tenant_path";
+export type ManagedVariableBoundaryKind = "managed_variable_v1";
 
 export interface ManagedVariableDefinition {
   id: ManagedVariableId;
@@ -54,7 +54,7 @@ const definitions: readonly ManagedVariableDefinition[] = [
     scope: "runtime",
     runtimeEffect: "restart",
     confirmation: "replace:openrouter_api_key:restart",
-    enabledBoundaryKinds: ["legacy_tenant_path"],
+    enabledBoundaryKinds: ["managed_variable_v1"],
     validate: (value) =>
       value.length >= 32 &&
       value.length <= 512 &&
@@ -72,7 +72,7 @@ const definitions: readonly ManagedVariableDefinition[] = [
     scope: "runtime",
     runtimeEffect: "restart",
     confirmation: "replace:telegram_bot_token:restart",
-    enabledBoundaryKinds: ["legacy_tenant_path"],
+    enabledBoundaryKinds: ["managed_variable_v1"],
     validate: (value) =>
       value.length <= 256 && /^\d{5,16}:[A-Za-z0-9_-]{20,200}$/.test(value),
     validationMessage: "Enter a valid Telegram bot token.",
@@ -87,7 +87,7 @@ const definitions: readonly ManagedVariableDefinition[] = [
     scope: "runtime",
     runtimeEffect: "restart",
     confirmation: "replace:telegram_allowed_users:restart",
-    enabledBoundaryKinds: ["legacy_tenant_path"],
+    enabledBoundaryKinds: ["managed_variable_v1"],
     validate: (value) =>
       value.length <= 512 && /^\d{3,20}(?:\s*,\s*\d{3,20})*$/.test(value),
     validationMessage: "Enter comma-separated Telegram user IDs.",

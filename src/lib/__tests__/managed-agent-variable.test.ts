@@ -33,7 +33,7 @@ describe("managed agent variable catalog", () => {
     expect(getManagedVariableDefinition("openrouter_api_key")).toMatchObject({
       phaseKey: "OPENROUTER_API_KEY",
       scope: "runtime",
-      enabledBoundaryKinds: ["legacy_tenant_path"],
+      enabledBoundaryKinds: ["managed_variable_v1"],
     });
     expect(getManagedVariableDefinition("unknown")).toBeNull();
   });

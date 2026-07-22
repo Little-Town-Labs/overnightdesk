@@ -148,6 +148,16 @@ async function readBoundedResponse(
   return body + decoder.decode();
 }
 
+function matchesManagedVariableRequest(
+  data: z.infer<typeof managedVariableDataSchema>,
+  params: ManagedVariableReplacementParams,
+): boolean {
+  return (
+    data.requestId === params.requestId &&
+    data.variableId === params.variableId
+  );
+}
+
 function getConfig() {
   return {
     url: process.env.PROVISIONER_URL || "",
@@ -250,12 +260,19 @@ export const provisionerClient = {
       }
       if (response.ok) {
         const parsed = managedVariableSuccessSchema.safeParse(body);
-        return parsed.success
-          ? parsed.data
-          : { success: false, status: 502, code: "INVALID_RESPONSE" };
+        if (
+          !parsed.success ||
+          !matchesManagedVariableRequest(parsed.data.data, params) ||
+          parsed.data.data.runtimeEffectStatus === "failed"
+        ) {
+          return { success: false, status: 502, code: "INVALID_RESPONSE" };
+        }
+        return parsed.data;
       }
       const parsed = managedVariableFailureSchema.safeParse(body);
-      return parsed.success
+      return parsed.success &&
+        (!parsed.data.data ||
+          matchesManagedVariableRequest(parsed.data.data, params))
         ? {
             success: false,
             status: response.status,

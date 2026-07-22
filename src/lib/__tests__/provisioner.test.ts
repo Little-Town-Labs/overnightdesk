@@ -257,6 +257,30 @@ describe("Provisioner Client", () => {
       });
     });
 
+    it("rejects a valid-shaped response for a different operation", async () => {
+      mockFetch.mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          success: true,
+          data: {
+            requestId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+            variableId: params.variableId,
+            outcome: "replaced",
+            runtimeEffect: "restart",
+            runtimeEffectStatus: "completed",
+            replayed: false,
+          },
+        }), { status: 200 }),
+      );
+
+      await expect(
+        provisionerClient.replaceManagedVariable(params),
+      ).resolves.toEqual({
+        success: false,
+        status: 502,
+        code: "INVALID_RESPONSE",
+      });
+    });
+
     it.each([
       ["unknown fields", JSON.stringify({ success: true, data: { value: params.value } })],
       ["malformed JSON", `not-json-${params.value}`],
