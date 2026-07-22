@@ -11,7 +11,7 @@ const body = {
   value,
   requestId: "018f6f54-8c2f-4a33-8f28-a7e73f4a3111",
   confirmation: "replace:openrouter_api_key:restart",
-};
+} as const;
 const agent = {
   key: "example-agent",
   useCaseId: "11111111-1111-4111-8111-111111111111",
@@ -283,6 +283,34 @@ describe("POST /api/settings/agent-variables", () => {
     expect(result).toMatchObject({ status: 502, body: { error: { code: "SECRET_WRITE_FAILED" } } });
     expect(JSON.stringify(result)).not.toContain(value);
   });
+
+  it.each([
+    ["BOUNDARY_DISABLED", 423, "VARIABLE_UNAVAILABLE"],
+    ["BOUNDARY_NOT_FOUND", 423, "VARIABLE_UNAVAILABLE"],
+    ["RATE_LIMITED", 429, "RATE_LIMITED"],
+    ["INVALID_VALUE", 422, "INVALID_VALUE"],
+    ["STATE_UNAVAILABLE", 503, "AUTHORITY_UNAVAILABLE"],
+  ] as const)(
+    "maps provisioner %s to the browser-safe contract",
+    async (provisionerCode, status, browserCode) => {
+      const deps = dependencies();
+      deps.replaceManagedVariable.mockResolvedValue({
+        success: false,
+        status,
+        code: provisionerCode,
+      });
+
+      const result = await responseJson(
+        await createManagedVariablePostHandler(deps)(request()),
+      );
+
+      expect(result).toMatchObject({
+        status,
+        body: { success: false, error: { code: browserCode } },
+      });
+      expect(JSON.stringify(result)).not.toContain(value);
+    },
+  );
 
   it("reports the provisioner's typed partial success", async () => {
     const deps = dependencies();

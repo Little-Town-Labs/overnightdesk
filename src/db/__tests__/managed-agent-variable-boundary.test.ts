@@ -1,6 +1,7 @@
 import type { AgentDirectoryEntry } from "@/lib/open-webui-workspace";
 import { getManagedVariableDefinition } from "@/lib/managed-agent-variable";
 import {
+  getQualifiedManagedVariableBoundaries,
   resolveManagedVariableControlDescriptors,
   resolveManagedAgentVariableBoundary,
   type ManagedVariableBoundaryStore,
@@ -40,6 +41,39 @@ const qualifiedBoundary: ManagedVariableProvisionerBoundaryConfig = {
   pathIdentifier: runtimeBinding.pathIdentifier,
   variableIds: ["openrouter_api_key"],
 };
+
+describe("getQualifiedManagedVariableBoundaries", () => {
+  const originalBoundaryId =
+    process.env.MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID;
+
+  afterEach(() => {
+    if (originalBoundaryId === undefined) {
+      delete process.env.MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID;
+    } else {
+      process.env.MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID = originalBoundaryId;
+    }
+  });
+
+  it.each([undefined, "", "not-a-uuid"])(
+    "fails closed for an absent or invalid boundary ID (%s)",
+    (boundaryId) => {
+      if (boundaryId === undefined) {
+        delete process.env.MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID;
+      } else {
+        process.env.MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID = boundaryId;
+      }
+      expect(getQualifiedManagedVariableBoundaries()).toEqual([]);
+    },
+  );
+
+  it("maps a valid server-only ID to only the qualified Titus tuple", () => {
+    process.env.MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID =
+      qualifiedBoundary.boundaryId;
+    expect(getQualifiedManagedVariableBoundaries()).toEqual([
+      qualifiedBoundary,
+    ]);
+  });
+});
 
 function store(rows: typeof bindings): ManagedVariableBoundaryStore {
   return { listExactBindings: jest.fn().mockResolvedValue(rows) };

@@ -1,3 +1,5 @@
+export {};
+
 const databaseUrl = process.env.DATABASE_TEST_URL;
 const databaseName = databaseUrl ? new URL(databaseUrl).pathname.slice(1) : "";
 const safeDisposableDatabase =

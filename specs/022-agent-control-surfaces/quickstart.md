@@ -80,6 +80,13 @@ are complete.
   coverage and decomposing the managed-variable handler into sub-50-line
   helpers.
 - The initial frontend increment was published and deployed through PR 85 at
-  main commit `1e44360`. The boundary-aware provisioner, typed frontend adoption,
-  their release evidence, and authenticated production owner acceptance remain
-  incomplete.
+  main commit `1e44360`.
+- Engine PR 4 merged at `fc8211e`. T043 deployed the boundary-aware endpoint,
+  proved disabled denial and full binary/environment rollback, and qualified
+  only the Titus runtime/OpenRouter tuple with one exact restart, durable replay,
+  separate service-account scope, and value-free response/log/state evidence.
+- T044 replaces the managed-variable route's legacy write/restart pair with one
+  strict typed call. The server-only Titus boundary ID defaults absent/read-only;
+  Walter remains read-only because its current canonical path has no qualified
+  catalog variable. Frontend publication and authenticated owner acceptance
+  remain incomplete.

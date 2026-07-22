@@ -158,6 +158,39 @@ function matchesManagedVariableRequest(
   );
 }
 
+function parseManagedVariableResponse(
+  response: Response,
+  body: unknown,
+  params: ManagedVariableReplacementParams,
+): ManagedVariableReplacementResult {
+  if (response.ok) {
+    const parsed = managedVariableSuccessSchema.safeParse(body);
+    if (
+      !parsed.success ||
+      !matchesManagedVariableRequest(parsed.data.data, params) ||
+      parsed.data.data.runtimeEffectStatus === "failed"
+    ) {
+      return { success: false, status: 502, code: "INVALID_RESPONSE" };
+    }
+    return parsed.data;
+  }
+
+  const parsed = managedVariableFailureSchema.safeParse(body);
+  if (
+    !parsed.success ||
+    (parsed.data.data &&
+      !matchesManagedVariableRequest(parsed.data.data, params))
+  ) {
+    return { success: false, status: 502, code: "INVALID_RESPONSE" };
+  }
+  return {
+    success: false,
+    status: response.status,
+    code: parsed.data.error.code,
+    ...(parsed.data.data ? { data: parsed.data.data } : {}),
+  };
+}
+
 function getConfig() {
   return {
     url: process.env.PROVISIONER_URL || "",
@@ -258,28 +291,7 @@ export const provisionerClient = {
       } catch {
         return { success: false, status: 502, code: "INVALID_RESPONSE" };
       }
-      if (response.ok) {
-        const parsed = managedVariableSuccessSchema.safeParse(body);
-        if (
-          !parsed.success ||
-          !matchesManagedVariableRequest(parsed.data.data, params) ||
-          parsed.data.data.runtimeEffectStatus === "failed"
-        ) {
-          return { success: false, status: 502, code: "INVALID_RESPONSE" };
-        }
-        return parsed.data;
-      }
-      const parsed = managedVariableFailureSchema.safeParse(body);
-      return parsed.success &&
-        (!parsed.data.data ||
-          matchesManagedVariableRequest(parsed.data.data, params))
-        ? {
-            success: false,
-            status: response.status,
-            code: parsed.data.error.code,
-            ...(parsed.data.data ? { data: parsed.data.data } : {}),
-          }
-        : { success: false, status: 502, code: "INVALID_RESPONSE" };
+      return parseManagedVariableResponse(response, body, params);
     } catch {
       return { success: false, status: 502, code: "NETWORK_FAILURE" };
     }

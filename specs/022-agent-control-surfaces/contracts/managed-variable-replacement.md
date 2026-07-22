@@ -375,3 +375,25 @@ The contract was reconciled against both sides of the current boundary:
 Review result: **accepted for T041 implementation**. No engine worktree,
 runtime configuration, production service, Phase value, or credential was
 changed by T040.
+
+## T041-T044 delivery record (2026-07-22)
+
+- Engine PR 4 merged at `fc8211e` after Go tests, focused race coverage, vet,
+  lint, and ARM64 build checks passed.
+- T043 installed the registry disabled first, proved `BOUNDARY_DISABLED`
+  without a Phase call or runtime effect, restored the previous binary and
+  environment with route absence, then restored the merged artifact while
+  preserving durable state.
+- The existing Titus and Walter Phase service-account inputs were proven
+  distinct and cross-App denied. Only the Titus runtime/OpenRouter combination
+  qualified: a same-value one-key replacement caused exactly one
+  `hermes-titus` restart, recovered healthy, replayed durably without another
+  write/restart, kept the Phase key set unchanged, and left responses, journal,
+  and SQLite evidence value-free.
+- Walter remains disabled because its current canonical boundary has no
+  qualified catalog variable.
+- T044 resolves only source-controlled canonical tuples whose opaque boundary
+  ID is supplied by a server-only environment variable. It makes one typed
+  `replaceManagedVariable` call, strictly validates the bounded value-free
+  response, and contains no legacy write/restart fallback. An absent or invalid
+  boundary ID renders every control read-only.
