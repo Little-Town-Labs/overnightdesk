@@ -3,12 +3,12 @@
 **Input**: Design documents from `/specs/022-agent-control-surfaces/`
 **Tests**: Required by the constitution and feature specification. Execute RED before GREEN for every behavior change.
 
-**Status — 2026-07-22**: T001-T039 are committed locally and the feature
-worktree is clean. The complete Jest suite passed with 919 active tests and the
-production build passed. Feature 022 is not pushed or deployed. T040 is next;
-T041 must not create the `overnightdesk-engine` worktree until the
-server-to-server provisioner contract is reviewed. Current dependency audit and
-authenticated browser acceptance remain release gates.
+**Status — 2026-07-22**: T001-T039 are committed locally. T040's
+server-to-server provisioner contract is complete and reviewed against the
+current frontend adapter and Go provisioner. The complete Jest suite passed
+with 919 active tests and the production build passed. Feature 022 is not pushed
+or deployed. T041 is next; current dependency audit and authenticated browser
+acceptance remain release gates.
 
 ## Phase 1: Setup and contract baseline
 
@@ -107,11 +107,11 @@ authenticated browser acceptance remain release gates.
 
 ## Phase 7: Separate boundary-aware provisioner follow-up
 
-- [ ] T040 Document the server-to-server boundary-aware provisioner request/response and rollback contract in `specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md`
+- [x] T040 Document and review the server-to-server boundary-aware provisioner request/response, frontend adoption, and rollback contract in `specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md`
 - [ ] T041 Create a dedicated `overnightdesk-engine` worktree and feature branch only after frontend contract review, following suite `AGENTS.md`
 - [ ] T042 Add RED/GREEN Go tests for one-key allowlist, App/environment/path resolution, stdin-only values, service-account separation, idempotency, audit-safe errors, and runtime effect in `overnightdesk-engine/internal/hermes/`
 - [ ] T043 Deploy the provisioner increment with read-only preflight, rollback proof, value-suppressed logs, and a `deploys.log` record
-- [ ] T044 Enable only reviewed catalog/boundary combinations in `src/lib/managed-agent-variable.ts` after production provisioner qualification
+- [ ] T044 Replace the managed-variable route's legacy secret-map/restart calls with the reviewed typed provisioner adapter and enable only qualified catalog/boundary mappings after production provisioner qualification
 
 **Checkpoint**: Canonical Titus/Walter Phase replacement may be enabled only after T040-T044 and owner acceptance.
 
