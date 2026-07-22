@@ -58,12 +58,14 @@ describe("agent workspace directory", () => {
       agents: [
         expect.objectContaining({
           key: "titus",
+          useCaseId: TITUS_RECORD.useCaseId,
           runtime: { slug: "hermes-titus", status: "active" },
           membershipRole: "owner",
           identity: expect.objectContaining({ name: "Titus" }),
         }),
         expect.objectContaining({
           key: "walter",
+          useCaseId: WALTER_RECORD.useCaseId,
           runtime: { slug: "hermes-walter", status: "active" },
           membershipRole: "owner",
           identity: expect.objectContaining({ name: "Walter" }),

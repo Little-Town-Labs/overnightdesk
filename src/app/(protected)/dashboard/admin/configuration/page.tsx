@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAdminPage } from "@/lib/admin-page-authorization";
+import { resolveManagedVariableControlDescriptors } from "@/db/managed-agent-variable-boundary";
 import { buildAgentCapabilities } from "@/lib/agent-capabilities";
 import {
   getHermesDashboardUnavailableMessage,
@@ -60,6 +61,10 @@ export default async function AdminConfigurationPage({
         clientId: selectedInstance.hermesOidcClientId,
       })
     : null;
+  const managedVariables = await resolveManagedVariableControlDescriptors({
+    agent,
+    instance: selectedInstance,
+  });
 
   return (
     <AdminAgentConfiguration
@@ -70,6 +75,7 @@ export default async function AdminConfigurationPage({
         dashboardUrl,
         hasOpenChat: agent.workspace !== null,
       })}
+      managedVariables={managedVariables}
       selected={agent}
       statusLabel={getSelectedAgentStatusLabel(agent, selectedInstance)}
     />

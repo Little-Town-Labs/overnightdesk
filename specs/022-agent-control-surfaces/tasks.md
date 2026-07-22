@@ -47,9 +47,9 @@
 **Independent Test**: Switch Titus/Walter in Settings and confirm only agent-scoped content changes; account controls remain; invalid selectors fail closed; one-agent users see only one identity.
 
 - [x] T015 [US2] Add failing Settings presentation tests for global account content, multi-agent selection, one-agent selection, unavailable directory, and invalid explicit selector in `src/app/(protected)/dashboard/settings/__tests__/settings-page.test.tsx`
-- [x] T016 [P] [US2] Add failing presentational tests for shared Settings scope headings and Runtime consistency in `src/app/(protected)/dashboard/settings/__tests__/agent-settings.test.tsx`
+- [x] T016 [P] [US2] Add failing presentational tests for shared selected-agent structure and Runtime consistency in `src/app/(protected)/dashboard/__tests__/selected-agent-configuration.test.tsx`
 - [x] T017 [US2] Redesign Settings around global account and selected-agent sections in `src/app/(protected)/dashboard/settings/page.tsx`
-- [x] T018 [US2] Replace the legacy credential cards with explicit read-only agent configuration presentation in `src/app/(protected)/dashboard/settings/agent-credentials.tsx`
+- [x] T018 [US2] Replace the legacy credential cards with explicit read-only agent configuration presentation in `src/app/(protected)/dashboard/managed-agent-variables.tsx`
 - [x] T019 [US2] Remove `getInstanceForUser` and first-instance selection from Settings and preserve account controls when the directory is unavailable in `src/app/(protected)/dashboard/settings/page.tsx`
 - [x] T020 [US2] Run focused Settings tests and responsive browser assertions and mark T015-T019 complete in `specs/022-agent-control-surfaces/tasks.md`
 
@@ -81,18 +81,18 @@
 
 **Independent Test**: Approved exact-boundary fixture succeeds value-free; arbitrary key/path/agent/role/value and unsupported canonical boundaries make zero external writes; audit failure denies mutation.
 
-- [ ] T028 [US4] Add failing catalog tests for stable IDs, role policy, validation bounds, confirmation strings, runtime effects, and no secret values in `src/lib/__tests__/managed-agent-variable.test.ts`
-- [ ] T029 [US4] Implement the source-controlled variable catalog and safe public descriptors in `src/lib/managed-agent-variable.ts`
-- [ ] T030 [US4] Add failing boundary tests for exactly one canonical secret binding, supported legacy path equivalence, missing/conflicting bindings, and no client coordinates in `src/db/__tests__/managed-agent-variable-boundary.test.ts`
-- [ ] T031 [US4] Implement exact secret-boundary resolution and deployed-provisioner compatibility gating in `src/db/managed-agent-variable-boundary.ts`
-- [ ] T032 [US4] Add failing metadata-only audit tests, including forbidden-value sentinels and audit failure, in `src/lib/__tests__/managed-agent-variable-audit.test.ts`
-- [ ] T033 [US4] Implement the metadata-only audit adapter using `platform_audit_log` in `src/lib/managed-agent-variable-audit.ts`
-- [ ] T034 [US4] Add failing route tests for auth, exact schema, role checks, invalid agent, arbitrary maps, unknown fields, invalid values, confirmation, duplicate request, boundary unavailable, external failure, restart failure, and value-free responses in `src/app/api/settings/agent-variables/__tests__/route.test.ts`
-- [ ] T035 [US4] Implement the bounded replacement Route Handler in `src/app/api/settings/agent-variables/route.ts`
-- [ ] T036 [US4] Add a failing compatibility test proving `/api/settings/update-credential` rejects the legacy arbitrary `{secrets}` body in `src/app/api/settings/update-credential/__tests__/route.test.ts`
-- [ ] T037 [US4] Replace the legacy route with an explicit deprecation response or narrow adapter that cannot accept arbitrary keys in `src/app/api/settings/update-credential/route.ts`
-- [ ] T038 [US4] Wire enabled catalog controls to the new value-free response contract and leave unsupported Titus/Walter boundaries explicitly read-only in `src/app/(protected)/dashboard/settings/agent-credentials.tsx`
-- [ ] T039 [US4] Run route/catalog/boundary/audit tests and a repository-wide secret-sentinel scan, then mark T028-T038 complete in `specs/022-agent-control-surfaces/tasks.md`
+- [x] T028 [US4] Add failing catalog tests for stable IDs, role policy, validation bounds, confirmation strings, runtime effects, and no secret values in `src/lib/__tests__/managed-agent-variable.test.ts`
+- [x] T029 [US4] Implement the source-controlled variable catalog and safe public descriptors in `src/lib/managed-agent-variable.ts`
+- [x] T030 [US4] Add failing boundary tests for exactly one canonical secret binding, supported legacy path equivalence, missing/conflicting bindings, and no client coordinates in `src/db/__tests__/managed-agent-variable-boundary.test.ts`
+- [x] T031 [US4] Implement exact secret-boundary resolution and deployed-provisioner compatibility gating in `src/db/managed-agent-variable-boundary.ts`
+- [x] T032 [US4] Add failing metadata-only audit tests, including forbidden-value sentinels and audit failure, in `src/lib/__tests__/managed-agent-variable-audit.test.ts`
+- [x] T033 [US4] Implement the metadata-only audit adapter using `platform_audit_log` in `src/lib/managed-agent-variable-audit.ts`
+- [x] T034 [US4] Add failing route tests for auth, exact schema, role checks, invalid agent, arbitrary maps, unknown fields, invalid values, confirmation, duplicate request, boundary unavailable, external failure, restart failure, and value-free responses in `src/app/api/settings/agent-variables/__tests__/route.test.ts`
+- [x] T035 [US4] Implement the bounded replacement Route Handler in `src/app/api/settings/agent-variables/route.ts` with its injectable implementation in `src/app/api/settings/agent-variables/handler.ts`
+- [x] T036 [US4] Add a failing compatibility test proving `/api/settings/update-credential` rejects the legacy arbitrary `{secrets}` body in `src/app/api/settings/update-credential/__tests__/route.test.ts`
+- [x] T037 [US4] Replace the legacy route with an explicit deprecation response that cannot accept arbitrary keys in `src/app/api/settings/update-credential/route.ts`
+- [x] T038 [US4] Wire enabled catalog controls to the new value-free response contract and leave unsupported Titus/Walter boundaries explicitly read-only in `src/app/(protected)/dashboard/managed-agent-variables.tsx`
+- [x] T039 [US4] Run route/catalog/boundary/audit tests and a repository-wide secret-sentinel scan, then mark T028-T038 complete in `specs/022-agent-control-surfaces/tasks.md`
 
 **Checkpoint**: The frontend no longer accepts arbitrary Phase keys or paths. Canonical multi-App writes remain disabled until the provisioner follow-up is deployed.
 

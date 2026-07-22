@@ -1,11 +1,15 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getInstanceForUser, isHermesTenant } from "@/lib/instance";
+import { db } from "@/db";
+import { instance } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { resolveAgentDirectory } from "@/lib/open-webui-workspace";
 import { isAdmin, getSubscriptionForUser } from "@/lib/billing";
 import { SignOutButton } from "./sign-out-button";
 import { DashboardNav } from "./dashboard-nav";
 import { DashboardContent } from "./dashboard-content";
+import { resolveDashboardNavigationState } from "./dashboard-navigation-state";
 
 export default async function DashboardLayout({
   children,
@@ -20,13 +24,20 @@ export default async function DashboardLayout({
     redirect("/sign-in");
   }
 
-  const [inst, userSubscription] = await Promise.all([
-    getInstanceForUser(session.user.id),
+  const [instances, directory, userSubscription] = await Promise.all([
+    db.select().from(instance).where(eq(instance.userId, session.user.id)),
+    resolveAgentDirectory(session.user.id),
     getSubscriptionForUser(session.user.id),
   ]);
-  const instanceRunning = inst?.status === "running";
   const adminUser = isAdmin(session.user.email);
-  const hermesAgent = isHermesTenant(inst);
+  const { instanceRunning, usesCanonicalAgentContext } =
+    resolveDashboardNavigationState({
+      directory:
+        directory.status === "available"
+          ? { status: "available", agentCount: directory.agents.length }
+          : directory,
+      instances,
+    });
 
   return (
     <div className="min-h-screen p-3 sm:p-6 md:p-8" style={{ backgroundColor: "var(--color-od-base)" }}>
@@ -43,7 +54,12 @@ export default async function DashboardLayout({
           <SignOutButton />
         </div>
 
-        <DashboardNav instanceRunning={instanceRunning} isAdmin={adminUser} plan={userSubscription?.plan} isHermesTenant={hermesAgent} />
+        <DashboardNav
+          instanceRunning={instanceRunning}
+          isAdmin={adminUser}
+          plan={userSubscription?.plan}
+          usesCanonicalAgentContext={usesCanonicalAgentContext}
+        />
 
         <DashboardContent>{children}</DashboardContent>
       </div>

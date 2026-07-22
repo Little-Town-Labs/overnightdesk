@@ -5,6 +5,7 @@ import { AdminAgentConfiguration } from "../configuration/admin-agent-configurat
 const agents: AgentDirectoryEntry[] = [
   {
     key: "titus",
+    useCaseId: "11111111-1111-4111-8111-111111111111",
     runtimeIdentityId: "22222222-2222-4222-8222-222222222222",
     runtime: { slug: "hermes-titus", status: "active" },
     membershipRole: "owner",
@@ -17,6 +18,7 @@ const agents: AgentDirectoryEntry[] = [
   },
   {
     key: "walter",
+    useCaseId: "33333333-3333-4333-8333-333333333333",
     runtimeIdentityId: "44444444-4444-4444-8444-444444444444",
     runtime: { slug: "hermes-walter", status: "active" },
     membershipRole: "owner",
@@ -44,12 +46,28 @@ const capabilities = [
   },
 ];
 
+const managedVariables = [
+  {
+    id: "openrouter_api_key" as const,
+    label: "OpenRouter API key",
+    help: "Replace the model-provider credential used by this runtime.",
+    sensitivity: "secret" as const,
+    allowedRoles: ["owner" as const],
+    scope: "runtime" as const,
+    runtimeEffect: "restart" as const,
+    confirmation: "replace:openrouter_api_key:restart",
+    availability: "read_only" as const,
+    availabilityDetail: "Replacement is not enabled for this agent boundary.",
+  },
+];
+
 describe("AdminAgentConfiguration", () => {
   it.each(agents)("keeps shared configuration structure for $key", (selected) => {
     const markup = renderToStaticMarkup(
       <AdminAgentConfiguration
         agents={agents}
         capabilities={capabilities}
+        managedVariables={managedVariables}
         selected={selected}
         statusLabel="Active"
       />,
@@ -72,6 +90,7 @@ describe("AdminAgentConfiguration", () => {
       <AdminAgentConfiguration
         agents={[agents[0]]}
         capabilities={capabilities}
+        managedVariables={managedVariables}
         selected={agents[0]}
         statusLabel="Active"
       />,

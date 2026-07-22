@@ -10,13 +10,14 @@ import {
   resolveSelectedAgentContext,
 } from "@/lib/selected-agent-context";
 import { buildAgentCapabilities } from "@/lib/agent-capabilities";
+import { resolveManagedVariableControlDescriptors } from "@/db/managed-agent-variable-boundary";
 import {
   getHermesDashboardUnavailableMessage,
   getHermesDashboardUrl,
 } from "@/lib/hermes-dashboard";
 import { ChangePassword } from "./change-password";
 import { DeleteAccount } from "./delete-account";
-import { AgentSettings } from "./agent-settings";
+import { SelectedAgentConfiguration } from "../selected-agent-configuration";
 import { SettingsSurface } from "./settings-surface";
 
 export default async function SettingsPage({
@@ -71,14 +72,19 @@ export default async function SettingsPage({
     dashboardUrl,
     hasOpenChat: agent.workspace !== null,
   });
+  const managedVariables = await resolveManagedVariableControlDescriptors({
+    agent,
+    instance: selectedInstance,
+  });
 
   return (
     <SettingsSurface
       {...accountProps}
       agentContent={
-        <AgentSettings
+        <SelectedAgentConfiguration
           agents={resolution.agents}
           capabilities={capabilities}
+          managedVariables={managedVariables}
           selected={agent}
           statusLabel={getSelectedAgentStatusLabel(agent, selectedInstance)}
         />

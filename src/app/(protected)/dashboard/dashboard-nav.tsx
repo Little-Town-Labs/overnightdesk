@@ -33,38 +33,32 @@ interface DashboardNavProps {
   instanceRunning: boolean;
   isAdmin?: boolean;
   plan?: string;
-  isHermesTenant?: boolean;
+  usesCanonicalAgentContext?: boolean;
 }
-
-const HERMES_ALLOWED_TABS = new Set([
-  "/dashboard",
-  "/dashboard/settings",
-  "/dashboard/admin",
-]);
 
 export function getVisibleDashboardTabs({
   instanceRunning,
   isAdmin = false,
   plan,
-  isHermesTenant = false,
+  usesCanonicalAgentContext = false,
 }: DashboardNavProps): NavTab[] {
   return tabs.filter(
     (tab) =>
       (!tab.requiresRunning || instanceRunning) &&
       (!tab.adminOnly || isAdmin) &&
       (!tab.requiresPro || isAdmin || plan === "pro") &&
-      (!isHermesTenant || HERMES_ALLOWED_TABS.has(tab.href)),
+      (!usesCanonicalAgentContext || tab.scope === "global"),
   );
 }
 
-export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, isHermesTenant = false }: DashboardNavProps) {
+export function DashboardNav({ instanceRunning, isAdmin: isAdminUser = false, plan, usesCanonicalAgentContext = false }: DashboardNavProps) {
   const pathname = usePathname();
 
   const visibleTabs = getVisibleDashboardTabs({
     instanceRunning,
     isAdmin: isAdminUser,
     plan,
-    isHermesTenant,
+    usesCanonicalAgentContext,
   });
 
   return (

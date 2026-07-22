@@ -170,13 +170,23 @@ describe("DashboardNav", () => {
       expect(visible.map((t) => t.label)).toEqual(["Overview", "Settings", "Admin"]);
     });
 
-    it("shows Overview and Settings for a running Hermes workspace", () => {
+    it("shows only shared account surfaces for canonical agent context", () => {
       expect(
         getVisibleDashboardTabs({
           instanceRunning: true,
-          isHermesTenant: true,
+          usesCanonicalAgentContext: true,
         }).map((tab) => tab.label),
       ).toEqual(["Overview", "Settings"]);
+    });
+
+    it("keeps Admin visible for an administrator in canonical agent context", () => {
+      expect(
+        getVisibleDashboardTabs({
+          instanceRunning: true,
+          isAdmin: true,
+          usesCanonicalAgentContext: true,
+        }).map((tab) => tab.label),
+      ).toEqual(["Overview", "Settings", "Admin"]);
     });
   });
 

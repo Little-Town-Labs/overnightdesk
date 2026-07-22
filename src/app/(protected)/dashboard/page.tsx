@@ -24,6 +24,7 @@ import {
 } from "@/lib/open-webui-workspace";
 import {
   getSelectedAgentStatusLabel,
+  resolveUnambiguousLegacyInstance,
   resolveSelectedAgentContext,
 } from "@/lib/selected-agent-context";
 import { buildAgentCapabilities } from "@/lib/agent-capabilities";
@@ -75,9 +76,7 @@ export default async function DashboardPage({
   const inst =
     agentResolution.status === "available"
       ? agentResolution.selected.instance
-      : hasAgentScopedInstance
-        ? null
-        : instances[0] ?? null;
+      : resolveUnambiguousLegacyInstance(instances);
   const hermesAgent = isHermesTenant(inst);
   const mitchelTenant = isHermesMitchelTenant(inst);
 

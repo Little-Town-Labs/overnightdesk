@@ -1,15 +1,18 @@
 import type { AgentCapability } from "@/lib/agent-capabilities";
+import type { ManagedVariableControlDescriptor } from "@/lib/managed-agent-variable";
 import type { AgentDirectoryEntry } from "@/lib/open-webui-workspace";
-import { AgentSettings } from "../../settings/agent-settings";
+import { SelectedAgentConfiguration } from "../../selected-agent-configuration";
 
 export function AdminAgentConfiguration({
   agents,
   capabilities,
+  managedVariables,
   selected,
   statusLabel,
 }: {
   agents: readonly AgentDirectoryEntry[];
   capabilities: readonly AgentCapability[];
+  managedVariables: readonly ManagedVariableControlDescriptor[];
   selected: AgentDirectoryEntry;
   statusLabel: string;
 }) {
@@ -33,10 +36,11 @@ export function AdminAgentConfiguration({
           Review configuration availability for one authorized runtime at a time.
         </p>
       </div>
-      <AgentSettings
+      <SelectedAgentConfiguration
         agents={agents}
         basePath="/dashboard/admin/configuration"
         capabilities={capabilities}
+        managedVariables={managedVariables}
         selected={selected}
         statusLabel={statusLabel}
       />

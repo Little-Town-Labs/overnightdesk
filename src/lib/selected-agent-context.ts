@@ -3,6 +3,7 @@ import {
   type AgentDirectory,
   type AgentDirectoryEntry,
 } from "@/lib/open-webui-workspace";
+import { isHermesTenant } from "@/lib/hermes-tenant";
 
 export interface RuntimeLinkedInstance {
   runtimeIdentityId: string | null;
@@ -49,6 +50,20 @@ export function resolveSelectedAgentContext<T extends RuntimeLinkedInstance>(
       instance: exactInstances[0] ?? null,
     },
   };
+}
+
+export function resolveUnambiguousLegacyInstance<
+  T extends RuntimeLinkedInstance & { containerId: string | null },
+>(instances: readonly T[]): T | null {
+  if (instances.length !== 1) return null;
+  const [onlyInstance] = instances;
+  if (
+    onlyInstance.runtimeIdentityId !== null ||
+    isHermesTenant(onlyInstance)
+  ) {
+    return null;
+  }
+  return onlyInstance;
 }
 
 export function getSelectedAgentStatusLabel(

@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { instance, fleetEvent } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export { isHermesTenant } from "@/lib/hermes-tenant";
+
 const PORT_MIN = 4000;
 const PORT_MAX = 4999;
 
@@ -41,10 +43,6 @@ export function generateBearerToken(): string {
 
 export async function hashToken(token: string): Promise<string> {
   return hash(token, 10);
-}
-
-export function isHermesTenant(inst: { containerId: string | null } | null): boolean {
-  return inst?.containerId?.startsWith("hermes-") ?? false;
 }
 
 export function isHermesMitchelTenant(

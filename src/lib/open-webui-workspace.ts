@@ -26,6 +26,7 @@ export interface AgentWorkspaceRecord {
 
 export interface AgentDirectoryEntry {
   key: string;
+  useCaseId: string;
   runtimeIdentityId: string;
   runtime: {
     slug: string;
@@ -124,6 +125,7 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
     runtimeSlug,
     runtimeStatus,
     membershipRole,
+    useCaseId,
     useCaseName,
   } = parsed.data;
   if ((deploymentId === null) !== (host === null)) return null;
@@ -136,6 +138,7 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
   if (host === null) {
     return {
       key: personaKey,
+      useCaseId,
       runtimeIdentityId,
       runtime: { slug: runtimeSlug, status: runtimeStatus },
       membershipRole,
@@ -157,6 +160,7 @@ function parseAgentRecord(record: AgentWorkspaceRecord): AgentDirectoryEntry | n
 
   return {
     key: personaKey,
+    useCaseId,
     runtimeIdentityId,
     runtime: { slug: runtimeSlug, status: runtimeStatus },
     membershipRole,
