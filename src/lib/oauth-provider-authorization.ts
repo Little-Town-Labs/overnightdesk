@@ -3,9 +3,9 @@ import {
   authorizeHermesOidcToken,
 } from "@/lib/hermes-oidc";
 import {
-  authorizeTitusOpenWebuiOidc,
-  authorizeTitusOpenWebuiToken,
-} from "@/lib/open-webui-titus-canary";
+  authorizeOpenWebuiCanonicalOidc,
+  authorizeOpenWebuiCanonicalToken,
+} from "@/lib/open-webui-canonical-authorization";
 
 export type OAuthProviderClientKind = "hermes-dashboard" | "open-webui";
 
@@ -49,9 +49,9 @@ async function resolveDefaultClientKind(
 const defaultDependencies: OAuthProviderAuthorizationDependencies = {
   resolveClientKind: resolveDefaultClientKind,
   authorizeHermesLogin: authorizeHermesOidcOwner,
-  authorizeOpenWebuiLogin: authorizeTitusOpenWebuiOidc,
+  authorizeOpenWebuiLogin: authorizeOpenWebuiCanonicalOidc,
   authorizeHermesToken: authorizeHermesOidcToken,
-  authorizeOpenWebuiToken: authorizeTitusOpenWebuiToken,
+  authorizeOpenWebuiToken: authorizeOpenWebuiCanonicalToken,
 };
 
 function deny(): never {

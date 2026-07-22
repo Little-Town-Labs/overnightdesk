@@ -26,7 +26,7 @@ import {
   authorizeOAuthProviderToken,
 } from "@/lib/oauth-provider-authorization";
 import { recordOpenWebuiAuditEvent } from "@/lib/open-webui-audit";
-import { TITUS_OPEN_WEBUI } from "@/lib/open-webui-titus-canary";
+import { findOpenWebuiDeployment } from "@/lib/open-webui-deployments";
 
 async function requireOAuthAuthorization(
   user: { id: string; emailVerified: boolean },
@@ -40,10 +40,13 @@ async function requireOAuthAuthorization(
     if (!state?.query) throw new Error("missing provider state");
     clientId = new URLSearchParams(state.query).get("client_id") ?? undefined;
     if (recordAudit) {
-      if (clientId === TITUS_OPEN_WEBUI.oidcClientId) {
+      const deployment = clientId
+        ? findOpenWebuiDeployment("clientId", clientId)
+        : null;
+      if (deployment) {
         await recordOpenWebuiAuditEvent({
           category: "start",
-          deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+          deploymentId: deployment.deploymentId,
           clientId,
           requestId,
         });
@@ -80,11 +83,14 @@ async function requireOAuthAuthorization(
     return authorization.referenceId;
   } catch {
     if (recordAudit) {
-      if (clientId === TITUS_OPEN_WEBUI.oidcClientId) {
+      const deployment = clientId
+        ? findOpenWebuiDeployment("clientId", clientId)
+        : null;
+      if (deployment) {
         await recordOpenWebuiAuditEvent({
           category: "denied",
           reason: "invalid_client",
-          deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+          deploymentId: deployment.deploymentId,
           clientId,
           requestId,
         }).catch(() => undefined);
@@ -115,6 +121,7 @@ export const auth = betterAuth({
     "https://aegis-prod.overnightdesk.com",
     "https://aero-fett.overnightdesk.com",
     "https://titus-chat.overnightdesk.com",
+    "https://walter-chat.overnightdesk.com",
   ],
   advanced: {
     defaultCookieAttributes: {

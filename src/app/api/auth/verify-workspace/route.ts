@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { recordOpenWebuiAuditEvent } from "@/lib/open-webui-audit";
 import {
-  TITUS_OPEN_WEBUI,
-  authorizeTitusOpenWebuiEdge,
-} from "@/lib/open-webui-titus-canary";
+  authorizeOpenWebuiCanonicalEdge,
+} from "@/lib/open-webui-canonical-authorization";
+import { findOpenWebuiDeployment } from "@/lib/open-webui-deployments";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
   )
     ? (rawTransport as "http" | "sse" | "websocket")
     : null;
+  const deployment = host ? findOpenWebuiDeployment("host", host) : null;
 
   const session = await auth.api.getSession({
     headers: request.headers,
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
         : !host
           ? "invalid_host"
           : "invalid_transport",
-      deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+      deploymentId: deployment?.deploymentId,
       host,
       requestId,
       transport: transport ?? undefined,
@@ -42,15 +43,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const authorized = await authorizeTitusOpenWebuiEdge(
+    const authorization = await authorizeOpenWebuiCanonicalEdge(
       { userId: session.user.id, host, transport },
       undefined,
       undefined,
     );
-    if (!authorized) throw new Error("not authorized");
+    if (!authorization.authorized || !authorization.deploymentId) {
+      throw new Error("not authorized");
+    }
     await recordOpenWebuiAuditEvent({
       category: "success",
-      deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+      deploymentId: authorization.deploymentId,
       host,
       requestId,
       transport,
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
     await recordOpenWebuiAuditEvent({
       category: "denied",
       reason: "not_authorized",
-      deploymentId: TITUS_OPEN_WEBUI.deploymentId,
+      deploymentId: deployment?.deploymentId,
       host,
       requestId,
       transport,

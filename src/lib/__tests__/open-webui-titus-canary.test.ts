@@ -22,6 +22,7 @@ function context(
   overrides: Partial<TitusOpenWebuiAuthorizationContext> = {},
 ): TitusOpenWebuiAuthorizationContext {
   return {
+    deployment: TITUS_OPEN_WEBUI,
     assignment: {
       enabled: true,
       deploymentId: TITUS_OPEN_WEBUI.deploymentId,

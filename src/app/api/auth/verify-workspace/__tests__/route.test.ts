@@ -7,9 +7,16 @@ const mockRecordAudit = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/lib/auth", () => ({
   auth: { api: { getSession: (...args: unknown[]) => mockGetSession(...args) } },
 }));
-jest.mock("@/lib/open-webui-titus-canary", () => ({
-  TITUS_OPEN_WEBUI: { deploymentId: "open-webui-hermes-titus" },
-  authorizeTitusOpenWebuiEdge: (...args: unknown[]) => mockAuthorizeEdge(...args),
+jest.mock("@/lib/open-webui-canonical-authorization", () => ({
+  authorizeOpenWebuiCanonicalEdge: (...args: unknown[]) => mockAuthorizeEdge(...args),
+}));
+jest.mock("@/lib/open-webui-deployments", () => ({
+  findOpenWebuiDeployment: (_selector: string, host: string) =>
+    host === "titus-chat.overnightdesk.com"
+      ? { deploymentId: "open-webui-hermes-titus" }
+      : host === "walter-chat.overnightdesk.com"
+        ? { deploymentId: "open-webui-hermes-walter" }
+        : null,
 }));
 jest.mock("@/lib/open-webui-audit", () => ({
   recordOpenWebuiAuditEvent: (...args: unknown[]) => mockRecordAudit(...args),
@@ -34,7 +41,10 @@ describe("GET /api/auth/verify-workspace", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetSession.mockResolvedValue({ user: { id: "gary-user-id" } });
-    mockAuthorizeEdge.mockResolvedValue(true);
+    mockAuthorizeEdge.mockResolvedValue({
+      authorized: true,
+      deploymentId: "open-webui-hermes-titus",
+    });
   });
 
   it("allows the exact active Titus workspace membership", async () => {
@@ -54,6 +64,32 @@ describe("GET /api/auth/verify-workspace", () => {
       expect.objectContaining({ category: "success" }),
     );
     expect(mockRecordAudit).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the same canonical edge path for Walter with Walter-scoped audit metadata", async () => {
+    mockAuthorizeEdge.mockResolvedValueOnce({
+      authorized: true,
+      deploymentId: "open-webui-hermes-walter",
+    });
+
+    await expect(
+      GET(request("walter-chat.overnightdesk.com", "sse")),
+    ).resolves.toMatchObject({ status: 200 });
+    expect(mockAuthorizeEdge).toHaveBeenCalledWith(
+      {
+        userId: "gary-user-id",
+        host: "walter-chat.overnightdesk.com",
+        transport: "sse",
+      },
+      undefined,
+      undefined,
+    );
+    expect(mockRecordAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        category: "success",
+        deploymentId: "open-webui-hermes-walter",
+      }),
+    );
   });
 
   it("bypasses Better Auth cookie cache for the current platform session", async () => {
@@ -78,7 +114,7 @@ describe("GET /api/auth/verify-workspace", () => {
       GET(request("titus-chat.overnightdesk.com", "gopher")),
     ).resolves.toMatchObject({ status: 401 });
 
-    mockAuthorizeEdge.mockResolvedValueOnce(false);
+    mockAuthorizeEdge.mockResolvedValueOnce({ authorized: false });
     await expect(
       GET(request("titus-chat.overnightdesk.com")),
     ).resolves.toMatchObject({ status: 401 });
