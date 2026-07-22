@@ -32,6 +32,23 @@ describe("persona presentation schema command", () => {
     ).toThrow("persona_assignment_table_unavailable");
   });
 
+  it("accepts PostgreSQL text-array results returned by the Neon transport", () => {
+    expect(
+      classifySchema({
+        persona_assignment: true,
+        columns: "{}",
+        constraints: "{}",
+      }),
+    ).toBe("ready");
+    expect(
+      classifySchema({
+        persona_assignment: true,
+        columns: `{${columns.join(",")}}`,
+        constraints: `{${constraints.join(",")}}`,
+      }),
+    ).toBe("deployed");
+  });
+
   it("accepts only plan/apply/verify and loads seven additive statements", () => {
     expect(parseCommand()).toBe("plan");
     expect(parseCommand("apply")).toBe("apply");
