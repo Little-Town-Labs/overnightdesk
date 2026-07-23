@@ -335,53 +335,12 @@ PY
       test -f /opt/data/mcp-servers/guarded-agentmail/guarded_email.py
       test -f /opt/data/mcp-servers/guarded-agentmail/service.py
       test -f /opt/data/mcp-servers/guarded-agentmail/server.py
+      test -f /opt/data/bin/verify-mcp-registry.py
       test -d /opt/data/guarded-agentmail
       test "$(stat -c %a /opt/data/guarded-agentmail)" = 700
       test "$(stat -c %u:%g /opt/data/guarded-agentmail)" = 10000:10000
-      agentmail_test=/tmp/agentmail-mcp-test.log
-      agentmail_ok=false
-      for attempt in 1 2 3; do
-        if HOME=/opt/data /opt/hermes/.venv/bin/hermes mcp test agentmail >"$agentmail_test" 2>&1 && \
-          grep -Eq "Tools discovered: 8([^0-9]|$)" "$agentmail_test"; then
-          agentmail_ok=true
-          for tool in \
-            list_inboxes get_inbox list_threads search_threads get_thread \
-            list_messages search_messages get_attachment; do
-            if ! grep -Fq "$tool" "$agentmail_test"; then
-              agentmail_ok=false
-            fi
-          done
-          if test "$agentmail_ok" = true; then
-            break
-          fi
-        fi
-        sleep 2
-      done
-      if test "$agentmail_ok" != true; then
-        sed -E "s/(x-api-key: )[[:graph:]]+/\\1[REDACTED]/" "$agentmail_test" >&2
-        rm -f "$agentmail_test"
-        exit 1
-      fi
-      rm -f "$agentmail_test"
-      printf "agentmail_mcp=healthy_exact_eight_read_tools\\n"
-      if test "$TITUS_GUARDED_EMAIL_EXPECT" = guarded; then
-        guarded_test=/tmp/guarded-agentmail-mcp-test.log
-        if ! HOME=/opt/data /opt/hermes/.venv/bin/hermes mcp test guarded_agentmail >"$guarded_test" 2>&1 || \
-          ! grep -Eq "Tools discovered: 2([^0-9]|$)" "$guarded_test" || \
-          ! grep -Fq "titus_prepare_email_approval" "$guarded_test" || \
-          ! grep -Fq "titus_send_approved_email" "$guarded_test"; then
-          sed -E \
-            -e "s/(AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN)([=:][[:space:]]*)[^[:space:]]+/\\1\\2[REDACTED]/g" \
-            -e "s/(Authorization: Bearer )[[:graph:]]+/\\1[REDACTED]/g" \
-            "$guarded_test" >&2
-          rm -f "$guarded_test"
-          exit 1
-        fi
-        rm -f "$guarded_test"
-        printf "guarded_agentmail_mcp=healthy_exact_two_tools\\n"
-      else
-        printf "guarded_agentmail_mcp=read_only_rollback\\n"
-      fi
+      HOME=/opt/data /opt/hermes/.venv/bin/python \
+        /opt/data/bin/verify-mcp-registry.py
       printf "teams_state=%s\n" "${TITUS_TEAMS_STATE:-pending}"
     '\''
     echo "hermes_titus=healthy"

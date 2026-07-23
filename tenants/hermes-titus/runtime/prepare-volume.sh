@@ -67,6 +67,7 @@ docker run --rm \
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
     install -m 0755 /source/runtime/control-tower-session.sh /opt/data/bin/control-tower-session
     install -m 0755 /source/runtime/email-run-approval.sh /opt/data/bin/hermes-email-run-approval
+    install -m 0555 /source/runtime/verify-mcp-registry.py /opt/data/bin/verify-mcp-registry.py
     rm -f /opt/data/bin/agentmail_poller.py /opt/data/bin/agentmail_policy.py \
       /opt/data/bin/agentmail_transport.py /opt/data/bin/agentmail-poller-health.sh
     install -m 0644 /source/config/config.yaml /opt/data/config.yaml
