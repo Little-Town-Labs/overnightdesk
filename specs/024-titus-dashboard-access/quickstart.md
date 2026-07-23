@@ -578,6 +578,27 @@ volume, Chat data, or Walter.
   `active`, desired `suspended`, and membership count one. T034b is complete;
   no production authority or runtime state changed.
 
+#### T034 production membership matrix completion — 2026-07-23
+
+- Each window began with a fresh guarded plan that proved exactly one active
+  canonical Titus owner membership. Every transition used its state-specific
+  confirmation, reached the intended state, and passed a separate verification
+  before the owner browser checkpoint.
+- Non-member access failed closed with HTTP 401 and no Titus dashboard content
+  while Walter remained available. Exact restoration and separate active
+  verification passed, and the owner confirmed Titus access restored.
+- After T034b deployed, timestamp-based suspended access retained only the
+  platform card label; opening the individual protected dashboard returned HTTP
+  401 with no dashboard content. Walter remained unchanged. Exact restoration,
+  separate active verification, and owner-visible recovery passed.
+- Expired-member access returned HTTP 401 at the individual dashboard and HTTP
+  404 after refreshing the platform dashboard, with no Titus or cross-agent
+  content disclosed. Exact restoration, separate active verification, and
+  owner-visible recovery passed.
+- No membership row was deleted. The final exact membership state is active.
+  OIDC, sessions, routes, certificates, runtimes, providers, volumes, chat data,
+  Walter, and user data were otherwise unchanged. T034 is complete.
+
 ## 9. Persistence, rollback, and observation
 
 Confirm an existing Titus chat and visible history before and after the exact
