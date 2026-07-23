@@ -19,6 +19,21 @@ Transient, never persisted as content.
 
 At least one of `text` or `html` must be nonblank.
 
+## Owner Approval Interaction
+
+Transient, never persisted.
+
+| Field | Rule |
+| --- | --- |
+| draft_fingerprint | Must be derived from the validated signed draft |
+| surface | Hermes MCP form elicitation routed to the active human session |
+| decision | Only explicit `accept` authorizes continued execution |
+| failure | Decline, cancel, timeout, or unavailable routing stops before external I/O |
+
+The interaction prompt contains only the safe fingerprint and review
+instructions. It does not repeat recipients, subject, body, token, or digest
+into runtime logs.
+
 ## Guarded Send Attempt
 
 Persisted in a mode-0600 SQLite database under the Titus runtime volume.
@@ -49,17 +64,21 @@ new
 reserved|screened
   -> failed_pre_send
 
+screened
+  -> ambiguous_unverified  # timeout, transport error, or missing IDs
+
 provider_accepted
   -> ambiguous_unverified
   -> verified_sent
 
 ambiguous_unverified
-  -> verified_sent          # reconciliation only
+  -> screened               # same valid approval and idempotency key only
+  -> verified_sent          # readback reconciliation
   -> retry_refused          # provider window expired
 ```
 
-No state transition from an existing logical send creates a new idempotency
-key.
+An expired approval is rejected before state mutation. No state transition
+from an existing logical send creates a new idempotency key.
 
 ## Security Decision
 

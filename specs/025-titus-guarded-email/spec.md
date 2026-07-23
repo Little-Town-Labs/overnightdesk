@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-23
 
-**Status**: Draft
+**Status**: In progress
 
 **Input**: User description: "Titus sent five empty-body emails, including four
 with empty subjects. Immediately remove direct email mutation authority, then
@@ -150,9 +150,12 @@ services are unchanged.
   or approval fields that exceed explicit size or count bounds.
 - **FR-007**: Titus MUST present the exact recipients, subject, complete body,
   attachment state, and stable draft fingerprint immediately before requesting
-  explicit human approval.
+  explicit human approval, and the send boundary MUST obtain a separate
+  fail-closed human approval interaction for that fingerprint.
 - **FR-008**: Approval MUST authorize exactly one immutable draft fingerprint;
-  any field change requires a new presentation and approval.
+  any field change requires a new presentation and approval, and no model-only
+  tool sequence or mutation annotation may substitute for the human
+  interaction.
 - **FR-009**: The first guarded release MUST reject attachments, CC, BCC,
   custom reply-to addresses, labels, and custom headers rather than silently
   omitting or accepting unreviewed fields.

@@ -45,6 +45,21 @@ mcp_servers:
         - list_messages
         - search_messages
         - get_attachment
+  guarded_agentmail:
+    command: "/opt/hermes/.venv/bin/python"
+    args:
+      - "/opt/data/mcp-servers/guarded-agentmail/server.py"
+    env:
+      AGENTMAIL_API_KEY: "${AGENTMAIL_API_KEY}"
+      AGENTMAIL_INBOX_ID: "${AGENTMAIL_INBOX_ID}"
+      SECURITY_SERVICE_TOKEN: "${SECURITY_SERVICE_TOKEN}"
+      TITUS_GUARDED_EMAIL_STATE: "/opt/data/guarded-agentmail/attempts.sqlite3"
+      PYTHONDONTWRITEBYTECODE: "1"
+    connect_timeout: 30
+    timeout: 360
+    elicitation:
+      enabled: true
+      timeout: 300
 
 platform_toolsets:
   cli: [hermes-cli]

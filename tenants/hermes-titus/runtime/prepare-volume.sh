@@ -5,7 +5,9 @@ image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.18.0-coder}
 volume=${TITUS_VOLUME:-hermes-titus-data}
 source_root=${TITUS_SOURCE_ROOT:-/opt/hermes-titus/source}
 rollback_marker=${TITUS_DASHBOARD_ROLLBACK_MARKER:-/opt/hermes-titus/rollback-loopback-dashboard}
+guarded_email_marker=${TITUS_GUARDED_EMAIL_READ_ONLY_MARKER:-/opt/hermes-titus/guarded-email-read-only}
 launcher=start-all.sh
+guarded_email_mode=guarded
 
 test "$(id -u)" -eq 0 || { printf 'hermes-titus volume preparation must run as root\n' >&2; exit 1; }
 test -d "$source_root" || { printf 'hermes-titus source is unavailable\n' >&2; exit 1; }
@@ -30,17 +32,36 @@ if test -e "$rollback_marker" || test -L "$rollback_marker"; then
   launcher=start-all.loopback.sh
 fi
 
+if test -e "$guarded_email_marker" || test -L "$guarded_email_marker"; then
+  test -f "$guarded_email_marker" && test ! -L "$guarded_email_marker" || {
+    printf 'hermes-titus guarded email marker is invalid\n' >&2
+    exit 1
+  }
+  test "$(stat -c %a "$guarded_email_marker")" = 400 || {
+    printf 'hermes-titus guarded email marker mode must be 0400\n' >&2
+    exit 1
+  }
+  test "$(stat -c %u "$guarded_email_marker")" = 0 || {
+    printf 'hermes-titus guarded email marker owner is invalid\n' >&2
+    exit 1
+  }
+  guarded_email_mode=read_only
+fi
+
 docker volume inspect "$volume" >/dev/null 2>&1 || docker volume create "$volume" >/dev/null
 
 docker run --rm \
   --user 0:0 \
   --network bridge \
   --env TITUS_DASHBOARD_LAUNCHER="$launcher" \
+  --env TITUS_GUARDED_EMAIL_MODE="$guarded_email_mode" \
   --volume "$volume:/opt/data" \
   --volume "$source_root:/source:ro" \
   --entrypoint /usr/bin/bash \
   "$image" -euo pipefail -c '
-    install -d -m 0755 /opt/data/bin /opt/data/config /opt/data/skills /opt/data/plugins
+    install -d -m 0755 /opt/data/bin /opt/data/config /opt/data/skills \
+      /opt/data/plugins /opt/data/mcp-servers/guarded-agentmail
+    install -d -m 0700 /opt/data/guarded-agentmail
     install -m 0755 "/source/runtime/$TITUS_DASHBOARD_LAUNCHER" /opt/data/bin/start-all.sh
     install -m 0755 /source/runtime/start-all.loopback.sh /opt/data/bin/start-all.loopback.sh
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
@@ -49,8 +70,16 @@ docker run --rm \
     rm -f /opt/data/bin/agentmail_poller.py /opt/data/bin/agentmail_policy.py \
       /opt/data/bin/agentmail_transport.py /opt/data/bin/agentmail-poller-health.sh
     install -m 0644 /source/config/config.yaml /opt/data/config.yaml
+    /opt/hermes/.venv/bin/python /source/runtime/apply-email-mode.py \
+      "$TITUS_GUARDED_EMAIL_MODE" /opt/data/config.yaml
     install -m 0644 /source/config/tdai-gateway.yaml /opt/data/config/tdai-gateway.yaml
     install -m 0644 /source/config/SOUL.md /opt/data/SOUL.md
+    install -m 0555 /source/mcp-servers/guarded-agentmail/guarded_email.py \
+      /opt/data/mcp-servers/guarded-agentmail/guarded_email.py
+    install -m 0555 /source/mcp-servers/guarded-agentmail/service.py \
+      /opt/data/mcp-servers/guarded-agentmail/service.py
+    install -m 0555 /source/mcp-servers/guarded-agentmail/server.py \
+      /opt/data/mcp-servers/guarded-agentmail/server.py
     cp -a /source/skills/. /opt/data/skills/
 
     memory_root=/opt/data/.memory-tencentdb/tdai-memory-openclaw-plugin
