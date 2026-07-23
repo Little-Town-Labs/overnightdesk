@@ -65,6 +65,9 @@ type DashboardAssignmentPlan =
 ## Apply semantics
 
 - Require an exact explicit confirmation sentinel.
+- Generate one UUID in the application and insert it explicitly as the
+  projection ID; the raw SQL path must not rely on Drizzle's TypeScript-only
+  default or a database default that does not exist.
 - Insert at most one projection with exact canonical IDs.
 - Never create, stop, restart, or remove a runtime or volume.
 - Never copy an engine key, dashboard token, Phase token, or secret.

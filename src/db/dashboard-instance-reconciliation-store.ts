@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, eq, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -23,7 +24,10 @@ type ReadyPlan = Extract<
   DashboardInstanceReconciliationPlan,
   { status: "ready" }
 >;
-export type DashboardInstanceReconciliationCommand = "plan" | "apply" | "verify";
+export type DashboardInstanceReconciliationCommand =
+  | "plan"
+  | "apply"
+  | "verify";
 
 export interface DashboardInstanceReconciliationGateway {
   inspect(): Promise<DashboardInstanceReconciliationSnapshot>;
@@ -193,9 +197,11 @@ export async function applyDashboardInstanceReconciliation(
   actor: string,
   database: Database = db,
 ): Promise<void> {
+  const instanceId = randomUUID();
   await database.execute(sql`
     WITH created AS (
       INSERT INTO ${instance} (
+        id,
         user_id,
         tenant_id,
         use_case_id,
@@ -208,6 +214,7 @@ export async function applyDashboardInstanceReconciliation(
         phase_service_token
       )
       SELECT
+        ${instanceId},
         ${plan.ownerId},
         ${plan.tenantId},
         ${plan.useCaseId},

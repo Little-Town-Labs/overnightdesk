@@ -108,8 +108,9 @@ agent surfaces.
 ### Production qualification for User Story 3
 
 - [x] T028 [US3] Perform a read-only Aegis preflight of Titus/Walter runtimes, both chat deployments, Nginx, volumes, restart counts, effective provider/model sentinels, current routes, and Ops health and append value-free evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T029a [US3] Publish, plan, apply, and verify the guarded additive reconciliation for the exact runtime-scoped Titus dashboard platform-instance and hostname bindings with private-runtime qualification, explicit confirmation, and one count-only audit in `scripts/dashboard-identity-binding-reconciliation.ts`
-- [ ] T029 [US3] Run the guarded production assignment `plan` with zero writes, inspect canonical owner/runtime/binding uniqueness, and record only status/count evidence in `specs/024-titus-dashboard-access/quickstart.md`
+- [x] T029a [US3] Publish, plan, apply, and verify the guarded additive reconciliation for the exact runtime-scoped Titus dashboard platform-instance and hostname bindings with private-runtime qualification, explicit confirmation, and one count-only audit in `scripts/dashboard-identity-binding-reconciliation.ts`
+- [x] T029 [US3] Run the guarded production assignment `plan` with zero writes, inspect canonical owner/runtime/binding uniqueness, and record only status/count evidence in `specs/024-titus-dashboard-access/quickstart.md`
+- [ ] T030a [US3] Publish and deploy the explicit application-generated projection ID correction after a disposable Neon RED/GREEN plan/apply/verify regression proves the raw SQL path does not rely on a nonexistent database default
 - [ ] T030 [US3] Apply and separately verify the canonical Titus dashboard projection with the explicit confirmation sentinel through `scripts/dashboard-instance-reconciliation.ts`
 - [ ] T031 [US3] Install the Titus Nginx/runtime candidate disabled, create the public OIDC client and exact runtime-scoped binding disabled, stage configuration through non-logging input, and verify private native auth, no published port, exact restart, and retained `hermes-titus-data` using `tenants/hermes-titus/scripts/deploy-aegis.sh`
 - [ ] T032 [US3] Rehearse disabled-candidate rollback to loopback-only Titus while preserving Chat, visible history, native data, channels, providers, and Walter, then append the result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
@@ -146,7 +147,8 @@ accepted, observable, and recoverable without coupling either chat deployment.
   while US1 runtime-source tests are being implemented in different files.
 - US3 requires US1 and US2 complete, reviewed, and locally qualified.
 - T029a must merge, deploy, apply, and verify before T029; T029 must pass before
-  T030; T030 must verify before T031 can create and bind the OIDC client;
+  T030a; T030a must merge and deploy before T030; T030 must verify before T031
+  can create and bind the OIDC client;
   T031-T032 must pass before T033 can temporarily qualify the protected route.
 - T034-T039 require owner-directed checkpoints and must remain sequential so
   each authority state is restored before the next transition.
