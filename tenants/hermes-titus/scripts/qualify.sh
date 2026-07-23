@@ -37,6 +37,7 @@ runtime_files=(
   "$tenant_root/runtime/start-with-secrets.sh"
   "$tenant_root/runtime/control-tower-session.sh"
   "$tenant_root/runtime/email-run-approval.sh"
+  "$tenant_root/runtime/verify-mcp-registry.py"
   "$tenant_root/runtime/hermes-titus.service"
   "$tenant_root/config/config.yaml"
   "$tenant_root/config/tdai-gateway.yaml"
@@ -51,6 +52,7 @@ runtime_files=(
   "$tenant_root/mcp-servers/guarded-agentmail/tests/test_guarded_email.py"
   "$tenant_root/mcp-servers/guarded-agentmail/tests/test_server_contract.py"
   "$tenant_root/mcp-servers/guarded-agentmail/tests/test_runtime_projection.py"
+  "$tenant_root/mcp-servers/guarded-agentmail/tests/test_mcp_registry_verifier.py"
 )
 
 for file in "${runtime_files[@]}"; do
@@ -74,7 +76,8 @@ PYTHONDONTWRITEBYTECODE=1 python - \
   "$tenant_root/mcp-servers/guarded-agentmail/guarded_email.py" \
   "$tenant_root/mcp-servers/guarded-agentmail/service.py" \
   "$tenant_root/mcp-servers/guarded-agentmail/server.py" \
-  "$tenant_root/runtime/apply-email-mode.py" <<'PY'
+  "$tenant_root/runtime/apply-email-mode.py" \
+  "$tenant_root/runtime/verify-mcp-registry.py" <<'PY'
 from pathlib import Path
 import ast
 import sys
@@ -256,6 +259,7 @@ require_pattern '/source/mcp-servers/guarded-agentmail/guarded_email\.py' "$tena
 require_pattern '/source/mcp-servers/guarded-agentmail/service\.py' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern '/source/mcp-servers/guarded-agentmail/server\.py' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'install -d -m 0700 /opt/data/guarded-agentmail' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/source/runtime/verify-mcp-registry\.py' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'guarded-email-read-only' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern '/source/runtime/apply-email-mode\.py' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'TITUS_GUARDED_EMAIL_MODE' "$tenant_root/runtime/prepare-volume.sh"
@@ -311,7 +315,8 @@ require_pattern 'rollback_runtime' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'email_read_only' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'email_guarded' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'guarded-email-read-only' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'guarded_agentmail_mcp=read_only_rollback' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern '/opt/data/bin/verify-mcp-registry\.py' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'guarded_agentmail_mcp=read_only_rollback' "$tenant_root/runtime/verify-mcp-registry.py"
 require_pattern 'MATRIX_ACCESS_TOKEN' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'MATRIX_RECOVERY_KEY' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern '_matrix/client/v3/account/whoami' "$tenant_root/scripts/deploy-aegis.sh"
