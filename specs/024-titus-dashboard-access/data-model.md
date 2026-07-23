@@ -7,20 +7,20 @@ dashboard lifecycle records.
 
 Represents one existing native dashboard attached to one exact runtime.
 
-| Field | Rule |
-|---|---|
-| `use_case_id` | Exact active Titus use case |
-| `runtime_identity_id` | Exact active `hermes-titus` runtime identity |
-| `tenant_id` | Fixed `titus-dashboard`; unique |
-| `subdomain` | Fixed `titus-dashboard.overnightdesk.com`; unique HTTPS host |
-| `container_id` | Existing `hermes-titus`; does not create a container |
-| `user_id` | Unique current canonical owner at reconciliation time |
-| `status` | `running` only after private runtime health is proven |
-| `engine_api_key` | Null; dashboard projection is not an engine API identity |
-| `dashboard_token_hash` | Null; native OIDC is the dashboard session boundary |
-| `phase_service_token` | Null; existing Titus Phase boundaries remain unchanged |
-| `hermes_oidc_client_id` | Null, then one exact public client ID |
-| `hermes_dashboard_auth_status` | `legacy -> pending -> active`, or `disabled/error` |
+| Field                          | Rule                                                         |
+| ------------------------------ | ------------------------------------------------------------ |
+| `use_case_id`                  | Exact active Titus use case                                  |
+| `runtime_identity_id`          | Exact active `hermes-titus` runtime identity                 |
+| `tenant_id`                    | Fixed `titus-dashboard`; unique                              |
+| `subdomain`                    | Fixed `titus-dashboard.overnightdesk.com`; unique HTTPS host |
+| `container_id`                 | Existing `hermes-titus`; does not create a container         |
+| `user_id`                      | Unique current canonical owner at reconciliation time        |
+| `status`                       | `running` only after private runtime health is proven        |
+| `engine_api_key`               | Null; dashboard projection is not an engine API identity     |
+| `dashboard_token_hash`         | Null; native OIDC is the dashboard session boundary          |
+| `phase_service_token`          | Null; existing Titus Phase boundaries remain unchanged       |
+| `hermes_oidc_client_id`        | Null, then one exact public client ID                        |
+| `hermes_dashboard_auth_status` | `legacy -> pending -> active`, or `disabled/error`           |
 
 Validation requires exactly one matching canonical identity, one current owner,
 one active platform-instance binding, no conflicting tenant/host/container row,
@@ -28,28 +28,28 @@ and no cross-runtime linkage.
 
 ## Resource Bindings
 
-| Provider | Kind | Value | State |
-|---|---|---|---|
-| `docker` | `container` | `hermes-titus` | existing active |
-| `docker` | `volume` | `hermes-titus-data` | existing active |
-| `nginx` | `hostname` | `titus-dashboard.overnightdesk.com` | active only after route qualification |
-| `overnightdesk` | `platform_instance` | `titus-dashboard` | active canonical selector |
-| `better-auth` | `oidc_client` | opaque public client ID | active only after runtime qualification |
+| Provider        | Kind                | Value                               | State                                                                                                                   |
+| --------------- | ------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `docker`        | `container`         | `hermes-titus`                      | existing active                                                                                                         |
+| `docker`        | `volume`            | `hermes-titus-data`                 | existing active                                                                                                         |
+| `nginx`         | `hostname`          | `titus-dashboard.overnightdesk.com` | active canonical selector before assignment; public access still requires the independently disabled route and TLS gate |
+| `overnightdesk` | `platform_instance` | `titus-dashboard`                   | active canonical selector                                                                                               |
+| `better-auth`   | `oidc_client`       | opaque public client ID             | active only after runtime qualification                                                                                 |
 
 Bindings are runtime scoped. A duplicate active value, a binding attached to a
 different runtime, or a missing canonical selector blocks activation.
 
 ## Dashboard Authorization Context
 
-| Field | Meaning |
-|---|---|
-| `host` | Normalized exact `X-Original-Host` requested through Nginx |
-| `instance_id` | Exact running dashboard projection |
-| `instance_owner_id` | Legacy fallback authority only |
-| `use_case_id` | Canonical membership scope when linked |
-| `runtime_identity_id` | Exact runtime membership scope when linked |
-| `client_id` | Exact active OIDC audience |
-| `auth_status` | Must be active for launch/token issuance |
+| Field                 | Meaning                                                    |
+| --------------------- | ---------------------------------------------------------- |
+| `host`                | Normalized exact `X-Original-Host` requested through Nginx |
+| `instance_id`         | Exact running dashboard projection                         |
+| `instance_owner_id`   | Legacy fallback authority only                             |
+| `use_case_id`         | Canonical membership scope when linked                     |
+| `runtime_identity_id` | Exact runtime membership scope when linked                 |
+| `client_id`           | Exact active OIDC audience                                 |
+| `auth_status`         | Must be active for launch/token issuance                   |
 
 State resolution:
 

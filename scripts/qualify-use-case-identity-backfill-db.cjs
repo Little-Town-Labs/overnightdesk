@@ -72,27 +72,38 @@ function runSchemaApply(targetUrl) {
   }
 }
 
-function runCompatibilityVerification(targetUrl, mode) {
-  const result = spawnSync(
-    "npm",
-    ["run", "identity:compatibility:verify"],
-    {
-      cwd: repo,
-      env: {
-        ...process.env,
-        DATABASE_URL: targetUrl,
-        CANONICAL_IDENTITY_READ_MODE: mode,
-        IDENTITY_COMPARISON_CONFIRM:
-          mode === "compare" ? "COMPARE_TENET_1_SHADOW" : "",
-      },
-      stdio: "inherit",
+function runPersonaSchemaApply(targetUrl) {
+  const result = spawnSync("npm", ["run", "identity:persona-schema:apply"], {
+    cwd: repo,
+    env: {
+      ...process.env,
+      DATABASE_URL: targetUrl,
+      PERSONA_SCHEMA_ACTOR: "operator:identity-qualification",
+      PERSONA_SCHEMA_CONFIRM: "ADD_PERSONA_PRESENTATION_SCHEMA_0010",
     },
-  );
+    stdio: "inherit",
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(
-      `identity compatibility ${mode} exited ${result.status}`,
-    );
+    throw new Error(`persona schema command exited ${result.status}`);
+  }
+}
+
+function runCompatibilityVerification(targetUrl, mode) {
+  const result = spawnSync("npm", ["run", "identity:compatibility:verify"], {
+    cwd: repo,
+    env: {
+      ...process.env,
+      DATABASE_URL: targetUrl,
+      CANONICAL_IDENTITY_READ_MODE: mode,
+      IDENTITY_COMPARISON_CONFIRM:
+        mode === "compare" ? "COMPARE_TENET_1_SHADOW" : "",
+    },
+    stdio: "inherit",
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`identity compatibility ${mode} exited ${result.status}`);
   }
 }
 
@@ -128,7 +139,9 @@ function runWalterFoundationVerify(targetUrl) {
   );
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`Walter identity foundation verify exited ${result.status}`);
+    throw new Error(
+      `Walter identity foundation verify exited ${result.status}`,
+    );
   }
 }
 
@@ -149,7 +162,9 @@ function runWalterMembershipVerify(targetUrl, membershipUserId) {
   );
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`Walter identity membership verify exited ${result.status}`);
+    throw new Error(
+      `Walter identity membership verify exited ${result.status}`,
+    );
   }
 }
 
@@ -170,7 +185,9 @@ function runTitusCommand(targetUrl, scope, command, membershipUserId) {
   );
   if (result.error) throw result.error;
   if (result.status !== 0) {
-    throw new Error(`Titus identity ${scope} ${command} exited ${result.status}`);
+    throw new Error(
+      `Titus identity ${scope} ${command} exited ${result.status}`,
+    );
   }
 }
 
@@ -181,20 +198,16 @@ function runTitusOpenWebuiCommand(targetUrl, command) {
     disable: "ROLLBACK_TITUS_OPEN_WEBUI_CLIENT",
     "refresh:apply": "ENABLE_TITUS_OPEN_WEBUI_REFRESH_CONTRACT",
   };
-  const result = spawnSync(
-    "npm",
-    ["run", `open-webui:titus:${command}`],
-    {
-      cwd: repo,
-      env: {
-        ...process.env,
-        DATABASE_URL: targetUrl,
-        TITUS_OPEN_WEBUI_ACTOR: "operator:identity-qualification",
-        TITUS_OPEN_WEBUI_CONFIRM: confirmations[command] ?? "",
-      },
-      stdio: "inherit",
+  const result = spawnSync("npm", ["run", `open-webui:titus:${command}`], {
+    cwd: repo,
+    env: {
+      ...process.env,
+      DATABASE_URL: targetUrl,
+      TITUS_OPEN_WEBUI_ACTOR: "operator:identity-qualification",
+      TITUS_OPEN_WEBUI_CONFIRM: confirmations[command] ?? "",
     },
-  );
+    stdio: "inherit",
+  });
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`Titus Open WebUI ${command} exited ${result.status}`);
@@ -282,6 +295,9 @@ async function main() {
 
     currentStage = "apply identity schema through production command";
     runSchemaApply(targetUrl);
+
+    currentStage = "apply persona schema through production command";
+    runPersonaSchemaApply(targetUrl);
 
     currentStage = "run identity integration tests";
     runIntegrationTests(targetUrl);

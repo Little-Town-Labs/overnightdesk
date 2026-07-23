@@ -23,13 +23,14 @@ const describeIntegration = safeDisposableDatabase ? describe : describe.skip;
 
 describeIntegration("Mitchel/Trevor identity backfill store", () => {
   it("applies foundation before a user exists and attaches verified membership later", async () => {
-    const [{ eq }, { db }, schema, storeModule, auditModule] = await Promise.all([
-      import("drizzle-orm"),
-      import("@/db"),
-      import("@/db/schema"),
-      import("@/db/use-case-identity-backfill-store"),
-      import("@/lib/canonical-identity-audit"),
-    ]);
+    const [{ eq }, { db }, schema, storeModule, auditModule] =
+      await Promise.all([
+        import("drizzle-orm"),
+        import("@/db"),
+        import("@/db/schema"),
+        import("@/db/use-case-identity-backfill-store"),
+        import("@/lib/canonical-identity-audit"),
+      ]);
     const { platformAuditLog, useCaseMembership, user } = schema;
     const {
       applyIdentityFoundationPlan,
@@ -81,7 +82,8 @@ describeIntegration("Mitchel/Trevor identity backfill store", () => {
       ),
     ).resolves.toEqual({ checked: 4, matched: 4, mismatches: [] });
 
-    const auditCanonicalComparison = auditModule.createPlatformIdentityAudit(db);
+    const auditCanonicalComparison =
+      auditModule.createPlatformIdentityAudit(db);
     await expect(
       compareMitchelTrevorLegacyAndCanonical({
         mode: "compare",
@@ -223,12 +225,12 @@ describeIntegration("Walter identity backfill store", () => {
   it("applies Tenet 0 with zero memberships and attaches Gary separately", async () => {
     const [{ and, eq, inArray }, { db }, schema, storeModule, oidcModule] =
       await Promise.all([
-      import("drizzle-orm"),
-      import("@/db"),
-      import("@/db/schema"),
-      import("@/db/use-case-identity-backfill-store"),
-      import("@/lib/hermes-oidc"),
-    ]);
+        import("drizzle-orm"),
+        import("@/db"),
+        import("@/db/schema"),
+        import("@/db/use-case-identity-backfill-store"),
+        import("@/lib/hermes-oidc"),
+      ]);
     const { platformAuditLog, useCaseMembership, user } = schema;
     const {
       applyIdentityFoundationPlan,
@@ -273,11 +275,7 @@ describeIntegration("Walter identity backfill store", () => {
         .where(eq(useCaseMembership.useCaseId, ids.useCaseId)),
     ).resolves.toHaveLength(0);
     await expect(
-      verifyWalterCanonicalSelectors(
-        ids.useCaseId,
-        ids.runtimeIdentityId,
-        db,
-      ),
+      verifyWalterCanonicalSelectors(ids.useCaseId, ids.runtimeIdentityId, db),
     ).resolves.toEqual({
       checked: 1 + WALTER_IDENTITY_TEMPLATE.resourceBindings.length,
       matched: 1 + WALTER_IDENTITY_TEMPLATE.resourceBindings.length,
@@ -368,6 +366,9 @@ describeIntegration("Walter identity backfill store", () => {
       instanceStatus: "running",
       dashboardAuthStatus: "active",
       linkedClientId: clientId,
+      useCaseId: ids.useCaseId,
+      runtimeIdentityId: ids.runtimeIdentityId,
+      oidcBindingValid: true,
       client: {
         clientId,
         clientSecret: null,
@@ -457,18 +458,31 @@ describeIntegration("Walter identity backfill store", () => {
       delete process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM;
       await expect(authorize(membershipUserId)).resolves.toBe(instanceId);
 
-      const beforeRollbackAudits = await db
+      const beforeLegacyFlagAudits = await db
         .select({ action: platformAuditLog.action })
         .from(platformAuditLog)
         .where(inArray(platformAuditLog.action, authorizationActions));
       process.env.WALTER_MEMBERSHIP_AUTH_MODE = "legacy";
       delete process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM;
       await expect(authorize(membershipUserId)).resolves.toBe(instanceId);
-      const afterRollbackAudits = await db
+      const afterLegacyFlagAudits = await db
         .select({ action: platformAuditLog.action })
         .from(platformAuditLog)
         .where(inArray(platformAuditLog.action, authorizationActions));
-      expect(afterRollbackAudits).toHaveLength(beforeRollbackAudits.length);
+      expect(afterLegacyFlagAudits).toHaveLength(
+        beforeLegacyFlagAudits.length + 1,
+      );
+      expect(
+        afterLegacyFlagAudits.filter(
+          ({ action }) =>
+            action === "use_case_membership_authorization.granted",
+        ),
+      ).toHaveLength(
+        beforeLegacyFlagAudits.filter(
+          ({ action }) =>
+            action === "use_case_membership_authorization.granted",
+        ).length + 1,
+      );
 
       const authorizationAudits = await db
         .select({
@@ -485,11 +499,13 @@ describeIntegration("Walter identity backfill store", () => {
           expect.objectContaining({
             action: "use_case_membership_authorization.denied",
           }),
-          expect.objectContaining({
-            action: "walter_membership_authorization_shadow.match",
-          }),
         ]),
       );
+      expect(
+        authorizationAudits.some(({ action }) =>
+          action.startsWith("walter_membership_authorization_shadow."),
+        ),
+      ).toBe(false);
       expect(JSON.stringify(authorizationAudits)).not.toContain(
         membershipUserId,
       );
@@ -527,14 +543,24 @@ describeIntegration("Walter identity backfill store", () => {
 });
 
 describeIntegration("Titus identity backfill store", () => {
-  it("applies Tenet 2 with zero memberships and attaches Gary separately", async () => {
-    const [{ and, eq }, { db }, schema, storeModule] = await Promise.all([
+  it("applies Tenet 2, reconciles later dashboard bindings, and attaches Gary separately", async () => {
+    const [
+      { and, eq, or },
+      { db },
+      schema,
+      storeModule,
+      dashboardBindingStore,
+      dashboardBindingPlanner,
+    ] = await Promise.all([
       import("drizzle-orm"),
       import("@/db"),
       import("@/db/schema"),
       import("@/db/use-case-identity-backfill-store"),
+      import("@/db/dashboard-identity-binding-reconciliation-store"),
+      import("@/lib/dashboard-identity-binding-reconciliation"),
     ]);
-    const { platformAuditLog, useCaseMembership, user } = schema;
+    const { platformAuditLog, resourceBinding, useCaseMembership, user } =
+      schema;
     const {
       applyIdentityFoundationPlan,
       applyMembershipActivationPlan,
@@ -570,6 +596,87 @@ describeIntegration("Titus identity backfill store", () => {
       useCaseId: ids.useCaseId,
       runtimeIdentityId: ids.runtimeIdentityId,
     });
+
+    const dashboardDescriptors =
+      dashboardBindingPlanner.dashboardIdentityBindingDescriptors(
+        TITUS_IDENTITY_TEMPLATE,
+      );
+    await db
+      .delete(resourceBinding)
+      .where(
+        or(
+          and(
+            eq(resourceBinding.provider, "overnightdesk"),
+            eq(resourceBinding.kind, "platform_instance"),
+            eq(resourceBinding.value, "titus-dashboard"),
+          ),
+          and(
+            eq(resourceBinding.provider, "nginx"),
+            eq(resourceBinding.kind, "hostname"),
+            eq(resourceBinding.value, "titus-dashboard.overnightdesk.com"),
+          ),
+        ),
+      );
+    const driftedFoundation = await inspectTitusIdentityFoundation(db);
+    expect(
+      planTitusFoundation(
+        { actor: input.actor },
+        driftedFoundation,
+        generateTitusIdentityIds(),
+      ),
+    ).toEqual({ status: "blocked", reasons: ["canonical_state_drift"] });
+
+    const dashboardGateway =
+      dashboardBindingStore.createDashboardIdentityBindingGateway(
+        TITUS_IDENTITY_TEMPLATE,
+        dashboardDescriptors,
+        db,
+      );
+    await expect(
+      dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
+        "plan",
+        dashboardDescriptors,
+        {},
+        dashboardGateway,
+      ),
+    ).resolves.toEqual({ status: "ready", bindingsToCreate: 2 });
+    await expect(
+      dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
+        "apply",
+        dashboardDescriptors,
+        {
+          actor: "operator:titus-dashboard-binding-qualification",
+          confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          privateRuntimeQualified: true,
+        },
+        dashboardGateway,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", bindingsVerified: 2 });
+    await expect(
+      dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
+        "verify",
+        dashboardDescriptors,
+        {},
+        dashboardGateway,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", bindingsVerified: 2 });
+    await expect(
+      dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
+        "apply",
+        dashboardDescriptors,
+        {},
+        dashboardGateway,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", bindingsVerified: 2 });
+
+    const bindingAudits = await db
+      .select({ details: platformAuditLog.details })
+      .from(platformAuditLog)
+      .where(
+        eq(platformAuditLog.action, "canonical_dashboard_bindings_reconciled"),
+      );
+    expect(bindingAudits).toEqual([{ details: { bindingCount: 2 } }]);
+
     await expect(
       db
         .select()
@@ -577,11 +684,7 @@ describeIntegration("Titus identity backfill store", () => {
         .where(eq(useCaseMembership.useCaseId, ids.useCaseId)),
     ).resolves.toHaveLength(0);
     await expect(
-      verifyTitusCanonicalSelectors(
-        ids.useCaseId,
-        ids.runtimeIdentityId,
-        db,
-      ),
+      verifyTitusCanonicalSelectors(ids.useCaseId, ids.runtimeIdentityId, db),
     ).resolves.toEqual({
       checked: 1 + TITUS_IDENTITY_TEMPLATE.resourceBindings.length,
       matched: 1 + TITUS_IDENTITY_TEMPLATE.resourceBindings.length,
@@ -646,6 +749,7 @@ describeIntegration("Titus identity backfill store", () => {
     const serializedAudits = JSON.stringify([
       foundationAudits,
       membershipAudits,
+      bindingAudits,
     ]);
     expect(serializedAudits).not.toContain(membershipUserId);
     expect(serializedAudits).not.toContain("hermes-titus");

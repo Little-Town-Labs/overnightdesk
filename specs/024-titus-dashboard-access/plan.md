@@ -40,7 +40,7 @@ qualification, exact denial/restoration, persistence, and rollback proof pass.
 
 ## Constitution Check
 
-*GATE: Passed before research and re-checked after design.*
+_GATE: Passed before research and re-checked after design._
 
 - **Customer data is sacred — PASS**: The platform stores assignment and
   lifecycle metadata only. Dashboard and chat contents remain in their retained
@@ -242,10 +242,12 @@ deployment files; authorization and interface behavior remain agent agnostic.
 2. **Disabled Titus runtime candidate**: add the Nginx and Titus runtime source,
    bind only after valid OIDC configuration, and qualify private networking,
    hardening, no published ports, persistence, and exact restart behavior.
-3. **Canonical production assignment**: reconcile the additive Titus dashboard
-   projection, then create its public client and exact runtime-scoped client
-   binding in disabled/pending state with value-free plan, apply, verify, and
-   rollback evidence.
+3. **Canonical production assignment**: use the separate guarded additive
+   reconciler to add only the missing repository-declared dashboard
+   platform-instance and hostname bindings to the existing Titus foundation,
+   then reconcile the additive Titus dashboard projection and create its public
+   client plus exact runtime-scoped client binding in disabled/pending state
+   with value-free plan, apply, verify, and rollback evidence.
 4. **Controlled route qualification**: temporarily activate DNS/TLS, the OIDC
    client, and the protected route for owner-directed checks, then repeat
    anonymous, non-member, suspended, expired, logout, session-expiry,
@@ -260,9 +262,12 @@ deployment files; authorization and interface behavior remain agent agnostic.
 - Disable the Titus OIDC client before removing public routing.
 - Restore Titus dashboard binding/configuration to the prior loopback-only
   source and restart only `hermes-titus`.
-- Remove or disable the canonical dashboard projection and active hostname
-  binding only through the guarded reconciliation rollback; retain the user,
-  canonical identity, runtime, and audit history.
+- Retain the exact canonical dashboard projection plus platform-instance and
+  hostname selector bindings as operational metadata. The existing guarded
+  OIDC lifecycle marks the projection auth `disabled` and moves only its
+  runtime-scoped OIDC client binding to `rollback`; with the public route absent
+  this removes the launch action without deleting identity, assignment, or
+  selector history and lets restoration reuse the same exact records.
 - Preserve `hermes-titus-data`, Titus Open WebUI data, chat history, Matrix,
   email intake, Phase boundaries, and all Walter resources.
 - Keep `titus-chat.overnightdesk.com` independently routed and authorized
