@@ -81,6 +81,7 @@ install_disabled() {
     set -eu
     test ! -e /opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
     sudo systemctl stop hermes-titus.service
+    sudo rm -f /opt/hermes-titus/rollback-loopback-dashboard
     sudo /opt/hermes-titus/bin/prepare-volume.sh
     sudo systemctl start hermes-titus.service
   '
@@ -352,18 +353,27 @@ rollback_runtime() {
   disable_route
   "${ssh_cmd[@]}" '
     set -eu
+    sudo install -o root -g root -m 0400 /dev/null \
+      /opt/hermes-titus/rollback-loopback-dashboard
     sudo systemctl stop hermes-titus.service
-    sudo docker run --rm \
-      --user 0:0 \
-      --volume hermes-titus-data:/opt/data \
-      --volume /opt/hermes-titus/source/runtime/start-all.loopback.sh:/source/start-all.loopback.sh:ro \
-      --entrypoint /usr/bin/install \
-      overnightdesk/hermes-agent:0.18.0-coder \
-      -o 10000 -g 10000 -m 0755 /source/start-all.loopback.sh /opt/data/bin/start-all.sh
     sudo systemctl start hermes-titus.service
+    for i in $(seq 1 60); do
+      state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" hermes-titus 2>/dev/null || true)
+      test "$state" = healthy && break
+      test "$i" -lt 60 || { sudo docker logs --tail 80 hermes-titus 2>&1; exit 1; }
+      sleep 2
+    done
+    sudo docker exec hermes-titus cmp -s \
+      /opt/data/bin/start-all.sh /opt/data/bin/start-all.loopback.sh
+    sudo docker exec hermes-titus ps -eo args | \
+      grep -F "hermes dashboard --host 127.0.0.1 --port 9119 --no-open" >/dev/null
+    test -z "$(sudo docker port hermes-titus)"
+    test ! -e /opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
     sudo docker volume inspect hermes-titus-data >/dev/null
     for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done
-    echo "hermes-titus dashboard rolled back to loopback; retained state preserved"
+    echo "titus_dashboard=healthy_loopback_rollback"
+    echo "published_ports=none"
+    echo "retained_state=verified"
   '
 }
 
