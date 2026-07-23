@@ -65,7 +65,14 @@ API; other intake credentials never enter the Hermes container.
 
 ## AgentMail
 
-The `agentmail` MCP server connects directly to `https://mcp.agentmail.to/mcp` and interpolates `AGENTMAIL_API_KEY` from the Titus process; its configuration never embeds the key. Titus must use `skills/agentmail-email/SKILL.md` for inbox discovery, read-only triage, draft preparation, and approval-gated mailbox mutations.
+The `agentmail` MCP server connects directly to
+`https://mcp.agentmail.to/mcp` and interpolates `AGENTMAIL_API_KEY` from the
+Titus process; its configuration never embeds the key. Its exact tool include
+list is read-only: inbox, thread, message, search, and attachment retrieval.
+Direct provider send, reply, forward, draft, delete, label, inbox, webhook,
+key, domain, list, and other mailbox mutations are unavailable. Titus must use
+`skills/agentmail-email/SKILL.md` for inbox discovery, read-only triage, and
+unsent draft preparation while the guarded outbound path is qualified.
 
 The shared Go email intake runs as three isolated systemd template instances.
 It lands every newly observed message in `content_staging` as dirty input and

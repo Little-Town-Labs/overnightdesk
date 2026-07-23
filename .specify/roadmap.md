@@ -2,7 +2,7 @@
 
 **Source:** PRD v2.1 (2026-03-21)
 **Constitution:** v1.0.0 (2026-03-21)
-**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-22
+**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-23
 
 ---
 
@@ -15,10 +15,21 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** 023 — Composable Agent Workspace
-**Current critical path:** qualify Walter denial/session lifecycle and obtain authenticated owner acceptance
+**Active Spec Kit feature:** 025 — Titus Guarded Outbound Email
+**Current critical path:** contain Titus direct AgentMail mutations, then qualify a fail-closed guarded send path before resuming Feature 024 T037
 
-## Current Delivery Checkpoint — 2026-07-22
+## Current Delivery Checkpoint — 2026-07-23
+
+- **Feature 025 — active incident response:** Five Titus emails sent on
+  2026-07-22 had empty bodies, and four also had empty subjects. The exact
+  reported provider record confirms that Titus invoked a direct AgentMail
+  mutation without subject or body, then incorrectly described chat-generated
+  content as delivered. Feature 024 remains safely paused at 43/52 before T037.
+  The immediate gate is a reversible read-only containment that removes direct
+  AgentMail mutation tools from Titus. The durable gate is one approval-bound
+  send action that requires complete content, passes the exact draft through
+  SecurityTeam, sends idempotently, reads the provider message back, and never
+  reports success unless recipients, subject, and body match exactly.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered
