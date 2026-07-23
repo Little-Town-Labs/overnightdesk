@@ -432,6 +432,90 @@ With owner-directed checkpoints, test and restore each state independently:
 Every denial must fail closed at both proxy and native boundaries. Record only
 bounded result labels and timestamps.
 
+### T034a guarded membership qualification command
+
+Do not edit the production membership with ad hoc SQL. The fixed-target command
+resolves exactly one use-case-scoped Titus owner membership through the active
+canonical dashboard projection, public OIDC client, and active runtime-scoped
+OIDC binding. It blocks copied, ambiguous, runtime-scoped, non-owner, inactive,
+disabled, rollback, or drifted records. Output contains only state, status, and
+count fields.
+
+For each denial window, run a read-only plan, the exact confirmed apply, and a
+separate verify:
+
+```bash
+npm run identity:titus:membership-qualification:plan -- non_member
+TITUS_MEMBERSHIP_QUALIFICATION_ACTOR=operator:feature-024-production \
+TITUS_MEMBERSHIP_QUALIFICATION_CONFIRM=BEGIN_TITUS_NON_MEMBER_DENIAL \
+  npm run identity:titus:membership-qualification:apply -- non_member
+npm run identity:titus:membership-qualification:verify -- non_member
+
+npm run identity:titus:membership-qualification:plan -- suspended
+TITUS_MEMBERSHIP_QUALIFICATION_ACTOR=operator:feature-024-production \
+TITUS_MEMBERSHIP_QUALIFICATION_CONFIRM=BEGIN_TITUS_SUSPENDED_DENIAL \
+  npm run identity:titus:membership-qualification:apply -- suspended
+npm run identity:titus:membership-qualification:verify -- suspended
+
+npm run identity:titus:membership-qualification:plan -- expired
+TITUS_MEMBERSHIP_QUALIFICATION_ACTOR=operator:feature-024-production \
+TITUS_MEMBERSHIP_QUALIFICATION_CONFIRM=BEGIN_TITUS_EXPIRED_DENIAL \
+  npm run identity:titus:membership-qualification:apply -- expired
+npm run identity:titus:membership-qualification:verify -- expired
+```
+
+The non-member window retains the exact row and changes only its authorization
+status; it does not delete identity or membership history. The suspended and
+expired windows retain active status while applying only their corresponding
+denial timestamp. Every transition is an atomic compare-and-set with one audit
+containing only `fromState`, `toState`, and `membershipCount`.
+
+Restore immediately after the owner completes each browser denial checkpoint:
+
+```bash
+npm run identity:titus:membership-qualification:plan -- active
+TITUS_MEMBERSHIP_QUALIFICATION_ACTOR=operator:feature-024-production \
+TITUS_MEMBERSHIP_QUALIFICATION_CONFIRM=RESTORE_TITUS_AFTER_NON_MEMBER_DENIAL \
+  npm run identity:titus:membership-qualification:apply -- active
+npm run identity:titus:membership-qualification:verify -- active
+
+# Use RESTORE_TITUS_AFTER_SUSPENDED_DENIAL after the suspended window.
+# Use RESTORE_TITUS_AFTER_EXPIRED_DENIAL after the expired window.
+```
+
+Do not move directly from one denial state to another. If any check or apply
+fails, plan the active state, use only the restore confirmation for the exact
+current denial, verify active separately, and stop T034 before investigating.
+Restoration resolves the canonical owner membership independently of dashboard
+runtime or OIDC health so a degraded protected boundary cannot strand broader
+Titus platform authority in a denial state.
+The command does not change the OIDC client, route, runtime, session, provider,
+volume, Chat data, or Walter.
+
+#### T034a local guardrail evidence — 2026-07-23
+
+- RED first failed because the fixed-target qualification planner and store did
+  not exist. GREEN passed 25 focused planner and command tests covering exact
+  target resolution, all denial/restoration transitions, state-specific
+  confirmations, bounded actors, ambiguous/copied state, concurrent writers,
+  value-free output, and fail-closed errors.
+- A fresh disposable database applied every repository migration, rejected an
+  unconfirmed write, completed non-member, suspended, and expired denial plus
+  exact restoration through the real operator CLI, verified six metadata-only
+  audits, and finished active. The suspended case deliberately stopped the
+  dashboard projection, disabled its OIDC client, and moved its binding to
+  rollback before restoring membership, proving the rescue path does not depend
+  on the degraded boundary. The disposable database was force-dropped.
+- The full repository run passed 105 Jest suites and 1,158 tests with the
+  expected 4 suites and 27 environment-gated tests skipped. TypeScript, Node
+  syntax, Prettier, `git diff --check`, and the Next.js 15.5.21 production build
+  passed. `npm audit --audit-level=high` exited successfully with the same five
+  documented moderate findings and no dependency change.
+- T034a remains pending until this guardrail is reviewed, merged, its exact
+  production deployment succeeds, and a fresh production `plan` returns only
+  one ready active-to-denial transition. No production membership or session
+  mutation was performed during local qualification.
+
 ## 9. Persistence, rollback, and observation
 
 Confirm an existing Titus chat and visible history before and after the exact

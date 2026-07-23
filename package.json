@@ -37,6 +37,9 @@
     "identity:titus:membership:plan": "tsx scripts/use-case-identity-backfill.ts membership titus plan",
     "identity:titus:membership:apply": "tsx scripts/use-case-identity-backfill.ts membership titus apply",
     "identity:titus:membership:verify": "tsx scripts/use-case-identity-backfill.ts membership titus verify",
+    "identity:titus:membership-qualification:plan": "tsx scripts/titus-membership-qualification.ts plan",
+    "identity:titus:membership-qualification:apply": "tsx scripts/titus-membership-qualification.ts apply",
+    "identity:titus:membership-qualification:verify": "tsx scripts/titus-membership-qualification.ts verify",
     "identity:titus:dashboard:plan": "tsx scripts/dashboard-instance-reconciliation.ts plan",
     "identity:titus:dashboard:apply": "tsx scripts/dashboard-instance-reconciliation.ts apply",
     "identity:titus:dashboard:verify": "tsx scripts/dashboard-instance-reconciliation.ts verify",
@@ -72,6 +75,7 @@
     "test": "jest",
     "test:open-webui-browser": "playwright test tests/browser/open-webui-auth-spike.spec.ts --browser=chromium",
     "test:hermes-oidc-db": "node scripts/qualify-hermes-oidc-db.cjs",
+    "test:titus-membership-qualification-db": "node scripts/qualify-titus-membership-db.cjs",
     "test:identity-backfill-db": "node scripts/qualify-use-case-identity-backfill-db.cjs",
     "test:coverage": "jest --coverage"
   },

@@ -117,6 +117,7 @@ agent surfaces.
 - [x] T032a [US3] Publish and deploy the durable root-owned loopback rollback marker after a RED regression proves systemd volume preparation overwrote the one-time launcher copy and GREEN verifies the live loopback process before success
 - [x] T032 [US3] Rehearse disabled-candidate rollback to loopback-only Titus while preserving Chat, visible history, native data, channels, providers, and Walter, then append the result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [x] T033 [US3] Establish only `titus-dashboard.overnightdesk.com` DNS/TLS, temporarily activate the exact OIDC client and protected Nginx route for owner-directed qualification, and prove anonymous/direct access fails closed without claiming production acceptance using `tenants/hermes-titus/scripts/deploy-aegis.sh`
+- [ ] T034a [US3] Publish and deploy a fixed-target, guarded Titus membership qualification command with value-free plan/apply/verify/restore output, atomic compare-and-set transitions, metadata-only audit records, and disposable-database RED/GREEN coverage
 - [ ] T034 [US3] Complete controlled non-member, suspended-member, and expired-member denial/restoration tests at both platform and direct dashboard boundaries and record value-free outcomes in `specs/024-titus-dashboard-access/quickstart.md`
 - [ ] T035 [US3] Complete explicit platform logout, native-session expiry, OIDC revocation, reauthentication, and final restoration tests and record value-free outcomes in `specs/024-titus-dashboard-access/quickstart.md`
 - [ ] T036 [US3] Prove Titus Chat response, visible history, exact-runtime restart persistence, native dashboard state, Walter isolation, provider/model invariants, public denial, private health, and zero unintended restarts using `tenants/hermes-titus/scripts/deploy-aegis.sh`
@@ -155,6 +156,8 @@ accepted, observable, and recoverable without coupling either chat deployment.
   T032 must pass before T033 can temporarily qualify the protected route.
 - T034-T039 require owner-directed checkpoints and must remain sequential so
   each authority state is restored before the next transition.
+- T034a must merge, deploy, and pass a fresh production read-only plan before
+  T034 may begin any owner membership denial window.
 - Publication requires all included tests, rollback proof, observation, owner
   acceptance, standard synchronization, and review gates.
 
