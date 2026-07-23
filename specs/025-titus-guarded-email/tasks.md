@@ -28,7 +28,8 @@ qualifies production, rollback, and closeout.
 AgentMail mutation.
 
 **Independent Test**: Enumerate Titus's effective AgentMail tools and prove
-exactly nine approved reads are present and all mutations are absent.
+exactly eight currently available approved reads are present and all mutations
+are absent.
 
 ### Tests for User Story 1
 
@@ -41,7 +42,7 @@ exactly nine approved reads are present and all mutations are absent.
 - [x] T010 [P] [US1] Document contained authority in `tenants/hermes-titus/README.md`
 - [x] T011 [US1] Run focused Titus qualification, YAML parse, shell syntax, secret scan, and diff checks
 - [x] T012 [US1] Run security and five-axis code review for the containment diff
-- [ ] T013 [US1] Commit, push, open, monitor, and merge the containment PR
+- [ ] T013 [US1] Commit, push, open, monitor, and merge the containment PRs
 - [ ] T014 [US1] Run a read-only Aegis preflight of Titus, SecurityTeam, AgentMail metadata, scoped volumes, and unrelated containers
 - [ ] T015 [US1] Deploy exact merged containment source and restart only `hermes-titus.service`
 - [ ] T016 [US1] Prove the live effective hosted tool set is exactly read-only and append value-free evidence to `deploys.log`
