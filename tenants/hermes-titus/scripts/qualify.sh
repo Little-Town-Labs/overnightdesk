@@ -183,6 +183,11 @@ require_pattern '_matrix/client/v3/joined_rooms' "$tenant_root/scripts/deploy-ae
 require_pattern 'm\.room\.encryption' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'TITUS_MATRIX_STATE' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'hermes-email-intake-.*-data' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'for route in titus walter mitchel; do' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'agent_state=.*hermes-email-intake@agent\.service' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'test "\$agent_state" = inactive' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'for route in titus walter mitchel agent; do' "$tenant_root/scripts/deploy-aegis.sh"
+reject_pattern 'for route in titus agent mitchel; do' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'embeddingService' "$tenant_root/scripts/deploy-aegis.sh"
 
 require_pattern 'provider: "\$\{MEMORY_TENCENTDB_EMBEDDING_PROVIDER\}"' "$tenant_root/config/tdai-gateway.yaml"

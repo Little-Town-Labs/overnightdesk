@@ -216,10 +216,13 @@ verify() {
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
     ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY)"
     sudo docker volume inspect hermes-titus-data >/dev/null
-    for route in titus agent mitchel; do
+    for route in titus walter mitchel; do
       sudo systemctl is-active --quiet "hermes-email-intake@$route.service"
       sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null
     done
+    agent_state=$(sudo systemctl is-active "hermes-email-intake@agent.service" 2>/dev/null || true)
+    test "$agent_state" = inactive
+    sudo docker volume inspect hermes-email-intake-agent-data >/dev/null
     sudo docker exec hermes-titus /usr/bin/bash -lc '\''
       set -euo pipefail
       set -a
@@ -341,7 +344,7 @@ status() {
 }
 
 stop_runtime() {
-  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done; echo "hermes-titus stopped; Matrix state and routed email-intake volumes preserved"'
+  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; for route in titus walter mitchel agent; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done; echo "hermes-titus stopped; Matrix state and routed email-intake volumes preserved"'
 }
 
 restart_runtime() {
@@ -370,7 +373,7 @@ rollback_runtime() {
     test -z "$(sudo docker port hermes-titus)"
     test ! -e /opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
     sudo docker volume inspect hermes-titus-data >/dev/null
-    for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done
+    for route in titus walter mitchel agent; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done
     echo "titus_dashboard=healthy_loopback_rollback"
     echo "published_ports=none"
     echo "retained_state=verified"
