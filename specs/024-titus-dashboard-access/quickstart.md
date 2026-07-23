@@ -655,10 +655,37 @@ volume, Chat data, or Walter.
   Walter topology. GREEN changed only the deployment verifier and retained
   volume assertions; local Titus and email-intake qualifications, shell syntax,
   and `git diff --check` pass.
-- T036 remains stopped before its post-restart browser checkpoint. The
-  correction must be reviewed, merged, installed from exact `main`, and pass a
-  separate production verification before the owner confirms retained Chat
-  history, a fresh response, and native dashboard recovery.
+- PR 110 passed both checks and merged as `b4a94f5`. Its exact production
+  deployment reached Ready on every live alias. Merged `main` was synchronized
+  to Aegis without a restart, the reviewed source hash matched, and the
+  corrected full verifier passed provider/model, native health, security,
+  network, Matrix, AgentMail, control-tower, embedding, active intake, inactive
+  rollback intake, and retained-volume assertions. T036a is complete.
+
+#### T036 production exact-runtime persistence — 2026-07-23
+
+- After the one intended Titus runtime recreation, the owner confirmed the
+  prior Titus Chat history remained visible, a fresh Titus response completed,
+  and the individual native Titus dashboard loaded normally.
+- Metadata-only inspection of the retained Titus Open WebUI SQLite database
+  returned integrity `ok`, one user, six active chats owned by that user, and
+  zero orphaned active chats. No conversation content or identity value was
+  read.
+- The corrected verifier proved the effective `x-ai/grok-4.3` Titus route,
+  medium reasoning, OpenRouter `x-ai/grok-build-0.1` delegation, configured
+  embedding path, exact encrypted Matrix identity and room, AgentMail MCP,
+  control-tower session, native health, private-only network, no published
+  port, all retained volumes, Walter/Titus/Mitchel intake active, and Agent
+  intake exactly inactive for rollback.
+- Walter, both Open WebUI deployments, Nginx, and Ops retained their exact
+  pre-restart container identities. The replacement Titus identity remained
+  unchanged after becoming healthy. All six scoped containers retained restart
+  count zero, while Nginx and Ops produced zero recent relevant error
+  signatures.
+- Public `www` returned HTTP 200. Anonymous Titus Chat, Walter Chat, the public
+  Titus native dashboard, and direct-Aegis Titus each returned HTTP 401. No
+  runtime, provider, route, certificate, authority, volume, Chat, Walter, or
+  user-data mutation followed the intended Titus recreation. T036 is complete.
 
 ## 9. Persistence, rollback, and observation
 
