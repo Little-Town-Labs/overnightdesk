@@ -119,7 +119,7 @@ describe("agent workspace directory", () => {
           identity: {
             name: "Titus",
             logo: {
-              src: `/api/agent-identity/${TITUS_RECORD.runtimeIdentityId}/logo/${personaLogoSha256}`,
+              src: `/api/agent-identity/runtime/${TITUS_RECORD.runtimeIdentityId}/logo/${personaLogoSha256}`,
               alt: "Titus agent mark",
               custom: true,
             },

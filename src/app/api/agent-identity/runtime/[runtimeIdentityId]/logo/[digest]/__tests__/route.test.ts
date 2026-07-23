@@ -18,12 +18,12 @@ function context(runtimeId = runtimeIdentityId, sha256 = digest) {
   return { params: Promise.resolve({ runtimeIdentityId: runtimeId, digest: sha256 }) };
 }
 
-describe("GET /api/agent-identity/:runtimeIdentityId/logo/:digest", () => {
+describe("GET /api/agent-identity/runtime/:runtimeIdentityId/logo/:digest", () => {
   it("serves only the exact active digest as immutable nosniff raster media", async () => {
     const deps = dependencies();
     const response = await createAgentPersonaLogoGetHandler(deps)(
       new NextRequest(
-        `https://www.overnightdesk.com/api/agent-identity/${runtimeIdentityId}/logo/${digest}`,
+        `https://www.overnightdesk.com/api/agent-identity/runtime/${runtimeIdentityId}/logo/${digest}`,
       ),
       context(),
     );
@@ -43,7 +43,9 @@ describe("GET /api/agent-identity/:runtimeIdentityId/logo/:digest", () => {
   ])("rejects malformed identity %s / %s before storage", async (runtimeId, sha256) => {
     const deps = dependencies();
     const response = await createAgentPersonaLogoGetHandler(deps)(
-      new NextRequest("https://www.overnightdesk.com/api/agent-identity/invalid/logo/invalid"),
+      new NextRequest(
+        "https://www.overnightdesk.com/api/agent-identity/runtime/invalid/logo/invalid",
+      ),
       context(runtimeId, sha256),
     );
 
@@ -56,7 +58,7 @@ describe("GET /api/agent-identity/:runtimeIdentityId/logo/:digest", () => {
     deps.readLogo.mockResolvedValue(null);
     const response = await createAgentPersonaLogoGetHandler(deps)(
       new NextRequest(
-        `https://www.overnightdesk.com/api/agent-identity/${runtimeIdentityId}/logo/${digest}`,
+        `https://www.overnightdesk.com/api/agent-identity/runtime/${runtimeIdentityId}/logo/${digest}`,
       ),
       context(),
     );
@@ -70,7 +72,7 @@ describe("GET /api/agent-identity/:runtimeIdentityId/logo/:digest", () => {
     deps.readLogo.mockRejectedValue(new Error("database unavailable"));
     const response = await createAgentPersonaLogoGetHandler(deps)(
       new NextRequest(
-        `https://www.overnightdesk.com/api/agent-identity/${runtimeIdentityId}/logo/${digest}`,
+        `https://www.overnightdesk.com/api/agent-identity/runtime/${runtimeIdentityId}/logo/${digest}`,
       ),
       context(),
     );

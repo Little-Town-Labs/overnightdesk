@@ -142,5 +142,5 @@ export function buildAgentPersonaLogoUrl(
   ) {
     throw new Error("Invalid agent persona logo identity");
   }
-  return `/api/agent-identity/${runtimeIdentityId}/logo/${sha256}`;
+  return `/api/agent-identity/runtime/${runtimeIdentityId}/logo/${sha256}`;
 }

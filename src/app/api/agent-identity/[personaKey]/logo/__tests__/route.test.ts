@@ -31,7 +31,7 @@ describe("GET /api/agent-identity/:personaKey/logo", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("location")).toBe(
-      `https://www.overnightdesk.com/api/agent-identity/${runtimeIdentityId}/logo/${digest}`,
+      `https://www.overnightdesk.com/api/agent-identity/runtime/${runtimeIdentityId}/logo/${digest}`,
     );
   });
 

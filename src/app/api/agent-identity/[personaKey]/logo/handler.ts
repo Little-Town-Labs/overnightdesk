@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { buildAgentPersonaLogoUrl } from "@/lib/agent-persona-logo";
 
 const DEFAULT_MARKS = {
   titus: "/agents/titus-mark.svg",
@@ -36,7 +37,7 @@ export function createAgentPersonaLogoPointerHandler(
       const pointer = await dependencies.resolveLogoPointer(verifiedKey);
       if (!pointer) return notFound();
       const target = pointer.sha256
-        ? `/api/agent-identity/${pointer.runtimeIdentityId}/logo/${pointer.sha256}`
+        ? buildAgentPersonaLogoUrl(pointer.runtimeIdentityId, pointer.sha256)
         : DEFAULT_MARKS[verifiedKey];
       return new Response(null, {
         status: 307,
