@@ -7,6 +7,7 @@ import pytest
 import yaml
 
 SCRIPT = Path(__file__).parents[3] / "runtime" / "apply-email-mode.py"
+CONFIG = Path(__file__).parents[3] / "config" / "config.yaml"
 SPEC = importlib.util.spec_from_file_location("apply_email_mode", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -66,3 +67,17 @@ def test_projection_rejects_unknown_mode(tmp_path: Path) -> None:
     path = write_config(tmp_path)
     with pytest.raises(ValueError, match="mode"):
         MODULE.apply_email_mode("disabled", path)
+
+
+def test_guarded_server_exposes_only_the_two_email_tools() -> None:
+    config = yaml.safe_load(CONFIG.read_text())
+    guarded = config["mcp_servers"]["guarded_agentmail"]
+
+    assert guarded["tools"] == {
+        "include": [
+            "titus_prepare_email_approval",
+            "titus_send_approved_email",
+        ],
+        "resources": False,
+        "prompts": False,
+    }
