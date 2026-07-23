@@ -166,7 +166,7 @@ export function buildHermesOidcClientPayload({
   };
 }
 
-function hasExactClientContract(
+export function hasExactHermesOidcClientContract(
   client: HermesOidcClientRecord,
   input: HermesOidcClientInput
 ): boolean {
@@ -208,7 +208,7 @@ function isActiveOidcContext(
     scopes.includes("openid") &&
     new Set(scopes).size === scopes.length &&
     scopes.every((scope) => allowedScopes.has(scope)) &&
-    hasExactClientContract(context.client, {
+    hasExactHermesOidcClientContract(context.client, {
       instanceId: context.instanceId,
       subdomain: context.instanceSubdomain,
     })
@@ -590,7 +590,7 @@ export async function ensureHermesOidcClient(
   const instance = await requireCanonicalInstance(input, gateway);
   if (instance.hermesOidcClientId) {
     const existing = await gateway.findClient(instance.hermesOidcClientId);
-    if (!existing || !hasExactClientContract(existing, input)) {
+    if (!existing || !hasExactHermesOidcClientContract(existing, input)) {
       throw new Error("Hermes dashboard client is unavailable");
     }
     if (
@@ -634,7 +634,10 @@ export async function ensureHermesOidcClient(
     throw new Error("Hermes dashboard client is unavailable");
   }
   const winningClient = await gateway.findClient(winner.hermesOidcClientId);
-  if (!winningClient || !hasExactClientContract(winningClient, input)) {
+  if (
+    !winningClient ||
+    !hasExactHermesOidcClientContract(winningClient, input)
+  ) {
     throw new Error("Hermes dashboard client is unavailable");
   }
   if (
@@ -658,7 +661,7 @@ export async function activateHermesOidcClient(
     throw new Error("Hermes dashboard client is unavailable");
   }
   const client = await gateway.findClient(instance.hermesOidcClientId);
-  if (!client || !hasExactClientContract(client, input)) {
+  if (!client || !hasExactHermesOidcClientContract(client, input)) {
     throw new Error("Hermes dashboard client is unavailable");
   }
 

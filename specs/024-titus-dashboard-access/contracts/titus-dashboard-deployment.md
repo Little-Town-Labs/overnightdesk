@@ -2,15 +2,16 @@
 
 ## Fixed identity
 
-| Property | Value |
-|---|---|
-| Runtime | existing `hermes-titus` |
-| Volume | existing `hermes-titus-data` |
-| Public host | `titus-dashboard.overnightdesk.com` |
-| Internal upstream | `hermes-titus:9119` |
-| OIDC issuer | `https://www.overnightdesk.com/api/auth` |
-| Callback | `https://titus-dashboard.overnightdesk.com/auth/callback` |
-| Scopes | `openid profile email` |
+| Property          | Value                                                        |
+| ----------------- | ------------------------------------------------------------ |
+| Runtime           | existing `hermes-titus`                                      |
+| Volume            | existing `hermes-titus-data`                                 |
+| Public host       | `titus-dashboard.overnightdesk.com`                          |
+| Internal upstream | `hermes-titus:9119`                                          |
+| OIDC issuer       | `https://www.overnightdesk.com/api/auth`                     |
+| Callback          | `https://titus-dashboard.overnightdesk.com/auth/callback`    |
+| Scopes            | `openid profile email`                                       |
+| Client ID         | Exact opaque database client staged through a protected file |
 
 The deployment does not change Titus Chat, model, provider, delegation,
 reasoning, memory, channels, skills, Phase paths, service accounts, or persona.
@@ -23,6 +24,10 @@ reasoning, memory, channels, skills, Phase paths, service accounts, or persona.
 - The container remains on the existing private network with zero published
   host ports.
 - Startup without a configured native auth provider must fail closed.
+- Repository source contains only a client-ID placeholder. The exact public
+  client ID is read from a root-owned mode-0400 host file, copied into the
+  mode-0440 runtime environment, and compared to the effective native config
+  without printing it.
 - The dashboard config update is atomic and preserves unknown configuration.
 - Restart targets only `hermes-titus` and must retain its named volume.
 

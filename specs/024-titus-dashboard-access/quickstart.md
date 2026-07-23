@@ -280,11 +280,51 @@ require the private-runtime qualification sentinel shown above.
 
 Expected verify output is `status: verified_noop` with one assignment count.
 
+PR 100 merged as `2d1f12a` after both Vercel checks passed, and the exact merge
+commit's production deployment succeeded. A final read-only plan still
+reported one ready assignment. The corrected confirmed apply and a separate
+verify both returned `verified_noop` with exactly one assignment verified.
+T030 is complete. No OIDC, route, TLS, DNS, service, runtime, provider, volume,
+chat, secret, or user-data state changed in that transaction.
+
 ## 6. Install disabled and qualify privately
 
 Create the public OIDC client and its exact runtime-scoped resource binding in
-disabled state, stage the exact non-secret client contract through stdin-only
-deployment input, install the Nginx route disabled, and restart only Titus.
+disabled state, stage the exact non-secret client contract through protected
+non-logging file input, install the Nginx route disabled, and restart only
+Titus:
+
+```bash
+npm run identity:titus:dashboard-oidc:plan
+
+TITUS_DASHBOARD_OIDC_CONFIRM=ENSURE_TITUS_DASHBOARD_OIDC_DISABLED \
+  npm run identity:titus:dashboard-oidc:ensure
+
+npm run identity:titus:dashboard-oidc:verify-disabled
+
+TITUS_DASHBOARD_OIDC_CLIENT_FILE=/tmp/overnightdesk-titus-dashboard-oidc-client-id \
+  tenants/hermes-titus/scripts/deploy-aegis.sh install-disabled
+
+tenants/hermes-titus/scripts/deploy-aegis.sh verify-restart-persistence
+```
+
+The ensure command is fixed to the exact canonical Titus projection, emits
+status only, creates a disabled public client with one runtime-scoped rollback
+binding, and atomically stages its opaque ID in a mode-600 local file. The
+deployment validates that file without printing it, installs it mode 0400 on
+Aegis, and injects it into the mode-0440 runtime environment. Repository config
+contains only a placeholder. Any missing, malformed, copied, noncanonical, or
+non-disabled state stops the rollout.
+
+The first pre-production trace found that the database lifecycle generated an
+opaque client while the original runtime source hard-coded a different value.
+No client was created and Aegis was not touched. RED runtime-contract tests
+captured the absent protected staging path. GREEN passed four runtime staging
+assertions, the Titus shell qualifier, 26 focused OIDC tests, and the full
+disposable database command sequence: plan, confirmed ensure, disabled verify,
+protected local staging, existing identity/Open WebUI lifecycle, staged-file
+cleanup, and force-drop.
+
 Verify:
 
 - the dashboard advertises self-hosted auth;

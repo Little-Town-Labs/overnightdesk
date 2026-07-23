@@ -9,6 +9,8 @@ const repo = path.resolve(__dirname, "..");
 const adminUrl = process.env.DATABASE_TEST_URL;
 const productionUrl = process.env.DATABASE_URL;
 const databaseName = `overnightdesk_identity_${Date.now()}_${process.pid}`;
+const stagedTitusDashboardClient =
+  "/tmp/overnightdesk-titus-dashboard-oidc-client-id";
 let currentStage = "validate test database";
 
 if (!adminUrl) throw new Error("DATABASE_TEST_URL is required");
@@ -214,6 +216,27 @@ function runTitusOpenWebuiCommand(targetUrl, command) {
   }
 }
 
+function runTitusDashboardOidcCommand(targetUrl, command) {
+  const result = spawnSync(
+    "npm",
+    ["run", `identity:titus:dashboard-oidc:${command}`],
+    {
+      cwd: repo,
+      env: {
+        ...process.env,
+        DATABASE_URL: targetUrl,
+        TITUS_DASHBOARD_OIDC_CONFIRM:
+          command === "ensure" ? "ENSURE_TITUS_DASHBOARD_OIDC_DISABLED" : "",
+      },
+      stdio: "inherit",
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Titus dashboard OIDC ${command} exited ${result.status}`);
+  }
+}
+
 async function restoreLegacyTitusOpenWebuiRefreshFixture(targetUrl) {
   const database = drizzle(neon(targetUrl));
   const result = await database.execute(sql`
@@ -333,6 +356,18 @@ async function main() {
     currentStage = "prove Titus membership confirmation and idempotent apply";
     runTitusCommand(targetUrl, "membership", "apply", titusMembershipUserId);
 
+    currentStage = "plan Titus native dashboard OIDC client";
+    runTitusDashboardOidcCommand(targetUrl, "plan");
+
+    currentStage = "ensure Titus native dashboard OIDC client disabled";
+    runTitusDashboardOidcCommand(targetUrl, "ensure");
+
+    currentStage = "verify Titus native dashboard OIDC client disabled";
+    runTitusDashboardOidcCommand(targetUrl, "verify-disabled");
+
+    currentStage = "prove Titus native dashboard OIDC plan is idempotent";
+    runTitusDashboardOidcCommand(targetUrl, "plan");
+
     currentStage = "plan Titus Open WebUI disabled provisioning";
     runTitusOpenWebuiCommand(targetUrl, "plan");
 
@@ -366,6 +401,7 @@ async function main() {
     currentStage = "verify Titus Open WebUI disabled rollback";
     runTitusOpenWebuiCommand(targetUrl, "verify");
   } finally {
+    fs.rmSync(stagedTitusDashboardClient, { force: true });
     if (created) {
       currentStage = "drop disposable database";
       await execute(adminUrl, `DROP DATABASE "${databaseName}" WITH (FORCE)`);

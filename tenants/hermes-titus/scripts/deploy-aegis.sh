@@ -7,10 +7,47 @@ tenant_root="$repo_root/tenants/hermes-titus"
 ssh_key=${AEGIS_SSH_KEY:-/home/frosted639/.ssh/ssh-key-2026-03-15}
 remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
+oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-}
 
 usage() {
   printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|stop|rollback}\n' "$0" >&2
   exit 2
+}
+
+stage_oidc_client() {
+  test -n "$oidc_client_file" || {
+    printf 'TITUS_DASHBOARD_OIDC_CLIENT_FILE is required\n' >&2
+    exit 1
+  }
+  test -f "$oidc_client_file" && test ! -L "$oidc_client_file" || {
+    printf 'Titus dashboard OIDC client file is unavailable\n' >&2
+    exit 1
+  }
+  case $(stat -c %a "$oidc_client_file") in
+    400|600) ;;
+    *)
+      printf 'Titus dashboard OIDC client file mode is invalid\n' >&2
+      exit 1
+      ;;
+  esac
+  local client_id
+  client_id=$(<"$oidc_client_file")
+  test "${#client_id}" -ge 20 && test "${#client_id}" -le 128
+  printf '%s' "$client_id" | grep -Eq '^[A-Za-z0-9_-]+$'
+  rsync -az -e "ssh -i $ssh_key" \
+    "$oidc_client_file" "$remote:/tmp/hermes-titus-dashboard-oidc-client-id"
+  "${ssh_cmd[@]}" '
+    set -eu
+    staged=/tmp/hermes-titus-dashboard-oidc-client-id
+    test -f "$staged" && test ! -L "$staged"
+    size=$(stat -c %s "$staged")
+    test "$size" -ge 20 && test "$size" -le 128
+    grep -Eq "^[A-Za-z0-9_-]+$" "$staged"
+    sudo install -d -o root -g root -m 0700 /opt/hermes-titus/secrets
+    sudo install -o root -g root -m 0400 "$staged" \
+      /opt/hermes-titus/secrets/dashboard-oidc-client-id
+    rm -f "$staged"
+  '
 }
 
 prepare() {
@@ -39,6 +76,7 @@ prepare() {
 
 install_disabled() {
   prepare
+  stage_oidc_client
   "${ssh_cmd[@]}" '
     set -eu
     test ! -e /opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
@@ -73,10 +111,15 @@ with urllib.request.urlopen("http://127.0.0.1:9119/api/status", timeout=5) as re
 assert status.get("auth_required") is True
 assert "self-hosted" in status.get("auth_providers", [])
 config = yaml.safe_load(Path("/opt/data/config.yaml").read_text())
+pid1_env = {}
+for entry in Path("/proc/1/environ").read_bytes().split(b"\0"):
+    if b"=" in entry:
+        key, value = entry.split(b"=", 1)
+        pid1_env[key.decode()] = value.decode()
 assert config["dashboard"]["public_url"] == "https://titus-dashboard.overnightdesk.com"
 assert config["dashboard"]["oauth"]["provider"] == "self-hosted"
 assert config["dashboard"]["oauth"]["self_hosted"]["issuer"] == "https://www.overnightdesk.com/api/auth"
-assert config["dashboard"]["oauth"]["self_hosted"]["client_id"] == "overnightdesk-hermes-titus-dashboard-v1"
+assert config["dashboard"]["oauth"]["self_hosted"]["client_id"] == pid1_env["TITUS_DASHBOARD_OIDC_CLIENT_ID"]
 assert config["dashboard"]["oauth"]["self_hosted"]["scopes"] == "openid profile email"
 PY
     sudo docker exec overnightdesk-nginx wget -qO- http://hermes-titus:9119/api/status >/dev/null
