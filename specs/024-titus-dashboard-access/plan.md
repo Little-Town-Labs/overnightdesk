@@ -94,6 +94,8 @@ dashboard descriptor. It may plan exactly one additive `instance` projection:
 - subdomain `titus-dashboard.overnightdesk.com`;
 - container `hermes-titus`;
 - status `running` only after private runtime health is proven;
+- an application-generated UUID inserted explicitly because the raw SQL path
+  cannot use Drizzle's TypeScript-only ID default;
 - exact Titus use-case and runtime identity IDs;
 - no engine API key, Phase token, dashboard bearer token, or new volume.
 

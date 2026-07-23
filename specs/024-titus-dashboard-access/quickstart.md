@@ -241,6 +241,31 @@ Expected first-run assignment output contains `status: ready` and one planned
 projection, with no IDs, hostnames, emails, or connection details. Any
 `blocked` result stops the rollout.
 
+### T029a-T030 production checkpoint — 2026-07-23
+
+PR 99 merged as `fb53ce6` after both Vercel checks passed, and the exact merge
+commit's production deployment completed successfully. From merged main, the
+binding plan returned `ready` with two bindings to create. Guarded apply and a
+separate verify each returned `verified_noop` with exactly two bindings
+verified. The subsequent read-only assignment plan returned `ready` with one
+assignment to create.
+
+The first confirmed assignment apply failed closed with the bounded
+`Dashboard assignment apply failed` error. A fresh read-only plan still
+returned `ready` with one assignment, proving no projection survived. Bounded
+production schema metadata showed `instance.id` is non-null with no database
+default. The raw SQL insert had omitted that column because Drizzle's
+TypeScript-side UUID default does not run for raw SQL; its CTE therefore
+created neither the projection nor its audit.
+
+A disposable Neon regression reproduced the same RED failure, then passed
+GREEN after the command generated one UUID in the application and inserted it
+explicitly. The corrected harness passed the real plan/apply/separate-verify
+path, asserted exactly one count-only assignment audit, completed all four
+identity/membership integration tests plus the existing Open WebUI lifecycle,
+and force-dropped the disposable database. Production retry remains prohibited
+until this correction is reviewed, merged, and its exact deployment succeeds.
+
 ## 5. Apply and verify canonical linkage
 
 After the existing loopback dashboard and retained runtime pass the private

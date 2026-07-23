@@ -9,6 +9,7 @@ Represents one existing native dashboard attached to one exact runtime.
 
 | Field                          | Rule                                                         |
 | ------------------------------ | ------------------------------------------------------------ |
+| `id`                           | Application-generated UUID inserted explicitly               |
 | `use_case_id`                  | Exact active Titus use case                                  |
 | `runtime_identity_id`          | Exact active `hermes-titus` runtime identity                 |
 | `tenant_id`                    | Fixed `titus-dashboard`; unique                              |

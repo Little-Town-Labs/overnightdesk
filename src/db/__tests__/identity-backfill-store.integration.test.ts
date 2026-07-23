@@ -551,6 +551,7 @@ describeIntegration("Titus identity backfill store", () => {
       storeModule,
       dashboardBindingStore,
       dashboardBindingPlanner,
+      dashboardInstanceStore,
     ] = await Promise.all([
       import("drizzle-orm"),
       import("@/db"),
@@ -558,6 +559,7 @@ describeIntegration("Titus identity backfill store", () => {
       import("@/db/use-case-identity-backfill-store"),
       import("@/db/dashboard-identity-binding-reconciliation-store"),
       import("@/lib/dashboard-identity-binding-reconciliation"),
+      import("@/db/dashboard-instance-reconciliation-store"),
     ]);
     const { platformAuditLog, resourceBinding, useCaseMembership, user } =
       schema;
@@ -726,6 +728,46 @@ describeIntegration("Titus identity backfill store", () => {
       membership: { userId: membershipUserId },
     });
 
+    const dashboardInstanceDescriptor = {
+      tenantId: "titus-dashboard",
+      hostname: "titus-dashboard.overnightdesk.com",
+      containerId: "hermes-titus",
+    };
+    const dashboardInstanceGateway =
+      dashboardInstanceStore.createDashboardInstanceReconciliationGateway(
+        TITUS_IDENTITY_TEMPLATE,
+        dashboardInstanceDescriptor,
+        true,
+        db,
+      );
+    await expect(
+      dashboardInstanceStore.executeDashboardInstanceReconciliation(
+        "plan",
+        dashboardInstanceDescriptor,
+        {},
+        dashboardInstanceGateway,
+      ),
+    ).resolves.toEqual({ status: "ready", assignmentsToCreate: 1 });
+    await expect(
+      dashboardInstanceStore.executeDashboardInstanceReconciliation(
+        "apply",
+        dashboardInstanceDescriptor,
+        {
+          actor: "operator:titus-dashboard-assignment-qualification",
+          confirmation: "APPLY_CANONICAL_DASHBOARD_ASSIGNMENT",
+        },
+        dashboardInstanceGateway,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", assignmentsVerified: 1 });
+    await expect(
+      dashboardInstanceStore.executeDashboardInstanceReconciliation(
+        "verify",
+        dashboardInstanceDescriptor,
+        {},
+        dashboardInstanceGateway,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", assignmentsVerified: 1 });
+
     const foundationAudits = await db
       .select({ details: platformAuditLog.details })
       .from(platformAuditLog)
@@ -746,10 +788,18 @@ describeIntegration("Titus identity backfill store", () => {
       );
     expect(foundationAudits).toHaveLength(1);
     expect(membershipAudits).toHaveLength(1);
+    const assignmentAudits = await db
+      .select({ details: platformAuditLog.details })
+      .from(platformAuditLog)
+      .where(
+        eq(platformAuditLog.action, "canonical_dashboard_assignment_created"),
+      );
+    expect(assignmentAudits).toEqual([{ details: { assignmentCount: 1 } }]);
     const serializedAudits = JSON.stringify([
       foundationAudits,
       membershipAudits,
       bindingAudits,
+      assignmentAudits,
     ]);
     expect(serializedAudits).not.toContain(membershipUserId);
     expect(serializedAudits).not.toContain("hermes-titus");
