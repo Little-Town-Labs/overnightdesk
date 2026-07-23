@@ -126,19 +126,120 @@ Using the repository's Aegis workflow, verify before changes:
 
 Append the value-free preflight result to the suite `deploys.log`.
 
+### T028 production preflight evidence — 2026-07-23
+
+- PR 98 was externally merged as `152ea59e`; its Vercel production deployment
+  completed successfully. Public checks returned HTTP 200 for `www`, HTTP 307
+  for the anonymous dashboard sign-in redirect, and HTTP 401 for anonymous
+  Titus and Walter Chat.
+- `hermes-titus`, `hermes-walter`, both isolated Open WebUI containers, Nginx,
+  and Ops were running with restart count zero. Both Open WebUI containers were
+  Docker-healthy, had no published ports, and retained their distinct named
+  volumes. `hermes-titus-data` and the Walter runtime volume were present.
+- Titus's current native dashboard returned healthy privately in its expected
+  loopback baseline with authentication disabled. Walter's independent native
+  dashboard returned healthy with self-hosted authentication required.
+- Titus retained effective model `x-ai/grok-4.3`, reasoning effort `medium`,
+  and OpenRouter delegation model `x-ai/grok-build-0.1`. Walter retained
+  `openai-codex` as its sole active provider and default `gpt-5.6-sol`.
+- Nginx syntax passed. The Titus dashboard DNS name already resolves, but its
+  certificate and route are absent, so no public dashboard capability is
+  active. Existing Titus and Walter Chat routes returned anonymous HTTP 401;
+  Walter's native root/status returned HTTP 302/200.
+- Both Ops health listeners returned HTTP 200 and `hermes-titus.service`
+  remained active. No runtime, route, TLS, database, OIDC, provider, volume,
+  session, chat, identity, or user-data write occurred.
+
+### T029 additive binding precondition evidence — 2026-07-23
+
+The first guarded assignment plan failed closed with `status: blocked`. A
+value-free read-only diagnostic proved the schema and private runtime gate were
+ready, found one canonical Titus identity, one membership, one active owner,
+zero dashboard candidates, and zero matching platform-instance or hostname
+bindings. The original Titus foundation planner also refused the changed
+manifest as `canonical_state_drift`; it remains intentionally creation-only.
+Neither command wrote production data.
+
+The follow-up guarded additive reconciler passed its local RED/GREEN suites and
+returned only:
+
+```json
+{
+  "status": "ready",
+  "bindingsToCreate": 2
+}
+```
+
+Apply remains prohibited until the correction is reviewed, merged, and its
+exact production deployment succeeds.
+
+Correction qualification:
+
+- Pure planner/store RED tests first failed on the absent modules and then
+  passed 19 assertions covering missing, partial, exact, copied, duplicate,
+  unconfirmed, actorless, unqualified-runtime, concurrent-writer, redacted
+  failure, verify, and idempotent states. The combined existing assignment and
+  new binding suites passed 45 of 45 assertions.
+- The disposable Neon harness applied schemas 0009 and 0010, reproduced the
+  pre-Feature-024 Titus foundation by removing only the two dashboard selectors,
+  proved the creation-only foundation command blocked, and then passed the real
+  Drizzle plan/apply/verify/retry path. It found one count-only audit with
+  `bindingCount: 2`, passed all four identity/membership integration tests and
+  the existing Open WebUI lifecycle, and force-dropped the disposable database.
+  No production database was selected for mutation.
+- The full Jest run passed 101 suites and 1,123 tests with the expected 4 suites
+  and 27 tests skipped for environment-gated coverage. TypeScript, Prettier,
+  `git diff --check`, the production build, and all 26 Chromium release
+  scenarios passed. Review hardening also moved descriptor-contract validation
+  ahead of every database inspection query and retained the 19 focused
+  planner/store assertions.
+- The official Next.js Maintenance LTS security patch moved the exact framework
+  and matching ESLint config from 15.5.18 to 15.5.21. The high-severity audit
+  finding cleared; `npm audit --audit-level=high` exits successfully with five
+  inherited moderate findings. The Better Auth resource-indicator issue has no
+  available fix and this repository's Hermes OIDC boundary explicitly rejects
+  every resource indicator; the remaining findings are the non-production
+  Drizzle CLI's old esbuild toolchain and are not accepted through a forced
+  breaking downgrade.
+
 ## 4. Plan the canonical assignment
 
-Run the database command with the production environment loaded through the
-existing guarded process:
+First reconcile the two exact binding prerequisites through the merged guarded
+command. Plan is read-only:
+
+```bash
+npm run identity:titus:dashboard-bindings:plan
+```
+
+Apply requires the private-runtime sentinel, a bounded non-secret actor, and
+the exact confirmation. Then verify separately:
+
+```bash
+TITUS_DASHBOARD_PRIVATE_RUNTIME_QUALIFIED=PRIVATE_TITUS_DASHBOARD_HEALTH_VERIFIED \
+TITUS_DASHBOARD_BINDING_ACTOR=operator:feature-024-production \
+TITUS_DASHBOARD_BINDING_CONFIRM=APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS \
+  npm run identity:titus:dashboard-bindings:apply
+
+npm run identity:titus:dashboard-bindings:verify
+```
+
+The reconciler inserts only missing exact runtime-scoped bindings, records one
+count-only audit, re-reads production state, and must converge to
+`verified_noop` with two verified bindings. It refuses partial canonical
+identity, copied bindings, wrong states, ambiguous live identifiers, an
+unqualified private runtime, or absent confirmation.
+
+After the binding verify passes, run the database assignment command with the
+production environment loaded through the existing guarded process:
 
 ```bash
 TITUS_DASHBOARD_PRIVATE_RUNTIME_QUALIFIED=PRIVATE_TITUS_DASHBOARD_HEALTH_VERIFIED \
   npx tsx scripts/dashboard-instance-reconciliation.ts plan
 ```
 
-Expected first-run output contains `status: ready` and one planned projection,
-with no IDs, hostnames, emails, or connection details. Any `blocked` result
-stops the rollout.
+Expected first-run assignment output contains `status: ready` and one planned
+projection, with no IDs, hostnames, emails, or connection details. Any
+`blocked` result stops the rollout.
 
 ## 5. Apply and verify canonical linkage
 
@@ -202,10 +303,20 @@ bounded result labels and timestamps.
 ## 9. Persistence, rollback, and observation
 
 Confirm an existing Titus chat and visible history before and after the exact
-Titus restart. Rehearse rollback in the documented order and prove Chat remains
-healthy while Advanced Dashboard becomes unavailable. Restore the accepted
-candidate, then observe Titus, Walter, both Open WebUI deployments, Nginx, and
-Ops for unexpected restarts, auth sentinels, or 5xx responses.
+Titus restart. Rehearse rollback in this order:
+
+1. disable the exact Titus OIDC client so the runtime-scoped OIDC binding moves
+   to `rollback` and the dashboard projection auth becomes `disabled`;
+2. disable the Titus dashboard Nginx route;
+3. restore the loopback-only Titus runtime configuration and restart only
+   `hermes-titus`;
+4. verify the retained canonical projection and platform/hostname selectors
+   are unchanged while the launch action is unavailable.
+
+Prove Chat remains healthy while Advanced Dashboard becomes unavailable.
+Restore the accepted candidate using the same exact records, then observe
+Titus, Walter, both OpenWebUI deployments, Nginx, and Ops for unexpected
+restarts, auth sentinels, or 5xx responses.
 
 ## 10. Closeout
 

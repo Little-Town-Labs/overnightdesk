@@ -27,6 +27,22 @@ interface DashboardAssignmentSnapshot {
 The caller supplies the identity template and a repository-owned descriptor.
 No browser or request value may choose the runtime, host, tenant, or container.
 
+## Binding prerequisite
+
+An existing foundation is not rewritten to add later dashboard selectors.
+Before assignment planning, a separate guarded reconciler must prove one exact
+active use case/runtime and then add only the missing repository-declared
+`overnightdesk/platform_instance` and `nginx/hostname` bindings. It:
+
+- plans, applies, and verifies independently;
+- accepts only absent or exact runtime-scoped state;
+- refuses copied, partial, duplicated, non-active, or ambiguous bindings;
+- requires private-runtime qualification, an explicit confirmation, and a
+  bounded non-secret actor before apply;
+- writes the missing one or two bindings and one count-only audit atomically;
+- converges safely if an exact concurrent writer wins;
+- emits status and counts only.
+
 ## Plan output
 
 ```ts
@@ -69,6 +85,10 @@ cookies, tokens, database URLs, and exception internals are prohibited.
 
 ## Rollback
 
-Rollback may disable or retire only the dashboard projection after the OIDC
-client and route are disabled. It must preserve canonical identity, membership,
-runtime, volume, audit history, Chat, and provider configuration.
+Rollback disables the exact OIDC client first. The existing lifecycle moves its
+runtime-scoped OIDC binding to `rollback` and marks the dashboard projection's
+auth state `disabled`; the route is then disabled and the runtime returns to
+loopback-only configuration. The canonical projection and platform/hostname
+selector bindings remain as exact operational metadata so restoration is
+idempotent. Rollback must preserve canonical identity, membership, runtime,
+volume, audit history, Chat, and provider configuration.
