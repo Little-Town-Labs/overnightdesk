@@ -599,6 +599,36 @@ volume, Chat data, or Walter.
   OIDC, sessions, routes, certificates, runtimes, providers, volumes, chat data,
   Walter, and user data were otherwise unchanged. T034 is complete.
 
+#### T035 production session-lifecycle completion — 2026-07-23
+
+- The owner kept the valid OvernightDesk platform session active while the
+  existing authorization-code-only Hermes session reached its natural
+  15-minute expiry. A hard refresh reached the native login boundary rather
+  than exposing stale dashboard content. Valid self-hosted reauthentication
+  emitted a fresh value-suppressed login success and restored Titus.
+- The owner then explicitly signed out of the OvernightDesk platform. The
+  platform returned to its sign-in boundary, and a hard refresh of the
+  individual Titus dashboard returned HTTP 401 Authentication required.
+  Value-suppressed Nginx evidence recorded the denial while Titus remained
+  healthy. Fresh platform login and native SSO restored both the platform card
+  and individual dashboard.
+- Before the revocation window, separate verification returned one active
+  canonical membership plus the exact active Titus dashboard OIDC client and
+  runtime-scoped binding. The guarded fixed-target disable transition moved
+  only that client to `disabled` and its binding to `rollback`; a separate
+  disabled-state verification passed. The platform dashboard remained healthy,
+  while the individual protected Titus destination returned HTTP 401.
+- The guarded activation restored the same exact client and binding, and a
+  separate active-state verification passed. The owner confirmed the
+  individual dashboard returned. Final verification found one active canonical
+  membership, the exact OIDC client and binding active, the protected route
+  present, and fresh native WebSocket tickets after restoration.
+- Titus remained healthy throughout. Titus, Nginx, and Walter retained zero
+  restarts. Public `www` returned HTTP 200, while anonymous public and
+  direct-Aegis Titus requests returned HTTP 401. No denial state remains, and
+  no membership, route, certificate, runtime, provider, volume, Chat, Walter,
+  or user-data state changed. T035 is complete.
+
 ## 9. Persistence, rollback, and observation
 
 Confirm an existing Titus chat and visible history before and after the exact
