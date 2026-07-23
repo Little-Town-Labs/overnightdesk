@@ -557,8 +557,7 @@ volume, Chat data, or Walter.
   six metadata-only audits, finished active, and force-dropped the disposable
   database.
 - Sixty focused canonical-authorizer, dashboard-store, OIDC, and verifier-route
-  tests passed. TypeScript emitted no errors. Publication and exact production
-  deployment remain required before T034 resumes.
+  tests passed. TypeScript emitted no errors.
 - The full repository gate passed 105 suites and 1,158 runnable tests with the
   expected 4 suites and 27 environment-gated tests skipped. The Next.js 15.5.21
   production build passed with an intentionally unreachable database URL.
@@ -572,6 +571,12 @@ volume, Chat data, or Walter.
   correction is shared rather than Titus-specific, uses two parameterized null
   predicates in the existing query, adds no query or cache, exposes no value,
   and preserves the established fail-closed response.
+- PR 106 merged as `cd168c7` after both checks passed, and its exact production
+  deployment completed successfully. Post-deploy checks returned HTTP 200 for
+  `www` and anonymous HTTP 401 for the Titus dashboard plus Titus and Walter
+  Chat. A fresh production read-only suspended plan returned `ready`, current
+  `active`, desired `suspended`, and membership count one. T034b is complete;
+  no production authority or runtime state changed.
 
 ## 9. Persistence, rollback, and observation
 
