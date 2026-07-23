@@ -9,7 +9,7 @@ const safeDisposableDatabase =
 const describeIntegration = safeDisposableDatabase ? describe : describe.skip;
 
 describeIntegration("Drizzle use-case membership store", () => {
-  it("resolves only active, unexpired membership within an active canonical assignment", async () => {
+  it("resolves only active, unexpired, unsuspended, unrevoked membership within an active canonical assignment", async () => {
     const [
       { and, eq, inArray },
       { db },
@@ -40,6 +40,8 @@ describeIntegration("Drizzle use-case membership store", () => {
       broadUser: `membership-broad-${crypto.randomUUID()}`,
       scopedUser: `membership-scoped-${crypto.randomUUID()}`,
       suspendedUser: `membership-suspended-${crypto.randomUUID()}`,
+      suspendedTimestampUser: `membership-suspended-at-${crypto.randomUUID()}`,
+      revokedTimestampUser: `membership-revoked-at-${crypto.randomUUID()}`,
       expiredUser: `membership-expired-${crypto.randomUUID()}`,
       inactiveUseCaseUser: `membership-inactive-uc-${crypto.randomUUID()}`,
     };
@@ -47,6 +49,8 @@ describeIntegration("Drizzle use-case membership store", () => {
       ids.broadUser,
       ids.scopedUser,
       ids.suspendedUser,
+      ids.suspendedTimestampUser,
+      ids.revokedTimestampUser,
       ids.expiredUser,
       ids.inactiveUseCaseUser,
     ];
@@ -64,7 +68,7 @@ describeIntegration("Drizzle use-case membership store", () => {
           name: "Membership Store Qualification",
           email: `${id}@test-auth.example.com`,
           emailVerified: true,
-        }))
+        })),
       );
       await db.insert(useCase).values([
         {
@@ -131,6 +135,24 @@ describeIntegration("Drizzle use-case membership store", () => {
         {
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: null,
+          userId: ids.suspendedTimestampUser,
+          role: "member",
+          status: "active",
+          suspendedAt: new Date("2026-07-20T11:59:59.000Z"),
+          grantedBy: "test:membership-store",
+        },
+        {
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: null,
+          userId: ids.revokedTimestampUser,
+          role: "member",
+          status: "active",
+          revokedAt: new Date("2026-07-20T11:59:59.000Z"),
+          grantedBy: "test:membership-store",
+        },
+        {
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: null,
           userId: ids.expiredUser,
           role: "member",
           status: "active",
@@ -154,15 +176,18 @@ describeIntegration("Drizzle use-case membership store", () => {
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: ids.activeRuntime,
           now,
-        })
-      ).resolves.toMatchObject({ userId: ids.broadUser, runtimeIdentityId: null });
+        }),
+      ).resolves.toMatchObject({
+        userId: ids.broadUser,
+        runtimeIdentityId: null,
+      });
       await expect(
         store.findActiveMembership({
           userId: ids.scopedUser,
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: ids.activeRuntime,
           now,
-        })
+        }),
       ).resolves.toMatchObject({
         userId: ids.scopedUser,
         runtimeIdentityId: ids.activeRuntime,
@@ -173,7 +198,7 @@ describeIntegration("Drizzle use-case membership store", () => {
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: ids.otherRuntime,
           now,
-        })
+        }),
       ).resolves.toBeNull();
       await expect(
         store.findActiveMembership({
@@ -181,7 +206,23 @@ describeIntegration("Drizzle use-case membership store", () => {
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: ids.activeRuntime,
           now,
-        })
+        }),
+      ).resolves.toBeNull();
+      await expect(
+        store.findActiveMembership({
+          userId: ids.suspendedTimestampUser,
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: ids.activeRuntime,
+          now,
+        }),
+      ).resolves.toBeNull();
+      await expect(
+        store.findActiveMembership({
+          userId: ids.revokedTimestampUser,
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: ids.activeRuntime,
+          now,
+        }),
       ).resolves.toBeNull();
       await expect(
         store.findActiveMembership({
@@ -189,7 +230,7 @@ describeIntegration("Drizzle use-case membership store", () => {
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: ids.activeRuntime,
           now,
-        })
+        }),
       ).resolves.toBeNull();
       await expect(
         store.findActiveMembership({
@@ -197,7 +238,7 @@ describeIntegration("Drizzle use-case membership store", () => {
           useCaseId: ids.inactiveUseCase,
           runtimeIdentityId: null,
           now,
-        })
+        }),
       ).resolves.toBeNull();
       await expect(
         store.findActiveMembership({
@@ -205,7 +246,7 @@ describeIntegration("Drizzle use-case membership store", () => {
           useCaseId: ids.activeUseCase,
           runtimeIdentityId: ids.inactiveRuntime,
           now,
-        })
+        }),
       ).resolves.toBeNull();
 
       const authorizer = authorizationModule.createUseCaseMembershipAuthorizer({
@@ -218,7 +259,7 @@ describeIntegration("Drizzle use-case membership store", () => {
         now: () => now,
       });
       await expect(
-        authorizer.authorize({ userId: ids.broadUser })
+        authorizer.authorize({ userId: ids.broadUser }),
       ).resolves.toMatchObject({ authorized: true });
       const auditRows = await db
         .select({ details: platformAuditLog.details })
@@ -227,10 +268,10 @@ describeIntegration("Drizzle use-case membership store", () => {
           and(
             eq(
               platformAuditLog.action,
-              "use_case_membership_authorization.granted"
+              "use_case_membership_authorization.granted",
             ),
-            eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`)
-          )
+            eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`),
+          ),
         );
       expect(auditRows).toHaveLength(1);
       expect(auditRows[0].details).toMatchObject({
@@ -252,10 +293,10 @@ describeIntegration("Drizzle use-case membership store", () => {
           and(
             eq(
               platformAuditLog.action,
-              "use_case_membership_authorization.granted"
+              "use_case_membership_authorization.granted",
             ),
-            eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`)
-          )
+            eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`),
+          ),
         );
       await db.delete(useCase).where(inArray(useCase.id, useCaseIds));
       await db.delete(user).where(inArray(user.id, userIds));

@@ -21,14 +21,14 @@ const membershipColumns = {
 
 async function assignmentIsActive(
   lookup: MembershipLookup,
-  database: Database
+  database: Database,
 ): Promise<boolean> {
   if (lookup.runtimeIdentityId === null) {
     const rows = await database
       .select({ id: useCase.id })
       .from(useCase)
       .where(
-        and(eq(useCase.id, lookup.useCaseId), eq(useCase.status, "active"))
+        and(eq(useCase.id, lookup.useCaseId), eq(useCase.status, "active")),
       )
       .limit(1);
     return rows.length === 1;
@@ -43,8 +43,8 @@ async function assignmentIsActive(
         eq(runtimeIdentity.id, lookup.runtimeIdentityId),
         eq(runtimeIdentity.useCaseId, lookup.useCaseId),
         eq(runtimeIdentity.status, "active"),
-        eq(useCase.status, "active")
-      )
+        eq(useCase.status, "active"),
+      ),
     )
     .limit(1);
   return rows.length === 1;
@@ -52,7 +52,7 @@ async function assignmentIsActive(
 
 async function findActiveMembership(
   lookup: MembershipLookup,
-  database: Database
+  database: Database,
 ): Promise<MembershipAuthorizationRecord | null> {
   if (!(await assignmentIsActive(lookup, database))) return null;
 
@@ -61,7 +61,7 @@ async function findActiveMembership(
       ? isNull(useCaseMembership.runtimeIdentityId)
       : or(
           isNull(useCaseMembership.runtimeIdentityId),
-          eq(useCaseMembership.runtimeIdentityId, lookup.runtimeIdentityId)
+          eq(useCaseMembership.runtimeIdentityId, lookup.runtimeIdentityId),
         );
   const rows = await database
     .select(membershipColumns)
@@ -71,18 +71,18 @@ async function findActiveMembership(
         eq(useCaseMembership.userId, lookup.userId),
         eq(useCaseMembership.useCaseId, lookup.useCaseId),
         eq(useCaseMembership.status, "active"),
+        isNull(useCaseMembership.suspendedAt),
+        isNull(useCaseMembership.revokedAt),
         or(
           isNull(useCaseMembership.expiresAt),
-          gt(useCaseMembership.expiresAt, lookup.now)
+          gt(useCaseMembership.expiresAt, lookup.now),
         ),
-        scope
-      )
+        scope,
+      ),
     );
 
   return (
-    rows.find(
-      (row) => row.runtimeIdentityId === lookup.runtimeIdentityId
-    ) ??
+    rows.find((row) => row.runtimeIdentityId === lookup.runtimeIdentityId) ??
     rows.find((row) => row.runtimeIdentityId === null) ??
     null
   );
@@ -90,7 +90,7 @@ async function findActiveMembership(
 
 /** Creates the canonical membership lookup without selecting any aliases. */
 export function createDrizzleUseCaseMembershipStore(
-  database: Database = db
+  database: Database = db,
 ): MembershipAuthorizationStore {
   return {
     findActiveMembership: (lookup) => findActiveMembership(lookup, database),
