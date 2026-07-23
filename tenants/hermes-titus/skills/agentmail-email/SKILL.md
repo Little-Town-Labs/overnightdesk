@@ -1,6 +1,6 @@
 ---
 name: agentmail-email
-description: Inspect and summarize the dedicated Titus AgentMail inbox through the configured read-only AgentMail MCP server. Use when Titus must discover his email address, inspect inboxes or threads, summarize mail, prepare an unsent draft, search messages, or retrieve an attachment.
+description: Inspect the dedicated Titus AgentMail inbox through hosted read-only tools and prepare or send a new message only through the local guarded sender. Use for Titus inbox triage, complete outbound drafts, exact owner approval, SecurityTeam-screened sends, and provider-verified delivery.
 ---
 
 # AgentMail Email
@@ -13,7 +13,8 @@ Use the `agentmail` MCP server. It inherits `AGENTMAIL_API_KEY` from the Titus p
 2. Prefer an inbox whose display name or metadata identifies `Titus` or `hermes-titus`.
 3. If exactly one inbox is visible, treat it as the default Titus inbox and state its public email address when useful.
 4. If multiple plausible inboxes exist, ask the operator which inbox Titus owns.
-5. If no Titus inbox exists, describe the proposed inbox name and address, then obtain explicit approval before calling `create_inbox`.
+5. If no Titus inbox exists, report the ownership ambiguity. Inbox creation is
+   not available through either the read-only or guarded tool set.
 6. Never delete, rename, or repurpose another agent's inbox.
 
 ## Read and summarize
@@ -33,26 +34,44 @@ Use the `agentmail` MCP server. It inherits `AGENTMAIL_API_KEY` from the Titus p
 5. Keep the draft in the conversation only; no AgentMail draft-creation tool is
    available during containment.
 
-## Write containment
+## Guarded new-message send
 
-Interactive AgentMail writes are temporarily unavailable. The hosted MCP server
-is restricted to the exact approved read-only tool set and does not expose send,
-reply, forward, draft, delete, label, inbox, webhook, key, domain, list, or
-other mailbox mutation actions.
+The hosted AgentMail MCP server is permanently restricted to the exact approved
+read-only tool set. It never exposes send, reply, forward, draft, delete, label,
+inbox, webhook, key, domain, list, or another mailbox mutation.
 
 If the operator asks for an outgoing message:
 
-1. Prepare the exact recipients, subject, complete body, and attachment state.
-2. Present the complete send-ready draft in the conversation.
-3. State that Titus email sending is temporarily read-only while the guarded
-   path is qualified.
-4. Preserve the draft only in the response. Do not claim, imply, or speculate
-   that AgentMail accepted or delivered it.
+1. Build the complete draft with the exact Titus `inbox_id`, 1-10 recipients, a
+   nonblank subject, at least one nonblank `text` or `html` body, and no
+   attachments, CC, BCC, reply-to, draft, or custom-header fields.
+2. Call `titus_prepare_email_approval` with every complete draft field.
+3. Present the returned canonical draft verbatim, including recipients,
+   subject, complete text, complete HTML, and the explicit empty attachment
+   state. State that this exact draft has not been sent.
+4. Ask for explicit owner approval of that exact canonical draft. Preparation
+   and possession of an approval token do not constitute owner approval.
+5. Do not call `titus_send_approved_email` in the same turn as preparation.
+   Call it only after a later owner message explicitly approves the exact
+   prepared draft and before the returned expiry.
+6. Pass the exact unchanged `approval_token`, `inbox_id`, recipients, subject,
+   text, and HTML into `titus_send_approved_email`. Never reconstruct, shorten,
+   summarize, improve, or omit any field. The send tool will then present a
+   separate owner approval control bound to the validated draft fingerprint;
+   this approval control must be accepted before screening or delivery.
+7. Treat a declined, cancelled, timed-out, or unavailable approval control as
+   a rejected send. Do not retry it or claim delivery.
+8. Report success only for an exact `verified_sent` result containing both
+   provider message and thread IDs plus matched inbox, recipients, subject,
+   supplied bodies, and sent state.
+9. For every other status, state that delivery is unverified or rejected using
+   only the safe error code and next action. Never claim or imply delivery.
 
-The future guarded path will require explicit human approval of one exact draft,
-nonblank subject and body validation, SecurityTeam screening, provider
-idempotency, and exact read-after-send verification. Until that path is present
-and qualified, no interactive email write is authorized.
+The guarded tool enforces field completeness, a short-lived signature bound to
+the exact canonical draft, a fail-closed Hermes owner-approval interaction,
+SecurityTeam screening immediately before send, one stable provider
+idempotency key, and exact AgentMail read-after-send equality. It does not
+support replies, forwards, drafts, attachments, or mailbox administration.
 
 The separate supervised inbox poller retains only its existing code-enforced,
 in-thread reply authority. It is not an interactive tool and does not grant
@@ -63,5 +82,9 @@ Titus broader mailbox mutation authority.
 - If `AGENTMAIL_API_KEY` is absent or rejected, report that Titus email is unavailable and ask the operator to repair the scoped Phase value. Do not fall back to another agent's key.
 - If the MCP server is unavailable, report the failure and preserve any
   requested draft only in the response.
+- If the guarded sender is unavailable, expires, rejects, or returns an
+  ambiguous result, do not use a hosted mutation or another transport as a
+  fallback. Preserve the canonical draft and ask the operator to repair or
+  reconcile the guarded boundary.
 - If mailbox ownership is ambiguous, stop before accessing or proposing changes
   to a mailbox.

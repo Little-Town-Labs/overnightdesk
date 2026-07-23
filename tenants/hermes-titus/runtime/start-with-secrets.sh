@@ -11,7 +11,7 @@ set +a
 
 for key in \
   OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL CONTROL_TOWER_TOKEN \
-  HERMES_API_KEY TITUS_DASHBOARD_OIDC_CLIENT_ID; do
+  HERMES_API_KEY SECURITY_SERVICE_TOKEN TITUS_DASHBOARD_OIDC_CLIENT_ID; do
   value=${!key:-}
   test -n "$value" && test "$value" != NOT_CONFIGURED || {
     printf 'hermes-titus: required runtime value unavailable: %s\n' "$key" >&2

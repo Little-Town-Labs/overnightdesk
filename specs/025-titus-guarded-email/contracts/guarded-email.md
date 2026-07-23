@@ -76,6 +76,15 @@ The exact same draft fields as preparation plus:
 The tool rejects expired, malformed, incorrectly signed, or draft-mismatched
 tokens before network I/O.
 
+After local token and draft validation, the tool issues an MCP form-elicitation
+request through Hermes's human approval surface. The prompt identifies the
+validated draft fingerprint and instructs the owner to compare it with the
+complete canonical draft already shown in the conversation. Decline, cancel,
+timeout, unavailable approval routing, or any response other than explicit
+acceptance returns `rejected_before_send` before SecurityTeam or AgentMail
+network I/O. The MCP mutation annotation is descriptive metadata and is not
+treated as authorization.
+
 ### Verified success
 
 ```json
@@ -113,8 +122,9 @@ raw provider/SecurityTeam response.
 
 - `Authorization: Bearer <protected runtime value>`
 - 15-second timeout
-- exact canonical draft in `content`
-- exact recipient target in `targetId`
+- exact canonical subject, text, HTML, and empty attachment state in `content`
+- exact normalized recipient set in `targetId` so envelope addresses do not
+  create guaranteed PII findings inside the content scanner
 - `kind: send_email`
 - `channel: dm`
 

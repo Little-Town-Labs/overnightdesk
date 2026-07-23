@@ -42,10 +42,10 @@ are absent.
 - [x] T010 [P] [US1] Document contained authority in `tenants/hermes-titus/README.md`
 - [x] T011 [US1] Run focused Titus qualification, YAML parse, shell syntax, secret scan, and diff checks
 - [x] T012 [US1] Run security and five-axis code review for the containment diff
-- [ ] T013 [US1] Commit, push, open, monitor, and merge the containment PRs
-- [ ] T014 [US1] Run a read-only Aegis preflight of Titus, SecurityTeam, AgentMail metadata, scoped volumes, and unrelated containers
-- [ ] T015 [US1] Deploy exact merged containment source and restart only `hermes-titus.service`
-- [ ] T016 [US1] Prove the live effective hosted tool set is exactly read-only and append value-free evidence to `deploys.log`
+- [x] T013 [US1] Commit, push, open, monitor, and merge the containment PRs
+- [x] T014 [US1] Run a read-only Aegis preflight of Titus, SecurityTeam, AgentMail metadata, scoped volumes, and unrelated containers
+- [x] T015 [US1] Deploy exact merged containment source and restart only `hermes-titus.service`
+- [x] T016 [US1] Prove the live effective hosted tool set is exactly read-only and append value-free evidence to `deploys.log`
 
 **Checkpoint**: Titus production email is read-only even if later guarded-send
 work is delayed or rolled back.
@@ -57,17 +57,17 @@ work is delayed or rolled back.
 **Purpose**: Build the pure validation, approval, state, screening, provider,
 and verification boundary before registering MCP tools.
 
-- [ ] T017 Add observed-RED canonical draft and address validation tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
-- [ ] T018 Add observed-RED signed approval token, expiry, and draft-mismatch tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
-- [ ] T019 Add observed-RED content-free SQLite state and duplicate/ambiguity tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
-- [ ] T020 Add observed-RED SecurityTeam denial, timeout, malformed, and transformed-content tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
-- [ ] T021 Add observed-RED AgentMail send, idempotency, missing-ID, readback-mismatch, and exact-success tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
-- [ ] T022 Implement canonical draft validation and normalization in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
-- [ ] T023 Implement purpose-derived signed approval tokens in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
-- [ ] T024 Implement the content-free SQLite attempt state machine in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
-- [ ] T025 Implement bounded SecurityTeam and AgentMail clients with safe errors in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
-- [ ] T026 Implement guarded send orchestration, provider readback equality, and idempotent reconciliation in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
-- [ ] T027 Run the focused guarded core suite GREEN and inspect the SQLite schema for zero content fields
+- [x] T017 Add observed-RED canonical draft and address validation tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
+- [x] T018 Add observed-RED signed approval token, expiry, and draft-mismatch tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
+- [x] T019 Add observed-RED content-free SQLite state and duplicate/ambiguity tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
+- [x] T020 Add observed-RED SecurityTeam denial, timeout, malformed, and transformed-content tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
+- [x] T021 Add observed-RED AgentMail send, idempotency, missing-ID, readback-mismatch, and exact-success tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_guarded_email.py`
+- [x] T022 Implement canonical draft validation and normalization in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
+- [x] T023 Implement purpose-derived signed approval tokens in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
+- [x] T024 Implement the content-free SQLite attempt state machine in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
+- [x] T025 Implement bounded SecurityTeam and AgentMail clients with safe errors in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
+- [x] T026 Implement guarded send orchestration, provider readback equality, and idempotent reconciliation in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
+- [x] T027 Run the focused guarded core suite GREEN and inspect the SQLite schema for zero content fields
 
 **Checkpoint**: The pure service proves every pre-send and post-send failure
 contract without an MCP runtime or live provider mutation.
@@ -85,19 +85,19 @@ service.
 
 ### Tests for User Story 2
 
-- [ ] T028 [US2] Add observed-RED MCP schema and annotation tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_server_contract.py`
+- [x] T028 [US2] Add observed-RED MCP schema and annotation tests in `tenants/hermes-titus/mcp-servers/guarded-agentmail/tests/test_server_contract.py`
 
 ### Implementation for User Story 2
 
-- [ ] T029 [US2] Register `titus_prepare_email_approval` and `titus_send_approved_email` in `tenants/hermes-titus/mcp-servers/guarded-agentmail/server.py`
-- [ ] T030 [US2] Add structured content-free stderr events in `tenants/hermes-titus/mcp-servers/guarded-agentmail/server.py`
-- [ ] T031 [US2] Install the guarded MCP source and protected state directory from `tenants/hermes-titus/runtime/prepare-volume.sh`
-- [ ] T032 [US2] Add the local guarded server while retaining hosted read-only tools in `tenants/hermes-titus/config/config.yaml`
-- [ ] T033 [US2] Admit and require the exact SecurityTeam binding in `tenants/hermes-titus/runtime/load-phase-env.sh` and `tenants/hermes-titus/runtime/start-with-secrets.sh`
-- [ ] T034 [US2] Update exact approval, preparation, send, and success-reporting instructions in `tenants/hermes-titus/skills/agentmail-email/SKILL.md`
-- [ ] T035 [US2] Extend source/runtime/file/secret/tool checks in `tenants/hermes-titus/scripts/qualify.sh`
-- [ ] T036 [US2] Document guarded architecture, state, and rollback in `tenants/hermes-titus/README.md`
-- [ ] T037 [US2] Run MCP contract, Python syntax, focused tests, Titus qualification, shell syntax, secret scan, and diff checks
+- [x] T029 [US2] Register `titus_prepare_email_approval` and `titus_send_approved_email` in `tenants/hermes-titus/mcp-servers/guarded-agentmail/server.py`
+- [x] T030 [US2] Add structured content-free stderr events in `tenants/hermes-titus/mcp-servers/guarded-agentmail/server.py`
+- [x] T031 [US2] Install the guarded MCP source and protected state directory from `tenants/hermes-titus/runtime/prepare-volume.sh`
+- [x] T032 [US2] Add the local guarded server while retaining hosted read-only tools in `tenants/hermes-titus/config/config.yaml`
+- [x] T033 [US2] Admit and require the exact SecurityTeam binding in `tenants/hermes-titus/runtime/load-phase-env.sh` and `tenants/hermes-titus/runtime/start-with-secrets.sh`
+- [x] T034 [US2] Update exact approval, preparation, send, and success-reporting instructions in `tenants/hermes-titus/skills/agentmail-email/SKILL.md`
+- [x] T035 [US2] Extend source/runtime/file/secret/tool checks in `tenants/hermes-titus/scripts/qualify.sh`
+- [x] T036 [US2] Document guarded architecture, state, and rollback in `tenants/hermes-titus/README.md`
+- [x] T037 [US2] Run MCP contract, Python syntax, focused tests, Titus qualification, shell syntax, secret scan, and diff checks
 
 **Checkpoint**: The local candidate has one and only one send mutation, bound
 to an exact prepared draft and protected screening credential.
@@ -112,9 +112,9 @@ to an exact prepared draft and protected screening credential.
 missing/mismatched field remains unverified while exact readback succeeds and
 retries do not duplicate.
 
-- [ ] T038 [US3] Run the complete fake SecurityTeam/AgentMail failure and retry matrix from `specs/025-titus-guarded-email/quickstart.md`
-- [ ] T039 [US3] Run dependency audit, full Titus regression qualification, and content-free logging review
-- [ ] T040 [US3] Run five-axis code, interface, security, observability, and deployment review
+- [x] T038 [US3] Run the complete fake SecurityTeam/AgentMail failure and retry matrix from `specs/025-titus-guarded-email/quickstart.md`
+- [x] T039 [US3] Run dependency audit, full Titus regression qualification, and content-free logging review
+- [x] T040 [US3] Run five-axis code, interface, security, observability, and deployment review
 - [ ] T041 [US3] Commit, push, open, monitor, and merge the guarded-sender PR
 
 **Checkpoint**: Reviewed merged source is ready for protected secret binding

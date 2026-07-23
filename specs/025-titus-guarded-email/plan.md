@@ -50,9 +50,9 @@ _GATE: Passed before research and re-checked after design._
   responses are untrusted, every network failure is bounded, and delivery fails
   closed.
 - **Owner decides — PASS**: A short-lived signed token binds the exact prepared
-  draft, but the skill still requires explicit owner approval immediately
-  before the destructive tool call. A changed draft needs a new token and
-  approval.
+  draft, the skill requires a later owner instruction, and the destructive
+  tool independently blocks on Hermes's fail-closed human elicitation surface
+  for that fingerprint. A changed draft needs a new token and both approvals.
 - **Simple over clever — PASS**: The design uses one local MCP boundary, the
   existing SecurityTeam endpoint, AgentMail's documented REST endpoints and
   idempotency header, and SQLite already included with Python.
@@ -84,7 +84,9 @@ See [research.md](research.md).
    inside the Titus process boundary.
 3. Preparation and sending are separate tools. Preparation is read-only and
    produces a short-lived HMAC-signed approval token over the exact canonical
-   draft plus a random logical-send nonce. Sending is the sole mutating tool.
+   draft plus a random logical-send nonce. Sending is the sole mutating tool
+   and requests a separate Hermes-routed MCP owner approval after validating
+   the token and before any screening or provider I/O.
 4. SecurityTeam `/check-outbound` is the required scan. The request carries the
    exact target plus a deterministic canonical representation of subject, text,
    and HTML. Only HTTP 200, explicit `allowed: true`, and byte-equal returned
@@ -121,9 +123,9 @@ authority.
 
 The preparation boundary accepts one exact Titus inbox, one to ten unique bare
 email addresses, subject, optional text, and optional HTML. It rejects all
-other envelope features. The canonical draft preserves subject/body bytes
-except for CRLF-to-LF comparison normalization and lowercases/sorts normalized
-recipient addresses.
+other envelope features. The canonical draft preserves subject/body strings
+exactly and lowercases normalized recipient addresses while preserving their
+reviewed order.
 
 The tool returns:
 
@@ -136,6 +138,13 @@ The token expires after 30 minutes. The send boundary verifies signature,
 expiry, exact draft digest, and exact Titus inbox before any network I/O.
 Tokens are not logged or persisted.
 
+The validated draft fingerprint is then sent through MCP form elicitation.
+Hermes routes that request to its human approval surface and fails closed on
+decline, cancel, timeout, or routing failure. Only explicit acceptance proceeds
+to SecurityTeam. The prompt contains the non-secret fingerprint, not the email
+content, because the complete canonical draft was already presented in the
+conversation and message content must not enter runtime logs.
+
 ### SecurityTeam screening
 
 The send boundary posts:
@@ -143,15 +152,20 @@ The send boundary posts:
 ```json
 {
   "kind": "send_email",
-  "targetId": "<normalized recipient set>",
+  "targetId": "<exact normalized recipient set>",
   "channel": "dm",
-  "content": "<canonical subject and body representation>"
+  "content": "<canonical subject, text, HTML, and empty attachment state>"
 }
 ```
 
-The target and content are the exact approved draft, not a summary. Any
-non-200 response, timeout, transport failure, invalid JSON, missing boolean
-allow field, denial, or changed returned content stops before AgentMail.
+Together, target and content represent the exact approved envelope and message,
+not a summary. Recipient addresses remain in `targetId` rather than `content`
+because SecurityTeam's content PII redactor correctly treats an email address
+as a finding; embedding required envelope addresses in content would guarantee
+false denial. Local validation separately binds the exact Titus inbox and
+recipient set. Any non-200 response, timeout, transport failure, invalid JSON,
+missing boolean allow field, denial, or changed returned content stops before
+AgentMail.
 
 ### Idempotent send and provider readback
 
@@ -173,14 +187,16 @@ Readback uses the exact Titus inbox and returned message ID. Comparison requires
 the exact inbox/message/thread identities, sent label, normalized recipient
 set, subject, and each supplied body representation. Exact match transitions
 to `verified_sent`. Missing or mismatched readback transitions to
-`ambiguous_unverified`. The same token may reconcile with the same idempotency
-key within 24 hours; after that window, an unverified attempt is refused rather
-than resent.
+`ambiguous_unverified`. While its 30-minute approval remains valid, the same
+token may resubmit only the same provider idempotency key after a timeout or
+missing-ID response. Known provider identifiers reconcile by readback without
+another send. An expired approval or expired provider idempotency window is
+refused rather than assigned a new send identity.
 
 ### Logging and response contract
 
-The MCP process writes structured stage, outcome, safe error code, and local
-attempt ID to stderr only. It never logs the approval token, draft digest,
+The MCP process writes structured tool, outcome, and safe error code to stderr
+only. It never logs the approval token, draft digest, local attempt ID,
 provider body, recipient, subject, text, HTML, or credential.
 
 The mutating tool returns only:
@@ -199,8 +215,11 @@ The Docker container still receives secrets only from the mode-0440 runtime
 file, publishes no port, and retains its existing hardening.
 
 Activation adds the local server after its private qualification. Rollback
-removes the local guarded server configuration but retains the hosted read-only
-allowlist and state database. Only `hermes-titus.service` may restart.
+installs the validated root-owned `/opt/hermes-titus/guarded-email-read-only`
+marker; volume preparation then projects only the local guarded server out of
+runtime configuration while retaining the hosted read-only allowlist, source,
+and state database. Removing that exact marker restores the guarded projection.
+Only `hermes-titus.service` may restart.
 
 ## Project Structure
 
@@ -227,6 +246,7 @@ tenants/hermes-titus/
 ├── config/config.yaml
 ├── mcp-servers/guarded-agentmail/
 │   ├── guarded_email.py
+│   ├── service.py
 │   ├── server.py
 │   └── tests/test_guarded_email.py
 ├── runtime/

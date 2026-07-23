@@ -63,7 +63,10 @@ fetch_path /agents/hermes-titus/memory "$work_dir/memory.json"
 fetch_path /agents/hermes-email-intake/titus "$work_dir/email-intake.json"
 
 jq -e '
-  (keys - ["AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID", "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY"] | length) == 0
+  (keys - [
+    "AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID",
+    "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY", "SECURITY_SERVICE_TOKEN"
+  ] | length) == 0
 ' "$work_dir/core.json" >/dev/null || die 'unexpected key in Titus runtime Phase path'
 jq -e 'keys == ["CONTROL_TOWER_TOKEN"]' "$work_dir/control-tower.json" >/dev/null || die 'unexpected key in Titus Control Tower Phase path'
 jq -e '
@@ -106,7 +109,7 @@ require_value() {
 
 for key in \
   OPENROUTER_API_KEY AGENTMAIL_API_KEY AGENTMAIL_EMAIL_ADDRESS \
-  AGENTMAIL_INBOX_ID HERMES_DEFAULT_MODEL; do
+  AGENTMAIL_INBOX_ID HERMES_DEFAULT_MODEL SECURITY_SERVICE_TOKEN; do
   require_value "$work_dir/core.json" "$key"
 done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN

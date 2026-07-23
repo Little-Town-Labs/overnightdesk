@@ -40,10 +40,19 @@ mutating tool then accepts only the same canonical fields and token. The token
 contains a random logical-send nonce so a later approval of identical content
 can intentionally represent a different send.
 
+After token validation, the mutating tool also issues MCP form elicitation.
+The active Hermes 1.26.0 client routes form elicitation through its human
+approval system and fails closed on decline, cancel, timeout, or handler
+failure. This makes owner authorization an enforced runtime gate instead of
+relying on the MCP `destructiveHint`, which Hermes treats as descriptive tool
+metadata.
+
 **Alternatives considered**:
 
 - Let the model calculate a SHA-256 fingerprint: rejected as error-prone.
 - Accept a boolean `approved` flag: rejected because it does not bind content.
+- Rely on `destructiveHint`: rejected because the active Hermes dispatcher does
+  not use annotations as an authorization decision.
 - Store email content in an approval database: rejected because Titus already
   presents the full draft in the owner conversation and local storage would
   unnecessarily retain message content.

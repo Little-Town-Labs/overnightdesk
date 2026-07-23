@@ -24,7 +24,7 @@ Titus does not receive the Phase service-account token or Azure credentials. The
 
 Core runtime:
 
-- `/agents/hermes-titus/runtime`: `OPENROUTER_API_KEY`, `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID`, `AGENTMAIL_EMAIL_ADDRESS`, `HERMES_DEFAULT_MODEL`
+- `/agents/hermes-titus/runtime`: `OPENROUTER_API_KEY`, `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID`, `AGENTMAIL_EMAIL_ADDRESS`, `HERMES_DEFAULT_MODEL`, `SECURITY_SERVICE_TOKEN`
 - `/agents/hermes-titus/overnightdesk`: `CONTROL_TOWER_TOKEN`
 - `/agents/hermes-titus/memory`: `MEMORY_TENCENTDB_EMBEDDING_ENABLED`, `MEMORY_TENCENTDB_EMBEDDING_PROVIDER`, `MEMORY_TENCENTDB_EMBEDDING_BASE_URL`, `MEMORY_TENCENTDB_EMBEDDING_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS`, `MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS`
 
@@ -70,9 +70,35 @@ The `agentmail` MCP server connects directly to
 Titus process; its configuration never embeds the key. Its exact tool include
 list is read-only: inbox, thread, message, search, and attachment retrieval.
 Direct provider send, reply, forward, draft, delete, label, inbox, webhook,
-key, domain, list, and other mailbox mutations are unavailable. Titus must use
-`skills/agentmail-email/SKILL.md` for inbox discovery, read-only triage, and
-unsent draft preparation while the guarded outbound path is qualified.
+key, domain, list, and other mailbox mutations are unavailable.
+
+New outbound messages use the separate local `guarded_agentmail` stdio MCP
+server. It exposes one read-only preparation tool and exactly one send
+mutation. Preparation validates and canonicalizes the complete draft, rejects
+unsupported fields, and returns a 30-minute purpose-derived HMAC token bound to
+the exact inbox, recipients, subject, text, HTML, and empty attachment state.
+The send tool accepts only that unchanged draft and token, validates their
+fingerprint, and then blocks on Hermes's MCP elicitation approval surface.
+Decline, cancel, timeout, or approval-routing failure stops before external
+I/O. Explicit acceptance synchronously calls SecurityTeam's private
+authenticated `/check-outbound`, submits every supplied field to AgentMail with
+one stable idempotency key, then reads the exact message back. Only exact inbox,
+recipient, subject, supplied-body, message/thread ID, and `sent`-label equality
+returns `verified_sent`.
+
+The guarded state database is mode 0600 under
+`/opt/data/guarded-agentmail/attempts.sqlite3` in `hermes-titus-data`. It stores
+only logical-send identifiers, a draft digest, idempotency key, safe state/error
+codes, provider IDs, and timestamps—never recipients, subject, text, HTML,
+approval tokens, SecurityTeam content, or credentials. Structured stderr
+events likewise omit draft and token values. Rollback removes the local guarded
+server from Titus while retaining the hosted read-only allowlist and the state
+database for reconciliation.
+
+Titus must use `skills/agentmail-email/SKILL.md` for inbox discovery, triage,
+exact draft presentation, later-turn explicit owner approval, guarded sending,
+and fail-closed success reporting. Replies, forwards, drafts, attachments,
+CC/BCC, custom headers, and mailbox administration remain unsupported.
 
 The shared Go email intake runs as three isolated systemd template instances.
 It lands every newly observed message in `content_staging` as dirty input and
@@ -164,6 +190,8 @@ tenants/hermes-titus/scripts/deploy-aegis.sh install
 tenants/hermes-titus/scripts/deploy-aegis.sh verify
 tenants/hermes-titus/scripts/deploy-aegis.sh status
 tenants/hermes-titus/scripts/deploy-aegis.sh restart
+tenants/hermes-titus/scripts/deploy-aegis.sh email-read-only
+tenants/hermes-titus/scripts/deploy-aegis.sh email-guarded
 tenants/hermes-titus/scripts/deploy-aegis.sh stop
 tenants/hermes-titus/scripts/deploy-aegis.sh rollback
 
@@ -179,6 +207,15 @@ tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh rollback all
 
 The Hermes and intake stop/rollback actions preserve all named volumes. Do not
 delete them during routine recovery or credential repair.
+
+Guarded-email rollback is separate from the dashboard rollback. The
+`email-read-only` action installs a root-owned durable marker, restarts only
+Titus, projects the local guarded MCP server out of the runtime config, and
+fully verifies the retained hosted read-only server and all runtime state.
+`email-guarded` validates and removes only that marker, restarts only Titus,
+and requires both guarded tools again. Neither action changes the native
+dashboard route, deletes the attempt ledger, or restores a direct AgentMail
+mutation.
 
 Safe activation order:
 

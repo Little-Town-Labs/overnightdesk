@@ -10,7 +10,7 @@ ssh_cmd=(ssh -i "$ssh_key" "$remote")
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-}
 
 usage() {
-  printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
   exit 2
 }
 
@@ -214,7 +214,7 @@ verify() {
     sudo docker inspect -f "{{json .HostConfig.CapDrop}}" hermes-titus | grep -q ALL
     sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" hermes-titus | grep -q no-new-privileges
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
-    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY)"
+    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY)"
     sudo docker volume inspect hermes-titus-data >/dev/null
     for route in titus walter mitchel; do
       sudo systemctl is-active --quiet "hermes-email-intake@$route.service"
@@ -223,7 +223,15 @@ verify() {
     agent_state=$(sudo systemctl is-active "hermes-email-intake@agent.service" 2>/dev/null || true)
     test "$agent_state" = inactive
     sudo docker volume inspect hermes-email-intake-agent-data >/dev/null
-    sudo docker exec hermes-titus /usr/bin/bash -lc '\''
+    guarded_email_expect=guarded
+    guarded_email_marker=/opt/hermes-titus/guarded-email-read-only
+    if sudo test -e "$guarded_email_marker" || sudo test -L "$guarded_email_marker"; then
+      sudo test -f "$guarded_email_marker" && ! sudo test -L "$guarded_email_marker"
+      test "$(sudo stat -c %a "$guarded_email_marker")" = 400
+      test "$(sudo stat -c %u "$guarded_email_marker")" = 0
+      guarded_email_expect=read_only
+    fi
+    sudo docker exec --env TITUS_GUARDED_EMAIL_EXPECT="$guarded_email_expect" hermes-titus /usr/bin/bash -lc '\''
       set -euo pipefail
       set -a
       . /run/secrets/hermes-titus-runtime
@@ -261,6 +269,16 @@ print("agentmail_titus_inbox=" + ("present" if matches else "not_identified"))
 
 matrix_state = os.environ.get("TITUS_MATRIX_STATE", "disabled")
 config = yaml.safe_load(Path("/opt/data/config.yaml").read_text()) or {}
+guarded_email_expected = os.environ["TITUS_GUARDED_EMAIL_EXPECT"]
+guarded_email_configured = "guarded_agentmail" in (config.get("mcp_servers") or {})
+assert guarded_email_configured == (guarded_email_expected == "guarded"), "unexpected guarded email mode"
+if guarded_email_configured:
+    guarded_email = config["mcp_servers"]["guarded_agentmail"]
+    assert guarded_email["command"] == "/opt/hermes/.venv/bin/python", "unexpected guarded MCP command"
+    assert guarded_email["args"] == ["/opt/data/mcp-servers/guarded-agentmail/server.py"], "unexpected guarded MCP arguments"
+    assert guarded_email["elicitation"]["enabled"] is True, "owner elicitation disabled"
+    assert guarded_email["timeout"] >= guarded_email["elicitation"]["timeout"] + 45, "guarded MCP timeout too short"
+print("guarded_email_mode=" + guarded_email_expected)
 pid1_env = {}
 for entry in Path("/proc/1/environ").read_bytes().split(b"\0"):
     if b"=" in entry:
@@ -314,13 +332,28 @@ print("matrix_state=" + matrix_state)
 PY
       test -f /opt/data/skills/agentmail-email/SKILL.md
       test -f /opt/data/skills/control-tower-hermes/SKILL.md
+      test -f /opt/data/mcp-servers/guarded-agentmail/guarded_email.py
+      test -f /opt/data/mcp-servers/guarded-agentmail/service.py
+      test -f /opt/data/mcp-servers/guarded-agentmail/server.py
+      test -d /opt/data/guarded-agentmail
+      test "$(stat -c %a /opt/data/guarded-agentmail)" = 700
+      test "$(stat -c %u:%g /opt/data/guarded-agentmail)" = 10000:10000
       agentmail_test=/tmp/agentmail-mcp-test.log
       agentmail_ok=false
       for attempt in 1 2 3; do
         if HOME=/opt/data /opt/hermes/.venv/bin/hermes mcp test agentmail >"$agentmail_test" 2>&1 && \
-          grep -Eq "Tools discovered: [1-9][0-9]*" "$agentmail_test"; then
+          grep -Eq "Tools discovered: 8([^0-9]|$)" "$agentmail_test"; then
           agentmail_ok=true
-          break
+          for tool in \
+            list_inboxes get_inbox list_threads search_threads get_thread \
+            list_messages search_messages get_attachment; do
+            if ! grep -Fq "$tool" "$agentmail_test"; then
+              agentmail_ok=false
+            fi
+          done
+          if test "$agentmail_ok" = true; then
+            break
+          fi
         fi
         sleep 2
       done
@@ -330,7 +363,25 @@ PY
         exit 1
       fi
       rm -f "$agentmail_test"
-      printf "agentmail_mcp=healthy\\n"
+      printf "agentmail_mcp=healthy_exact_eight_read_tools\\n"
+      if test "$TITUS_GUARDED_EMAIL_EXPECT" = guarded; then
+        guarded_test=/tmp/guarded-agentmail-mcp-test.log
+        if ! HOME=/opt/data /opt/hermes/.venv/bin/hermes mcp test guarded_agentmail >"$guarded_test" 2>&1 || \
+          ! grep -Eq "Tools discovered: 2([^0-9]|$)" "$guarded_test" || \
+          ! grep -Fq "titus_prepare_email_approval" "$guarded_test" || \
+          ! grep -Fq "titus_send_approved_email" "$guarded_test"; then
+          sed -E \
+            -e "s/(AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN)([=:][[:space:]]*)[^[:space:]]+/\\1\\2[REDACTED]/g" \
+            -e "s/(Authorization: Bearer )[[:graph:]]+/\\1[REDACTED]/g" \
+            "$guarded_test" >&2
+          rm -f "$guarded_test"
+          exit 1
+        fi
+        rm -f "$guarded_test"
+        printf "guarded_agentmail_mcp=healthy_exact_two_tools\\n"
+      else
+        printf "guarded_agentmail_mcp=read_only_rollback\\n"
+      fi
       printf "teams_state=%s\n" "${TITUS_TEAMS_STATE:-pending}"
     '\''
     echo "hermes_titus=healthy"
@@ -349,6 +400,35 @@ stop_runtime() {
 
 restart_runtime() {
   "${ssh_cmd[@]}" 'sudo systemctl daemon-reload; sudo systemctl restart hermes-titus.service; sudo systemctl is-active --quiet hermes-titus.service; echo "hermes-titus restart requested"'
+  verify
+}
+
+email_read_only() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    marker=/opt/hermes-titus/guarded-email-read-only
+    sudo install -o root -g root -m 0400 /dev/null "$marker"
+    sudo systemctl restart hermes-titus.service
+    sudo systemctl is-active --quiet hermes-titus.service
+    echo "guarded_email=read_only_restart_requested"
+  '
+  verify
+}
+
+email_guarded() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    marker=/opt/hermes-titus/guarded-email-read-only
+    if sudo test -e "$marker" || sudo test -L "$marker"; then
+      sudo test -f "$marker" && ! sudo test -L "$marker"
+      test "$(sudo stat -c %a "$marker")" = 400
+      test "$(sudo stat -c %u "$marker")" = 0
+      sudo rm -f "$marker"
+    fi
+    sudo systemctl restart hermes-titus.service
+    sudo systemctl is-active --quiet hermes-titus.service
+    echo "guarded_email=guarded_restart_requested"
+  '
   verify
 }
 
@@ -391,6 +471,8 @@ case "$action" in
   disable-route) disable_route ;;
   status) status ;;
   restart) restart_runtime ;;
+  email-read-only) email_read_only ;;
+  email-guarded) email_guarded ;;
   stop) stop_runtime ;;
   rollback) rollback_runtime ;;
   *) usage ;;
