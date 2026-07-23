@@ -345,6 +345,30 @@ use a root-owned persistent marker that makes every volume-preparation pass
 select the loopback launcher, verify the live `127.0.0.1:9119` process, and
 require a separately reviewed deployment before T032 is retried.
 
+### T032a-T032 durable rollback checkpoint — 2026-07-23
+
+The RED runtime regression reproduced the systemd ordering defect. GREEN added
+a root-owned mode-0400 rollback marker that makes every
+`prepare-volume.sh` execution select the loopback launcher while present,
+rejects invalid marker state, and is cleared by candidate installation. The
+five focused runtime tests, Titus static qualifier, shell syntax, formatting,
+diff, and secret-sentinel checks passed.
+
+PR 102 merged as `389e8d2` after both checks passed, and its exact production
+deployment succeeded. The reviewed source was synchronized without restarting
+Titus. The repeated rollback then returned `healthy_loopback_rollback`, proved
+the live dashboard process bound only to `127.0.0.1:9119`, confirmed no
+published host port or Nginx route, and retained every named Titus and Walter
+runtime/chat volume.
+
+A second independent Titus-only systemd restart retained the mode-0400 marker
+and loopback binding. Walter, both isolated Open WebUI containers, Nginx, and
+Ops retained their exact pre-rehearsal container identities and zero restart
+counts. Candidate restoration reused the protected client-ID file, cleared the
+marker, restored private self-hosted authentication with the public route still
+absent, passed restart persistence, and separately verified the exact OIDC
+client remained disabled. T032a and T032 are complete.
+
 Verify:
 
 - the dashboard advertises self-hosted auth;
@@ -368,6 +392,29 @@ prove:
 - Chat stays open when the dashboard launches;
 - all expected Titus Kanban boards are visible and remain scoped to Titus;
 - no other agent capability is disclosed.
+
+### T033 controlled activation checkpoint — 2026-07-23
+
+The public preflight returned HTTP 200 for `www`, found no matching Titus
+dashboard certificate, and confirmed the dashboard Nginx route was absent with
+valid existing Nginx configuration. The guarded database command activated the
+exact public PKCE OIDC client and runtime-scoped binding; a separate
+`verify-active` command passed before and after route activation.
+
+The reviewed deployment installed only the Titus dashboard HTTP ACME stub,
+issued the exact `titus-dashboard.overnightdesk.com` certificate valid through
+2026-10-21, installed the protected TLS proxy, and passed Nginx syntax. Public
+anonymous access and a direct-Aegis request using the exact hostname both
+returned HTTP 401. The response included HSTS, `nosniff`, `DENY` framing,
+strict-origin referrer, and permissions-policy headers.
+
+Private native status remained healthy with self-hosted authentication
+required. Titus, Walter, both isolated Open WebUI containers, Nginx, and Ops
+remained healthy or running with zero inspected restart counts. Bounded native
+authentication and Nginx upstream error sentinels were zero. This is controlled
+production qualification only: membership and session-lifecycle mutations,
+Titus Kanban-board acceptance, and final owner acceptance have not begun.
+T033 is complete.
 
 ## 8. Controlled authority and lifecycle matrix
 
