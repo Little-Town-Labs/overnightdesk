@@ -121,6 +121,7 @@ agent surfaces.
 - [x] T034b [US3] Add RED/GREEN shared-store coverage for active membership carrying suspension or revocation timestamps in `src/db/__tests__/use-case-membership-store.integration.test.ts` and `scripts/qualify-titus-membership-db.cjs`, reject both timestamp forms in `src/lib/use-case-membership-store.ts`, publish and deploy the correction, and requalify the production suspension boundary before T034 resumes
 - [x] T034 [US3] Complete controlled non-member, suspended-member, and expired-member denial/restoration tests at both platform and direct dashboard boundaries and record value-free outcomes in `specs/024-titus-dashboard-access/quickstart.md`
 - [x] T035 [US3] Complete explicit platform logout, native-session expiry, OIDC revocation, reauthentication, and final restoration tests and record value-free outcomes in `specs/024-titus-dashboard-access/quickstart.md`
+- [ ] T036a [US3] Publish and deploy the RED/GREEN Titus runtime verifier correction for the active Walter intake topology, retained inactive Agent rollback tuple, and all four routed intake volumes before repeating the exact-runtime persistence proof
 - [ ] T036 [US3] Prove Titus Chat response, visible history, exact-runtime restart persistence, native dashboard state, Walter isolation, provider/model invariants, public denial, private health, and zero unintended restarts using `tenants/hermes-titus/scripts/deploy-aegis.sh`
 - [ ] T037 [US3] Rehearse active rollback in the specified order, prove Advanced Dashboard becomes unavailable while Chat/data remain healthy, restore the accepted candidate, and append both results to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T038 [US3] Obtain authenticated owner acceptance for Titus name/logo, Chat, dashboard launch, all expected Titus Kanban boards with correct Titus-only scope, retained conversation, and capability consistency across Overview, Chat, Settings, and Admin and record it in `specs/024-titus-dashboard-access/quickstart.md`
@@ -161,6 +162,9 @@ accepted, observable, and recoverable without coupling either chat deployment.
   T034 may begin any owner membership denial window.
 - T034b must merge, deploy, and pass a fresh active-state production plan after
   the safely restored suspended-member discovery before T034 may resume.
+- T036a must merge, deploy, and pass the corrected production verifier after
+  the safe exact-runtime restart before T036 may resume its browser persistence
+  proof.
 - Publication requires all included tests, rollback proof, observation, owner
   acceptance, standard synchronization, and review gates.
 

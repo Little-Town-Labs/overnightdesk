@@ -629,6 +629,37 @@ volume, Chat data, or Walter.
   no membership, route, certificate, runtime, provider, volume, Chat, Walter,
   or user-data state changed. T035 is complete.
 
+#### T036a runtime-verifier topology correction — 2026-07-23
+
+- Before the exact-runtime restart, the owner confirmed visible Titus Chat
+  history and received a fresh Titus response. Read-only production preflight
+  found healthy zero-restart Titus, Walter, both Open WebUI deployments, Nginx,
+  and Ops; no Titus host port; retained runtime and intake volumes; configured
+  self-hosted native authentication; public denial; and an exact local/live
+  systemd and launcher hash match.
+- The reviewed restart action reloaded systemd and recreated only
+  `hermes-titus`. The replacement became healthy with zero restart count, no
+  published port, retained data volume, HTTP 200 at the platform, and HTTP 401
+  at every anonymous Titus and Walter boundary. Walter, both Open WebUI
+  deployments, Nginx, and Ops retained their exact container identities and
+  zero restart counts.
+- The action then stopped at its post-restart verifier. Read-only isolation
+  localized the failure to an obsolete expectation that the Agent email-intake
+  route remained active. The platform standard and live state agree that
+  Walter is the active platform route, Agent is inactive with its Phase path
+  and state volume retained for rollback, and Titus and Mitchel remain active.
+  No service was started or stopped during diagnosis.
+- RED added a static runtime contract for active
+  `titus/walter/mitchel`, inactive Agent, retention of all four intake volumes,
+  and rejection of the obsolete active route set. It failed on the missing
+  Walter topology. GREEN changed only the deployment verifier and retained
+  volume assertions; local Titus and email-intake qualifications, shell syntax,
+  and `git diff --check` pass.
+- T036 remains stopped before its post-restart browser checkpoint. The
+  correction must be reviewed, merged, installed from exact `main`, and pass a
+  separate production verification before the owner confirms retained Chat
+  history, a fresh response, and native dashboard recovery.
+
 ## 9. Persistence, rollback, and observation
 
 Confirm an existing Titus chat and visible history before and after the exact
