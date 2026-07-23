@@ -10,6 +10,9 @@ function source(relativePath: string) {
 describe("Titus native dashboard OIDC runtime staging", () => {
   const config = source("tenants/hermes-titus/config/config.yaml");
   const loader = source("tenants/hermes-titus/runtime/load-phase-env.sh");
+  const prepareVolume = source(
+    "tenants/hermes-titus/runtime/prepare-volume.sh",
+  );
   const startup = source("tenants/hermes-titus/runtime/start-with-secrets.sh");
   const deploy = source("tenants/hermes-titus/scripts/deploy-aegis.sh");
 
@@ -41,6 +44,32 @@ describe("Titus native dashboard OIDC runtime staging", () => {
   it("qualifies the configured client against the exact process environment", () => {
     expect(deploy).toContain(
       'config["dashboard"]["oauth"]["self_hosted"]["client_id"] == pid1_env["TITUS_DASHBOARD_OIDC_CLIENT_ID"]',
+    );
+  });
+
+  it("makes loopback rollback survive the systemd volume preparation gate", () => {
+    const rollback = deploy.slice(
+      deploy.indexOf("rollback_runtime()"),
+      deploy.indexOf("\n}\n\ncase", deploy.indexOf("rollback_runtime()")),
+    );
+    expect(prepareVolume).toContain(
+      "/opt/hermes-titus/rollback-loopback-dashboard",
+    );
+    expect(prepareVolume).toContain(
+      'test -e "$rollback_marker" || test -L "$rollback_marker"',
+    );
+    expect(prepareVolume).toContain("launcher=start-all.loopback.sh");
+    expect(prepareVolume).toContain(
+      '--env TITUS_DASHBOARD_LAUNCHER="$launcher"',
+    );
+    expect(rollback).toMatch(
+      /install[\s\S]*rollback-loopback-dashboard[\s\S]*systemctl stop hermes-titus\.service[\s\S]*systemctl start hermes-titus\.service/,
+    );
+    expect(deploy).toMatch(
+      /rm -f \/opt\/hermes-titus\/rollback-loopback-dashboard/,
+    );
+    expect(deploy).toContain(
+      "hermes dashboard --host 127.0.0.1 --port 9119 --no-open",
     );
   });
 });

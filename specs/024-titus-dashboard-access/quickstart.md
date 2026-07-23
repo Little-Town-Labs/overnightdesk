@@ -325,6 +325,26 @@ disposable database command sequence: plan, confirmed ensure, disabled verify,
 protected local staging, existing identity/Open WebUI lifecycle, staged-file
 cleanup, and force-drop.
 
+PR 101 merged as `f95dc25` after both checks passed, and the exact merge
+commit's production deployment succeeded. The production plan reported one
+ready canonical target; confirmed ensure and a separate verify created one
+disabled public client with one rollback-scoped binding and staged only its
+opaque ID. The route-disabled Aegis installation and restart-persistence check
+both returned `healthy_private_disabled` with no published ports. Final
+read-only evidence showed the protected file root-owned mode 0400, the named
+volume retained, Titus and both chats healthy, Walter's container unchanged,
+and Nginx/Ops running. T031 is complete.
+
+The first T032 rollback rehearsal failed closed: the route remained absent,
+OIDC remained disabled, native auth remained required, and every compared
+service and volume was retained, but systemd's `ExecStartPre` volume preparation
+overwrote the one-time loopback launcher copy with the candidate launcher.
+The live dashboard therefore remained private-network bound rather than
+loopback bound. A RED regression captures the ordering defect. Rollback must
+use a root-owned persistent marker that makes every volume-preparation pass
+select the loopback launcher, verify the live `127.0.0.1:9119` process, and
+require a separately reviewed deployment before T032 is retried.
+
 Verify:
 
 - the dashboard advertises self-hosted auth;

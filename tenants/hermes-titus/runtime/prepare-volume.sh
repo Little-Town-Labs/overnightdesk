@@ -4,6 +4,8 @@ set -euo pipefail
 image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.18.0-coder}
 volume=${TITUS_VOLUME:-hermes-titus-data}
 source_root=${TITUS_SOURCE_ROOT:-/opt/hermes-titus/source}
+rollback_marker=${TITUS_DASHBOARD_ROLLBACK_MARKER:-/opt/hermes-titus/rollback-loopback-dashboard}
+launcher=start-all.sh
 
 test "$(id -u)" -eq 0 || { printf 'hermes-titus volume preparation must run as root\n' >&2; exit 1; }
 test -d "$source_root" || { printf 'hermes-titus source is unavailable\n' >&2; exit 1; }
@@ -12,17 +14,34 @@ if test "$(docker inspect -f '{{.State.Running}}' hermes-titus 2>/dev/null || tr
   exit 1
 fi
 
+if test -e "$rollback_marker" || test -L "$rollback_marker"; then
+  test -f "$rollback_marker" && test ! -L "$rollback_marker" || {
+    printf 'hermes-titus dashboard rollback marker is invalid\n' >&2
+    exit 1
+  }
+  test "$(stat -c %a "$rollback_marker")" = 400 || {
+    printf 'hermes-titus dashboard rollback marker mode must be 0400\n' >&2
+    exit 1
+  }
+  test "$(stat -c %u "$rollback_marker")" = 0 || {
+    printf 'hermes-titus dashboard rollback marker owner is invalid\n' >&2
+    exit 1
+  }
+  launcher=start-all.loopback.sh
+fi
+
 docker volume inspect "$volume" >/dev/null 2>&1 || docker volume create "$volume" >/dev/null
 
 docker run --rm \
   --user 0:0 \
   --network bridge \
+  --env TITUS_DASHBOARD_LAUNCHER="$launcher" \
   --volume "$volume:/opt/data" \
   --volume "$source_root:/source:ro" \
   --entrypoint /usr/bin/bash \
   "$image" -euo pipefail -c '
     install -d -m 0755 /opt/data/bin /opt/data/config /opt/data/skills /opt/data/plugins
-    install -m 0755 /source/runtime/start-all.sh /opt/data/bin/start-all.sh
+    install -m 0755 "/source/runtime/$TITUS_DASHBOARD_LAUNCHER" /opt/data/bin/start-all.sh
     install -m 0755 /source/runtime/start-all.loopback.sh /opt/data/bin/start-all.loopback.sh
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
     install -m 0755 /source/runtime/control-tower-session.sh /opt/data/bin/control-tower-session

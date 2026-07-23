@@ -112,8 +112,9 @@ agent surfaces.
 - [x] T029 [US3] Run the guarded production assignment `plan` with zero writes, inspect canonical owner/runtime/binding uniqueness, and record only status/count evidence in `specs/024-titus-dashboard-access/quickstart.md`
 - [x] T030a [US3] Publish and deploy the explicit application-generated projection ID correction after a disposable Neon RED/GREEN plan/apply/verify regression proves the raw SQL path does not rely on a nonexistent database default
 - [x] T030 [US3] Apply and separately verify the canonical Titus dashboard projection with the explicit confirmation sentinel through `scripts/dashboard-instance-reconciliation.ts`
-- [ ] T031a [US3] Publish and deploy the guarded fixed-target OIDC lifecycle command plus mode-600 local/mode-0400 Aegis client-ID staging path after disposable database and Titus runtime RED/GREEN qualification
-- [ ] T031 [US3] Install the Titus Nginx/runtime candidate disabled, create the public OIDC client and exact runtime-scoped binding disabled, stage configuration through non-logging input, and verify private native auth, no published port, exact restart, and retained `hermes-titus-data` using `tenants/hermes-titus/scripts/deploy-aegis.sh`
+- [x] T031a [US3] Publish and deploy the guarded fixed-target OIDC lifecycle command plus mode-600 local/mode-0400 Aegis client-ID staging path after disposable database and Titus runtime RED/GREEN qualification
+- [x] T031 [US3] Install the Titus Nginx/runtime candidate disabled, create the public OIDC client and exact runtime-scoped binding disabled, stage configuration through non-logging input, and verify private native auth, no published port, exact restart, and retained `hermes-titus-data` using `tenants/hermes-titus/scripts/deploy-aegis.sh`
+- [ ] T032a [US3] Publish and deploy the durable root-owned loopback rollback marker after a RED regression proves systemd volume preparation overwrote the one-time launcher copy and GREEN verifies the live loopback process before success
 - [ ] T032 [US3] Rehearse disabled-candidate rollback to loopback-only Titus while preserving Chat, visible history, native data, channels, providers, and Walter, then append the result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T033 [US3] Establish only `titus-dashboard.overnightdesk.com` DNS/TLS, temporarily activate the exact OIDC client and protected Nginx route for owner-directed qualification, and prove anonymous/direct access fails closed without claiming production acceptance using `tenants/hermes-titus/scripts/deploy-aegis.sh`
 - [ ] T034 [US3] Complete controlled non-member, suspended-member, and expired-member denial/restoration tests at both platform and direct dashboard boundaries and record value-free outcomes in `specs/024-titus-dashboard-access/quickstart.md`
@@ -150,8 +151,8 @@ accepted, observable, and recoverable without coupling either chat deployment.
 - T029a must merge, deploy, apply, and verify before T029; T029 must pass before
   T030a; T030a must merge and deploy before T030; T030 must verify before
   T031a; T031a must merge and deploy before T031 can create and bind the OIDC
-  client;
-  T031-T032 must pass before T033 can temporarily qualify the protected route.
+  client; T031 must pass before T032a; T032a must merge and deploy before T032;
+  T032 must pass before T033 can temporarily qualify the protected route.
 - T034-T039 require owner-directed checkpoints and must remain sequential so
   each authority state is restored before the next transition.
 - Publication requires all included tests, rollback proof, observation, owner
