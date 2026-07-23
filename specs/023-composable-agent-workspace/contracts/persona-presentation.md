@@ -19,7 +19,7 @@ database identifiers other than the submitted runtime ID, or internal errors.
 
 ## Image read
 
-`GET /api/agent-identity/{runtimeIdentityId}/logo/{sha256}` is intentionally
+`GET /api/agent-identity/runtime/{runtimeIdentityId}/logo/{sha256}` is intentionally
 public presentation media. It returns bytes only when the runtime and its exact
 active default persona are active and the stored SHA-256 equals the canonical
 lowercase path value. The response includes the stored safe raster content

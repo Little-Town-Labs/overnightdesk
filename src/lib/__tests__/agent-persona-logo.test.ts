@@ -80,7 +80,7 @@ describe("agent persona logo", () => {
     const digest = "a".repeat(64);
 
     expect(buildAgentPersonaLogoUrl(runtimeIdentityId, digest)).toBe(
-      `/api/agent-identity/${runtimeIdentityId}/logo/${digest}`,
+      `/api/agent-identity/runtime/${runtimeIdentityId}/logo/${digest}`,
     );
     expect(() => buildAgentPersonaLogoUrl("not-a-uuid", digest)).toThrow(
       "Invalid agent persona logo identity",
