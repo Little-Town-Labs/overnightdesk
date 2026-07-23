@@ -7,6 +7,7 @@ runtime_dir=${TITUS_RUNTIME_DIR:-/run/hermes-titus}
 output_file=${TITUS_RUNTIME_ENV:-/run/hermes-titus/runtime.env}
 phase_app=${TITUS_PHASE_APP:-timeless-tech-solutions}
 phase_env=${TITUS_PHASE_ENVIRONMENT:-production}
+oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-/opt/hermes-titus/secrets/dashboard-oidc-client-id}
 
 die() {
   printf 'hermes-titus phase load: %s\n' "$*" >&2
@@ -22,6 +23,17 @@ token_size=$(stat -c %s "$token_file")
 test "$token_size" -ge 20 && test "$token_size" -le 8192 || die 'Phase token file size is invalid'
 ! LC_ALL=C grep -q '[[:space:][:cntrl:]]' "$token_file" || die 'Phase token file contains whitespace or control characters'
 command -v jq >/dev/null 2>&1 || die 'jq unavailable'
+test -f "$oidc_client_file" && test ! -L "$oidc_client_file" || \
+  die 'Titus dashboard OIDC client file unavailable'
+test "$(stat -c %a "$oidc_client_file")" = 400 || \
+  die 'Titus dashboard OIDC client file mode must be 0400'
+test "$(stat -c %u "$oidc_client_file")" = 0 || \
+  die 'Titus dashboard OIDC client file owner is invalid'
+oidc_client_id=$(<"$oidc_client_file")
+test "${#oidc_client_id}" -ge 20 && test "${#oidc_client_id}" -le 128 || \
+  die 'Titus dashboard OIDC client ID length is invalid'
+printf '%s' "$oidc_client_id" | grep -Eq '^[A-Za-z0-9_-]+$' || \
+  die 'Titus dashboard OIDC client ID format is invalid'
 
 install -d -o root -g 10000 -m 0750 "$runtime_dir"
 work_dir=$(mktemp -d "$runtime_dir/.load.XXXXXX")
@@ -176,6 +188,7 @@ esac
   printf 'TITUS_TEAMS_STATE=%q\n' "$teams_state"
   printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
   printf 'TITUS_MEMORY_EMBEDDING_STATE=%q\n' "$memory_state"
+  printf 'TITUS_DASHBOARD_OIDC_CLIENT_ID=%q\n' "$oidc_client_id"
 } >"$work_dir/runtime.env"
 
 unset PHASE_SERVICE_TOKEN

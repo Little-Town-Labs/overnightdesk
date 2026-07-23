@@ -24,7 +24,7 @@ dashboard:
     provider: self-hosted
     self_hosted:
       issuer: "https://www.overnightdesk.com/api/auth"
-      client_id: "overnightdesk-hermes-titus-dashboard-v1"
+      client_id: "__TITUS_DASHBOARD_OIDC_CLIENT_ID__"
       scopes: "openid profile email"
 
 mcp_servers:

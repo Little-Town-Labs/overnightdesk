@@ -9,7 +9,9 @@ set -a
 . "$secret_file"
 set +a
 
-for key in OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL CONTROL_TOWER_TOKEN HERMES_API_KEY; do
+for key in \
+  OPENROUTER_API_KEY AGENTMAIL_API_KEY HERMES_DEFAULT_MODEL CONTROL_TOWER_TOKEN \
+  HERMES_API_KEY TITUS_DASHBOARD_OIDC_CLIENT_ID; do
   value=${!key:-}
   test -n "$value" && test "$value" != NOT_CONFIGURED || {
     printf 'hermes-titus: required runtime value unavailable: %s\n' "$key" >&2
@@ -118,7 +120,7 @@ oauth = dashboard.setdefault('oauth', {})
 oauth['provider'] = 'self-hosted'
 self_hosted = oauth.setdefault('self_hosted', {})
 self_hosted['issuer'] = 'https://www.overnightdesk.com/api/auth'
-self_hosted['client_id'] = 'overnightdesk-hermes-titus-dashboard-v1'
+self_hosted['client_id'] = os.environ['TITUS_DASHBOARD_OIDC_CLIENT_ID']
 self_hosted['scopes'] = 'openid profile email'
 with tempfile.NamedTemporaryFile(
     mode='w',

@@ -249,7 +249,9 @@ deployment files; authorization and interface behavior remain agent agnostic.
    platform-instance and hostname bindings to the existing Titus foundation,
    then reconcile the additive Titus dashboard projection and create its public
    client plus exact runtime-scoped client binding in disabled/pending state
-   with value-free plan, apply, verify, and rollback evidence.
+   with value-free plan, apply, verify, and rollback evidence. Stage the opaque
+   client ID through a protected file; repository and runtime source must not
+   hard-code a second identifier.
 4. **Controlled route qualification**: temporarily activate DNS/TLS, the OIDC
    client, and the protected route for owner-directed checks, then repeat
    anonymous, non-member, suspended, expired, logout, session-expiry,
