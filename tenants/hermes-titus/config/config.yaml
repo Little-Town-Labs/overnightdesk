@@ -35,6 +35,17 @@ mcp_servers:
     skip_preflight: true
     connect_timeout: 60
     timeout: 120
+    tools:
+      include:
+        - list_inboxes
+        - get_inbox
+        - list_threads
+        - search_threads
+        - get_thread
+        - list_messages
+        - search_messages
+        - get_message
+        - get_attachment
 
 platform_toolsets:
   cli: [hermes-cli]

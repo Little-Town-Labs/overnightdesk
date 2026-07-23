@@ -95,6 +95,42 @@ require_pattern 'Control Tower' "$tenant_root/config/SOUL.md"
 require_pattern 'Do not expand your authority' "$tenant_root/config/SOUL.md"
 require_pattern 'url: "https://mcp\.agentmail\.to/mcp"' "$tenant_root/config/config.yaml"
 require_pattern 'x-api-key: "\$\{AGENTMAIL_API_KEY\}"' "$tenant_root/config/config.yaml"
+python - "$tenant_root/config/config.yaml" <<'PY'
+from pathlib import Path
+import sys
+
+expected = [
+    "list_inboxes",
+    "get_inbox",
+    "list_threads",
+    "search_threads",
+    "get_thread",
+    "list_messages",
+    "search_messages",
+    "get_message",
+    "get_attachment",
+]
+lines = Path(sys.argv[1]).read_text().splitlines()
+try:
+    server_start = lines.index("  agentmail:")
+    tools_start = lines.index("    tools:", server_start)
+    include_start = lines.index("      include:", tools_start)
+except ValueError:
+    actual = None
+else:
+    actual = []
+    for line in lines[include_start + 1 :]:
+        if line.startswith("        - "):
+            actual.append(line.removeprefix("        - "))
+            continue
+        if line.strip():
+            break
+if actual != expected:
+    raise SystemExit(
+        "hermes-titus qualification: AgentMail hosted tool allowlist "
+        "must be the exact approved read-only set"
+    )
+PY
 if grep -Eq '(^|[[:space:]])(command:|agentmail-mcp)' "$tenant_root/config/config.yaml"; then
   fail 'AgentMail must use the hosted MCP endpoint rather than a local bridge'
 fi
