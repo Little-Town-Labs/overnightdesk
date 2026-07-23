@@ -49,6 +49,12 @@ mcp_servers:
     command: "/opt/hermes/.venv/bin/python"
     args:
       - "/opt/data/mcp-servers/guarded-agentmail/server.py"
+    tools:
+      include:
+        - titus_prepare_email_approval
+        - titus_send_approved_email
+      resources: false
+      prompts: false
     env:
       AGENTMAIL_API_KEY: "${AGENTMAIL_API_KEY}"
       AGENTMAIL_INBOX_ID: "${AGENTMAIL_INBOX_ID}"

@@ -209,6 +209,16 @@ if guarded.get("args") != ["/opt/data/mcp-servers/guarded-agentmail/server.py"]:
     raise SystemExit("hermes-titus qualification: unexpected guarded MCP arguments")
 if guarded.get("env") != expected_env:
     raise SystemExit("hermes-titus qualification: unexpected guarded MCP environment")
+expected_tools = {
+    "include": [
+        "titus_prepare_email_approval",
+        "titus_send_approved_email",
+    ],
+    "resources": False,
+    "prompts": False,
+}
+if guarded.get("tools") != expected_tools:
+    raise SystemExit("hermes-titus qualification: unexpected guarded MCP tool surface")
 elicitation = guarded.get("elicitation") or {}
 if elicitation.get("enabled") is not True:
     raise SystemExit("hermes-titus qualification: owner elicitation must be enabled")
