@@ -147,14 +147,14 @@ test("opening, closing, and reopening the dashboard preserves the active chat", 
   const firstDashboardPromise = page.waitForEvent("popup");
   await dashboardLink.click();
   const firstDashboard = await firstDashboardPromise;
-  await expect(firstDashboard.getByRole("heading", { name: "Native runtime dashboard" })).toBeVisible();
+  await expect(firstDashboard.getByRole("heading", { name: "Titus native runtime dashboard" })).toBeVisible();
   await firstDashboard.close();
   await expect(workspace.getByText("Embedded session active")).toBeVisible();
 
   const reopenedDashboardPromise = page.waitForEvent("popup");
   await dashboardLink.click();
   const reopenedDashboard = await reopenedDashboardPromise;
-  await expect(reopenedDashboard.getByRole("heading", { name: "Native runtime dashboard" })).toBeVisible();
+  await expect(reopenedDashboard.getByRole("heading", { name: "Titus native runtime dashboard" })).toBeVisible();
   await expect(workspace.getByText("Embedded session active")).toBeVisible();
   await reopenedDashboard.close();
 });
@@ -255,6 +255,46 @@ test("expiry, revocation, and restoration deny both independent surfaces", async
   expect((await request.get(`${approvedParent}/runtime-dashboard`)).status()).toBe(200);
 });
 
+test("direct Titus dashboard expiry requires native reauthentication and preserves isolation", async ({
+  page,
+  request,
+}) => {
+  await page.goto(`${approvedParent}/runtime-dashboard`);
+  await expect(
+    page.getByRole("heading", { name: "Titus native runtime dashboard" }),
+  ).toBeVisible();
+  await expect(page.getByText("Walter")).toHaveCount(0);
+
+  await request.post(`${approvedParent}/control/native-session-expire`);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Authorization required" }),
+  ).toBeVisible();
+  await expect(page.getByText("Walter")).toHaveCount(0);
+
+  await page.getByRole("link", { name: "Reauthenticate Titus dashboard" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Titus native runtime dashboard" }),
+  ).toBeVisible();
+  await expect(page.getByText("Walter")).toHaveCount(0);
+});
+
+test("normal-link fallback reaches only Titus when a separate popup is unavailable", async ({
+  page,
+}) => {
+  await page.goto(`${approvedParent}/dashboard/chat?agent=titus&member=single`);
+  const launch = page.getByRole("link", { name: "Open Advanced Dashboard" });
+  const href = await launch.getAttribute("href");
+
+  expect(href).toBe("/runtime-dashboard");
+  await page.goto(new URL(href!, approvedParent).toString());
+  await expect(
+    page.getByRole("heading", { name: "Titus native runtime dashboard" }),
+  ).toBeVisible();
+  await expect(page.getByText("Walter")).toHaveCount(0);
+  await expect(page.getByText("Open WebUI")).toHaveCount(0);
+});
+
 test("desktop overview keeps the same Runtime and capability structure for Titus and Walter", async ({
   page,
 }) => {
@@ -273,7 +313,7 @@ test("desktop overview keeps the same Runtime and capability structure for Titus
   ).toContainText("Available");
   await expect(
     page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
-  ).toContainText("Not deployed");
+  ).toContainText("Available");
 
   await page.getByRole("link", { name: "Walter" }).click();
   await expect(page).toHaveURL(/\/dashboard\?agent=walter$/);
@@ -350,6 +390,9 @@ test("settings separates global account controls from selected-agent context", a
   await expect(page.getByText("owner@example.test")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-titus");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
+  ).toContainText("Available");
 });
 
 test("mobile settings preserves scope and selected-agent hierarchy", async ({ page }) => {
@@ -388,6 +431,9 @@ test("admin keeps global Fleet and Metrics separate from selected-agent Configur
   await expect(page.getByText("Selected-agent scope")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Titus" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Runtime" })).toContainText("hermes-titus");
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Advanced Dashboard" }),
+  ).toContainText("Available");
 });
 
 test("mobile admin configuration preserves navigation and selected-agent hierarchy", async ({

@@ -17,7 +17,10 @@ export interface HermesOidcAuditEvent {
     | "invalid_callback"
     | "invalid_scope"
     | "tenant_mismatch"
-    | "expired";
+    | "expired"
+    | "not_authorized"
+    | "authorization_unavailable";
+  authority?: "canonical" | "legacy_owner" | "unknown";
   instanceId?: string;
   clientId?: string;
   requestId?: string;
@@ -30,6 +33,7 @@ function safeRequestId(value?: string): string | undefined {
 export function buildHermesOidcAuditRecord(event: HermesOidcAuditEvent) {
   const details: Record<string, string> = { category: event.category };
   if (event.reason) details.reason = event.reason;
+  if (event.authority) details.authority = event.authority;
   if (event.instanceId) details.instanceId = event.instanceId;
   if (event.clientId) {
     details.clientFingerprint = createHash("sha256")

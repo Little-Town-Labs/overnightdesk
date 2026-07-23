@@ -1,8 +1,8 @@
 import {
   authorizeHermesOidcToken,
   type HermesOidcAuthorizationContext,
+  type HermesOidcMembershipGateway,
   type HermesOidcTokenGateway,
-  type HermesOidcWalterAuthorizationConfig,
 } from "@/lib/hermes-oidc";
 import type { MembershipAuthorizationDecision } from "@/lib/use-case-membership-authorization";
 
@@ -10,11 +10,13 @@ describe("Hermes OIDC token-time authorization", () => {
   const activeContext: HermesOidcAuthorizationContext = {
     instanceId: "instance-1",
     instanceUserId: "owner-1",
-    instanceTenantId: "tenant-0",
     instanceSubdomain: "aegis-prod.overnightdesk.com",
     instanceStatus: "running",
     dashboardAuthStatus: "active",
     linkedClientId: "public-client-id",
+    useCaseId: "00000000-0000-4000-8000-000000000000",
+    runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
+    oidcBindingValid: true,
     client: {
       clientId: "public-client-id",
       clientSecret: null,
@@ -38,23 +40,26 @@ describe("Hermes OIDC token-time authorization", () => {
     return { findByInstanceId: jest.fn().mockResolvedValue(value) };
   }
 
-  function walterAuthorization(
-    mode: "legacy" | "canonical",
+  function membershipGateway(
     decision: MembershipAuthorizationDecision,
-  ): HermesOidcWalterAuthorizationConfig & {
-    gateway: { authorize: jest.Mock; recordComparison: jest.Mock };
+  ): HermesOidcMembershipGateway & {
+    authorize: jest.Mock;
   } {
     return {
-      mode,
-      canonicalConfirmation: "ENABLE_WALTER_CANONICAL_MEMBERSHIP",
-      gateway: {
-        authorize: jest.fn().mockResolvedValue(decision),
-        recordComparison: jest.fn().mockResolvedValue(undefined),
-      },
+      authorize: jest.fn().mockResolvedValue(decision),
     };
   }
 
-  it("accepts the still-active owner and returns no elevated claims", async () => {
+  const activeMembership: MembershipAuthorizationDecision = {
+    authorized: true,
+    membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+    role: "owner",
+    scope: "runtime",
+    useCaseId: activeContext.useCaseId!,
+    runtimeIdentityId: activeContext.runtimeIdentityId,
+  };
+
+  it("accepts a still-active runtime member and returns no elevated claims", async () => {
     await expect(
       authorizeHermesOidcToken(
         {
@@ -62,15 +67,16 @@ describe("Hermes OIDC token-time authorization", () => {
           scopes: ["openid", "profile", "email"],
           metadata: activeContext.client.metadata ?? undefined,
         },
-        gateway(activeContext)
+        gateway(activeContext),
+        membershipGateway(activeMembership),
       )
     ).resolves.toEqual({});
   });
 
   it.each([
-    ["ownership change", { ...activeContext, instanceUserId: "owner-2" }],
     ["instance stop", { ...activeContext, instanceStatus: "error" }],
     ["linkage disable", { ...activeContext, dashboardAuthStatus: "disabled" }],
+    ["OIDC binding rollback", { ...activeContext, oidcBindingValid: false }],
     ["client disable", { ...activeContext, client: { ...activeContext.client, disabled: true } }],
   ])("denies token creation after %s", async (_name, value) => {
     await expect(
@@ -80,20 +86,28 @@ describe("Hermes OIDC token-time authorization", () => {
           scopes: ["openid", "profile", "email"],
           metadata: activeContext.client.metadata ?? undefined,
         },
-        gateway(value)
+        gateway(value),
+        membershipGateway(activeMembership),
       )
     ).rejects.toThrow("denied");
   });
 
+  it("does not treat legacy instance ownership as authority for a canonical link", async () => {
+    await expect(
+      authorizeHermesOidcToken(
+        {
+          user: { id: "owner-1", emailVerified: true },
+          scopes: ["openid", "profile", "email"],
+          metadata: activeContext.client.metadata ?? undefined,
+        },
+        gateway({ ...activeContext, instanceUserId: "former-owner" }),
+        membershipGateway(activeMembership),
+      ),
+    ).resolves.toEqual({});
+  });
+
   it("issues a token to an active canonical member without legacy ownership", async () => {
-    const authorization = walterAuthorization("canonical", {
-      authorized: true,
-      membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
-      role: "owner",
-      scope: "use_case",
-      useCaseId: "00000000-0000-4000-8000-000000000000",
-      runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
-    });
+    const membership = membershipGateway(activeMembership);
 
     await expect(
       authorizeHermesOidcToken(
@@ -103,13 +117,13 @@ describe("Hermes OIDC token-time authorization", () => {
           metadata: activeContext.client.metadata ?? undefined,
         },
         gateway(activeContext),
-        authorization,
+        membership,
       ),
     ).resolves.toEqual({});
   });
 
   it("denies token issuance after canonical membership is suspended or expired", async () => {
-    const authorization = walterAuthorization("canonical", {
+    const membership = membershipGateway({
       authorized: false,
       reason: "not_authorized",
     });
@@ -122,16 +136,66 @@ describe("Hermes OIDC token-time authorization", () => {
           metadata: activeContext.client.metadata ?? undefined,
         },
         gateway(activeContext),
-        authorization,
+        membership,
       ),
     ).rejects.toThrow("denied");
   });
 
-  it("returns to legacy owner checks with zero canonical work after rollback", async () => {
-    const authorization = walterAuthorization("legacy", {
+  it("uses exact-owner compatibility only for an explicitly unlinked legacy instance", async () => {
+    const legacyContext: HermesOidcAuthorizationContext = {
+      ...activeContext,
+      instanceSubdomain: "legacy-tenant.overnightdesk.com",
+      useCaseId: null,
+      runtimeIdentityId: null,
+      client: {
+        ...activeContext.client,
+        redirectUris: ["https://legacy-tenant.overnightdesk.com/auth/callback"],
+      },
+    };
+    const membership = membershipGateway({
       authorized: false,
-      reason: "not_authorized",
+      reason: "authorization_unavailable",
     });
+
+    await expect(
+      authorizeHermesOidcToken(
+        {
+          user: { id: "owner-1", emailVerified: true },
+          scopes: ["openid", "profile", "email"],
+          metadata: legacyContext.client.metadata ?? undefined,
+        },
+        gateway(legacyContext),
+        membership,
+      ),
+    ).resolves.toEqual({});
+    expect(membership.authorize).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on a partial canonical link before membership lookup", async () => {
+    const membership = membershipGateway(activeMembership);
+
+    await expect(
+      authorizeHermesOidcToken(
+        {
+          user: { id: "owner-1", emailVerified: true },
+          scopes: ["openid", "profile", "email"],
+          metadata: activeContext.client.metadata ?? undefined,
+        },
+        gateway({ ...activeContext, runtimeIdentityId: null }),
+        membership,
+      ),
+    ).rejects.toThrow("Hermes dashboard authorization denied");
+    expect(membership.authorize).not.toHaveBeenCalled();
+  });
+
+  it("returns a fixed value-free failure when canonical token authority is unavailable", async () => {
+    const membership = membershipGateway({
+      authorized: false,
+      reason: "authorization_unavailable",
+    });
+    membership.authorize.mockRejectedValue(
+      new Error("owner@example.com refresh-token postgres://secret"),
+    );
 
     await expect(
       authorizeHermesOidcToken(
@@ -141,10 +205,8 @@ describe("Hermes OIDC token-time authorization", () => {
           metadata: activeContext.client.metadata ?? undefined,
         },
         gateway(activeContext),
-        authorization,
+        membership,
       ),
-    ).resolves.toEqual({});
-    expect(authorization.gateway.authorize).not.toHaveBeenCalled();
-    expect(authorization.gateway.recordComparison).not.toHaveBeenCalled();
+    ).rejects.toThrow(/^Hermes dashboard authorization denied$/);
   });
 });

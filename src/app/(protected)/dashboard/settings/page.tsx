@@ -9,12 +9,8 @@ import {
   getSelectedAgentStatusLabel,
   resolveSelectedAgentContext,
 } from "@/lib/selected-agent-context";
-import { buildAgentCapabilities } from "@/lib/agent-capabilities";
+import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
 import { resolveManagedVariableControlDescriptors } from "@/db/managed-agent-variable-boundary";
-import {
-  getHermesDashboardUnavailableMessage,
-  getHermesDashboardUrl,
-} from "@/lib/hermes-dashboard";
 import { ChangePassword } from "./change-password";
 import { DeleteAccount } from "./delete-account";
 import { SelectedAgentConfiguration } from "../selected-agent-configuration";
@@ -54,23 +50,9 @@ export default async function SettingsPage({
   }
 
   const { agent, instance: selectedInstance } = resolution.selected;
-  const dashboardUrl = selectedInstance?.subdomain
-    ? getHermesDashboardUrl(selectedInstance.subdomain, {
-        authStatus: selectedInstance.hermesDashboardAuthStatus,
-        clientId: selectedInstance.hermesOidcClientId,
-      })
-    : null;
-  const dashboardUnavailableMessage = selectedInstance
-    ? getHermesDashboardUnavailableMessage({
-        authStatus: selectedInstance.hermesDashboardAuthStatus,
-        clientId: selectedInstance.hermesOidcClientId,
-      })
-    : null;
-  const capabilities = buildAgentCapabilities({
-    agentKey: agent.key,
-    dashboardUnavailableMessage,
-    dashboardUrl,
-    hasOpenChat: agent.workspace !== null,
+  const capabilities = buildSelectedAgentCapabilities({
+    agent,
+    instance: selectedInstance,
   });
   const managedVariables = await resolveManagedVariableControlDescriptors({
     agent,

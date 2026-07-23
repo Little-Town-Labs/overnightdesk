@@ -4,11 +4,7 @@ import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAdminPage } from "@/lib/admin-page-authorization";
 import { resolveManagedVariableControlDescriptors } from "@/db/managed-agent-variable-boundary";
-import { buildAgentCapabilities } from "@/lib/agent-capabilities";
-import {
-  getHermesDashboardUnavailableMessage,
-  getHermesDashboardUrl,
-} from "@/lib/hermes-dashboard";
+import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
 import { resolveAgentDirectory } from "@/lib/open-webui-workspace";
 import {
   getSelectedAgentStatusLabel,
@@ -49,18 +45,6 @@ export default async function AdminConfigurationPage({
   }
 
   const { agent, instance: selectedInstance } = resolution.selected;
-  const dashboardUrl = selectedInstance?.subdomain
-    ? getHermesDashboardUrl(selectedInstance.subdomain, {
-        authStatus: selectedInstance.hermesDashboardAuthStatus,
-        clientId: selectedInstance.hermesOidcClientId,
-      })
-    : null;
-  const dashboardUnavailableMessage = selectedInstance
-    ? getHermesDashboardUnavailableMessage({
-        authStatus: selectedInstance.hermesDashboardAuthStatus,
-        clientId: selectedInstance.hermesOidcClientId,
-      })
-    : null;
   const managedVariables = await resolveManagedVariableControlDescriptors({
     agent,
     instance: selectedInstance,
@@ -69,11 +53,9 @@ export default async function AdminConfigurationPage({
   return (
     <AdminAgentConfiguration
       agents={resolution.agents}
-      capabilities={buildAgentCapabilities({
-        agentKey: agent.key,
-        dashboardUnavailableMessage,
-        dashboardUrl,
-        hasOpenChat: agent.workspace !== null,
+      capabilities={buildSelectedAgentCapabilities({
+        agent,
+        instance: selectedInstance,
       })}
       managedVariables={managedVariables}
       selected={agent}

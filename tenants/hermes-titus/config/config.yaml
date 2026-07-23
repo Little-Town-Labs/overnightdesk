@@ -18,6 +18,15 @@ memory:
 display:
   busy_input_mode: queue
 
+dashboard:
+  public_url: "https://titus-dashboard.overnightdesk.com"
+  oauth:
+    provider: self-hosted
+    self_hosted:
+      issuer: "https://www.overnightdesk.com/api/auth"
+      client_id: "overnightdesk-hermes-titus-dashboard-v1"
+      scopes: "openid profile email"
+
 mcp_servers:
   agentmail:
     url: "https://mcp.agentmail.to/mcp"

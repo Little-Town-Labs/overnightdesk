@@ -212,6 +212,18 @@ export const TITUS_IDENTITY_TEMPLATE = {
       value: "hermes-titus-data",
       state: "active" as const,
     },
+    {
+      provider: "overnightdesk",
+      kind: "platform_instance" as const,
+      value: "titus-dashboard",
+      state: "active" as const,
+    },
+    {
+      provider: "nginx",
+      kind: "hostname" as const,
+      value: "titus-dashboard.overnightdesk.com",
+      state: "active" as const,
+    },
     ...[
       "/agents/hermes-titus/runtime",
       "/agents/hermes-titus/overnightdesk",

@@ -20,10 +20,19 @@ require_pattern() {
   grep -Eq -- "$pattern" "$path" || fail "missing contract pattern in ${path#$repo_root/}: $pattern"
 }
 
+reject_pattern() {
+  local pattern=$1
+  local path=$2
+  if grep -Eq -- "$pattern" "$path"; then
+    fail "prohibited contract pattern in ${path#$repo_root/}: $pattern"
+  fi
+}
+
 runtime_files=(
   "$tenant_root/runtime/load-phase-env.sh"
   "$tenant_root/runtime/prepare-volume.sh"
   "$tenant_root/runtime/start-all.sh"
+  "$tenant_root/runtime/start-all.loopback.sh"
   "$tenant_root/runtime/start-with-secrets.sh"
   "$tenant_root/runtime/control-tower-session.sh"
   "$tenant_root/runtime/email-run-approval.sh"
@@ -45,6 +54,7 @@ bash -n \
   "$tenant_root/runtime/load-phase-env.sh" \
   "$tenant_root/runtime/prepare-volume.sh" \
   "$tenant_root/runtime/start-all.sh" \
+  "$tenant_root/runtime/start-all.loopback.sh" \
   "$tenant_root/runtime/start-with-secrets.sh" \
   "$tenant_root/runtime/control-tower-session.sh" \
   "$tenant_root/runtime/email-run-approval.sh" \
@@ -124,7 +134,22 @@ require_pattern 'User=hermes-titus' "$tenant_root/runtime/hermes-titus.service"
 require_pattern 'ExecStartPre=.*/load-phase-env\.sh' "$tenant_root/runtime/hermes-titus.service"
 require_pattern 'ExecStart=.*/run-container\.sh' "$tenant_root/runtime/hermes-titus.service"
 require_pattern 'ExecStop=.*/stop-container\.sh' "$tenant_root/runtime/hermes-titus.service"
-require_pattern 'dashboard --host 127\.0\.0\.1' "$tenant_root/runtime/start-all.sh"
+require_pattern 'dashboard --host 0\.0\.0\.0 --port 9119 --no-open' "$tenant_root/runtime/start-all.sh"
+require_pattern 'dashboard --host 127\.0\.0\.1 --port 9119 --no-open' "$tenant_root/runtime/start-all.loopback.sh"
+reject_pattern '--insecure' "$tenant_root/runtime/start-all.sh"
+reject_pattern '--insecure' "$tenant_root/runtime/start-all.loopback.sh"
+require_pattern 'public_url: "https://titus-dashboard\.overnightdesk\.com"' "$tenant_root/config/config.yaml"
+require_pattern 'provider: self-hosted' "$tenant_root/config/config.yaml"
+require_pattern 'issuer: "https://www\.overnightdesk\.com/api/auth"' "$tenant_root/config/config.yaml"
+require_pattern 'client_id: "overnightdesk-hermes-titus-dashboard-v1"' "$tenant_root/config/config.yaml"
+require_pattern 'scopes: "openid profile email"' "$tenant_root/config/config.yaml"
+require_pattern 'os\.replace\(temporary, path\)' "$tenant_root/runtime/start-with-secrets.sh"
+require_pattern '/source/runtime/start-all\.loopback\.sh' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/opt/data/bin/start-all\.loopback\.sh' "$tenant_root/runtime/prepare-volume.sh"
+reject_pattern '(^|[[:space:]])(-p|--publish)([=[:space:]]|$)' "$tenant_root/runtime/run-container.sh"
+require_pattern '--network overnightdesk_overnightdesk' "$tenant_root/runtime/run-container.sh"
+require_pattern 'systemctl restart hermes-titus\.service' "$tenant_root/scripts/deploy-aegis.sh"
+reject_pattern 'systemctl restart (hermes-walter|open-webui)' "$tenant_root/scripts/deploy-aegis.sh"
 
 require_pattern 'explicit human approval' "$tenant_root/skills/agentmail-email/SKILL.md"
 require_pattern 'never request, print, log, persist, or pass the key' "$tenant_root/skills/agentmail-email/SKILL.md"

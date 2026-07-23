@@ -1,12 +1,8 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
 import { instance } from "@/db/schema";
-import { buildAgentCapabilities } from "@/lib/agent-capabilities";
+import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
 import { buildAgentWorkspaceComposition } from "@/lib/agent-workspace";
-import {
-  getHermesDashboardUnavailableMessage,
-  getHermesDashboardUrl,
-} from "@/lib/hermes-dashboard";
 import { resolveAgentDirectory } from "@/lib/open-webui-workspace";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -43,23 +39,9 @@ export default async function ChatPage({
 
   const selected = resolution.selected.agent;
   const selectedInstance = resolution.selected.instance;
-  const dashboardUrl = selectedInstance?.subdomain
-    ? getHermesDashboardUrl(selectedInstance.subdomain, {
-        authStatus: selectedInstance.hermesDashboardAuthStatus,
-        clientId: selectedInstance.hermesOidcClientId,
-      })
-    : null;
-  const dashboardUnavailableMessage = selectedInstance
-    ? getHermesDashboardUnavailableMessage({
-        authStatus: selectedInstance.hermesDashboardAuthStatus,
-        clientId: selectedInstance.hermesOidcClientId,
-      })
-    : null;
-  const capabilities = buildAgentCapabilities({
-    agentKey: selected.key,
-    dashboardUnavailableMessage,
-    dashboardUrl,
-    hasOpenChat: selected.workspace !== null,
+  const capabilities = buildSelectedAgentCapabilities({
+    agent: selected,
+    instance: selectedInstance,
   });
   const composition = buildAgentWorkspaceComposition({
     agent: selected,

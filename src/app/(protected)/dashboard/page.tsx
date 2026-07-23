@@ -16,10 +16,6 @@ import { ProvisioningProgress } from "./provisioning-progress";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
 import {
-  getHermesDashboardUnavailableMessage,
-  getHermesDashboardUrl,
-} from "@/lib/hermes-dashboard";
-import {
   resolveAgentDirectory,
 } from "@/lib/open-webui-workspace";
 import {
@@ -27,7 +23,7 @@ import {
   resolveUnambiguousLegacyInstance,
   resolveSelectedAgentContext,
 } from "@/lib/selected-agent-context";
-import { buildAgentCapabilities } from "@/lib/agent-capabilities";
+import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
 import { AgentOverview } from "./agent-overview";
 import { AgentAccessState } from "./agent-access-state";
 
@@ -112,24 +108,16 @@ export default async function DashboardPage({
 
   // ─── Membership-filtered selected-agent overview ───────────────────────────
   if (selectedAgent) {
-    const hermesDashboardUrl = inst?.subdomain
-      ? getHermesDashboardUrl(inst.subdomain, {
-          authStatus: inst.hermesDashboardAuthStatus,
-          clientId: inst.hermesOidcClientId,
-        })
-      : null;
-    const dashboardUnavailableMessage = inst
-      ? getHermesDashboardUnavailableMessage({
-          authStatus: inst.hermesDashboardAuthStatus,
-          clientId: inst.hermesOidcClientId,
-        })
-      : null;
-    const capabilities = buildAgentCapabilities({
-      agentKey: selectedAgent.key,
-      dashboardUnavailableMessage,
-      dashboardUrl: hermesDashboardUrl,
-      hasOpenChat: selectedAgent.workspace !== null,
+    const capabilities = buildSelectedAgentCapabilities({
+      agent: selectedAgent,
+      instance: inst,
     });
+    const dashboardUnavailableMessage =
+      capabilities.find(
+        (capability) =>
+          capability.id === "advanced_dashboard" &&
+          capability.state === "unavailable",
+      )?.detail ?? null;
     const selectedStatusLabel = getSelectedAgentStatusLabel(selectedAgent, inst);
     const isWizard = inst?.status === "queued";
     const isProvisioning =

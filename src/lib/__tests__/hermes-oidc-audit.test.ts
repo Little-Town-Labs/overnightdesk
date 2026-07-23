@@ -11,6 +11,7 @@ describe("Hermes OIDC audit redaction", () => {
       instanceId: "instance-1",
       clientId: "public-client-id",
       requestId: "request-1",
+      authority: "canonical",
     });
     const serialized = JSON.stringify(record);
 
@@ -20,8 +21,33 @@ describe("Hermes OIDC audit redaction", () => {
       instanceId: "instance-1",
       clientFingerprint: expect.stringMatching(/^[a-f0-9]{16}$/),
       requestId: "request-1",
+      authority: "canonical",
     });
     expect(serialized).not.toContain("public-client-id");
+  });
+
+  it("drops non-allowlisted names, URLs, OAuth artifacts, and exception text", () => {
+    const event = {
+      category: "denied",
+      reason: "authorization_unavailable",
+      authority: "unknown",
+      email: "owner@example.com",
+      name: "Owner Name",
+      url: "https://titus-dashboard.overnightdesk.com/private?code=oauth-code",
+      exception: "postgres://secret",
+      cookie: "session=opaque",
+    } as Parameters<typeof buildHermesOidcAuditRecord>[0];
+
+    expect(buildHermesOidcAuditRecord(event)).toEqual({
+      actor: "hermes-oidc",
+      action: "dashboard_authorization.denied",
+      target: null,
+      details: {
+        category: "denied",
+        reason: "authorization_unavailable",
+        authority: "unknown",
+      },
+    });
   });
 
   it.each([
