@@ -511,10 +511,11 @@ volume, Chat data, or Walter.
   syntax, Prettier, `git diff --check`, and the Next.js 15.5.21 production build
   passed. `npm audit --audit-level=high` exited successfully with the same five
   documented moderate findings and no dependency change.
-- T034a remains pending until this guardrail is reviewed, merged, its exact
-  production deployment succeeds, and a fresh production `plan` returns only
-  one ready active-to-denial transition. No production membership or session
-  mutation was performed during local qualification.
+- PR 104 merged as `66ab257` after both checks passed, and its exact production
+  deployment completed successfully. A fresh production read-only
+  `plan -- non_member` returned `ready`, current `active`, desired
+  `non_member`, and membership count one with no identifiers. T034a is
+  complete. No production membership or session mutation was performed.
 
 ## 9. Persistence, rollback, and observation
 
