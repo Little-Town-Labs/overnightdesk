@@ -9,7 +9,7 @@ const { sql } = require("drizzle-orm");
 const repo = path.resolve(__dirname, "..");
 const adminUrl = process.env.DATABASE_TEST_URL;
 const productionUrl = process.env.DATABASE_URL;
-const databaseName = `overnightdesk_titus_membership_${Date.now()}_${process.pid}`;
+const databaseName = `overnightdesk_identity_titus_membership_${Date.now()}_${process.pid}`;
 let currentStage = "validate test database";
 
 if (!adminUrl) {
@@ -82,6 +82,33 @@ function runCommand(
     throw new Error(`${command} ${state} exited ${result.status}`);
   }
   return JSON.parse(result.stdout);
+}
+
+function runSharedStoreQualification(targetUrl) {
+  const result = spawnSync(
+    "npx",
+    [
+      "--no-install",
+      "jest",
+      "src/db/__tests__/use-case-membership-store.integration.test.ts",
+      "--runInBand",
+    ],
+    {
+      cwd: repo,
+      env: {
+        ...process.env,
+        DATABASE_URL: targetUrl,
+        DATABASE_TEST_URL: targetUrl,
+      },
+      encoding: "utf8",
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    process.stderr.write(result.stdout);
+    process.stderr.write(result.stderr);
+    throw new Error(`Shared membership store exited ${result.status}`);
+  }
 }
 
 async function seedExactTarget(targetUrl, ids) {
@@ -343,6 +370,9 @@ async function main() {
         await executeRaw(targetUrl, statement);
       }
     }
+
+    currentStage = "qualify shared membership store";
+    runSharedStoreQualification(targetUrl);
 
     currentStage = "seed exact Titus target";
     await seedExactTarget(targetUrl, ids);

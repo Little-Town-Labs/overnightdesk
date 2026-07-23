@@ -517,6 +517,62 @@ volume, Chat data, or Walter.
   `non_member`, and membership count one with no identifiers. T034a is
   complete. No production membership or session mutation was performed.
 
+#### T034 controlled membership checkpoint — 2026-07-23
+
+- A fresh guarded non-member plan found exactly one active canonical owner
+  membership. The atomic transition and separate verification reached
+  `non_member`; the owner observed HTTP 401 with no Titus content while Walter
+  remained available and unchanged. Exact restoration and separate
+  verification returned the membership to `active`, and the owner confirmed
+  Titus access restored.
+- A fresh guarded suspended-member plan again found exactly one active
+  canonical owner membership. The atomic transition and separate verification
+  reached `suspended`, but the owner could still access Titus. The window was
+  immediately closed through the state-specific restoration and a separate
+  active verification.
+- Read-only source diagnosis found that the shared Drizzle membership lookup
+  rejects inactive status and expired timestamps but does not reject non-null
+  suspension or revocation timestamps. This contradicts the current-authority
+  contract and explains why the status-based non-member check passed while the
+  timestamp-based suspension check did not.
+- T034 is stopped before the expired-member window. T034b requires a
+  test-first shared-store correction, review, merge, exact production
+  deployment, and fresh active-state plan before any controlled denial window
+  resumes. No membership row was deleted; the exact membership is active.
+
+#### T034b local current-authority correction — 2026-07-23
+
+- The first disposable run exposed that the existing integration-test safety
+  prefix skipped the shared-store suite under the membership harness. Changing
+  only the disposable database name to the already approved
+  `overnightdesk_identity_*` prefix activated the real test without weakening
+  its production guard.
+- RED then failed because an active-status membership with a non-null
+  suspension timestamp was returned as authorized. GREEN added only null
+  suspension and revocation timestamp predicates to the shared Drizzle lookup.
+- The corrected disposable run passed the real shared-store assertions for
+  enum-status suspension, timestamp suspension, timestamp revocation, expiry,
+  inactive use case/runtime, exact runtime scope, and use-case-wide scope. It
+  then completed all six guarded Titus denial/restoration transitions, verified
+  six metadata-only audits, finished active, and force-dropped the disposable
+  database.
+- Sixty focused canonical-authorizer, dashboard-store, OIDC, and verifier-route
+  tests passed. TypeScript emitted no errors. Publication and exact production
+  deployment remain required before T034 resumes.
+- The full repository gate passed 105 suites and 1,158 runnable tests with the
+  expected 4 suites and 27 environment-gated tests skipped. The Next.js 15.5.21
+  production build passed with an intentionally unreachable database URL.
+  Prettier, Node syntax, TypeScript, `git diff --check`, and
+  `npm audit --audit-level=high` passed; the audit retained the same five
+  documented moderate findings and no dependency changed.
+- Spec Kit analysis found no new critical or high artifact conflict: FR-008 and
+  SC-002 remain explicit, T034b now closes the discovered shared-store coverage
+  gap, and the dependency order blocks T034 until merge, deployment, and a
+  fresh active-state plan. Five-axis review found no required change: the
+  correction is shared rather than Titus-specific, uses two parameterized null
+  predicates in the existing query, adds no query or cache, exposes no value,
+  and preserves the established fail-closed response.
+
 ## 9. Persistence, rollback, and observation
 
 Confirm an existing Titus chat and visible history before and after the exact
