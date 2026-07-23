@@ -12,7 +12,6 @@ search_threads
 get_thread
 list_messages
 search_messages
-get_message
 get_attachment
 ```
 

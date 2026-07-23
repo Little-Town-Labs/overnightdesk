@@ -101,7 +101,7 @@ See [research.md](research.md).
 
 ### Containment
 
-The hosted `agentmail` server receives an exact include list containing nine
+The hosted `agentmail` server receives an exact include list containing eight
 read-only tools:
 
 - `list_inboxes`
@@ -111,7 +111,6 @@ read-only tools:
 - `get_thread`
 - `list_messages`
 - `search_messages`
-- `get_message`
 - `get_attachment`
 
 Every mutation tool is absent by construction. Qualification parses the YAML

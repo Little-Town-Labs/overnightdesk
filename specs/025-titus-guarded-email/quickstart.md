@@ -8,12 +8,13 @@ logs or feature evidence.
 
 1. Run the focused configuration contract and observe RED because the current
    hosted AgentMail server exposes mutations.
-2. Add the exact nine-tool read-only include list.
+2. Add the exact eight-tool read-only include list.
 3. Update the Titus email skill to state that direct mutations are unavailable.
 4. Run focused and full Titus qualification.
 5. Review, merge, stage exact `main`, restart only Titus, and enumerate the
    effective tool names.
-6. Confirm all nine reads are present and every known mutation is absent.
+6. Confirm all eight currently available reads are present and every known
+   mutation is absent.
 7. Append the production result to `deploys.log`.
 
 Rollback for this phase preserves the read-only allowlist; there is no safe

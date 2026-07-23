@@ -218,7 +218,7 @@ services are unchanged.
 ### Measurable Outcomes
 
 - **SC-001**: Containment exposes zero direct AgentMail mutation actions while
-  retaining all nine approved read-only triage actions.
+  retaining all eight currently available approved read-only triage actions.
 - **SC-002**: Every empty, whitespace-only, changed, unapproved, oversized, or
   unsupported draft case produces zero provider send requests.
 - **SC-003**: SecurityTeam denial, authentication failure, timeout, unavailable,

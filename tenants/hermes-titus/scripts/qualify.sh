@@ -107,7 +107,6 @@ expected = [
     "get_thread",
     "list_messages",
     "search_messages",
-    "get_message",
     "get_attachment",
 ]
 lines = Path(sys.argv[1]).read_text().splitlines()
