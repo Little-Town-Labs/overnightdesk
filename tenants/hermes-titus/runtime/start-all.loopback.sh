@@ -19,7 +19,7 @@ fi
 
 /opt/hermes/.venv/bin/hermes gateway run &
 gateway_pid=$!
-/opt/hermes/.venv/bin/hermes dashboard --host 0.0.0.0 --port 9119 --no-open &
+/opt/hermes/.venv/bin/hermes dashboard --host 127.0.0.1 --port 9119 --no-open &
 dashboard_pid=$!
 
 printf 'hermes-titus started: gateway=%s dashboard=%s\n' "$gateway_pid" "$dashboard_pid"

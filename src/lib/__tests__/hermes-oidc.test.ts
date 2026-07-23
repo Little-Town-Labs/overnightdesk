@@ -103,6 +103,7 @@ describe("Hermes OIDC client lifecycle", () => {
       removeClient: jest.fn().mockResolvedValue(undefined),
       setClientDisabled: jest.fn().mockResolvedValue(true),
       setInstanceAuthStatus: jest.fn().mockResolvedValue(true),
+      setRuntimeScopedBinding: jest.fn().mockResolvedValue(true),
       ...overrides,
     };
   }
@@ -129,6 +130,11 @@ describe("Hermes OIDC client lifecycle", () => {
     expect(lifecycle.linkPending).toHaveBeenCalledWith(
       "instance-1",
       "public-client-id"
+    );
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "public-client-id",
+      "rollback",
     );
   });
 
@@ -160,6 +166,36 @@ describe("Hermes OIDC client lifecycle", () => {
       created: false,
     });
     expect(lifecycle.createClient).not.toHaveBeenCalled();
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "existing-client",
+      "rollback",
+    );
+  });
+
+  it("preserves the active binding when reusing an enabled exact client", async () => {
+    const lifecycle = gateway({
+      findInstance: jest.fn().mockResolvedValue({
+        id: "instance-1",
+        userId: "owner-1",
+        subdomain: "tenant-a.overnightdesk.com",
+        hermesOidcClientId: "existing-client",
+      }),
+      findClient: jest.fn().mockResolvedValue({
+        ...client("existing-client"),
+        disabled: false,
+      }),
+    });
+
+    await expect(ensureHermesOidcClient(input, lifecycle)).resolves.toEqual({
+      clientId: "existing-client",
+      created: false,
+    });
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "existing-client",
+      "active",
+    );
   });
 
   it("enables the exact linked client before marking the instance active", async () => {
@@ -182,6 +218,25 @@ describe("Hermes OIDC client lifecycle", () => {
       "instance-1",
       "public-client-id",
       "active"
+    );
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "public-client-id",
+      "active",
+    );
+  });
+
+  it("fails closed when the exact runtime-scoped OIDC binding cannot reconcile", async () => {
+    const lifecycle = gateway({
+      setRuntimeScopedBinding: jest.fn().mockResolvedValue(false),
+    });
+
+    await expect(ensureHermesOidcClient(input, lifecycle)).rejects.toThrow(
+      "unavailable",
+    );
+    expect(lifecycle.setClientDisabled).toHaveBeenCalledWith(
+      "public-client-id",
+      true,
     );
   });
 

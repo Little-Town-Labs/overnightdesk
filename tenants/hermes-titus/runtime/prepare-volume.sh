@@ -23,6 +23,7 @@ docker run --rm \
   "$image" -euo pipefail -c '
     install -d -m 0755 /opt/data/bin /opt/data/config /opt/data/skills /opt/data/plugins
     install -m 0755 /source/runtime/start-all.sh /opt/data/bin/start-all.sh
+    install -m 0755 /source/runtime/start-all.loopback.sh /opt/data/bin/start-all.loopback.sh
     install -m 0755 /source/runtime/start-with-secrets.sh /opt/data/bin/start-with-secrets.sh
     install -m 0755 /source/runtime/control-tower-session.sh /opt/data/bin/control-tower-session
     install -m 0755 /source/runtime/email-run-approval.sh /opt/data/bin/hermes-email-run-approval

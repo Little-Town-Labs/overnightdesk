@@ -92,6 +92,7 @@ test -x /opt/data/bin/hermes-email-run-approval || {
 /opt/hermes/.venv/bin/python - <<'PY'
 import os
 from pathlib import Path
+import tempfile
 import yaml
 
 path = Path('/opt/data/config.yaml')
@@ -111,7 +112,26 @@ teams['enabled'] = os.environ.get('TITUS_TEAMS_STATE') == 'ready'
 extra = teams.setdefault('extra', {})
 extra['port'] = int(os.environ.get('TEAMS_PORT', '3978'))
 extra['allow_all_users'] = False
-path.write_text(yaml.safe_dump(config, sort_keys=False))
+dashboard = config.setdefault('dashboard', {})
+dashboard['public_url'] = 'https://titus-dashboard.overnightdesk.com'
+oauth = dashboard.setdefault('oauth', {})
+oauth['provider'] = 'self-hosted'
+self_hosted = oauth.setdefault('self_hosted', {})
+self_hosted['issuer'] = 'https://www.overnightdesk.com/api/auth'
+self_hosted['client_id'] = 'overnightdesk-hermes-titus-dashboard-v1'
+self_hosted['scopes'] = 'openid profile email'
+with tempfile.NamedTemporaryFile(
+    mode='w',
+    dir=path.parent,
+    prefix='.config.yaml.',
+    delete=False,
+) as handle:
+    yaml.safe_dump(config, handle, sort_keys=False)
+    handle.flush()
+    os.fsync(handle.fileno())
+    temporary = Path(handle.name)
+temporary.chmod(0o600)
+os.replace(temporary, path)
 PY
 
 (

@@ -9,7 +9,7 @@ remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 
 usage() {
-  printf 'usage: %s {prepare|install|verify|status|restart|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|stop|rollback}\n' "$0" >&2
   exit 2
 }
 
@@ -17,6 +17,10 @@ prepare() {
   "$tenant_root/scripts/qualify.sh"
   "${ssh_cmd[@]}" 'install -d -m 0700 /tmp/hermes-titus-deploy'
   rsync -az --delete -e "ssh -i $ssh_key" "$tenant_root/" "$remote:/tmp/hermes-titus-deploy/"
+  rsync -az -e "ssh -i $ssh_key" \
+    "$repo_root/infra/nginx/titus-hermes.conf" \
+    "$repo_root/infra/nginx/titus-hermes-http.conf" \
+    "$remote:/tmp/hermes-titus-deploy/"
   "${ssh_cmd[@]}" '
     set -eu
     sudo install -d -o root -g root -m 0755 /opt/hermes-titus/source /opt/hermes-titus/bin
@@ -30,6 +34,110 @@ prepare() {
     sudo find /opt/hermes-titus/source -type f -exec chmod go-w {} +
     find /tmp/hermes-titus-deploy -mindepth 1 -delete
     rmdir /tmp/hermes-titus-deploy
+  '
+}
+
+install_disabled() {
+  prepare
+  "${ssh_cmd[@]}" '
+    set -eu
+    test ! -e /opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
+    sudo systemctl stop hermes-titus.service
+    sudo /opt/hermes-titus/bin/prepare-volume.sh
+    sudo systemctl start hermes-titus.service
+  '
+  verify_private
+}
+
+verify_private() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    sudo systemctl is-active --quiet hermes-titus.service
+    for i in $(seq 1 60); do
+      state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" hermes-titus 2>/dev/null || true)
+      test "$state" = healthy && break
+      test "$i" -lt 60 || { sudo docker logs --tail 80 hermes-titus 2>&1; exit 1; }
+      sleep 2
+    done
+    test -z "$(sudo docker port hermes-titus)"
+    sudo docker volume inspect hermes-titus-data >/dev/null
+    sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
+    sudo docker exec -i hermes-titus /opt/hermes/.venv/bin/python - <<"PY"
+import json
+import urllib.request
+from pathlib import Path
+import yaml
+
+with urllib.request.urlopen("http://127.0.0.1:9119/api/status", timeout=5) as response:
+    status = json.loads(response.read())
+assert status.get("auth_required") is True
+assert "self-hosted" in status.get("auth_providers", [])
+config = yaml.safe_load(Path("/opt/data/config.yaml").read_text())
+assert config["dashboard"]["public_url"] == "https://titus-dashboard.overnightdesk.com"
+assert config["dashboard"]["oauth"]["provider"] == "self-hosted"
+assert config["dashboard"]["oauth"]["self_hosted"]["issuer"] == "https://www.overnightdesk.com/api/auth"
+assert config["dashboard"]["oauth"]["self_hosted"]["client_id"] == "overnightdesk-hermes-titus-dashboard-v1"
+assert config["dashboard"]["oauth"]["self_hosted"]["scopes"] == "openid profile email"
+PY
+    sudo docker exec overnightdesk-nginx wget -qO- http://hermes-titus:9119/api/status >/dev/null
+    test ! -e /opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
+    echo "titus_dashboard=healthy_private_disabled"
+    echo "published_ports=none"
+  '
+}
+
+verify_restart_persistence() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    before=$(sudo docker volume inspect -f "{{.Name}}" hermes-titus-data)
+    sudo systemctl restart hermes-titus.service
+    test "$before" = "$(sudo docker volume inspect -f "{{.Name}}" hermes-titus-data)"
+  '
+  verify_private
+}
+
+require_route_confirmation() {
+  test "${TITUS_DASHBOARD_ROUTE_CONFIRM:-}" = ENABLE_TITUS_DASHBOARD_ROUTE || {
+    printf 'TITUS_DASHBOARD_ROUTE_CONFIRM must equal ENABLE_TITUS_DASHBOARD_ROUTE\n' >&2
+    exit 1
+  }
+}
+
+enable_route() {
+  require_route_confirmation
+  verify_private
+  "${ssh_cmd[@]}" '
+    set -eu
+    conf_dir=/opt/overnightdesk/nginx/conf.d
+    source=/opt/hermes-titus/source
+    sudo install -o root -g root -m 0644 "$source/titus-hermes-http.conf" "$conf_dir/titus-dashboard.conf"
+    sudo docker exec overnightdesk-nginx nginx -t
+    sudo docker exec overnightdesk-nginx nginx -s reload
+    if ! sudo test -f /opt/overnightdesk/certbot/conf/live/titus-dashboard.overnightdesk.com/fullchain.pem; then
+      cd /opt/overnightdesk
+      sudo docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+        -d titus-dashboard.overnightdesk.com --non-interactive --agree-tos
+    fi
+    sudo install -o root -g root -m 0644 "$source/titus-hermes.conf" "$conf_dir/titus-dashboard.conf"
+    sudo docker exec overnightdesk-nginx nginx -t
+    sudo docker exec overnightdesk-nginx nginx -s reload
+    echo "titus_dashboard_route=enabled"
+  '
+}
+
+disable_route() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    conf=/opt/overnightdesk/nginx/conf.d/titus-dashboard.conf
+    disabled=/opt/hermes-titus/disabled
+    sudo install -d -o root -g root -m 0750 "$disabled"
+    if sudo test -f "$conf"; then
+      stamp=$(date -u +%Y%m%dT%H%M%SZ)
+      sudo mv "$conf" "$disabled/titus-dashboard.conf.$stamp.disabled"
+      sudo docker exec overnightdesk-nginx nginx -t
+      sudo docker exec overnightdesk-nginx nginx -s reload
+    fi
+    echo "titus_dashboard_route=disabled"
   '
 }
 
@@ -198,13 +306,33 @@ restart_runtime() {
 }
 
 rollback_runtime() {
-  "${ssh_cmd[@]}" 'sudo systemctl disable --now hermes-titus.service; sudo docker volume inspect hermes-titus-data >/dev/null; for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done; echo "hermes-titus runtime rolled back; Matrix state and routed email-intake volumes preserved"'
+  disable_route
+  "${ssh_cmd[@]}" '
+    set -eu
+    sudo systemctl stop hermes-titus.service
+    sudo docker run --rm \
+      --user 0:0 \
+      --volume hermes-titus-data:/opt/data \
+      --volume /opt/hermes-titus/source/runtime/start-all.loopback.sh:/source/start-all.loopback.sh:ro \
+      --entrypoint /usr/bin/install \
+      overnightdesk/hermes-agent:0.18.0-coder \
+      -o 10000 -g 10000 -m 0755 /source/start-all.loopback.sh /opt/data/bin/start-all.sh
+    sudo systemctl start hermes-titus.service
+    sudo docker volume inspect hermes-titus-data >/dev/null
+    for route in titus agent mitchel; do sudo docker volume inspect "hermes-email-intake-$route-data" >/dev/null; done
+    echo "hermes-titus dashboard rolled back to loopback; retained state preserved"
+  '
 }
 
 case "$action" in
   prepare) prepare ;;
   install) install_runtime ;;
+  install-disabled) install_disabled ;;
   verify) verify ;;
+  verify-private) verify_private ;;
+  verify-restart-persistence) verify_restart_persistence ;;
+  enable-route) enable_route ;;
+  disable-route) disable_route ;;
   status) status ;;
   restart) restart_runtime ;;
   stop) stop_runtime ;;

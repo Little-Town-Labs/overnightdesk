@@ -121,6 +121,18 @@ describe("planTitusFoundation", () => {
         value: "hermes-titus-data",
         state: "active",
       },
+      {
+        provider: "overnightdesk",
+        kind: "platform_instance",
+        value: "titus-dashboard",
+        state: "active",
+      },
+      {
+        provider: "nginx",
+        kind: "hostname",
+        value: "titus-dashboard.overnightdesk.com",
+        state: "active",
+      },
       ...[
         "/agents/hermes-titus/runtime",
         "/agents/hermes-titus/overnightdesk",
@@ -177,6 +189,51 @@ describe("planTitusFoundation", () => {
         pathIdentifier,
       })),
     );
+  });
+
+  it("declares the native dashboard as an additive canonical capability", () => {
+    expect(TITUS_IDENTITY_TEMPLATE.resourceBindings).toEqual(
+      expect.arrayContaining([
+        {
+          provider: "overnightdesk",
+          kind: "platform_instance",
+          value: "titus-dashboard",
+          state: "active",
+        },
+        {
+          provider: "nginx",
+          kind: "hostname",
+          value: "titus-dashboard.overnightdesk.com",
+          state: "active",
+        },
+      ]),
+    );
+    expect(
+      TITUS_IDENTITY_TEMPLATE.resourceBindings.filter(
+        (binding) =>
+          binding.provider === "docker" && binding.kind === "container",
+      ),
+    ).toEqual([
+      {
+        provider: "docker",
+        kind: "container",
+        value: "hermes-titus",
+        state: "active",
+      },
+    ]);
+    expect(
+      TITUS_IDENTITY_TEMPLATE.resourceBindings.filter(
+        (binding) =>
+          binding.provider === "docker" && binding.kind === "volume",
+      ),
+    ).toEqual([
+      {
+        provider: "docker",
+        kind: "volume",
+        value: "hermes-titus-data",
+        state: "active",
+      },
+    ]);
   });
 
   it("returns a verified no-op without changing canonical IDs", () => {

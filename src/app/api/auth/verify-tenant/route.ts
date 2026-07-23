@@ -1,34 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { getInstanceForUser } from "@/lib/instance";
-import { recordHermesOidcAuditEvent } from "@/lib/hermes-oidc-audit";
+import { dashboardAuthorizationStore } from "@/db/dashboard-authorization-store";
+import { isApprovedDashboardHost } from "@/lib/dashboard-authorization";
 
 export const dynamic = "force-dynamic";
 
 const unauthorized = () => new NextResponse(null, { status: 401 });
 
 export async function GET(request: NextRequest) {
-  // Called by nginx auth_request — passes Cookie + X-Original-Host headers
   const host = request.headers.get("x-original-host");
-  if (!host) return unauthorized();
+  if (!host || !isApprovedDashboardHost(host)) return unauthorized();
 
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) return unauthorized();
-
-  const instance = await getInstanceForUser(session.user.id);
-  if (!instance || instance.status !== "running") return unauthorized();
-
-  // Confirm the requested subdomain belongs to this user's instance
-  if (instance.subdomain !== host) {
-    await recordHermesOidcAuditEvent({
-      category: "denied",
-      reason: "tenant_mismatch",
-      instanceId: instance.id,
-      clientId: instance.hermesOidcClientId ?? undefined,
-      requestId: request.headers.get("x-request-id") ?? undefined,
-    }).catch(() => undefined);
+  try {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) return unauthorized();
+    const decision = await dashboardAuthorizationStore.authorize({
+      requestedHost: host,
+      userId: session.user.id,
+      ...(request.headers.get("x-request-id")
+        ? { requestId: request.headers.get("x-request-id")! }
+        : {}),
+    });
+    if (!decision.authorized) return unauthorized();
+    return new NextResponse(null, { status: 200 });
+  } catch {
     return unauthorized();
   }
-
-  return new NextResponse(null, { status: 200 });
 }

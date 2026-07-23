@@ -6,6 +6,7 @@ const UNAPPROVED_PARENT_PORT = 4175;
 
 let platformAuthority: "active" | "expired" | "revoked" = "active";
 let assignmentEnabled = true;
+let nativeDashboardSession: "active" | "expired" = "active";
 
 function html(response: ServerResponse, body: string, status = 200): void {
   response.writeHead(status, {
@@ -39,7 +40,7 @@ function parentPage(
           useCase: "Timeless Tech Solutions",
           runtime: "hermes-titus",
           openChat: "Available",
-          dashboard: "Not deployed",
+          dashboard: "Available",
         };
   const agentSelector = (basePath: string) => `<nav class="selector" aria-label="Choose agent">
           <a href="${basePath}?agent=titus" aria-current="${selectedKey === "titus" ? "true" : "false"}">Titus</a>
@@ -273,11 +274,20 @@ const approvedParent = createServer((request, response) => {
   if (request.url === "/control/reset" && request.method === "POST") {
     platformAuthority = "active";
     assignmentEnabled = true;
+    nativeDashboardSession = "active";
     response.writeHead(204).end();
     return;
   }
   if (request.url === "/control/session-expire" && request.method === "POST") {
     platformAuthority = "expired";
+    response.writeHead(204).end();
+    return;
+  }
+  if (
+    request.url === "/control/native-session-expire" &&
+    request.method === "POST"
+  ) {
+    nativeDashboardSession = "expired";
     response.writeHead(204).end();
     return;
   }
@@ -295,6 +305,14 @@ const approvedParent = createServer((request, response) => {
     request.url ?? "/",
     `http://127.0.0.1:${APPROVED_PARENT_PORT}`,
   );
+  if (requestUrl.pathname === "/runtime-dashboard/reauth") {
+    if (!assignmentEnabled || platformAuthority !== "active") {
+      return html(response, "<h2>Access denied</h2>", 403);
+    }
+    nativeDashboardSession = "active";
+    response.writeHead(302, { Location: "/runtime-dashboard" }).end();
+    return;
+  }
   if (requestUrl.pathname === "/runtime-dashboard") {
     if (!assignmentEnabled || platformAuthority === "revoked") {
       return html(response, "<h2>Access denied</h2>", 403);
@@ -302,7 +320,14 @@ const approvedParent = createServer((request, response) => {
     if (platformAuthority === "expired") {
       return html(response, "<h2>Authorization required</h2>", 401);
     }
-    return html(response, "<h2>Native runtime dashboard</h2>");
+    if (nativeDashboardSession === "expired") {
+      return html(
+        response,
+        '<h2>Authorization required</h2><a href="/runtime-dashboard/reauth">Reauthenticate Titus dashboard</a>',
+        401,
+      );
+    }
+    return html(response, "<h2>Titus native runtime dashboard</h2>");
   }
   if (requestUrl.pathname === "/dashboard/chat") {
     const requestedAgent = requestUrl.searchParams.get("agent");

@@ -2,7 +2,7 @@ import {
   authorizeHermesOidcOwner,
   type HermesOidcAuthorizationContext,
   type HermesOidcAuthorizationGateway,
-  type HermesOidcWalterAuthorizationConfig,
+  type HermesOidcMembershipGateway,
 } from "@/lib/hermes-oidc";
 import type { MembershipAuthorizationDecision } from "@/lib/use-case-membership-authorization";
 
@@ -24,11 +24,13 @@ describe("Hermes OIDC owner authorization", () => {
     return {
       instanceId: "instance-1",
       instanceUserId: "owner-1",
-      instanceTenantId: "tenant-a",
       instanceSubdomain: "tenant-a.overnightdesk.com",
       instanceStatus: "running",
       dashboardAuthStatus: "active",
       linkedClientId: "public-client-id",
+      useCaseId: null,
+      runtimeIdentityId: null,
+      oidcBindingValid: true,
       client: {
         clientId: "public-client-id",
         clientSecret: null,
@@ -58,45 +60,46 @@ describe("Hermes OIDC owner authorization", () => {
     return { findByClientId: jest.fn().mockResolvedValue(value) };
   }
 
-  function walterContext(): HermesOidcAuthorizationContext {
+  function canonicalContext(
+    tenant: "titus" | "walter",
+  ): HermesOidcAuthorizationContext {
+    const isWalter = tenant === "walter";
+    const subdomain = isWalter
+      ? "aegis-prod.overnightdesk.com"
+      : "titus-dashboard.overnightdesk.com";
     return context({
-      instanceTenantId: "tenant-0",
-      instanceSubdomain: "aegis-prod.overnightdesk.com",
+      instanceSubdomain: subdomain,
+      useCaseId: isWalter
+        ? "00000000-0000-4000-8000-000000000000"
+        : "00000000-0000-4000-8000-000000000002",
+      runtimeIdentityId: isWalter
+        ? "00000000-0000-4000-8000-000000000010"
+        : "00000000-0000-4000-8000-000000000012",
       client: {
         ...context().client,
-        redirectUris: [
-          "https://aegis-prod.overnightdesk.com/auth/callback",
-        ],
+        redirectUris: [`https://${subdomain}/auth/callback`],
       },
     });
   }
 
-  function walterQuery(): string {
+  function canonicalQuery(tenant: "titus" | "walter"): string {
     const value = new URLSearchParams(query);
     value.set(
       "redirect_uri",
-      "https://aegis-prod.overnightdesk.com/auth/callback",
+      tenant === "walter"
+        ? "https://aegis-prod.overnightdesk.com/auth/callback"
+        : "https://titus-dashboard.overnightdesk.com/auth/callback",
     );
     return value.toString();
   }
 
-  function walterAuthorization(
-    mode: "legacy" | "compare" | "canonical",
+  function membershipGateway(
     decision: MembershipAuthorizationDecision,
-  ): HermesOidcWalterAuthorizationConfig & {
-    gateway: {
-      authorize: jest.Mock;
-      recordComparison: jest.Mock;
-    };
+  ): HermesOidcMembershipGateway & {
+    authorize: jest.Mock;
   } {
     return {
-      mode,
-      comparisonConfirmation: "COMPARE_WALTER_MEMBERSHIP_SHADOW",
-      canonicalConfirmation: "ENABLE_WALTER_CANONICAL_MEMBERSHIP",
-      gateway: {
-        authorize: jest.fn().mockResolvedValue(decision),
-        recordComparison: jest.fn().mockResolvedValue(undefined),
-      },
+      authorize: jest.fn().mockResolvedValue(decision),
     };
   }
 
@@ -135,6 +138,7 @@ describe("Hermes OIDC owner authorization", () => {
     ["wrong client link", context({ linkedClientId: "other-client" })],
     ["inactive instance", context({ instanceStatus: "error" })],
     ["inactive linkage", context({ dashboardAuthStatus: "pending" })],
+    ["missing runtime-scoped OIDC binding", context({ oidcBindingValid: false })],
     ["disabled client", context({ client: { ...context().client, disabled: true } })],
     ["malformed metadata", context({ client: { ...context().client, metadata: null } })],
   ])("denies %s", async (_name, value) => {
@@ -187,43 +191,67 @@ describe("Hermes OIDC owner authorization", () => {
     ).rejects.toThrow("denied");
   });
 
-  describe("Walter canonical membership cutover", () => {
-    const activeMembership: MembershipAuthorizationDecision = {
-      authorized: true,
-      membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
-      role: "owner",
-      scope: "use_case",
-      useCaseId: "00000000-0000-4000-8000-000000000000",
-      runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
-    };
+  describe("canonical dashboard membership", () => {
+    function activeMembership(
+      tenant: "titus" | "walter",
+      scope: "use_case" | "runtime" = "runtime",
+    ): MembershipAuthorizationDecision {
+      const linked = canonicalContext(tenant);
+      return {
+        authorized: true,
+        membershipId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa8",
+        role: "owner",
+        scope,
+        useCaseId: linked.useCaseId!,
+        runtimeIdentityId: linked.runtimeIdentityId,
+      };
+    }
 
-    it("allows an active canonical member without legacy ownership", async () => {
-      const authorization = walterAuthorization(
-        "canonical",
-        activeMembership,
-      );
+    it.each(["titus", "walter"] as const)(
+      "allows an active canonically linked %s runtime member without legacy ownership",
+      async (tenant) => {
+        const membership = membershipGateway(activeMembership(tenant));
+        const linked = canonicalContext(tenant);
+
+        await expect(
+          authorizeHermesOidcOwner(
+            {
+              user: { id: "active-member", emailVerified: true },
+              scopes: ["openid", "profile", "email"],
+              query: canonicalQuery(tenant),
+            },
+            gateway(linked),
+            membership,
+          ),
+        ).resolves.toBe("instance-1");
+        expect(membership.authorize).toHaveBeenCalledWith({
+          userId: "active-member",
+          useCaseId: linked.useCaseId,
+          runtimeIdentityId: linked.runtimeIdentityId,
+        });
+      },
+    );
+
+    it("accepts use-case-wide membership for an exact linked runtime", async () => {
+      const membership = membershipGateway(activeMembership("titus", "use_case"));
 
       await expect(
         authorizeHermesOidcOwner(
           {
             user: { id: "active-member", emailVerified: true },
             scopes: ["openid", "profile", "email"],
-            query: walterQuery(),
+            query: canonicalQuery("titus"),
           },
-          gateway(walterContext()),
-          authorization,
+          gateway(canonicalContext("titus")),
+          membership,
         ),
       ).resolves.toBe("instance-1");
-      expect(authorization.gateway.authorize).toHaveBeenCalledWith({
-        userId: "active-member",
-        legacyTenantId: "tenant-0",
-      });
     });
 
-    it.each(["non-member", "suspended member", "expired member"])(
-      "denies the legacy owner when canonical authority sees a %s",
+    it.each(["non-member", "suspended member", "revoked member", "expired member"])(
+      "denies a canonically linked runtime for a %s",
       async () => {
-        const authorization = walterAuthorization("canonical", {
+        const membership = membershipGateway({
           authorized: false,
           reason: "not_authorized",
         });
@@ -233,124 +261,79 @@ describe("Hermes OIDC owner authorization", () => {
             {
               user: { id: "owner-1", emailVerified: true },
               scopes: ["openid", "profile", "email"],
-              query: walterQuery(),
+              query: canonicalQuery("titus"),
             },
-            gateway(walterContext()),
-            authorization,
+            gateway(canonicalContext("titus")),
+            membership,
           ),
-        ).rejects.toThrow("denied");
+        ).rejects.toThrow("Hermes dashboard authorization denied");
       },
     );
 
-    it("fails closed when canonical authorization is unavailable", async () => {
-      const authorization = walterAuthorization("canonical", {
-        authorized: false,
-        reason: "authorization_unavailable",
-      });
-
-      await expect(
-        authorizeHermesOidcOwner(
-          {
-            user: { id: "owner-1", emailVerified: true },
-            scopes: ["openid", "profile", "email"],
-            query: walterQuery(),
-          },
-          gateway(walterContext()),
-          authorization,
-        ),
-      ).rejects.toThrow("denied");
-    });
-
-    it("keeps the legacy owner authoritative in compare mode", async () => {
-      const authorization = walterAuthorization("compare", {
+    it("restores authorization only after current canonical membership returns", async () => {
+      const membership = membershipGateway({
         authorized: false,
         reason: "not_authorized",
       });
+      membership.authorize
+        .mockResolvedValueOnce({ authorized: false, reason: "not_authorized" })
+        .mockResolvedValueOnce(activeMembership("titus"));
+      const request = {
+        user: { id: "owner-1", emailVerified: true },
+        scopes: ["openid", "profile", "email"],
+        query: canonicalQuery("titus"),
+      };
 
       await expect(
         authorizeHermesOidcOwner(
-          {
-            user: { id: "owner-1", emailVerified: true },
-            scopes: ["openid", "profile", "email"],
-            query: walterQuery(),
-          },
-          gateway(walterContext()),
-          authorization,
+          request,
+          gateway(canonicalContext("titus")),
+          membership,
+        ),
+      ).rejects.toThrow("Hermes dashboard authorization denied");
+      await expect(
+        authorizeHermesOidcOwner(
+          request,
+          gateway(canonicalContext("titus")),
+          membership,
         ),
       ).resolves.toBe("instance-1");
-      expect(authorization.gateway.recordComparison).toHaveBeenCalledWith(
-        expect.objectContaining({
-          authority: "legacy_owner",
-          comparison: "mismatch",
-          legacyDecision: "allow",
-          canonicalDecision: "deny",
-        }),
-      );
     });
 
-    it("does not let a canonical grant override a legacy denial in compare mode", async () => {
-      const authorization = walterAuthorization("compare", activeMembership);
-
-      await expect(
-        authorizeHermesOidcOwner(
-          {
-            user: { id: "active-member", emailVerified: true },
-            scopes: ["openid", "profile", "email"],
-            query: walterQuery(),
-          },
-          gateway(walterContext()),
-          authorization,
-        ),
-      ).rejects.toThrow("denied");
-    });
-
-    it("performs zero canonical work after rollback to legacy mode", async () => {
-      const authorization = walterAuthorization("legacy", {
-        authorized: false,
-        reason: "not_authorized",
-      });
+    it("fails closed on partial canonical linkage without consulting membership", async () => {
+      const membership = membershipGateway(activeMembership("titus"));
 
       await expect(
         authorizeHermesOidcOwner(
           {
             user: { id: "owner-1", emailVerified: true },
             scopes: ["openid", "profile", "email"],
-            query: walterQuery(),
+            query: canonicalQuery("titus"),
           },
-          gateway(walterContext()),
-          authorization,
+          gateway(canonicalContext("titus")),
+          membership,
         ),
       ).resolves.toBe("instance-1");
-      expect(authorization.gateway.authorize).not.toHaveBeenCalled();
-      expect(authorization.gateway.recordComparison).not.toHaveBeenCalled();
-    });
-
-    it("requires the exact canonical confirmation before membership lookup", async () => {
-      const authorization = walterAuthorization(
-        "canonical",
-        activeMembership,
-      );
-      authorization.canonicalConfirmation = undefined;
 
       await expect(
         authorizeHermesOidcOwner(
           {
             user: { id: "owner-1", emailVerified: true },
             scopes: ["openid", "profile", "email"],
-            query: walterQuery(),
+            query: canonicalQuery("titus"),
           },
-          gateway(walterContext()),
-          authorization,
+          gateway({
+            ...canonicalContext("titus"),
+            runtimeIdentityId: null,
+          }),
+          membership,
         ),
-      ).rejects.toThrow("denied");
-      expect(authorization.gateway.authorize).not.toHaveBeenCalled();
+      ).rejects.toThrow("Hermes dashboard authorization denied");
+      expect(membership.authorize).toHaveBeenCalledTimes(1);
     });
 
-    it("leaves non-Walter OIDC clients on legacy owner authorization", async () => {
-      const authorization = walterAuthorization(
-        "canonical",
-        activeMembership,
-      );
+    it("keeps an explicitly unlinked legacy dashboard on exact-owner authority", async () => {
+      const membership = membershipGateway(activeMembership("titus"));
 
       await expect(
         authorizeHermesOidcOwner(
@@ -360,10 +343,44 @@ describe("Hermes OIDC owner authorization", () => {
             query,
           },
           gateway(context()),
-          authorization,
+          membership,
         ),
       ).resolves.toBe("instance-1");
-      expect(authorization.gateway.authorize).not.toHaveBeenCalled();
+      expect(membership.authorize).not.toHaveBeenCalled();
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "other-user", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query,
+          },
+          gateway(context()),
+          membership,
+        ),
+      ).rejects.toThrow("Hermes dashboard authorization denied");
+    });
+
+    it("returns a fixed value-free failure when membership storage is unavailable", async () => {
+      const membership = membershipGateway({
+        authorized: false,
+        reason: "authorization_unavailable",
+      });
+      membership.authorize.mockRejectedValue(
+        new Error("owner@example.com cookie-value postgres://secret"),
+      );
+
+      await expect(
+        authorizeHermesOidcOwner(
+          {
+            user: { id: "owner-1", emailVerified: true },
+            scopes: ["openid", "profile", "email"],
+            query: canonicalQuery("titus"),
+          },
+          gateway(canonicalContext("titus")),
+          membership,
+        ),
+      ).rejects.toThrow(/^Hermes dashboard authorization denied$/);
     });
   });
 });

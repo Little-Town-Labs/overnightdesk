@@ -45,6 +45,7 @@ describe("Hermes OIDC lifecycle transitions", () => {
       removeClient: jest.fn(),
       setClientDisabled: jest.fn().mockResolvedValue(true),
       setInstanceAuthStatus: jest.fn().mockResolvedValue(true),
+      setRuntimeScopedBinding: jest.fn().mockResolvedValue(true),
       recordAuditEvent: jest.fn().mockResolvedValue(undefined),
       ...overrides,
     };
@@ -71,6 +72,11 @@ describe("Hermes OIDC lifecycle transitions", () => {
       "public-client-id",
       "disabled"
     );
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "public-client-id",
+      "rollback",
+    );
     expect(lifecycle.recordAuditEvent).toHaveBeenCalledWith({
       category: "revoked",
       instanceId: "instance-1",
@@ -92,6 +98,11 @@ describe("Hermes OIDC lifecycle transitions", () => {
       "public-client-id",
       "pending"
     );
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "public-client-id",
+      "rollback",
+    );
     expect(lifecycle.recordAuditEvent).not.toHaveBeenCalled();
   });
 
@@ -108,6 +119,11 @@ describe("Hermes OIDC lifecycle transitions", () => {
       "instance-1",
       "public-client-id",
       "error"
+    );
+    expect(lifecycle.setRuntimeScopedBinding).toHaveBeenCalledWith(
+      "instance-1",
+      "public-client-id",
+      "rollback",
     );
     expect(lifecycle.recordAuditEvent).toHaveBeenCalledWith({
       category: "callback_failure",

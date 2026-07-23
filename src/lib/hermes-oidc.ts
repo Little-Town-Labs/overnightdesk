@@ -1,16 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { HERMES_DASHBOARD_OIDC_SCOPES } from "@/lib/hermes-oidc-config";
 import type { MembershipAuthorizationDecision } from "@/lib/use-case-membership-authorization";
-import {
-  compareWalterLegacyOwnerWithCanonicalMembership,
-  parseWalterMembershipAuthorizationMode,
-  requireWalterCanonicalAuthorityConfirmation,
-  type WalterAuthorizationShadowAuditEvent,
-} from "@/lib/walter-membership-compatibility";
 
 const HERMES_AUTH_PATH = "/api/auth";
 const HERMES_CALLBACK_PATH = "/auth/callback";
-const WALTER_LEGACY_TENANT_ID = "tenant-0";
 
 export interface HermesOidcClientInput {
   instanceId: string;
@@ -47,11 +40,13 @@ export interface HermesOidcInstanceRecord {
 export interface HermesOidcAuthorizationContext {
   instanceId: string;
   instanceUserId: string;
-  instanceTenantId: string;
   instanceSubdomain: string;
   instanceStatus: string;
   dashboardAuthStatus: string;
   linkedClientId: string | null;
+  useCaseId: string | null;
+  runtimeIdentityId: string | null;
+  oidcBindingValid: boolean;
   client: HermesOidcClientRecord;
 }
 
@@ -63,19 +58,12 @@ export interface HermesOidcTokenGateway {
   findByInstanceId(instanceId: string): Promise<HermesOidcAuthorizationContext | null>;
 }
 
-export interface HermesOidcWalterAuthorizationGateway {
+export interface HermesOidcMembershipGateway {
   authorize(input: {
     userId: string;
-    legacyTenantId: string;
+    useCaseId: string;
+    runtimeIdentityId: string;
   }): Promise<MembershipAuthorizationDecision>;
-  recordComparison(event: WalterAuthorizationShadowAuditEvent): Promise<unknown>;
-}
-
-export interface HermesOidcWalterAuthorizationConfig {
-  mode?: string;
-  comparisonConfirmation?: string;
-  canonicalConfirmation?: string;
-  gateway: HermesOidcWalterAuthorizationGateway;
 }
 
 export interface HermesOidcLifecycleGateway {
@@ -91,6 +79,11 @@ export interface HermesOidcLifecycleGateway {
     instanceId: string,
     clientId: string,
     status: "pending" | "active" | "disabled" | "error"
+  ): Promise<boolean>;
+  setRuntimeScopedBinding(
+    instanceId: string,
+    clientId: string,
+    state: "active" | "rollback",
   ): Promise<boolean>;
   recordAuditEvent?(event: {
     category: "callback_failure" | "revoked";
@@ -209,6 +202,7 @@ function isActiveOidcContext(
     context.instanceStatus === "running" &&
     context.dashboardAuthStatus === "active" &&
     context.linkedClientId === context.client.clientId &&
+    context.oidcBindingValid &&
     !context.client.disabled &&
     scopes.length > 0 &&
     scopes.includes("openid") &&
@@ -225,7 +219,7 @@ async function selectAuthorizationContext(
   by: "client" | "instance",
   value: string
 ): Promise<HermesOidcAuthorizationContext | null> {
-  const [{ db }, schema, { eq }] = await Promise.all([
+  const [{ db }, schema, { and, eq }] = await Promise.all([
     import("@/db"),
     import("@/db/schema"),
     import("drizzle-orm"),
@@ -234,11 +228,12 @@ async function selectAuthorizationContext(
     .select({
       instanceId: schema.instance.id,
       instanceUserId: schema.instance.userId,
-      instanceTenantId: schema.instance.tenantId,
       instanceSubdomain: schema.instance.subdomain,
       instanceStatus: schema.instance.status,
       dashboardAuthStatus: schema.instance.hermesDashboardAuthStatus,
       linkedClientId: schema.instance.hermesOidcClientId,
+      useCaseId: schema.instance.useCaseId,
+      runtimeIdentityId: schema.instance.runtimeIdentityId,
       client: {
         clientId: schema.oauthClient.clientId,
         clientSecret: schema.oauthClient.clientSecret,
@@ -265,11 +260,31 @@ async function selectAuthorizationContext(
         ? eq(schema.oauthClient.clientId, value)
         : eq(schema.instance.id, value)
     )
-    .limit(1);
+    .limit(2);
 
+  if (rows.length !== 1 || !rows[0].instanceSubdomain) return null;
   const row = rows[0];
-  if (!row?.instanceSubdomain) return null;
-  return row as HermesOidcAuthorizationContext;
+  const hasUseCase = row.useCaseId !== null;
+  const hasRuntime = row.runtimeIdentityId !== null;
+  let oidcBindingValid = !hasUseCase && !hasRuntime;
+  if (hasUseCase && hasRuntime) {
+    const bindings = await db
+      .select({ id: schema.resourceBinding.id })
+      .from(schema.resourceBinding)
+      .where(
+        and(
+          eq(schema.resourceBinding.useCaseId, row.useCaseId!),
+          eq(schema.resourceBinding.runtimeIdentityId, row.runtimeIdentityId!),
+          eq(schema.resourceBinding.provider, "better-auth"),
+          eq(schema.resourceBinding.kind, "oidc_client"),
+          eq(schema.resourceBinding.value, row.client.clientId),
+          eq(schema.resourceBinding.state, "active"),
+        ),
+      )
+      .limit(2);
+    oidcBindingValid = bindings.length === 1;
+  }
+  return { ...row, oidcBindingValid } as HermesOidcAuthorizationContext;
 }
 
 const defaultAuthorizationGateway: HermesOidcAuthorizationGateway = {
@@ -281,105 +296,46 @@ const defaultTokenGateway: HermesOidcTokenGateway = {
     selectAuthorizationContext("instance", instanceId),
 };
 
-const defaultWalterAuthorizationGateway: HermesOidcWalterAuthorizationGateway = {
-  async authorize({ userId, legacyTenantId }) {
-    const [identityStoreModule, membershipStoreModule, authorizationModule] =
-      await Promise.all([
-        import("@/lib/canonical-identity-store"),
-        import("@/lib/use-case-membership-store"),
-        import("@/lib/use-case-membership-authorization"),
-      ]);
-    const canonical = await identityStoreModule.canonicalIdentityStore.resolve({
-      type: "resource_binding",
-      provider: "overnightdesk",
-      kind: "platform_instance",
-      value: legacyTenantId,
-    });
-    if (
-      legacyTenantId !== WALTER_LEGACY_TENANT_ID ||
-      canonical?.useCaseNumber !== 0 ||
-      !canonical.runtimeId
-    ) {
-      return { authorized: false, reason: "authorization_unavailable" };
-    }
+const defaultMembershipGateway: HermesOidcMembershipGateway = {
+  async authorize({ userId, useCaseId, runtimeIdentityId }) {
+    const [membershipStoreModule, authorizationModule] = await Promise.all([
+      import("@/lib/use-case-membership-store"),
+      import("@/lib/use-case-membership-authorization"),
+    ]);
     return authorizationModule
       .createUseCaseMembershipAuthorizer({
         store: membershipStoreModule.useCaseMembershipStore,
-        assignment: {
-          useCaseId: canonical.useCaseId,
-          runtimeIdentityId: canonical.runtimeId,
-        },
+        assignment: { useCaseId, runtimeIdentityId },
         audit: authorizationModule.recordMembershipAuthorizationAuditEvent,
       })
       .authorize({ userId });
   },
-  async recordComparison(event) {
-    const [{ db }, { platformAuditLog }] = await Promise.all([
-      import("@/db"),
-      import("@/db/schema"),
-    ]);
-    await db.insert(platformAuditLog).values({
-      actor: "hermes-oidc",
-      action: `walter_membership_authorization_shadow.${event.comparison}`,
-      target: "tenet:0",
-      details: {
-        authority: event.authority,
-        comparison: event.comparison,
-        legacyDecision: event.legacyDecision,
-        canonicalDecision: event.canonicalDecision,
-      },
-    });
-  },
 };
-
-function defaultWalterAuthorizationConfig(): HermesOidcWalterAuthorizationConfig {
-  return {
-    mode: process.env.WALTER_MEMBERSHIP_AUTH_MODE,
-    comparisonConfirmation:
-      process.env.WALTER_MEMBERSHIP_COMPARISON_CONFIRM,
-    canonicalConfirmation: process.env.WALTER_MEMBERSHIP_CANONICAL_CONFIRM,
-    gateway: defaultWalterAuthorizationGateway,
-  };
-}
 
 async function isHermesOidcUserAuthorized(
   context: HermesOidcAuthorizationContext,
   userId: string,
-  config: HermesOidcWalterAuthorizationConfig,
+  membership: HermesOidcMembershipGateway,
 ): Promise<boolean> {
-  const legacyAuthorized = context.instanceUserId === userId;
-  if (context.instanceTenantId !== WALTER_LEGACY_TENANT_ID) {
-    return legacyAuthorized;
+  const hasUseCase = context.useCaseId !== null;
+  const hasRuntime = context.runtimeIdentityId !== null;
+  if (hasUseCase !== hasRuntime) return false;
+  if (context.useCaseId === null || context.runtimeIdentityId === null) {
+    return context.instanceUserId === userId;
   }
 
   try {
-    const mode = parseWalterMembershipAuthorizationMode(config.mode);
-    if (mode === "legacy") return legacyAuthorized;
-
-    const authorizer = {
-      authorize: ({ userId: stableUserId }: { userId: string }) =>
-        config.gateway.authorize({
-          userId: stableUserId,
-          legacyTenantId: context.instanceTenantId,
-        }),
-    };
-    if (mode === "compare") {
-      const result = await compareWalterLegacyOwnerWithCanonicalMembership({
-        mode,
-        confirmation: config.comparisonConfirmation,
-        legacyAuthorized,
-        userId,
-        authorizer,
-        audit: (event) => config.gateway.recordComparison(event),
-      });
-      return result.authorized;
-    }
-
-    requireWalterCanonicalAuthorityConfirmation(
-      mode,
-      config.canonicalConfirmation,
+    const decision = await membership.authorize({
+      userId,
+      useCaseId: context.useCaseId,
+      runtimeIdentityId: context.runtimeIdentityId,
+    });
+    return (
+      decision.authorized &&
+      decision.useCaseId === context.useCaseId &&
+      decision.runtimeIdentityId === context.runtimeIdentityId &&
+      (decision.scope === "use_case" || decision.scope === "runtime")
     );
-    return (await authorizer.authorize({ userId })).authorized;
   } catch {
     return false;
   }
@@ -396,8 +352,7 @@ export async function authorizeHermesOidcOwner(
     query: string;
   },
   gateway: HermesOidcAuthorizationGateway = defaultAuthorizationGateway,
-  walterAuthorization: HermesOidcWalterAuthorizationConfig =
-    defaultWalterAuthorizationConfig(),
+  membership: HermesOidcMembershipGateway = defaultMembershipGateway,
 ): Promise<string> {
   const query = new URLSearchParams(input.query);
   const clientId = query.get("client_id");
@@ -427,7 +382,7 @@ export async function authorizeHermesOidcOwner(
     !(await isHermesOidcUserAuthorized(
       context,
       input.user.id,
-      walterAuthorization,
+      membership,
     ))
   ) {
     denyAuthorization();
@@ -443,8 +398,7 @@ export async function authorizeHermesOidcToken(
     metadata?: Record<string, unknown>;
   },
   gateway: HermesOidcTokenGateway = defaultTokenGateway,
-  walterAuthorization: HermesOidcWalterAuthorizationConfig =
-    defaultWalterAuthorizationConfig(),
+  membership: HermesOidcMembershipGateway = defaultMembershipGateway,
 ): Promise<Record<string, never>> {
   const instanceId =
     input.metadata?.kind === "hermes-dashboard" &&
@@ -461,7 +415,7 @@ export async function authorizeHermesOidcToken(
     !(await isHermesOidcUserAuthorized(
       context,
       input.user.id,
-      walterAuthorization,
+      membership,
     ))
   ) {
     denyAuthorization();
@@ -615,6 +569,12 @@ const defaultLifecycleGateway: HermesOidcLifecycleGateway = {
       .returning({ id: schema.instance.id });
     return rows.length === 1;
   },
+  async setRuntimeScopedBinding(instanceId, clientId, state) {
+    const { setDashboardOidcBindingState } = await import(
+      "@/db/dashboard-oidc-binding-store"
+    );
+    return setDashboardOidcBindingState(instanceId, clientId, state);
+  },
   async recordAuditEvent(event) {
     const { recordHermesOidcAuditEvent } = await import(
       "@/lib/hermes-oidc-audit"
@@ -633,6 +593,15 @@ export async function ensureHermesOidcClient(
     if (!existing || !hasExactClientContract(existing, input)) {
       throw new Error("Hermes dashboard client is unavailable");
     }
+    if (
+      !(await gateway.setRuntimeScopedBinding(
+        input.instanceId,
+        existing.clientId,
+        existing.disabled ? "rollback" : "active",
+      ))
+    ) {
+      throw new Error("Hermes dashboard client is unavailable");
+    }
     return { clientId: existing.clientId, created: false };
   }
 
@@ -647,6 +616,15 @@ export async function ensureHermesOidcClient(
   }
 
   if (await gateway.linkPending(input.instanceId, created.clientId)) {
+    if (
+      !(await gateway.setRuntimeScopedBinding(
+        input.instanceId,
+        created.clientId,
+        "rollback",
+      ))
+    ) {
+      throw new Error("Hermes dashboard client is unavailable");
+    }
     return { clientId: created.clientId, created: true };
   }
 
@@ -657,6 +635,15 @@ export async function ensureHermesOidcClient(
   }
   const winningClient = await gateway.findClient(winner.hermesOidcClientId);
   if (!winningClient || !hasExactClientContract(winningClient, input)) {
+    throw new Error("Hermes dashboard client is unavailable");
+  }
+  if (
+    !(await gateway.setRuntimeScopedBinding(
+      input.instanceId,
+      winningClient.clientId,
+      winningClient.disabled ? "rollback" : "active",
+    ))
+  ) {
     throw new Error("Hermes dashboard client is unavailable");
   }
   return { clientId: winningClient.clientId, created: false };
@@ -684,6 +671,22 @@ export async function activateHermesOidcClient(
     await gateway.setClientDisabled(client.clientId, true);
     throw new Error("Hermes dashboard client activation failed");
   }
+  if (
+    !(await gateway.setRuntimeScopedBinding(
+      input.instanceId,
+      client.clientId,
+      "active",
+    ))
+  ) {
+    await gateway.setClientDisabled(client.clientId, true);
+    await gateway.setInstanceAuthStatus(input.instanceId, client.clientId, "error");
+    await gateway.setRuntimeScopedBinding(
+      input.instanceId,
+      client.clientId,
+      "rollback",
+    );
+    throw new Error("Hermes dashboard client activation failed");
+  }
 }
 
 async function transitionHermesOidcClientDisabled(
@@ -700,6 +703,15 @@ async function transitionHermesOidcClientDisabled(
     throw new Error("Hermes dashboard client transition failed");
   }
   if (!(await gateway.setClientDisabled(client.clientId, true))) {
+    throw new Error("Hermes dashboard client transition failed");
+  }
+  if (
+    !(await gateway.setRuntimeScopedBinding(
+      input.instanceId,
+      client.clientId,
+      "rollback",
+    ))
+  ) {
     throw new Error("Hermes dashboard client transition failed");
   }
   if (!(await gateway.setInstanceAuthStatus(input.instanceId, client.clientId, status))) {
