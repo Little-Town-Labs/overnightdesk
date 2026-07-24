@@ -854,7 +854,23 @@ route, runtime, or secret change.
   sanitizing or persisting them.
 - The shared validator plus both reconciliation stores and the existing
   membership qualification store passed 31 focused tests. No database
-  connection or production mutation occurred. T042e is complete.
+connection or production mutation occurred. T042e is complete.
+
+#### T042a current platform membership — 2026-07-24
+
+- RED extended the real Drizzle disposable-database qualification to the
+  membership-filtered selected-agent directory. An active-status membership
+  carrying `suspended_at` incorrectly returned both active runtimes, reproducing
+  the production card/direct-boundary mismatch before any implementation edit.
+- GREEN added the same null suspension and revocation predicates already used
+  by the canonical direct/OIDC membership store. The complete disposable
+  qualification then passed current broad/runtime-scoped membership,
+  timestamp suspension, timestamp revocation, expiry, six guarded
+  denial/restoration transitions, six count-only audits, and final active
+  restoration.
+- The harness created and force-dropped only its uniquely named disposable
+  database. No production membership, dashboard, runtime, email, route, or
+  user-data state changed. T042a is complete.
 
 After owner acceptance:
 

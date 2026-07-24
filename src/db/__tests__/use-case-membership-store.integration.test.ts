@@ -24,6 +24,7 @@ describeIntegration("Drizzle use-case membership store", () => {
       import("@/lib/use-case-membership-authorization"),
     ]);
     const {
+      personaAssignment,
       platformAuditLog,
       runtimeIdentity,
       useCase,
@@ -105,6 +106,24 @@ describeIntegration("Drizzle use-case membership store", () => {
           slug: `membership-runtime-${ids.inactiveRuntime}`,
           memoryBoundaryKind: "qualification",
           status: "suspended",
+        },
+      ]);
+      await db.insert(personaAssignment).values([
+        {
+          runtimeIdentityId: ids.activeRuntime,
+          personaKey: "membership-active",
+          displayName: "Active membership agent",
+          isDefault: true,
+          authorityProfile: "qualification",
+          status: "active",
+        },
+        {
+          runtimeIdentityId: ids.otherRuntime,
+          personaKey: "membership-other",
+          displayName: "Other membership agent",
+          isDefault: true,
+          authorityProfile: "qualification",
+          status: "active",
         },
       ]);
       await db.insert(useCaseMembership).values([
@@ -249,6 +268,26 @@ describeIntegration("Drizzle use-case membership store", () => {
         }),
       ).resolves.toBeNull();
 
+      const { createOpenWebuiWorkspaceDirectoryStore } = await import(
+        "@/db/open-webui-workspace-directory"
+      );
+      const directory = createOpenWebuiWorkspaceDirectoryStore(db);
+      await expect(directory.listAuthorizedAgents(ids.broadUser)).resolves.toHaveLength(
+        2,
+      );
+      await expect(directory.listAuthorizedAgents(ids.scopedUser)).resolves.toEqual([
+        expect.objectContaining({ runtimeIdentityId: ids.activeRuntime }),
+      ]);
+      await expect(
+        directory.listAuthorizedAgents(ids.suspendedTimestampUser),
+      ).resolves.toEqual([]);
+      await expect(
+        directory.listAuthorizedAgents(ids.revokedTimestampUser),
+      ).resolves.toEqual([]);
+      await expect(
+        directory.listAuthorizedAgents(ids.expiredUser),
+      ).resolves.toEqual([]);
+
       const authorizer = authorizationModule.createUseCaseMembershipAuthorizer({
         store,
         assignment: {
@@ -284,6 +323,9 @@ describeIntegration("Drizzle use-case membership store", () => {
       await db
         .delete(useCaseMembership)
         .where(inArray(useCaseMembership.userId, userIds));
+      await db
+        .delete(personaAssignment)
+        .where(inArray(personaAssignment.runtimeIdentityId, runtimeIds));
       await db
         .delete(runtimeIdentity)
         .where(inArray(runtimeIdentity.id, runtimeIds));
