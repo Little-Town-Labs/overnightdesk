@@ -114,6 +114,20 @@ def test_email_skill_keeps_guarded_tools_internal_to_natural_language_flow() -> 
     assert "Tool names, approval tokens, and fingerprints are internal controls" in skill
 
 
+def test_email_skill_never_reinterprets_ambiguous_send_as_success() -> None:
+    skill = EMAIL_SKILL.read_text()
+
+    assert (
+        "Never reinterpret `ambiguous_unverified` as a false alarm based on "
+        "prior deliveries, recipient confirmations, provider history, or memory."
+    ) in skill
+    assert 'Never say "should be delivered"' in skill
+    assert (
+        "provider accepted one message, exact content delivery is unverified, "
+        "do not retry, and operator reconciliation is required"
+    ) in skill
+
+
 def test_titus_default_model_contract_uses_approved_mimo_route() -> None:
     load_phase = LOAD_PHASE_ENV.read_text()
     deploy = DEPLOY_SCRIPT.read_text()

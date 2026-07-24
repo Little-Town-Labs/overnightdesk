@@ -150,15 +150,15 @@ all scoped unrelated identities and volumes remain.
 - [x] T047c [US4] Make owner-authorized business objectives authoritative over recalled platform preferences in Titus identity and email-skill contracts
 - [x] T047d [US4] Review, merge, deploy, and qualify the refusal-path remediation before preparing a fresh T047 approval
 - [x] T047e [US4] Add observed-RED coverage and skill instructions for ordinary-language email requests, contextual composition, readable approval, and internal-only guarded tool controls
-- [ ] T047f [US4] Review, merge, deploy, and owner-qualify the natural-language email workflow before Feature 025 closeout
+- [x] T047f [US4] Review, merge, deploy, and owner-qualify the natural-language email workflow before Feature 025 closeout
 
 ---
 
 ## Phase 7: Standards and closeout
 
-- [ ] T053 Update `overnightdesk-platform-standard` WHY/HOW/WHAT contracts for the accepted email authority boundary
-- [ ] T054 Refresh the exact merged standard on Aegis using `/app/standard/{WHY,HOW,WHAT}` and `KNOWLEDGE_DIR=/app/standard/WHAT`
-- [ ] T055 Restart only `overnightdesk-ops` if mounted knowledge changed and prove its health and hashes
+- [x] T053 Update `overnightdesk-platform-standard` WHY/HOW/WHAT contracts for the accepted email authority boundary
+- [x] T054 Refresh the exact merged standard on Aegis using `/app/standard/{WHY,HOW,WHAT}` and `KNOWLEDGE_DIR=/app/standard/WHAT`
+- [x] T055 Restart only `overnightdesk-ops` if mounted knowledge changed and prove its health and hashes
 - [ ] T056 Publish Feature 025 evidence, task status, and roadmap closeout in `specs/025-titus-guarded-email/` and `.specify/roadmap.md`
 - [ ] T057 Commit, push, open, monitor, merge, and deploy the evidence/standard PRs
 - [ ] T058 Confirm production is either guarded-send active or explicitly read-only, then decide whether Feature 024 T037 resumes
@@ -175,19 +175,30 @@ all scoped unrelated identities and volumes remain.
 - [x] T061 Replace only the Titus default inference route with
   `xiaomi/mimo-v2.5-pro` while retaining medium reasoning and
   `x-ai/grok-build-0.1` delegation
-- [ ] T062 Run complete Titus qualification, shell syntax, source review, and
+- [x] T062 Run complete Titus qualification, shell syntax, source review, and
   diff checks; commit, push, monitor, and merge the model PR
-- [ ] T063 Stage exact merged source, update only the protected
+- [x] T063 Stage exact merged source, update only the protected
   `HERMES_DEFAULT_MODEL` Phase value through the value-update path without
   `--type`, and independently verify the non-secret selector
-- [ ] T064 Restart only Titus and prove effective MiMo routing, guarded email,
+- [x] T064 Restart only Titus and prove effective MiMo routing, guarded email,
   dashboard, chat, memory, intake, volume, and unrelated-service preservation;
   append the result to `deploys.log`
 - [x] T065 Add observed-RED coverage and correct Titus documentation to state
   that MiMo is text-only and vision analysis is unavailable pending a
   separately approved compatible route
-- [ ] T066 Review, merge, and synchronize the vision-capability truth
+- [x] T066 Review, merge, and synchronize the vision-capability truth
   correction before Feature 025 closeout
+
+---
+
+## Phase 9: Discovered AgentMail footer reconciliation
+
+- [x] T067 [US3] Reconcile both live ambiguous records without retry or content logging and prove the exact footer-stripped provider fields reproduce each immutable pre-send draft digest
+- [x] T068 [US3] Add observed-RED tests for the exact AgentMail plain-text footer and rejection of altered or additional suffixes
+- [x] T069 [US3] Allowlist only the exact deterministic footer and prohibit Titus from promoting ambiguity through prior delivery history or memory
+- [x] T070 [US3] Update the specification, plan, research, data model, contract, skill qualification, and lifecycle tasks for the discovered provider transformation
+- [ ] T071 [US4] Run full qualification and review, publish and merge the fix, then deploy exact merged source with a Titus-only restart
+- [ ] T072 [US4] Prove the production verifier, protected tool surface, model route, unrelated-service preservation, and append the reconciliation and deployment evidence to `deploys.log`
 
 ---
 
@@ -203,8 +214,11 @@ all scoped unrelated identities and volumes remain.
 - Production T042-T052 is sequential at every external mutation/verification
   boundary.
 - Standards/closeout T053-T058 depends on the accepted final runtime state.
-- The model route T059-T064 is sequential. T062 must merge before the protected
+- The model route T059-T066 is sequential. T062 must merge before the protected
   Phase value changes, and T063 must verify before the Titus-only restart.
+- Footer reconciliation T067-T072 follows the two observed production
+  ambiguities. T071 must merge before deployment, and T072 must not send or
+  retry another message merely to qualify the verifier.
 
 ### Parallel Opportunities
 

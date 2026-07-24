@@ -149,4 +149,6 @@ Only HTTP 200, explicit `allowed: true`, and byte-equal returned `content` pass.
 `GET https://api.agentmail.to/v0/inboxes/{inbox_id}/messages/{message_id}`
 
 The exact comparison in [data-model.md](../data-model.md) is mandatory before
-verified success.
+verified success. For supplied plain text, the only allowed provider
+transformation is appending the exact `\n\n--\nSent via AgentMail` footer.
+No other suffix, normalization, or derived-field substitution is accepted.

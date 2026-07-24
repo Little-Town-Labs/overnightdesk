@@ -105,7 +105,9 @@ Transient authoritative verification record.
 | labels | Contains `sent` |
 | to | Normalized set equals approved set |
 | subject | Equals approved subject |
-| text | Equals approved normalized text when supplied |
+| text | Equals approved normalized text when supplied, optionally followed only by AgentMail's exact deterministic `\n\n--\nSent via AgentMail` footer |
 | html | Equals approved normalized HTML when supplied |
 
 The provider record is never persisted or logged as a whole.
+Any other plain-text suffix, prefix, normalization, addition, or removal is a
+mismatch and remains `ambiguous_unverified`.

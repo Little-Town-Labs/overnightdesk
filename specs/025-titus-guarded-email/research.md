@@ -134,6 +134,33 @@ the exact fields needed for verification.
 - Read the thread instead of the exact message: rejected because another
   message in the thread could mask a mismatch.
 
+## Decision: Allowlist AgentMail's exact deterministic plain-text footer
+
+**Rationale**: Two owner-approved production sends returned
+`provider_text_mismatch` even though AgentMail marked each exact message as
+sent. Content-free reconciliation removed only the observed
+`\n\n--\nSent via AgentMail` suffix and then reproduced each immutable
+pre-send draft digest exactly. The footer is therefore a deterministic
+provider transformation, not lost or substituted approved content.
+
+Plain-text verification accepts only either the submitted text exactly or that
+text followed by this exact footer. Altered capitalization, separators,
+trailing newlines, additional content, other normalization, and every other
+field mismatch remain ambiguous. Titus must also preserve any
+`ambiguous_unverified` result as unverified; prior recipient confirmation or
+memory cannot promote a later outcome to success.
+
+**Alternatives considered**:
+
+- Disable all readback equality: rejected because it recreates the original
+  fail-open defect.
+- Strip any signature-like suffix: rejected because it could hide unapproved
+  additions.
+- Trust `extracted_text`: rejected because the live provider record returns the
+  same augmented value and it remains a derived field.
+- Treat every future mismatch as a false alarm: rejected because only this
+  exact deterministic transformation has evidence and a narrow contract.
+
 ## Authoritative sources
 
 - AgentMail send contract:

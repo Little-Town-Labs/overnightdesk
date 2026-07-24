@@ -219,6 +219,13 @@ services are unchanged.
   conversation and memory context to compose a complete draft, ask only for
   genuinely missing or materially ambiguous information, and keep MCP tool
   names, approval tokens, fingerprints, and technical next actions internal.
+- **FR-028**: Plain-text provider readback MAY verify only when it equals the
+  approved text exactly or equals that text followed by the exact deterministic
+  `\n\n--\nSent via AgentMail` provider footer. Every other text addition,
+  removal, or transformation MUST remain ambiguous.
+- **FR-029**: Titus MUST NOT reinterpret an ambiguous send as successful based
+  on prior deliveries, recipient confirmations, provider history, or memory.
+  An ambiguous result MUST remain unverified until operator reconciliation.
 
 ### Key Entities
 
