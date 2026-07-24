@@ -57,6 +57,31 @@ metadata.
   presents the full draft in the owner conversation and local storage would
   unnecessarily retain message content.
 
+## Decision: Owner objectives outrank persona preferences
+
+**Rationale**: Titus supports both Timeless Technology Solutions Microsoft
+Teams operations and the encrypted Matrix channel. Recalled preferences for a
+protocol or platform are presentation-level advice, not capability or
+authorization boundaries. They may inform a recommendation but cannot veto an
+otherwise authorized owner objective. Concrete safety rules apply to the
+unsafe field or transport method: Titus must redirect credentials to an
+approved secret handoff while continuing the permitted integration or email.
+
+The guarded boundary also canonicalizes a blank unused `text` or `html`
+representation to absent. This preserves the exact approved draft when a model
+serializes an optional `null` as an empty string, while retaining rejection
+when both representations are absent or blank.
+
+**Alternatives considered**:
+
+- Let recalled persona preferences block corporate-platform work: rejected
+  because persona is not an authority source and Teams is an explicit Titus
+  responsibility.
+- Reject a valid text body when unused HTML is empty: rejected because the
+  empty representation carries no content and canonicalizes safely to absent.
+- Remove outbound security screening to avoid refusals: rejected because
+  secret and content screening remains a concrete transport-safety boundary.
+
 ## Decision: Use SecurityTeam's existing outbound scan synchronously
 
 **Rationale**: Production SecurityTeam is already reachable from Titus on the

@@ -123,9 +123,11 @@ authority.
 
 The preparation boundary accepts one exact Titus inbox, one to ten unique bare
 email addresses, subject, optional text, and optional HTML. It rejects all
-other envelope features. The canonical draft preserves subject/body strings
-exactly and lowercases normalized recipient addresses while preserving their
-reviewed order.
+other envelope features. A blank optional body representation canonicalizes to
+absent when the other representation is nonblank; both blank or absent still
+fail. The canonical draft preserves nonblank subject/body strings exactly and
+lowercases normalized recipient addresses while preserving their reviewed
+order.
 
 The tool returns:
 

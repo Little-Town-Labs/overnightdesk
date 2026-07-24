@@ -28,14 +28,14 @@ Read-only, non-destructive, open-world false.
   "inbox_id": "string, exact protected Titus inbox",
   "to": ["1-10 bare email addresses"],
   "subject": "nonblank string, max 998",
-  "text": "optional nonblank string, max 200000",
-  "html": "optional nonblank string, max 500000"
+  "text": "optional string, blank canonicalizes to null, max 200000",
+  "html": "optional string, blank canonicalizes to null, max 500000"
 }
 ```
 
-Unknown fields are rejected. At least one of `text` or `html` is required.
-Attachments, CC, BCC, labels, reply-to values, and custom headers are absent by
-schema.
+Unknown fields are rejected. At least one of `text` or `html` must remain
+nonblank after canonicalization. Attachments, CC, BCC, labels, reply-to values,
+and custom headers are absent by schema.
 
 ### Success
 

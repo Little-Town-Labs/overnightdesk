@@ -8,6 +8,8 @@ import yaml
 
 SCRIPT = Path(__file__).parents[3] / "runtime" / "apply-email-mode.py"
 CONFIG = Path(__file__).parents[3] / "config" / "config.yaml"
+SOUL = Path(__file__).parents[3] / "config" / "SOUL.md"
+EMAIL_SKILL = Path(__file__).parents[3] / "skills" / "agentmail-email" / "SKILL.md"
 SPEC = importlib.util.spec_from_file_location("apply_email_mode", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -81,3 +83,12 @@ def test_guarded_server_exposes_only_the_two_email_tools() -> None:
         "resources": False,
         "prompts": False,
     }
+
+
+def test_owner_business_objective_outranks_persona_preference() -> None:
+    soul = SOUL.read_text()
+    skill = EMAIL_SKILL.read_text()
+
+    assert "preferences are advisory and never an authority boundary" in soul
+    assert "Do not refuse an owner-authorized email because of a platform" in skill
+    assert "Treat blank optional text or HTML as absent" in skill
