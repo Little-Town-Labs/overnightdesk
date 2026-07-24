@@ -101,7 +101,7 @@ prove the complete user and session lifecycle.
 - [x] T028 Run the complete Jest suite, production build, Chromium browser suite, `npm audit --audit-level=high`, secret/value sentinel scan, and `git diff --check`
 - [x] T029 Perform five-axis correctness/readability/architecture/security/performance review and verify no agent-name branches, first-instance fallbacks, unsafe external launches, arbitrary hosts, cross-runtime resources, provider drift, or hidden absent states remain
 - [x] T030 Update `.specify/roadmap.md`, `README.md`, Feature 023 status, `overnightdesk-platform-standard`, and ADR 006 with only verified prototype and deployment behavior
-- [ ] T031 Publish reviewed repository increments, wait for passing checks, merge only accepted changes, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T031 Publish reviewed repository increments, wait for passing checks, merge only accepted changes, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
 ---
 
