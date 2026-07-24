@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { instance, resourceBinding } from "@/db/schema";
+import { instance, platformAuditLog, resourceBinding } from "@/db/schema";
 
 type Database = typeof db;
 
@@ -39,6 +39,10 @@ export type DashboardOidcBindingPlan =
   | {
       status: "update";
       bindingId: string;
+      useCaseId: string;
+      runtimeIdentityId: string;
+      value: string;
+      expectedState: DashboardOidcBindingRecord["state"];
       state: DashboardOidcBindingState;
     }
   | { status: "verified" };
@@ -80,7 +84,15 @@ export function planDashboardOidcBinding(
     return { status: "blocked" };
   }
   if (binding.state === desiredState) return { status: "verified" };
-  return { status: "update", bindingId: binding.id, state: desiredState };
+  return {
+    status: "update",
+    bindingId: binding.id,
+    useCaseId: binding.useCaseId,
+    runtimeIdentityId: binding.runtimeIdentityId,
+    value: binding.value,
+    expectedState: binding.state,
+    state: desiredState,
+  };
 }
 
 async function inspectDashboardOidcBinding(
@@ -155,11 +167,161 @@ export async function setDashboardOidcBindingState(
       await database
         .update(resourceBinding)
         .set({ state: before.state, updatedAt: new Date() })
-        .where(eq(resourceBinding.id, before.bindingId));
+        .where(
+          and(
+            eq(resourceBinding.id, before.bindingId),
+            eq(resourceBinding.useCaseId, before.useCaseId),
+            eq(resourceBinding.runtimeIdentityId, before.runtimeIdentityId),
+            eq(resourceBinding.provider, "better-auth"),
+            eq(resourceBinding.kind, "oidc_client"),
+            eq(resourceBinding.value, before.value),
+            eq(resourceBinding.state, before.expectedState),
+          ),
+        );
     }
 
     const after = planDashboardOidcBinding(
       await inspectDashboardOidcBinding(instanceId, clientId, database),
+      clientId,
+      desiredState,
+    );
+    return after.status === "verified" || after.status === "legacy_noop";
+  } catch {
+    return false;
+  }
+}
+
+export interface DashboardOidcBindingAudit {
+  actor: string;
+  action: string;
+  target: string;
+  details: Record<string, unknown>;
+}
+
+export interface DashboardOidcBindingReconciliationGateway {
+  inspect(): Promise<DashboardOidcBindingSnapshot>;
+  apply(
+    plan: Extract<DashboardOidcBindingPlan, { status: "insert" | "update" }>,
+  ): Promise<void>;
+}
+
+function auditedDashboardOidcBindingStatement(
+  plan: Extract<DashboardOidcBindingPlan, { status: "insert" | "update" }>,
+  clientId: string,
+  audit: DashboardOidcBindingAudit,
+) {
+  const mutation =
+    plan.status === "insert"
+      ? sql`
+          INSERT INTO ${resourceBinding} (
+            id,
+            use_case_id,
+            runtime_identity_id,
+            provider,
+            kind,
+            value,
+            state
+          )
+          VALUES (
+            ${randomUUID()},
+            ${plan.useCaseId},
+            ${plan.runtimeIdentityId},
+            ${"better-auth"},
+            ${"oidc_client"},
+            ${clientId},
+            ${plan.state}
+          )
+          RETURNING id
+        `
+      : sql`
+          UPDATE ${resourceBinding}
+          SET
+            state = ${plan.state},
+            updated_at = NOW()
+          WHERE
+            ${resourceBinding.id} = ${plan.bindingId}
+            AND ${resourceBinding.useCaseId} = ${plan.useCaseId}
+            AND ${resourceBinding.runtimeIdentityId} = ${plan.runtimeIdentityId}
+            AND ${resourceBinding.provider} = ${"better-auth"}
+            AND ${resourceBinding.kind} = ${"oidc_client"}
+            AND ${resourceBinding.value} = ${plan.value}
+            AND ${resourceBinding.state} = ${plan.expectedState}
+          RETURNING id
+        `;
+
+  return sql`
+    WITH mutated AS (${mutation}),
+    audited AS (
+      INSERT INTO ${platformAuditLog} (
+        actor,
+        action,
+        target,
+        details
+      )
+      SELECT
+        ${audit.actor},
+        ${audit.action},
+        ${audit.target},
+        ${JSON.stringify(audit.details)}::jsonb
+      WHERE (SELECT COUNT(*) FROM mutated) = 1
+      RETURNING id
+    )
+    SELECT 1 / CASE
+      WHEN
+        (SELECT COUNT(*) FROM mutated) = 1
+        AND (SELECT COUNT(*) FROM audited) = 1
+      THEN 1
+      ELSE 0
+    END AS applied
+  `;
+}
+
+export async function reconcileDashboardOidcBindingWithAudit(
+  instanceId: string,
+  clientId: string,
+  desiredState: DashboardOidcBindingState,
+  audit: DashboardOidcBindingAudit,
+  database: Database = db,
+): Promise<boolean> {
+  return executeDashboardOidcBindingReconciliation(
+    clientId,
+    desiredState,
+    {
+      inspect: () =>
+        inspectDashboardOidcBinding(instanceId, clientId, database),
+      apply: (plan) =>
+        database
+          .execute(auditedDashboardOidcBindingStatement(plan, clientId, audit))
+          .then(() => undefined),
+    },
+  );
+}
+
+export async function executeDashboardOidcBindingReconciliation(
+  clientId: string,
+  desiredState: DashboardOidcBindingState,
+  gateway: DashboardOidcBindingReconciliationGateway,
+): Promise<boolean> {
+  try {
+    const before = planDashboardOidcBinding(
+      await gateway.inspect(),
+      clientId,
+      desiredState,
+    );
+    if (before.status === "blocked") return false;
+    if (before.status === "legacy_noop" || before.status === "verified") {
+      return true;
+    }
+
+    try {
+      await gateway.apply(before);
+    } catch {
+      // A concurrent exact writer may have converged first. Verify it without
+      // claiming this actor performed the mutation.
+    }
+
+    const after = planDashboardOidcBinding(
+      await gateway.inspect(),
       clientId,
       desiredState,
     );

@@ -7,7 +7,10 @@ import {
   type DashboardIdentityBindingDescriptor,
   type DashboardIdentityBindingSnapshot,
 } from "@/lib/dashboard-identity-binding-reconciliation";
-import { TITUS_IDENTITY_TEMPLATE } from "@/lib/use-case-identity-templates";
+import {
+  TITUS_IDENTITY_TEMPLATE,
+  WALTER_IDENTITY_TEMPLATE,
+} from "@/lib/use-case-identity-templates";
 
 const useCaseId = "11111111-1111-4111-8111-111111111111";
 const runtimeIdentityId = "22222222-2222-4222-8222-222222222222";
@@ -55,6 +58,25 @@ describe("dashboard identity binding reconciliation", () => {
     ).toEqual(descriptors);
   });
 
+  it("derives Walter's native dashboard bindings as active canonical resources", () => {
+    expect(
+      dashboardIdentityBindingDescriptors(WALTER_IDENTITY_TEMPLATE),
+    ).toEqual([
+      {
+        provider: "nginx",
+        kind: "hostname",
+        value: "aegis-prod.overnightdesk.com",
+        state: "active",
+      },
+      {
+        provider: "overnightdesk",
+        kind: "platform_instance",
+        value: "tenant-0",
+        state: "active",
+      },
+    ]);
+  });
+
   it("plans both missing exact runtime-scoped bindings", () => {
     expect(
       planDashboardIdentityBindingReconciliation(snapshot(), descriptors),
@@ -77,6 +99,35 @@ describe("dashboard identity binding reconciliation", () => {
       useCaseId,
       runtimeIdentityId,
       bindings: [descriptors[1]],
+    });
+  });
+
+  it("plans an exact same-scope compatibility binding promotion", () => {
+    expect(
+      planDashboardIdentityBindingReconciliation(
+        snapshot({
+          bindings: [
+            { ...existingBinding(0), state: "compatibility" },
+            existingBinding(1),
+          ],
+        }),
+        descriptors,
+      ),
+    ).toEqual({
+      status: "ready",
+      useCaseId,
+      runtimeIdentityId,
+      bindings: [],
+      bindingStateUpdates: [
+        {
+          bindingId: "binding-0",
+          provider: descriptors[0].provider,
+          kind: descriptors[0].kind,
+          value: descriptors[0].value,
+          expectedState: "compatibility",
+          state: "active",
+        },
+      ],
     });
   });
 
@@ -116,7 +167,7 @@ describe("dashboard identity binding reconciliation", () => {
       }),
     ],
     [
-      "wrong state",
+      "rollback state",
       snapshot({
         bindings: [{ ...existingBinding(1), state: "rollback" }],
       }),
@@ -162,16 +213,38 @@ describe("dashboard identity binding reconciliation", () => {
 
   it("requires the exact explicit apply confirmation", () => {
     expect(() =>
-      requireDashboardIdentityBindingConfirmation(undefined),
+      requireDashboardIdentityBindingConfirmation("titus", undefined),
     ).toThrow("Dashboard identity binding confirmation is required");
-    expect(() => requireDashboardIdentityBindingConfirmation("yes")).toThrow(
-      "Dashboard identity binding confirmation is required",
-    );
     expect(() =>
       requireDashboardIdentityBindingConfirmation(
+        "titus",
+        "yes",
+      ),
+    ).toThrow("Dashboard identity binding confirmation is required");
+    expect(() =>
+      requireDashboardIdentityBindingConfirmation(
+        "titus",
         "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
       ),
     ).not.toThrow();
+    expect(() =>
+      requireDashboardIdentityBindingConfirmation(
+        "walter",
+        "APPLY_WALTER_DASHBOARD_IDENTITY_BINDINGS",
+      ),
+    ).not.toThrow();
+    expect(() =>
+      requireDashboardIdentityBindingConfirmation(
+        "walter",
+        "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+      ),
+    ).toThrow("Dashboard identity binding confirmation is required");
+    expect(() =>
+      requireDashboardIdentityBindingConfirmation(
+        "titus",
+        "APPLY_WALTER_DASHBOARD_IDENTITY_BINDINGS",
+      ),
+    ).toThrow("Dashboard identity binding confirmation is required");
   });
 
   it("summarizes plans without canonical IDs or binding values", () => {
@@ -191,5 +264,24 @@ describe("dashboard identity binding reconciliation", () => {
     ]) {
       expect(serialized).not.toContain(value);
     }
+
+    expect(
+      summarizeDashboardIdentityBindingReconciliation({
+        status: "ready",
+        useCaseId,
+        runtimeIdentityId,
+        bindings: [],
+        bindingStateUpdates: [
+          {
+            bindingId: "binding-0",
+            provider: descriptors[0].provider,
+            kind: descriptors[0].kind,
+            value: descriptors[0].value,
+            expectedState: "compatibility",
+            state: "active",
+          },
+        ],
+      }),
+    ).toEqual({ status: "ready", bindingsToCreate: 0, bindingsToActivate: 1 });
   });
 });

@@ -635,6 +635,27 @@ describeIntegration("Titus identity backfill store", () => {
         dashboardDescriptors,
         db,
       );
+    const unexpectedBindingId = crypto.randomUUID();
+    await db.insert(resourceBinding).values({
+      id: unexpectedBindingId,
+      useCaseId: ids.useCaseId,
+      runtimeIdentityId: ids.runtimeIdentityId,
+      provider: "overnightdesk",
+      kind: "platform_instance",
+      value: "unexpected-same-scope-dashboard",
+      state: "active",
+    });
+    await expect(
+      dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
+        "plan",
+        dashboardDescriptors,
+        {},
+        dashboardGateway,
+      ),
+    ).resolves.toEqual({ status: "blocked" });
+    await db
+      .delete(resourceBinding)
+      .where(eq(resourceBinding.id, unexpectedBindingId));
     await expect(
       dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
         "plan",
@@ -650,6 +671,7 @@ describeIntegration("Titus identity backfill store", () => {
         {
           actor: "operator:titus-dashboard-binding-qualification",
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: true,
         },
         dashboardGateway,
@@ -672,13 +694,126 @@ describeIntegration("Titus identity backfill store", () => {
       ),
     ).resolves.toEqual({ status: "verified_noop", bindingsVerified: 2 });
 
+    const platformDescriptor = dashboardDescriptors.find(
+      (descriptor) => descriptor.kind === "platform_instance",
+    )!;
+    const hostnameDescriptor = dashboardDescriptors.find(
+      (descriptor) => descriptor.kind === "hostname",
+    )!;
+    await db
+      .delete(resourceBinding)
+      .where(
+        and(
+          eq(resourceBinding.provider, hostnameDescriptor.provider),
+          eq(resourceBinding.kind, hostnameDescriptor.kind),
+          eq(resourceBinding.value, hostnameDescriptor.value),
+        ),
+      );
+    await db
+      .update(resourceBinding)
+      .set({ state: "compatibility" })
+      .where(
+        and(
+          eq(resourceBinding.provider, platformDescriptor.provider),
+          eq(resourceBinding.kind, platformDescriptor.kind),
+          eq(resourceBinding.value, platformDescriptor.value),
+        ),
+      );
+    const mixedPlan =
+      dashboardBindingPlanner.planDashboardIdentityBindingReconciliation(
+        await dashboardGateway.inspect(),
+        dashboardDescriptors,
+      );
+    expect(mixedPlan.status).toBe("ready");
+    if (mixedPlan.status !== "ready") {
+      throw new Error("expected a mixed dashboard binding plan");
+    }
+    await db
+      .update(resourceBinding)
+      .set({ state: "rollback" })
+      .where(
+        and(
+          eq(resourceBinding.provider, platformDescriptor.provider),
+          eq(resourceBinding.kind, platformDescriptor.kind),
+          eq(resourceBinding.value, platformDescriptor.value),
+        ),
+      );
+    await expect(
+      dashboardGateway.apply(
+        mixedPlan,
+        "operator:titus-dashboard-binding-qualification",
+      ),
+    ).rejects.toThrow();
+    await expect(
+      db
+        .select({ state: resourceBinding.state })
+        .from(resourceBinding)
+        .where(
+          and(
+            eq(resourceBinding.provider, platformDescriptor.provider),
+            eq(resourceBinding.kind, platformDescriptor.kind),
+            eq(resourceBinding.value, platformDescriptor.value),
+          ),
+        ),
+    ).resolves.toEqual([{ state: "rollback" }]);
+    await expect(
+      db
+        .select()
+        .from(resourceBinding)
+        .where(
+          and(
+            eq(resourceBinding.provider, hostnameDescriptor.provider),
+            eq(resourceBinding.kind, hostnameDescriptor.kind),
+            eq(resourceBinding.value, hostnameDescriptor.value),
+          ),
+        ),
+    ).resolves.toHaveLength(0);
+    await db
+      .update(resourceBinding)
+      .set({ state: "compatibility" })
+      .where(
+        and(
+          eq(resourceBinding.provider, platformDescriptor.provider),
+          eq(resourceBinding.kind, platformDescriptor.kind),
+          eq(resourceBinding.value, platformDescriptor.value),
+        ),
+      );
+    await expect(
+      dashboardBindingStore.executeDashboardIdentityBindingReconciliation(
+        "apply",
+        dashboardDescriptors,
+        {
+          actor: "operator:titus-dashboard-binding-qualification",
+          confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
+          privateRuntimeQualified: true,
+        },
+        dashboardGateway,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", bindingsVerified: 2 });
+
     const bindingAudits = await db
       .select({ details: platformAuditLog.details })
       .from(platformAuditLog)
       .where(
         eq(platformAuditLog.action, "canonical_dashboard_bindings_reconciled"),
       );
-    expect(bindingAudits).toEqual([{ details: { bindingCount: 2 } }]);
+    expect(bindingAudits).toEqual([
+      {
+        details: {
+          bindingCount: 2,
+          bindingsCreated: 2,
+          bindingsActivated: 0,
+        },
+      },
+      {
+        details: {
+          bindingCount: 2,
+          bindingsCreated: 1,
+          bindingsActivated: 1,
+        },
+      },
+    ]);
 
     await expect(
       db

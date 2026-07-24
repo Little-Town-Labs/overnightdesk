@@ -142,7 +142,7 @@ describe("planWalterFoundation", () => {
           provider: "overnightdesk",
           kind: "platform_instance",
           value: "tenant-0",
-          state: "compatibility",
+          state: "active",
         },
         {
           provider: "phase",

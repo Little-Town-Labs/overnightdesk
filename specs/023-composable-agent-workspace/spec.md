@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-22
 
-**Status**: In Progress — frontend prototype qualified; Walter deployment not authorized
+**Status**: In Progress — production active; final owner acceptance blocked on guarded Walter native-dashboard binding reconciliation
 
 **Input**: User description: "Define and prototype a capability-driven selected-agent workspace that lets an authorized owner keep chat and the native Hermes dashboard available at the same time without agent-specific interface code, then qualify Walter Open WebUI in isolation while retaining Codex OAuth as Walter's primary model-provider path."
 

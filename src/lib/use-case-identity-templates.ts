@@ -144,7 +144,7 @@ export const WALTER_IDENTITY_TEMPLATE = {
       provider: "overnightdesk",
       kind: "platform_instance" as const,
       value: "tenant-0",
-      state: "compatibility" as const,
+      state: "active" as const,
     },
     {
       provider: "phase",
