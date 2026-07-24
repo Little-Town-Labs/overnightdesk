@@ -964,6 +964,28 @@ T042 is complete. No production, database, membership, OIDC, route, runtime,
 restart, email, credential, or user-data state changed during remediation,
 qualification, or review.
 
+### T043-T044 documentation and platform-standard synchronization — 2026-07-24
+
+- The active Spec Kit pointer, plan pointer, lifecycle status, roadmap,
+  repository README, task evidence, and Drizzle terminology now match the
+  verified Feature 024 state.
+- Platform-standard PR 43 merged exact revision `2dc8b02`. README, ADR 006, the
+  Hermes update protocol, WHY/WHO projections, and Titus identity, Hermes, and
+  service inventories now define the shared capability path, current canonical
+  membership and exact runtime-selector authority, self-hosted public-client
+  OIDC, OIDC-first rollback, and the separate Titus owner-acceptance contract.
+- The clean production-mounted standard fast-forwarded from `26201b9` through
+  the bookkeeping-only prior merge to exact `2dc8b02`. Only
+  `overnightdesk-ops` restarted.
+- All 16 WHAT YAML files parsed; mounted `why.yaml`, `who.yaml`,
+  `identity.yaml`, `hermes.yaml`, and `services.yaml` checksums matched the
+  merged checkout. Both internal Ops listeners returned HTTP 200,
+  `restart_count` remained zero, and recent relevant errors were zero.
+
+T043 and T044 are complete. No tenant runtime, email, retry, provider, model,
+secret, route, authority, membership, certificate, volume, chat, memory, or
+user-data state changed.
+
 After owner acceptance and technical review:
 
 - update `spec.md`, `tasks.md`, roadmap, and this quickstart with value-free

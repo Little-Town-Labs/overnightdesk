@@ -57,8 +57,9 @@ the active Spec Kit feature artifacts and the production platform standard.
   the production build, 26 Chromium scenarios, the high-severity audit gate,
   shell/credential/diff checks, and disposable Neon lifecycle coverage. The
   bounded Sol delta approved all five corrections with no new Critical issue.
-  T042 and T043 are complete; platform-standard synchronization and exact
-  revision publication remain T044-T045.
+  T042-T044 are complete, including exact platform-standard merge `2dc8b02`
+  synchronized to the production-mounted checkout with both Ops listeners
+  healthy. Exact application revision publication remains T045.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered
