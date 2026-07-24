@@ -91,7 +91,7 @@ prove the complete user and session lifecycle.
 - [x] T023 [US3] Complete controlled non-member, suspended-member, expired-member denial/restoration checks with zero cross-agent disclosure
 - [x] T024 [US3] Complete chat response, sidebar history, restart persistence, explicit logout, OAuth expiry/renewal, revocation/reauthentication, and final restoration checks
 - [x] T025 [US3] Verify Titus chat, Walter/Titus native dashboards, effective Walter Codex OAuth primary provider, public health, and rollback readiness after activation
-- [ ] T026 [US3] Complete authenticated owner acceptance of Walter chat/dashboard composition before production acceptance
+- [x] T026 [US3] Complete authenticated owner acceptance of Walter chat/dashboard composition before production acceptance
 
 ---
 
@@ -100,7 +100,7 @@ prove the complete user and session lifecycle.
 - [x] T027 Run Spec Kit cross-artifact analysis and remediate every critical/high finding before implementation completion
 - [x] T028 Run the complete Jest suite, production build, Chromium browser suite, `npm audit --audit-level=high`, secret/value sentinel scan, and `git diff --check`
 - [x] T029 Perform five-axis correctness/readability/architecture/security/performance review and verify no agent-name branches, first-instance fallbacks, unsafe external launches, arbitrary hosts, cross-runtime resources, provider drift, or hidden absent states remain
-- [ ] T030 Update `.specify/roadmap.md`, `README.md`, Feature 023 status, `overnightdesk-platform-standard`, and ADR 006 with only verified prototype and deployment behavior
+- [x] T030 Update `.specify/roadmap.md`, `README.md`, Feature 023 status, `overnightdesk-platform-standard`, and ADR 006 with only verified prototype and deployment behavior
 - [ ] T031 Publish reviewed repository increments, wait for passing checks, merge only accepted changes, verify Vercel/Aegis health, and append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
 ---
@@ -122,9 +122,9 @@ prove the complete user and session lifecycle.
 
 - [x] T040 Reproduce the owner-visible Walter Advanced Dashboard login loop and prove, with value-free production evidence, that the current session, owner membership, native/Chat scope, hostname, instance, and OIDC client remain valid
 - [x] T041 Add RED/GREEN coverage and implement one shared guarded reconciliation path that promotes only an exact same-scope `compatibility` dashboard binding, keeps rollback fail closed, and exposes Walter plan/apply/verify commands
-- [ ] T042 Run the complete qualification and Ringer quality gate, review and merge the repair PR, and verify its exact Vercel deployment
-- [ ] T043 Apply and separately verify only Walter's exact active platform-instance and runtime-scoped native OIDC bindings, then repeat authenticated owner acceptance
-- [ ] T044 Reconcile the terminal Feature 023 evidence, platform standard, roadmap, and publication after T026 passes
+- [x] T042 Run the complete qualification and Ringer quality gate, review and merge the repair PR, and verify its exact Vercel deployment
+- [x] T043 Apply and separately verify only Walter's exact active platform-instance and runtime-scoped native OIDC bindings, then repeat authenticated owner acceptance
+- [x] T044 Reconcile the terminal Feature 023 evidence, platform standard, and roadmap and prepare publication after T026 passes
 
 ## Dependencies and execution order
 
