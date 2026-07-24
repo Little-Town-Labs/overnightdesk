@@ -12,7 +12,10 @@ export async function GET(request: NextRequest) {
   if (!host || !isApprovedDashboardHost(host)) return unauthorized();
 
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await auth.api.getSession({
+      headers: request.headers,
+      query: { disableCookieCache: true },
+    });
     if (!session) return unauthorized();
     const decision = await dashboardAuthorizationStore.authorize({
       requestedHost: host,
