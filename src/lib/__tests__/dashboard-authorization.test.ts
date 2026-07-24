@@ -20,6 +20,7 @@ function candidate(
     oidcClientId: "public-client-1",
     useCaseId,
     runtimeIdentityId,
+    canonicalContextValid: true,
     ...overrides,
   };
 }
@@ -145,6 +146,7 @@ describe("native dashboard authorization", () => {
     ["stopped instance", { status: "stopped" }],
     ["pending dashboard auth", { dashboardAuthStatus: "pending" }],
     ["missing OIDC client", { oidcClientId: null }],
+    ["drifted canonical selectors", { canonicalContextValid: false }],
   ])("denies an inactive %s", async (_label, overrides) => {
     await expect(
       authorizeDashboardAccess(

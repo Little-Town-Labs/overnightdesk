@@ -891,6 +891,32 @@ route, runtime, or secret change.
 No production database, membership, dashboard, runtime, route, email, or
 user-data state changed. T042b is complete.
 
+#### T042c exact canonical dashboard context — 2026-07-24
+
+- RED established one shared context contract and deliberately mismatched the
+  active use case, active runtime, runtime/use-case relationship,
+  platform-instance selector, hostname selector, OIDC selector state, and
+  selector cardinality. The request-time verifier and both OIDC gates also
+  failed their new drift-denial expectations before the context was consumed.
+- GREEN added one bounded canonical dashboard context reader. It requires the
+  exact active use-case/runtime pair, one active
+  `overnightdesk/platform_instance` selector, one active `nginx/hostname`
+  selector, and the exact runtime-scoped `better-auth/oidc_client` selector.
+  Request-time authorization and OIDC authorization/token issuance require the
+  OIDC selector to be active. The fixed Titus lifecycle target additionally
+  requires the exact `timeless-tech-solutions`/`hermes-titus` slugs and permits
+  only the exact active or rollback OIDC state needed for guarded lifecycle
+  inspection.
+- Eighty-one focused tests and TypeScript passed. The protected disposable
+  Neon qualification exercised the real Drizzle reader and request-time store,
+  denied a cross-runtime hostname selector and inactive use case, distinguished
+  active from rollback OIDC state, completed six guarded membership
+  transitions, verified six count-only audit records, restored final active
+  state, and force-dropped only its unique test database.
+
+No production database, OIDC, membership, dashboard, runtime, route, email, or
+user-data state changed. T042c is complete.
+
 After owner acceptance:
 
 - update `spec.md`, `tasks.md`, roadmap, and this quickstart with value-free

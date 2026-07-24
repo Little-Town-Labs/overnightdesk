@@ -15,6 +15,7 @@ describe("Titus native dashboard OIDC runtime staging", () => {
   );
   const startup = source("tenants/hermes-titus/runtime/start-with-secrets.sh");
   const deploy = source("tenants/hermes-titus/scripts/deploy-aegis.sh");
+  const oidcOperator = source("scripts/titus-dashboard-oidc.ts");
 
   it("keeps the repository config value-free and injects the exact staged client", () => {
     expect(config).toContain('client_id: "__TITUS_DASHBOARD_OIDC_CLIENT_ID__"');
@@ -45,6 +46,11 @@ describe("Titus native dashboard OIDC runtime staging", () => {
     expect(deploy).toContain(
       'config["dashboard"]["oauth"]["self_hosted"]["client_id"] == pid1_env["TITUS_DASHBOARD_OIDC_CLIENT_ID"]',
     );
+  });
+
+  it("re-proves the fixed Titus lifecycle target through the shared canonical context", () => {
+    expect(oidcOperator).toContain("readDashboardCanonicalContext");
+    expect(oidcOperator).toContain('allowedStates: ["active", "rollback"]');
   });
 
   it("makes loopback rollback survive the systemd volume preparation gate", () => {

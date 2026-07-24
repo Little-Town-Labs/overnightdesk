@@ -369,6 +369,7 @@ describeIntegration("Walter identity backfill store", () => {
       useCaseId: ids.useCaseId,
       runtimeIdentityId: ids.runtimeIdentityId,
       oidcBindingValid: true,
+      canonicalContextValid: true,
       client: {
         clientId,
         clientSecret: null,

@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
+import { readDashboardCanonicalContext } from "@/db/dashboard-canonical-context-store";
 import { instance } from "@/db/schema";
 import {
   authorizeDashboardAccess,
@@ -63,10 +64,11 @@ function createDrizzleCandidateReader(
 ): DashboardAuthorizationCandidateReader {
   return {
     async findByExactHost(host) {
-      return database
+      const rows = await database
         .select({
           instanceId: instance.id,
           ownerId: instance.userId,
+          tenantId: instance.tenantId,
           subdomain: instance.subdomain,
           status: instance.status,
           dashboardAuthStatus: instance.hermesDashboardAuthStatus,
@@ -75,7 +77,37 @@ function createDrizzleCandidateReader(
           runtimeIdentityId: instance.runtimeIdentityId,
         })
         .from(instance)
-        .where(eq(instance.subdomain, host));
+        .where(eq(instance.subdomain, host))
+        .limit(2);
+      return Promise.all(
+        rows.map(async (row) => {
+          const hasUseCase = row.useCaseId !== null;
+          const hasRuntime = row.runtimeIdentityId !== null;
+          const canonicalContextValid =
+            !hasUseCase && !hasRuntime
+              ? true
+              : hasUseCase &&
+                  hasRuntime &&
+                  row.subdomain !== null &&
+                  row.oidcClientId !== null
+                ? await readDashboardCanonicalContext(
+                    {
+                      useCaseId: row.useCaseId!,
+                      runtimeIdentityId: row.runtimeIdentityId!,
+                      tenantId: row.tenantId,
+                      hostname: row.subdomain,
+                      oidc: {
+                        clientId: row.oidcClientId,
+                        allowedStates: ["active"],
+                      },
+                    },
+                    database,
+                  )
+                : false;
+          const { tenantId: _tenantId, ...candidate } = row;
+          return { ...candidate, canonicalContextValid };
+        }),
+      );
     },
   };
 }

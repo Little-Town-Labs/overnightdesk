@@ -1,6 +1,7 @@
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { instance, oauthClient, resourceBinding } from "@/db/schema";
+import { readDashboardCanonicalContext } from "@/db/dashboard-canonical-context-store";
 import {
   activateHermesOidcClient,
   disableHermesOidcClient,
@@ -47,16 +48,37 @@ async function targetInstance() {
     .from(instance)
     .where(eq(instance.tenantId, tenantId))
     .limit(2);
+  const target = rows[0];
   if (
     rows.length !== 1 ||
-    rows[0].subdomain !== subdomain ||
-    rows[0].status !== "running" ||
-    !rows[0].useCaseId ||
-    !rows[0].runtimeIdentityId
+    !target ||
+    target.subdomain !== subdomain ||
+    target.status !== "running" ||
+    !target.useCaseId ||
+    !target.runtimeIdentityId
   ) {
     throw new Error("Titus dashboard OIDC target is unavailable");
   }
-  return rows[0];
+  const canonicalContextValid = await readDashboardCanonicalContext({
+    useCaseId: target.useCaseId,
+    runtimeIdentityId: target.runtimeIdentityId,
+    useCaseSlug: "timeless-tech-solutions",
+    runtimeSlug: "hermes-titus",
+    tenantId,
+    hostname: subdomain,
+    ...(target.hermesOidcClientId
+      ? {
+          oidc: {
+            clientId: target.hermesOidcClientId,
+            allowedStates: ["active", "rollback"] as const,
+          },
+        }
+      : {}),
+  });
+  if (!canonicalContextValid) {
+    throw new Error("Titus dashboard OIDC target is unavailable");
+  }
+  return target;
 }
 
 async function verifyState(desired: "disabled" | "active") {
