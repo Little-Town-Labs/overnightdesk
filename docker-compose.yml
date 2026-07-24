@@ -130,7 +130,7 @@ services:
       # Tenant provisioning — non-secret config hardcoded here.
       # TENANT_IMAGE_REF must be digest-pinned (@sha256:...) — the provisioner
       # rejects tags. Update this when hermes-agent is upgraded.
-      - TENANT_IMAGE_REF=nousresearch/hermes-agent@sha256:89e15c1eaf2459882a21f5c22ecf447f4956ac778618fc804a64a3cdff695b5f
+      - TENANT_IMAGE_REF=nousresearch/hermes-agent@sha256:c1731f7ffd49c37f2b4b6cd01873d4256ba6f06217dfca2cc41cede55815ea82
       - TENANT_NETWORK=overnightdesk_overnightdesk
       - TENANT_MEMORY_BYTES=1073741824
       - TENANT_PIDS_LIMIT=100

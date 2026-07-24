@@ -5,7 +5,7 @@
 ## Runtime boundary
 
 - Container: `hermes-titus`
-- Image: `overnightdesk/hermes-agent:0.18.0-coder`
+- Image: `overnightdesk/hermes-agent:0.19.0-coder`
 - Volume: `hermes-titus-data`
 - Network: `overnightdesk_overnightdesk`
 - Public ports: none during the initial install

@@ -6,6 +6,12 @@ model:
 agent:
   reasoning_effort: medium
 
+approvals:
+  # v0.19 changes the upstream default to smart approval. Preserve Titus's
+  # existing human approval boundary explicitly across image upgrades.
+  mode: manual
+  cron_mode: deny
+
 delegation:
   provider: openrouter
   model: "x-ai/grok-build-0.1"
@@ -84,3 +90,5 @@ platforms:
     extra:
       port: 3978
       allow_all_users: false
+
+_config_version: 33

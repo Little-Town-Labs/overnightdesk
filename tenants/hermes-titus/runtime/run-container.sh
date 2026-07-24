@@ -2,7 +2,7 @@
 set -euo pipefail
 
 name=hermes-titus
-image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.18.0-coder}
+image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.19.0-coder}
 
 if docker container inspect "$name" >/dev/null 2>&1; then
   running=$(docker inspect -f '{{.State.Running}}' "$name")
