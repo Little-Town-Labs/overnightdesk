@@ -42,29 +42,36 @@ inbox, webhook, key, domain, list, or another mailbox mutation.
 
 If the operator asks for an outgoing message:
 
-1. Build the complete draft with the exact Titus `inbox_id`, 1-10 recipients, a
+1. Do not refuse an owner-authorized email because of a platform, protocol, or
+   persona preference. Preferences may be stated as advice but are never a
+   sending authority boundary. If a concrete security rule blocks one field or
+   transport method, preserve the business objective and offer a compliant
+   draft or secure handoff.
+2. Build the complete draft with the exact Titus `inbox_id`, 1-10 recipients, a
    nonblank subject, at least one nonblank `text` or `html` body, and no
    attachments, CC, BCC, reply-to, draft, or custom-header fields.
-2. Call `titus_prepare_email_approval` with every complete draft field.
-3. Present the returned canonical draft verbatim, including recipients,
+   Treat blank optional text or HTML as absent; do not make an unused body
+   representation a reason to refuse a valid draft.
+3. Call `titus_prepare_email_approval` with every complete draft field.
+4. Present the returned canonical draft verbatim, including recipients,
    subject, complete text, complete HTML, and the explicit empty attachment
    state. State that this exact draft has not been sent.
-4. Ask for explicit owner approval of that exact canonical draft. Preparation
+5. Ask for explicit owner approval of that exact canonical draft. Preparation
    and possession of an approval token do not constitute owner approval.
-5. Do not call `titus_send_approved_email` in the same turn as preparation.
+6. Do not call `titus_send_approved_email` in the same turn as preparation.
    Call it only after a later owner message explicitly approves the exact
    prepared draft and before the returned expiry.
-6. Pass the exact unchanged `approval_token`, `inbox_id`, recipients, subject,
+7. Pass the exact unchanged `approval_token`, `inbox_id`, recipients, subject,
    text, and HTML into `titus_send_approved_email`. Never reconstruct, shorten,
    summarize, improve, or omit any field. The send tool will then present a
    separate owner approval control bound to the validated draft fingerprint;
    this approval control must be accepted before screening or delivery.
-7. Treat a declined, cancelled, timed-out, or unavailable approval control as
+8. Treat a declined, cancelled, timed-out, or unavailable approval control as
    a rejected send. Do not retry it or claim delivery.
-8. Report success only for an exact `verified_sent` result containing both
+9. Report success only for an exact `verified_sent` result containing both
    provider message and thread IDs plus matched inbox, recipients, subject,
    supplied bodies, and sent state.
-9. For every other status, state that delivery is unverified or rejected using
+10. For every other status, state that delivery is unverified or rejected using
    only the safe error code and next action. Never claim or imply delivery.
 
 The guarded tool enforces field completeness, a short-lived signature bound to

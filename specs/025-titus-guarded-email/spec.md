@@ -113,7 +113,9 @@ services are unchanged.
 
 - Recipient lists contain duplicates, display-name variants, invalid addresses,
   mixed case, or only whitespace.
-- One body representation is blank while the other is nonblank.
+- One body representation is blank while the other is nonblank; the unused
+  blank representation is canonicalized to absent rather than rejecting an
+  otherwise complete draft.
 - HTML differs from text intentionally, or the provider normalizes an address,
   line ending, or HTML representation during delivery.
 - Subject or body changes by one character after approval.
@@ -200,6 +202,14 @@ services are unchanged.
 - **FR-024**: Feature 024 T037 MUST remain paused until containment is active
   and the guarded sender has either completed production acceptance or is
   explicitly left in read-only rollback state.
+- **FR-025**: A blank optional plain-text or HTML representation MUST
+  canonicalize to absent when the other representation is nonblank; both
+  representations absent or blank MUST still fail as a blank body.
+- **FR-026**: Recalled persona, product, protocol, or platform preferences MUST
+  remain advisory and MUST NOT veto an owner-authorized email or business
+  objective. A concrete security rule MAY block an unsafe field or transport
+  method but MUST preserve the authorized objective and offer a compliant
+  path.
 
 ### Key Entities
 

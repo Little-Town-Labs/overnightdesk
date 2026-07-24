@@ -143,6 +143,13 @@ all scoped unrelated identities and volumes remain.
 - [ ] T051 [US4] Restore and requalify the guarded candidate or retain read-only state by explicit owner direction
 - [ ] T052 [US4] Append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
+### Discovered T047 refusal-path remediation
+
+- [x] T047a [US4] Add observed-RED tests for blank optional-body canonicalization and owner/business-objective precedence over persona preferences
+- [x] T047b [US4] Canonicalize blank unused text or HTML to absent while retaining blank-body rejection in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
+- [x] T047c [US4] Make owner-authorized business objectives authoritative over recalled platform preferences in Titus identity and email-skill contracts
+- [ ] T047d [US4] Review, merge, deploy, and qualify the refusal-path remediation before preparing a fresh T047 approval
+
 ---
 
 ## Phase 7: Standards and closeout

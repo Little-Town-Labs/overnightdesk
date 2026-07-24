@@ -139,10 +139,10 @@ def _normalize_body(value: object, field: str, maximum: int) -> str | None:
         return None
     if not isinstance(value, str):
         raise SafeError(f"invalid_{field}")
-    if not value.strip():
-        raise SafeError(f"blank_{field}")
     if len(value) > maximum:
         raise SafeError(f"{field}_too_long")
+    if not value.strip():
+        return None
     return value
 
 

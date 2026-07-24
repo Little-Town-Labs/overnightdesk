@@ -148,11 +148,12 @@ def draft_input(**overrides: object) -> dict[str, object]:
         ({"subject": "safe\x00unsafe"}, "invalid_subject"),
         ({"subject": "x" * 999}, "subject_too_long"),
         ({"text": None, "html": None}, "blank_body"),
-        ({"text": " \n ", "html": None}, "blank_text"),
-        ({"text": TEXT, "html": " \n "}, "blank_html"),
-        ({"text": " \n ", "html": "<p>safe</p>"}, "blank_text"),
+        ({"text": " \n ", "html": None}, "blank_body"),
+        ({"text": " \n ", "html": " \n "}, "blank_body"),
         ({"text": "x" * 200_001}, "text_too_long"),
+        ({"text": " " * 200_001, "html": None}, "text_too_long"),
         ({"text": None, "html": "x" * 500_001}, "html_too_long"),
+        ({"text": TEXT, "html": " " * 500_001}, "html_too_long"),
     ],
 )
 def test_draft_validation_fails_closed(overrides: dict[str, object], code: str) -> None:
@@ -168,6 +169,46 @@ def test_draft_normalizes_addresses_and_preserves_approved_content() -> None:
     assert draft.text == TEXT
     assert draft.html is None
     assert draft.as_public_dict()["attachments"] == []
+
+
+@pytest.mark.parametrize(
+    ("text", "html", "expected_text", "expected_html"),
+    [
+        (TEXT, "", TEXT, None),
+        (TEXT, " \n ", TEXT, None),
+        ("", "<p>Safe</p>", None, "<p>Safe</p>"),
+        (" \n ", "<p>Safe</p>", None, "<p>Safe</p>"),
+    ],
+)
+def test_blank_unused_body_representation_canonicalizes_to_absent(
+    text: str,
+    html: str,
+    expected_text: str | None,
+    expected_html: str | None,
+) -> None:
+    draft = Draft.from_input(
+        expected_inbox_id=INBOX,
+        **draft_input(text=text, html=html),
+    )
+    assert draft.text == expected_text
+    assert draft.html == expected_html
+
+
+def test_blank_html_and_absent_html_bind_to_the_same_approval(
+    signer: ApprovalSigner,
+) -> None:
+    absent = Draft.from_input(
+        expected_inbox_id=INBOX,
+        **draft_input(html=None),
+    )
+    blank = Draft.from_input(
+        expected_inbox_id=INBOX,
+        **draft_input(html=""),
+    )
+    approval = signer.prepare(absent)
+
+    assert absent.digest == blank.digest
+    signer.verify(approval.token, blank)
 
 
 def test_preparation_exposes_a_utc_expiry(
@@ -505,6 +546,21 @@ def test_exact_readback_is_the_only_verified_success_and_retry_does_not_send(
     assert len(agentmail.sends) == 1
     assert len(agentmail.reads) == 2
     assert agentmail.sends[0][1].startswith("titus-guarded-email-")
+
+
+def test_plain_text_approval_accepts_blank_html_on_send(
+    service: GuardedEmailService,
+    agentmail: FakeAgentMail,
+) -> None:
+    approval = service.prepare_email(**draft_input(html=None))
+    result = service.send_approved_email(
+        approval_token=approval["approval_token"],
+        **draft_input(html=""),
+    )
+
+    assert result["status"] == "verified_sent"
+    assert len(agentmail.sends) == 1
+    assert agentmail.sends[0][0].html is None
 
 
 def test_securityteam_client_requires_explicit_unchanged_allow() -> None:
