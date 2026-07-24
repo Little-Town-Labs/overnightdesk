@@ -197,8 +197,8 @@ all scoped unrelated identities and volumes remain.
 - [x] T068 [US3] Add observed-RED tests for the exact AgentMail plain-text footer and rejection of altered or additional suffixes
 - [x] T069 [US3] Allowlist only the exact deterministic footer and prohibit Titus from promoting ambiguity through prior delivery history or memory
 - [x] T070 [US3] Update the specification, plan, research, data model, contract, skill qualification, and lifecycle tasks for the discovered provider transformation
-- [ ] T071 [US4] Run full qualification and review, publish and merge the fix, then deploy exact merged source with a Titus-only restart
-- [ ] T072 [US4] Prove the production verifier, protected tool surface, model route, unrelated-service preservation, and append the reconciliation and deployment evidence to `deploys.log`
+- [x] T071 [US4] Run full qualification and review, publish and merge the fix, then deploy exact merged source with a Titus-only restart
+- [x] T072 [US4] Prove the production verifier, protected tool surface, model route, unrelated-service preservation, and append the reconciliation and deployment evidence to `deploys.log`
 
 ---
 

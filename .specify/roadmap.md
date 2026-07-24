@@ -16,20 +16,21 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** 025 — Titus Guarded Outbound Email
-**Current critical path:** contain Titus direct AgentMail mutations, then qualify a fail-closed guarded send path before resuming Feature 024 T037
+**Current critical path:** finish guarded-email lifecycle and rollback closeout before deciding whether Feature 024 T037 resumes
 
-## Current Delivery Checkpoint — 2026-07-23
+## Current Delivery Checkpoint — 2026-07-24
 
-- **Feature 025 — active incident response:** Five Titus emails sent on
-  2026-07-22 had empty bodies, and four also had empty subjects. The exact
-  reported provider record confirms that Titus invoked a direct AgentMail
-  mutation without subject or body, then incorrectly described chat-generated
-  content as delivered. Feature 024 remains safely paused at 43/52 before T037.
-  The immediate gate is a reversible read-only containment that removes direct
-  AgentMail mutation tools from Titus. The durable gate is one approval-bound
-  send action that requires complete content, passes the exact draft through
-  SecurityTeam, sends idempotently, reads the provider message back, and never
-  reports success unless recipients, subject, and body match exactly.
+- **Feature 025 — guarded production path active:** Direct hosted AgentMail
+  mutations remain removed. Titus now uses one approval-bound, SecurityTeam-
+  screened, idempotent send path with exact provider readback, ordinary-language
+  draft composition, and internal-only tool controls. Two provider records that
+  initially returned `provider_text_mismatch` were reconciled without retry:
+  removing only AgentMail's exact deterministic footer reproduced each
+  immutable pre-send draft digest. PR 121 deployed the exact footer verifier
+  with 94/94 tests and a Titus-only restart; all unrelated production
+  identities were preserved. Feature 024 remains paused at 43/52 before T037
+  while Feature 025 lifecycle, email read-only rollback, and final closeout
+  gates remain.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered
