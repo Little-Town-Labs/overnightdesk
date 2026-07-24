@@ -126,9 +126,9 @@ approved route has process-level precedence over mutable dashboard or restored-
 session model selections.
 
 Hermes sub-agent delegation remains on OpenRouter model `x-ai/grok-build-0.1`.
-The vision/image-analysis auxiliary slot remains on its existing route until a
-compatible image-input/text-output model is approved; xAI's Grok Imagine image
-quality model is an image generation/editing route, not a vision-analysis slot.
+MiMo V2.5 Pro is text-only, so Titus vision/image analysis is unavailable until
+a compatible image-input/text-output model is separately approved. Image
+generation or editing routes are not substitutes for a vision-analysis slot.
 
 The repository fixes the channel policy at required E2EE, one exact operator,
 one exact shared room, room-scoped sessions, queue-mode busy input, requester-

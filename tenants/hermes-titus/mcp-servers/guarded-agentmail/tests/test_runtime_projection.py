@@ -128,3 +128,6 @@ def test_titus_default_model_contract_uses_approved_mimo_route() -> None:
     assert f"effective_model_route={APPROVED_DEFAULT_MODEL}" in deploy
     assert "xiaomi/mimo-v2\\.5-pro" in qualify
     assert f"`{APPROVED_DEFAULT_MODEL}`" in readme
+    assert "MiMo V2.5 Pro is text-only" in readme
+    assert "vision/image analysis is unavailable" in readme
+    assert "remains on its existing route" not in readme

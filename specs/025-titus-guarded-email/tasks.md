@@ -183,6 +183,11 @@ all scoped unrelated identities and volumes remain.
 - [ ] T064 Restart only Titus and prove effective MiMo routing, guarded email,
   dashboard, chat, memory, intake, volume, and unrelated-service preservation;
   append the result to `deploys.log`
+- [x] T065 Add observed-RED coverage and correct Titus documentation to state
+  that MiMo is text-only and vision analysis is unavailable pending a
+  separately approved compatible route
+- [ ] T066 Review, merge, and synchronize the vision-capability truth
+  correction before Feature 025 closeout
 
 ---
 

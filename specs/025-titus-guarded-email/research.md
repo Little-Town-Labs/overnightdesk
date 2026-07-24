@@ -178,3 +178,8 @@ argument, re-export the non-secret selector independently, and restart only
 
 - OpenRouter MiMo V2.5 Pro model:
   https://openrouter.ai/xiaomi/mimo-v2.5-pro
+
+OpenRouter classifies MiMo V2.5 Pro as text-to-text. After the default-route
+change, Titus vision/image analysis is unavailable until a compatible
+image-input/text-output route is separately reviewed and approved. An image
+generation or editing route is not a substitute for vision analysis.
