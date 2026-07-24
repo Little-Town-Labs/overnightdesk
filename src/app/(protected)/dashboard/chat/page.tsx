@@ -1,10 +1,8 @@
 import { auth } from "@/lib/auth";
-import { db } from "@/db";
-import { instance } from "@/db/schema";
+import { resolveSelectedAgentPageContext } from "@/db/selected-agent-page-context";
 import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
 import { buildAgentWorkspaceComposition } from "@/lib/agent-workspace";
 import { resolveAgentDirectory } from "@/lib/open-webui-workspace";
-import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { AgentWorkspace } from "./agent-workspace";
@@ -19,15 +17,22 @@ export default async function ChatPage({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 
-  const [directory, instances] = await Promise.all([
-    resolveAgentDirectory(session.user.id),
-    db.select().from(instance).where(eq(instance.userId, session.user.id)),
-  ]);
+  const directory = await resolveAgentDirectory(session.user.id);
+  const pageContext = await resolveSelectedAgentPageContext(
+    session.user.id,
+    directory,
+  );
+  const resolvedDirectory =
+    pageContext.status === "available"
+      ? pageContext.directory
+      : ({ status: "unavailable" } as const);
+  const instances =
+    pageContext.status === "available" ? pageContext.instances : [];
   const rawAgent = (await searchParams).agent;
   if (Array.isArray(rawAgent)) notFound();
 
   const resolution = resolveAgentWorkspacePageContext(
-    directory,
+    resolvedDirectory,
     rawAgent,
     instances,
   );

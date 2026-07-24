@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
-import { db } from "@/db";
-import { instance } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { resolveSelectedAgentPageContext } from "@/db/selected-agent-page-context";
 import { requireAdminPage } from "@/lib/admin-page-authorization";
 import { resolveManagedVariableControlDescriptors } from "@/db/managed-agent-variable-boundary";
 import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
@@ -19,14 +17,25 @@ export default async function AdminConfigurationPage({
   searchParams: Promise<{ agent?: string | string[] }>;
 }) {
   const session = await requireAdminPage();
-  const [instances, directory] = await Promise.all([
-    db.select().from(instance).where(eq(instance.userId, session.user.id)),
-    resolveAgentDirectory(session.user.id),
-  ]);
+  const directory = await resolveAgentDirectory(session.user.id);
+  const pageContext = await resolveSelectedAgentPageContext(
+    session.user.id,
+    directory,
+  );
+  const resolvedDirectory =
+    pageContext.status === "available"
+      ? pageContext.directory
+      : ({ status: "unavailable" } as const);
+  const instances =
+    pageContext.status === "available" ? pageContext.instances : [];
   const rawAgent = (await searchParams).agent;
   if (Array.isArray(rawAgent)) notFound();
 
-  const resolution = resolveSelectedAgentContext(directory, rawAgent, instances);
+  const resolution = resolveSelectedAgentContext(
+    resolvedDirectory,
+    rawAgent,
+    instances,
+  );
   if (resolution.status === "not_found") notFound();
   if (resolution.status !== "available") {
     return (

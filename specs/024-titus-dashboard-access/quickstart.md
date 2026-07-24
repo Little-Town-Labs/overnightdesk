@@ -854,7 +854,7 @@ route, runtime, or secret change.
   rather than sanitizing or persisting them.
 - The shared validator plus both reconciliation stores and the existing
   membership qualification store passed 32 focused tests. No database
-connection or production mutation occurred. T042e is complete.
+  connection or production mutation occurred. T042e is complete.
 
 #### T042a current platform membership — 2026-07-24
 
@@ -871,6 +871,25 @@ connection or production mutation occurred. T042e is complete.
 - The harness created and force-dropped only its uniquely named disposable
   database. No production membership, dashboard, runtime, email, route, or
   user-data state changed. T042a is complete.
+
+#### T042b membership-scoped dashboard projections — 2026-07-24
+
+- RED proved the shared projection loader did not yet exist and established
+  fail-closed coverage for duplicate or mismatched canonical projections,
+  non-members, and all four selected-agent surfaces.
+- GREEN replaced the four owner-ID instance reads with one bounded loader. It
+  queries canonical projections only by the runtime identities already
+  authorized by the current directory, validates each exact use-case/runtime
+  pair and uniqueness, and keeps legacy owner fallback restricted to rows with
+  no canonical links.
+- The focused loader suite passed four tests, TypeScript passed, and the real
+  disposable-database qualification proved a runtime-scoped non-owner member
+  can load the exact canonical dashboard projection while receiving no engine
+  credential. The qualification retained its six guarded lifecycle
+  transitions, six count-only audit records, and final active state.
+
+No production database, membership, dashboard, runtime, route, email, or
+user-data state changed. T042b is complete.
 
 After owner acceptance:
 

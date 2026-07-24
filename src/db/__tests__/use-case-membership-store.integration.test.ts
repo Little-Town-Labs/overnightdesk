@@ -24,6 +24,7 @@ describeIntegration("Drizzle use-case membership store", () => {
       import("@/lib/use-case-membership-authorization"),
     ]);
     const {
+      instance,
       personaAssignment,
       platformAuditLog,
       runtimeIdentity,
@@ -187,6 +188,16 @@ describeIntegration("Drizzle use-case membership store", () => {
           grantedBy: "test:membership-store",
         },
       ]);
+      await db.insert(instance).values({
+        userId: ids.broadUser,
+        tenantId: `membership-tenant-${ids.activeRuntime}`,
+        useCaseId: ids.activeUseCase,
+        runtimeIdentityId: ids.activeRuntime,
+        status: "running",
+        containerId: "hermes-membership-qualification",
+        subdomain: `membership-${ids.activeRuntime}.test-auth.example.com`,
+        hermesDashboardAuthStatus: "active",
+      });
 
       const store = storeModule.createDrizzleUseCaseMembershipStore(db);
       await expect(
@@ -268,14 +279,15 @@ describeIntegration("Drizzle use-case membership store", () => {
         }),
       ).resolves.toBeNull();
 
-      const { createOpenWebuiWorkspaceDirectoryStore } = await import(
-        "@/db/open-webui-workspace-directory"
-      );
+      const { createOpenWebuiWorkspaceDirectoryStore } =
+        await import("@/db/open-webui-workspace-directory");
       const directory = createOpenWebuiWorkspaceDirectoryStore(db);
-      await expect(directory.listAuthorizedAgents(ids.broadUser)).resolves.toHaveLength(
-        2,
-      );
-      await expect(directory.listAuthorizedAgents(ids.scopedUser)).resolves.toEqual([
+      await expect(
+        directory.listAuthorizedAgents(ids.broadUser),
+      ).resolves.toHaveLength(2);
+      await expect(
+        directory.listAuthorizedAgents(ids.scopedUser),
+      ).resolves.toEqual([
         expect.objectContaining({ runtimeIdentityId: ids.activeRuntime }),
       ]);
       await expect(
@@ -287,6 +299,29 @@ describeIntegration("Drizzle use-case membership store", () => {
       await expect(
         directory.listAuthorizedAgents(ids.expiredUser),
       ).resolves.toEqual([]);
+
+      const [{ resolveSelectedAgentPageContext }, { resolveAgentDirectory }] =
+        await Promise.all([
+          import("@/db/selected-agent-page-context"),
+          import("@/lib/open-webui-workspace"),
+        ]);
+      const scopedDirectory = await resolveAgentDirectory(
+        ids.scopedUser,
+        directory,
+      );
+      await expect(
+        resolveSelectedAgentPageContext(ids.scopedUser, scopedDirectory),
+      ).resolves.toMatchObject({
+        status: "available",
+        instances: [
+          {
+            tenantId: `membership-tenant-${ids.activeRuntime}`,
+            useCaseId: ids.activeUseCase,
+            runtimeIdentityId: ids.activeRuntime,
+            engineApiKey: null,
+          },
+        ],
+      });
 
       const authorizer = authorizationModule.createUseCaseMembershipAuthorizer({
         store,
@@ -320,6 +355,9 @@ describeIntegration("Drizzle use-case membership store", () => {
       });
       expect(JSON.stringify(auditRows)).not.toContain(ids.broadUser);
     } finally {
+      await db
+        .delete(instance)
+        .where(inArray(instance.runtimeIdentityId, runtimeIds));
       await db
         .delete(useCaseMembership)
         .where(inArray(useCaseMembership.userId, userIds));
