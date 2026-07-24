@@ -101,12 +101,18 @@ If the operator asks for an outgoing message:
    supplied bodies, and sent state.
 10. For every other status, state that delivery is unverified or rejected using
    only the safe error code and next action. Never claim or imply delivery.
+11. Never reinterpret `ambiguous_unverified` as a false alarm based on prior deliveries, recipient confirmations, provider history, or memory.
+    Never say "should be delivered", "likely delivered", or "same as last time"
+    for an ambiguous result. State instead: provider accepted one message, exact content delivery is unverified, do not retry, and operator reconciliation is required.
 
 The guarded tool enforces field completeness, a short-lived signature bound to
 the exact canonical draft, a fail-closed Hermes owner-approval interaction,
 SecurityTeam screening immediately before send, one stable provider
-idempotency key, and exact AgentMail read-after-send equality. It does not
-support replies, forwards, drafts, attachments, or mailbox administration.
+idempotency key, and exact AgentMail read-after-send equality. For plain-text
+readback, equality permits only the exact submitted text or that text followed
+by AgentMail's exact deterministic `\n\n--\nSent via AgentMail` provider footer;
+every other addition, removal, or transformation remains ambiguous. It does
+not support replies, forwards, drafts, attachments, or mailbox administration.
 
 The separate supervised inbox poller retains only its existing code-enforced,
 in-thread reply authority. It is not an interactive tool and does not grant

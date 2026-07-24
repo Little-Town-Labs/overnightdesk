@@ -20,6 +20,8 @@ from guarded_email import (
     _normalize_email_address,
 )
 
+AGENTMAIL_TEXT_FOOTER = "\n\n--\nSent via AgentMail"
+
 
 class GuardedEmailService:
     def __init__(
@@ -343,10 +345,17 @@ def _verify_readback(
         raise SafeError("provider_recipient_mismatch")
     if readback.get("subject") != draft.subject:
         raise SafeError("provider_subject_mismatch")
-    if draft.text is not None and readback.get("text") != draft.text:
+    if draft.text is not None and not _provider_text_matches(
+        draft.text,
+        readback.get("text"),
+    ):
         raise SafeError("provider_text_mismatch")
     if draft.html is not None and readback.get("html") != draft.html:
         raise SafeError("provider_html_mismatch")
+
+
+def _provider_text_matches(submitted: str, readback: object) -> bool:
+    return readback == submitted or readback == submitted + AGENTMAIL_TEXT_FOOTER
 
 
 def _readback_recipients(value: object) -> tuple[str, ...]:

@@ -451,6 +451,50 @@ def test_provider_readback_mismatch_never_reports_success(
     assert len(agentmail.sends) == 1
 
 
+def test_exact_agentmail_text_footer_is_verified_provider_transformation(
+    service: GuardedEmailService,
+    agentmail: FakeAgentMail,
+) -> None:
+    agentmail.readback = valid_readback(
+        text=TEXT + "\n\n--\nSent via AgentMail",
+    )
+    approval = service.prepare_email(**draft_input())
+    result = service.send_approved_email(
+        approval_token=approval["approval_token"],
+        **draft_input(),
+    )
+
+    assert result["status"] == "verified_sent"
+    assert result["verification"]["text"] == "matched_or_not_supplied"
+    assert len(agentmail.sends) == 1
+
+
+@pytest.mark.parametrize(
+    "provider_text",
+    [
+        TEXT + "\n--\nSent via AgentMail",
+        TEXT + "\n\n--\nSent Via AgentMail",
+        TEXT + "\n\n--\nSent via AgentMail\n",
+        TEXT + "\n\n--\nSent via AgentMail\nunexpected",
+    ],
+)
+def test_agentmail_text_footer_variants_remain_ambiguous(
+    service: GuardedEmailService,
+    agentmail: FakeAgentMail,
+    provider_text: str,
+) -> None:
+    agentmail.readback = valid_readback(text=provider_text)
+    approval = service.prepare_email(**draft_input())
+    result = service.send_approved_email(
+        approval_token=approval["approval_token"],
+        **draft_input(),
+    )
+
+    assert result["status"] == "ambiguous_unverified"
+    assert result["error_code"] == "provider_text_mismatch"
+    assert len(agentmail.sends) == 1
+
+
 def test_missing_provider_ids_is_ambiguous_and_retry_is_refused(
     service: GuardedEmailService,
     agentmail: FakeAgentMail,

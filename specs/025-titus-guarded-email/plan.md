@@ -187,8 +187,12 @@ response must contain both identifiers.
 
 Readback uses the exact Titus inbox and returned message ID. Comparison requires
 the exact inbox/message/thread identities, sent label, normalized recipient
-set, subject, and each supplied body representation. Exact match transitions
-to `verified_sent`. Missing or mismatched readback transitions to
+set, subject, and each supplied body representation. AgentMail currently
+appends the exact deterministic plain-text footer
+`\n\n--\nSent via AgentMail`; plain-text comparison therefore accepts only the
+submitted text exactly or the submitted text followed by that exact footer.
+Every other transformation remains a mismatch. A permitted exact match
+transitions to `verified_sent`. Missing or mismatched readback transitions to
 `ambiguous_unverified`. While its 30-minute approval remains valid, the same
 token may resubmit only the same provider idempotency key after a timeout or
 missing-ID response. Known provider identifiers reconcile by readback without
