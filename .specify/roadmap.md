@@ -15,8 +15,8 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** None — Feature 024 is complete
-**Current critical path:** choose the next separately scoped feature; Feature 023's deferred Walter acceptance and Feature 026's Titus model experiment remain independent
+**Active Spec Kit feature:** Feature 023 — final evidence publication at 43/44
+**Current critical path:** publish and verify Feature 023's terminal evidence; Feature 026's Titus model experiment remains independent
 
 ## Current Delivery Checkpoint — 2026-07-24
 
@@ -84,43 +84,25 @@ the active Spec Kit feature artifacts and the production platform standard.
   post-deployment health gates; every production result is in `deploys.log`.
 - **Completed gate:** T050 authenticated owner acceptance passed; Feature 022
   is closed.
-- **Feature 023 — active:** specify and prototype one capability-driven selected-agent
-  workspace that can keep chat and the native Hermes dashboard open at the same
-  time through a split view, pop-out modal/window, or another responsive
-  composition, then qualify Walter for product-level chat and managed
-  runtime parity by establishing its provider-aware Phase catalog, deploying a
-  Walter-scoped Open WebUI and authorization mapping, and repeating the Titus
-  denial, persistence, session-lifecycle, rollback, and owner-visibility gates.
-  Walter's Codex OAuth subscription remains its primary LLM path; OpenRouter may
-  be cataloged only as a distinct supplemental/fallback credential. The shared
-  variable-driven UI will be reused without copying Titus's provider policy or
-  creating a Walter-specific surface. Walter's existing native Hermes dashboard
-  is the initial advanced-dashboard capability; its auth, framing, and
-  simultaneous chat/dashboard interaction require their own reviewed
-  specification. The initial prototype uses embedded chat plus a safe
-  independent dashboard window/tab while preserving a layout-neutral contract.
-  PR 92 at `3c36e75` deployed the shared Titus/Walter canonical authorization
-  and provisioning path. Walter's distinct Open WebUI candidate, persistent
-  volume, Phase boundary, OIDC client, TLS hostname, and canonical bindings are
-  active and passed T022's private, persistence, fail-closed, provider, and
-  rollback-readiness gates. T023 controlled non-member, suspended-member, and
-  expired-member denial/restoration now passes with zero cross-agent
-  disclosure. T024 chat/history, restart persistence, rotating renewal,
-  logout, expiry, revocation, and final restoration also pass. T025
-  cross-surface health, provider, linkage, isolation, rollback, and owner
-  dashboard-click checks pass. A shared desktop chat-height correction is
-  qualified locally and awaits publication plus authenticated owner acceptance
-  in T026. The corrective source increment also adds owner-managed bounded
-  persona logos, deployment-managed Titus/Walter model presentation, and
-  explicit Arena disablement while preserving the underlying `hermes-agent`
-  provider ID. Titus honestly retains no Advanced Dashboard assignment; Walter
-  retains its independently linked native dashboard.
-- **Dependency gate:** production `351e1f1` still inherits the July 22
-  `sharp <0.35.0` high advisory through Next.js. The corrective source
-  increment overrides only that compatible transitive package to `0.35.3`,
-  requires Node 20.9 or newer, and passes `npm audit --audit-level=high` with
-  five moderate findings remaining. Do not apply npm's suggested breaking
-  Next.js or Drizzle downgrade.
+- **Feature 023 — production accepted; final publication at 43/44:** The shared
+  capability-driven workspace keeps selected-agent chat available while opening
+  the exact native Hermes dashboard independently. Walter's distinct Open WebUI
+  container, volume, hostname, Phase boundary, OIDC client, TLS route, canonical
+  bindings, rollback path, and primary Codex OAuth provider remain isolated from
+  Titus. T022-T025 activation, authority denial/restoration, persistence,
+  session lifecycle, cross-surface health, rollback, and initial dashboard
+  launch gates passed. PRs 95-97 deployed the chat-dominant persona-aware
+  workspace and shared authorization repair. PR 127 repaired the isolated
+  persona grants, PR 128 added database-backed native-dashboard session
+  revalidation, and PR 129 at `99edf7d` atomically reconciled Walter's exact
+  active platform-instance and runtime-scoped OIDC bindings. Its exact Vercel
+  deployment reached Ready, production binding verification passed without a
+  service restart, and the owner accepted Walter's name/logo, Arena absence,
+  Chat, and Advanced Dashboard experience on 2026-07-24. Platform-standard PR
+  44 merged at `38e48fb`, synchronized to its actual production-mounted
+  checkout, and passed complete mount parity, both Ops health listeners, clean
+  logs, and scoped container-preservation checks. Only T031 final reviewed
+  application evidence publication and exact Vercel verification remain.
 
 ---
 

@@ -1,6 +1,6 @@
 # Implementation Plan: Composable Agent Workspace
 
-**Branch**: `agent/codex/feature-023-composable-workspace` | **Date**: 2026-07-22 | **Spec**: [spec.md](spec.md)
+**Branch**: `agent/codex/feature-023-final-evidence` | **Date**: 2026-07-22 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/023-composable-agent-workspace/spec.md`
 

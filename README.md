@@ -20,7 +20,7 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 ## Current Agent Control-Surface Delivery
 
-Production `main` at `351e1f1` includes Feature 022's unified agent control
+Production `main` at `99edf7d` includes Feature 022's unified agent control
 surfaces from PR 85. Overview, Settings, and selected-agent Admin Configuration
 share one exact membership-filtered agent context and consistent Identity,
 Runtime, capability, and configuration structure. Variable name/logo
@@ -32,13 +32,15 @@ and canonical use-case/runtime bindings; controlled activation and membership
 denial/restoration, chat/history persistence, and the complete session
 lifecycle passed on 2026-07-22. Objective cross-surface health, provider,
 canonical linkage, isolation, rollback, and owner dashboard-click checks also
-pass. PR 94 supplied the first desktop chat-height correction. The stronger
-chat-dominant layout, bounded owner-managed persona logos, persona-named Open
-WebUI model presentation, and Arena removal are qualified source changes that
-remain open for publication and production acceptance. Walter retains its
-independently linked native Hermes dashboard. The owner accepted the
-authenticated Overview, Settings, Admin, Open Chat, and Titus/Walter Runtime
-experience on 2026-07-22.
+pass. PRs 94-97 deployed the chat-dominant workspace, bounded owner-managed
+persona logos, persona-named Open WebUI model presentation, Arena removal, and
+the shared authorization repair. PR 127 repaired the production persona grants,
+PR 128 enforced database-backed native-dashboard session revalidation, and PR
+129 reconciled Walter's exact active platform-instance and runtime-scoped OIDC
+bindings. Walter retains its independently linked native Hermes dashboard and
+primary Codex OAuth provider. On 2026-07-24 the owner accepted Walter's
+name/logo presentation, Arena absence, and composed Chat plus Advanced
+Dashboard experience.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
 are write-only, role checked, and metadata audited. The boundary-aware
@@ -55,13 +57,14 @@ capability-driven selected-agent workspace. The initial interaction keeps
 qualified chat embedded and launches the exact native Hermes dashboard in an
 independent safe window or tab; the shared contract remains layout-neutral.
 Agents with only one surface retain it with an explicit state for the other.
-Walter's isolated chat deployment has passed disabled installation, private
+Walter's isolated chat deployment passed disabled installation, private
 qualification, rollback rehearsal, controlled public activation, denial and
 restoration, session lifecycle, history persistence, cross-surface health, and
-initial owner acceptance. Corrective layout/persona acceptance remains.
-Walter's primary Codex OAuth provider policy is unchanged. The
-[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) retains
-Walter's deferred final presentation gates.
+final owner acceptance. Walter's primary Codex OAuth provider policy is
+unchanged. Platform-standard PR 44 is merged and synchronized on Aegis. The
+[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is at
+43/44; only final reviewed evidence publication and exact deployment
+verification remain.
 
 Feature 024 adds Titus's existing native Hermes dashboard as an independent
 selected-agent capability without copying Walter policy or creating a
@@ -76,8 +79,8 @@ Kanban scope, and the production observation window passed on 2026-07-24. The
 same membership-scoped capability path serves Overview, Chat, Settings, and
 Admin, including authorized non-owner members, and fails closed on ambiguous or
 drifted canonical selectors. The [Feature 024 task
-list](specs/024-titus-dashboard-access/tasks.md) is the current closeout source
-of truth.
+list](specs/024-titus-dashboard-access/tasks.md) records its completed 57/57
+closeout.
 
 ## Runtime Model
 

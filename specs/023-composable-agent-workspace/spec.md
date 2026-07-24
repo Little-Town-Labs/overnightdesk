@@ -1,10 +1,10 @@
 # Feature Specification: Composable Agent Workspace
 
-**Feature Branch**: `agent/codex/feature-023-composable-workspace`
+**Feature Branch**: `agent/codex/feature-023-final-evidence`
 
 **Created**: 2026-07-22
 
-**Status**: In Progress — production active; final owner acceptance blocked on guarded Walter native-dashboard binding reconciliation
+**Status**: Production accepted — final evidence publication in progress
 
 **Input**: User description: "Define and prototype a capability-driven selected-agent workspace that lets an authorized owner keep chat and the native Hermes dashboard available at the same time without agent-specific interface code, then qualify Walter Open WebUI in isolation while retaining Codex OAuth as Walter's primary model-provider path."
 

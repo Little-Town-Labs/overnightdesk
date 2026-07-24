@@ -494,3 +494,42 @@ plan remains exact: zero bindings to create and one Walter platform binding to
 activate. Publication, exact deployed-revision verification, OIDC plan/apply
 after the base binding is active, and authenticated owner acceptance remain
 open under T042-T043.
+
+## T042-T044 terminal production evidence — 2026-07-24
+
+- PR 129 squash-merged at
+  `99edf7d819f02f31feb021197cddf708584d0244` after the remediation review
+  approved the guarded atomic reconciliations. Both Vercel checks passed and
+  production deployment `dpl_6xhS41DjPcSxY8qiNrtDXuEUT5Kk` reached Ready on
+  the live aliases with that exact Git SHA.
+- Read-only production preflight passed for both native dashboards, both chat
+  surfaces, Walter's unchanged `openai-codex`/`gpt-5.6-sol` provider path,
+  Nginx, both Ops listeners, and every scoped container.
+- The Walter platform-binding plan found exactly one same-scope
+  `compatibility` record to promote and zero inserts. The atomic apply activated
+  only that record; independent verification returned two exact active
+  canonical bindings.
+- The separately qualified Walter OIDC plan found exactly one absent
+  runtime-scoped binding. Its audited atomic apply created only that record;
+  independent verification returned one exact active runtime-scoped OIDC
+  binding.
+- All scoped containers retained their exact identities, start times, running
+  or healthy states, and restart count zero. No service restart, model/provider,
+  session, membership, OIDC-client, route, certificate, user, chat, volume, or
+  unrelated state changed.
+- The authenticated owner then confirmed Walter's Advanced Dashboard opens and
+  works as expected instead of looping through platform sign-in. Together with
+  the already-confirmed Walter name/logo and Arena absence, this completes
+  T026 and T043.
+- Platform-standard PR 44 merged at
+  `38e48fbe59af900db62aed450ad22b154ad33f99`. The clean production-mounted
+  checkout at `/home/ubuntu/overnightdesk-platform-standard` fast-forwarded to
+  that exact revision and only `overnightdesk-ops` restarted. All 16 WHAT YAML
+  files parsed; the complete mounted WHY/HOW/WHAT tree matched; both Ops
+  listeners returned HTTP 200; relevant Ops errors were zero; and every scoped
+  tenant/proxy container retained its identity and restart count zero.
+
+**Closeout decision**: T026, T030, and T042-T044 are complete from exact
+production, owner, review, standard, and ledger evidence. T031 remains open
+until this 43/44 evidence state passes review, merges, reaches Ready on Vercel,
+and receives terminal deployment verification.
