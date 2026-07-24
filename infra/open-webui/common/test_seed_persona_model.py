@@ -3,6 +3,7 @@ import json
 import sqlite3
 import tempfile
 import unittest
+import uuid
 from pathlib import Path
 
 
@@ -37,7 +38,7 @@ class SeedPersonaModelTest(unittest.TestCase):
               updated_at INTEGER NOT NULL
             );
             CREATE TABLE access_grant (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              id TEXT NOT NULL PRIMARY KEY,
               resource_type TEXT NOT NULL,
               resource_id TEXT NOT NULL,
               principal_type TEXT NOT NULL,
@@ -76,10 +77,14 @@ class SeedPersonaModelTest(unittest.TestCase):
         self.assertEqual(json.loads(model[4])["profile_image_url"], self.config()["profileImageUrl"])
         self.assertEqual(model[5], 1)
         grants = self.connection.execute(
-            "SELECT resource_type, resource_id, principal_type, principal_id, permission "
+            "SELECT id, resource_type, resource_id, principal_type, principal_id, permission "
             "FROM access_grant"
         ).fetchall()
-        self.assertEqual(grants, [("model", "hermes-agent", "user", "*", "read")])
+        self.assertEqual(
+            grants[0][1:],
+            ("model", "hermes-agent", "user", "*", "read"),
+        )
+        self.assertEqual(str(uuid.UUID(grants[0][0])), grants[0][0])
         self.assertIsNone(MODULE.verify(self.database_path, self.config()))
 
     def test_is_idempotent_and_preserves_chats_and_unrelated_model_metadata(self):
@@ -100,13 +105,22 @@ class SeedPersonaModelTest(unittest.TestCase):
             ),
         )
         self.connection.execute(
-            "INSERT INTO access_grant(resource_type, resource_id, principal_type, principal_id, permission, created_at) "
-            "VALUES ('model', 'hermes-agent', 'user', '*', 'write', 1)"
+            "INSERT INTO access_grant(id, resource_type, resource_id, principal_type, principal_id, permission, created_at) "
+            "VALUES ('00000000-0000-0000-0000-000000000001', 'model', 'hermes-agent', 'user', '*', 'write', 1)"
         )
         self.connection.commit()
 
         self.assertEqual(MODULE.reconcile(self.database_path, self.config()), "updated")
+        grant_id = self.connection.execute(
+            "SELECT id FROM access_grant WHERE resource_id = 'hermes-agent'"
+        ).fetchone()[0]
         self.assertEqual(MODULE.reconcile(self.database_path, self.config()), "unchanged")
+        self.assertEqual(
+            self.connection.execute(
+                "SELECT id FROM access_grant WHERE resource_id = 'hermes-agent'"
+            ).fetchone()[0],
+            grant_id,
+        )
         row = self.connection.execute(
             "SELECT params, meta FROM model WHERE id = 'hermes-agent'"
         ).fetchone()
