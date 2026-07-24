@@ -46,6 +46,17 @@ describe("GET /api/auth/verify-tenant", () => {
     });
   });
 
+  it("bypasses Better Auth cookie cache for the current platform session", async () => {
+    const currentRequest = request("aegis-prod.overnightdesk.com");
+
+    await expect(GET(currentRequest)).resolves.toMatchObject({ status: 200 });
+
+    expect(mockGetSession).toHaveBeenCalledWith({
+      headers: currentRequest.headers,
+      query: { disableCookieCache: true },
+    });
+  });
+
   it.each([
     ["non-member", "not_authorized"],
     ["suspended member", "not_authorized"],
