@@ -146,3 +146,35 @@ the exact fields needed for verification.
   https://modelcontextprotocol.io/llms-full.txt
 - MCP Python SDK:
   https://github.com/modelcontextprotocol/python-sdk
+
+## Decision: Move Titus's default route to MiMo V2.5 Pro
+
+**Rationale**: The owner approved changing Titus's default OpenRouter model
+from `x-ai/grok-4.3` to `xiaomi/mimo-v2.5-pro` after the guarded-email
+production path was stable. OpenRouter's current catalog identifies the exact
+MiMo selector, a 1,050,000-token context window, and support for `tools`,
+`tool_choice`, and reasoning parameters. The route therefore preserves the
+Hermes interaction contract while reducing default inference cost. Titus
+retains medium reasoning and the independent `x-ai/grok-build-0.1` delegation
+route.
+
+The production transition must update the repository's Phase-loader allowlist
+and live verifier before changing the protected Phase value. After merged
+source is staged, update only `/agents/hermes-titus/runtime`
+`HERMES_DEFAULT_MODEL` through Phase's value-update path without a `--type`
+argument, re-export the non-secret selector independently, and restart only
+`hermes-titus.service`.
+
+**Alternatives considered**:
+
+- Change only the Phase value: rejected because the reviewed fail-closed loader
+  correctly prevents an unapproved selector from starting Titus.
+- Reuse `xiaomi/mimo-v2.5`: rejected because the owner selected the exact Pro
+  route.
+- Change the delegation model at the same time: rejected to keep the cost-route
+  change isolated and independently reversible.
+
+**Authoritative source**:
+
+- OpenRouter MiMo V2.5 Pro model:
+  https://openrouter.ai/xiaomi/mimo-v2.5-pro

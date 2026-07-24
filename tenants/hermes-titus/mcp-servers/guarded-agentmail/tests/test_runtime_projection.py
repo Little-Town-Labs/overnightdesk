@@ -10,6 +10,11 @@ SCRIPT = Path(__file__).parents[3] / "runtime" / "apply-email-mode.py"
 CONFIG = Path(__file__).parents[3] / "config" / "config.yaml"
 SOUL = Path(__file__).parents[3] / "config" / "SOUL.md"
 EMAIL_SKILL = Path(__file__).parents[3] / "skills" / "agentmail-email" / "SKILL.md"
+LOAD_PHASE_ENV = Path(__file__).parents[3] / "runtime" / "load-phase-env.sh"
+DEPLOY_SCRIPT = Path(__file__).parents[3] / "scripts" / "deploy-aegis.sh"
+QUALIFY_SCRIPT = Path(__file__).parents[3] / "scripts" / "qualify.sh"
+TENANT_README = Path(__file__).parents[3] / "README.md"
+APPROVED_DEFAULT_MODEL = "xiaomi/mimo-v2.5-pro"
 SPEC = importlib.util.spec_from_file_location("apply_email_mode", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -107,3 +112,19 @@ def test_email_skill_keeps_guarded_tools_internal_to_natural_language_flow() -> 
         "or repeat a draft fingerprint."
     ) in skill
     assert "Tool names, approval tokens, and fingerprints are internal controls" in skill
+
+
+def test_titus_default_model_contract_uses_approved_mimo_route() -> None:
+    load_phase = LOAD_PHASE_ENV.read_text()
+    deploy = DEPLOY_SCRIPT.read_text()
+    qualify = QUALIFY_SCRIPT.read_text()
+    readme = TENANT_README.read_text()
+
+    assert f'.HERMES_DEFAULT_MODEL == "{APPROVED_DEFAULT_MODEL}"' in load_phase
+    assert (
+        f'pid1_env.get("HERMES_INFERENCE_MODEL") == "{APPROVED_DEFAULT_MODEL}"'
+        in deploy
+    )
+    assert f"effective_model_route={APPROVED_DEFAULT_MODEL}" in deploy
+    assert "xiaomi/mimo-v2\\.5-pro" in qualify
+    assert f"`{APPROVED_DEFAULT_MODEL}`" in readme

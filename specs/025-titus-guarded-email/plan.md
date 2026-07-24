@@ -282,6 +282,11 @@ while enforcing validation, screening, idempotency, and verification in code.
 5. **Closeout**: standard/WHY/WHO synchronization, mounted Ops knowledge
    refresh, evidence publication, and an explicit decision to resume Feature
    024 T037.
+6. **Approved model route**: add RED/GREEN coverage for the exact
+   `xiaomi/mimo-v2.5-pro` Phase-loader and live-verifier contract, merge and
+   stage reviewed source, update only the protected non-secret model selector,
+   restart only Titus, and prove guarded email plus all unrelated runtime state
+   remains intact.
 
 ## Complexity Tracking
 

@@ -284,11 +284,11 @@ for entry in Path("/proc/1/environ").read_bytes().split(b"\0"):
     if b"=" in entry:
         key, value = entry.split(b"=", 1)
         pid1_env[key.decode()] = value.decode()
-assert pid1_env.get("HERMES_INFERENCE_MODEL") == "x-ai/grok-4.3", "unexpected effective Titus model"
+assert pid1_env.get("HERMES_INFERENCE_MODEL") == "xiaomi/mimo-v2.5-pro", "unexpected effective Titus model"
 assert (config.get("agent") or {}).get("reasoning_effort") == "medium", "unexpected Titus reasoning effort"
 assert (config.get("delegation") or {}).get("provider") == "openrouter", "unexpected Titus delegation provider"
 assert (config.get("delegation") or {}).get("model") == "x-ai/grok-build-0.1", "unexpected Titus delegation model"
-print("effective_model_route=x-ai/grok-4.3")
+print("effective_model_route=xiaomi/mimo-v2.5-pro")
 print("reasoning_effort=medium")
 print("delegation_route=x-ai/grok-build-0.1")
 embedding_enabled = os.environ.get("MEMORY_TENCENTDB_EMBEDDING_ENABLED") == "true"

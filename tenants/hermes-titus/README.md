@@ -115,15 +115,17 @@ Matrix is Titus's primary interactive channel and uses Hermes's native Matrix
 adapter, so authorized room messages enter the normal Hermes reasoning, tools,
 memory, session, and approval pipeline. No public ingress port is required.
 
-Titus's approved default route is OpenRouter model `x-ai/grok-4.3` with Hermes
-`agent.reasoning_effort` set to `medium`. The Phase-backed
-`HERMES_DEFAULT_MODEL` is shared by the interactive gateway and standalone email
-poller; reasoning effort applies to Hermes agent turns.
+Titus's approved default route is OpenRouter model `xiaomi/mimo-v2.5-pro` with
+Hermes `agent.reasoning_effort` set to `medium`. The model supports tool
+calling and reasoning through OpenRouter; the change reduces the default
+inference cost without changing Titus's authority, tools, or memory. The
+Phase-backed `HERMES_DEFAULT_MODEL` is shared by the interactive gateway and
+standalone email poller; reasoning effort applies to Hermes agent turns.
 The gateway exports `HERMES_INFERENCE_MODEL` from that Phase value so the
 approved route has process-level precedence over mutable dashboard or restored-
 session model selections.
 
-Hermes sub-agent delegation uses OpenRouter model `x-ai/grok-build-0.1`.
+Hermes sub-agent delegation remains on OpenRouter model `x-ai/grok-build-0.1`.
 The vision/image-analysis auxiliary slot remains on its existing route until a
 compatible image-input/text-output model is approved; xAI's Grok Imagine image
 quality model is an image generation/editing route, not a vision-analysis slot.

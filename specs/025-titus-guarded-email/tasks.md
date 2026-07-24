@@ -165,6 +165,27 @@ all scoped unrelated identities and volumes remain.
 
 ---
 
+## Phase 8: Owner-approved Titus default model change
+
+- [x] T059 Verify the exact `xiaomi/mimo-v2.5-pro` selector, tool support,
+  reasoning support, context size, and current pricing in OpenRouter's official
+  catalog
+- [x] T060 Add observed-RED coverage for the Titus Phase-loader, live verifier,
+  and operator documentation model contract
+- [x] T061 Replace only the Titus default inference route with
+  `xiaomi/mimo-v2.5-pro` while retaining medium reasoning and
+  `x-ai/grok-build-0.1` delegation
+- [ ] T062 Run complete Titus qualification, shell syntax, source review, and
+  diff checks; commit, push, monitor, and merge the model PR
+- [ ] T063 Stage exact merged source, update only the protected
+  `HERMES_DEFAULT_MODEL` Phase value through the value-update path without
+  `--type`, and independently verify the non-secret selector
+- [ ] T064 Restart only Titus and prove effective MiMo routing, guarded email,
+  dashboard, chat, memory, intake, volume, and unrelated-service preservation;
+  append the result to `deploys.log`
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -177,6 +198,8 @@ all scoped unrelated identities and volumes remain.
 - Production T042-T052 is sequential at every external mutation/verification
   boundary.
 - Standards/closeout T053-T058 depends on the accepted final runtime state.
+- The model route T059-T064 is sequential. T062 must merge before the protected
+  Phase value changes, and T063 must verify before the Titus-only restart.
 
 ### Parallel Opportunities
 
