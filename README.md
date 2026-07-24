@@ -35,10 +35,10 @@ canonical linkage, isolation, rollback, and owner dashboard-click checks also
 pass. PR 94 supplied the first desktop chat-height correction. The stronger
 chat-dominant layout, bounded owner-managed persona logos, persona-named Open
 WebUI model presentation, and Arena removal are qualified source changes that
-remain open for publication and production acceptance. Titus correctly has no
-Advanced Dashboard assignment; Walter retains its independently linked native
-Hermes dashboard. The owner accepted the authenticated Overview, Settings,
-Admin, Open Chat, and Titus/Walter Runtime experience on 2026-07-22.
+remain open for publication and production acceptance. Walter retains its
+independently linked native Hermes dashboard. The owner accepted the
+authenticated Overview, Settings, Admin, Open Chat, and Titus/Walter Runtime
+experience on 2026-07-22.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
 are write-only, role checked, and metadata audited. The boundary-aware
@@ -60,8 +60,24 @@ qualification, rollback rehearsal, controlled public activation, denial and
 restoration, session lifecycle, history persistence, cross-surface health, and
 initial owner acceptance. Corrective layout/persona acceptance remains.
 Walter's primary Codex OAuth provider policy is unchanged. The
-[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is the
-current delivery source of truth.
+[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) retains
+Walter's deferred final presentation gates.
+
+Feature 024 adds Titus's existing native Hermes dashboard as an independent
+selected-agent capability without copying Walter policy or creating a
+Titus-specific page branch. The protected
+`titus-dashboard.overnightdesk.com` route uses the exact current canonical
+use-case/runtime membership, active platform-instance and hostname selectors,
+and one runtime-scoped public S256-PKCE OIDC client. Titus publishes no host
+port, retains `hermes-titus-data`, and keeps Chat available independently.
+Controlled non-member, suspension, expiry, logout, token expiry, revocation,
+restart persistence, active rollback/restoration, owner-visible Titus-only
+Kanban scope, and the production observation window passed on 2026-07-24. The
+same membership-scoped capability path serves Overview, Chat, Settings, and
+Admin, including authorized non-owner members, and fails closed on ambiguous or
+drifted canonical selectors. The [Feature 024 task
+list](specs/024-titus-dashboard-access/tasks.md) is the current closeout source
+of truth.
 
 ## Runtime Model
 

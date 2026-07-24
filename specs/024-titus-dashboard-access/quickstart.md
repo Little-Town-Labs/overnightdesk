@@ -782,12 +782,12 @@ requirements and nine measurable success criteria to the 52-task delivery
 plan: requirement coverage is 100%, with zero ambiguity, duplication,
 constitution, Critical, or High findings.
 
-Two non-blocking documentation findings remain intentionally assigned to T043:
-the spec/pointer/roadmap lifecycle status lags the verified T039 checkpoint,
-and two references to a “raw SQL path” should say “parameterized Drizzle SQL
-expression path” to match the implementation and constitution. Inspection
-confirmed database access remains through Drizzle. T040 is complete with no
-Critical or High remediation required.
+Two non-blocking documentation findings were assigned to T043: the
+spec/pointer/roadmap lifecycle status lagged the verified T039 checkpoint, and
+two references to a “raw SQL path” needed to say “parameterized Drizzle SQL
+expression path” to match the implementation and constitution. T043 corrected
+both after inspection confirmed database access remains through Drizzle. T040
+is complete with no Critical or High remediation required.
 
 ### T041 complete release qualification — 2026-07-24
 
@@ -937,7 +937,34 @@ user-data state changed. T042c is complete.
 No production database, OIDC, route, runtime, restart, email, or user-data
 state changed. T042d is complete.
 
-After owner acceptance:
+#### T042 post-remediation qualification and delta review — 2026-07-24
+
+- The complete Jest regression passed 108 suites and 1,190 tests, with the
+  established four suites and 27 tests skipped.
+- Titus qualification passed 94 tests and its runtime, configuration, shell,
+  and credential-literal contracts.
+- The Next.js 15.5.21 production build passed with the documented unreachable
+  build-only PostgreSQL URL, and all 26 Chromium release scenarios passed
+  through the managed fixture server.
+- `npm audit --audit-level=high` passed with no High or Critical findings; the
+  five known Moderate advisories remain unchanged. TypeScript, explicit Bash
+  syntax, the source credential-literal sentinel, and `git diff --check`
+  passed.
+- The protected disposable Neon qualification passed the real Drizzle
+  membership, projection, and canonical-context readers, six guarded
+  denial/restoration transitions, six count-only audits, and final active
+  restoration before force-dropping only its unique test database.
+- One bounded read-only Ringer Sol delta review
+  (`overnightdesk-feature-024-t042-sol-delta-20260724T155032Z-p265886`)
+  inspected only R1-R5. Each finding is resolved, no new Critical security or
+  correctness regression was identified, and the final verdict is `APPROVE`.
+  Optional O1-O3 were not promoted or added to this closeout.
+
+T042 is complete. No production, database, membership, OIDC, route, runtime,
+restart, email, credential, or user-data state changed during remediation,
+qualification, or review.
+
+After owner acceptance and technical review:
 
 - update `spec.md`, `tasks.md`, roadmap, and this quickstart with value-free
   evidence;
