@@ -144,5 +144,20 @@ Rollback rehearsal:
   guarded state, so no repeat standard deployment or runtime-fact change is
   required.
 
-Feature 025 is 76/78. T057 publication/deployment and T058 final production
-confirmation remain open. Feature 024 T037 remains paused until T058.
+Standard PR 42 merged the already-completed synchronization bookkeeping at
+`6137c23` without changing any live contract. OvernightDesk PR 123 merged at
+`d949d9d`; its exact Vercel production deployment
+`dpl_7km2YsqJ4fJTpLjoGX8mRCkcaqVM` reached Ready on every live alias.
+
+Final T058 read-only qualification returned the rollback marker absent,
+`guarded_email_mode=guarded`, the exact eight hosted AgentMail reads, the exact
+two local guarded tools, MiMo with medium reasoning and the approved delegation
+route, healthy Titus and SecurityTeam, running Nginx and Ops, restart count zero
+and zero recent critical signatures across all four services. Public `www`
+returned HTTP 200; the canonical Titus dashboard, Titus Chat, and Walter Chat
+hosts returned anonymous HTTP 401. No email, retry, restart, provider mutation,
+model change, secret, route, authority, membership, chat, memory, volume, or
+unrelated-service change occurred.
+
+Feature 025 is complete at 78/78. Guarded sending remains active, and Feature
+024 T037 is authorized to resume.

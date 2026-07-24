@@ -15,8 +15,8 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** 025 — Titus Guarded Outbound Email
-**Current critical path:** publish and deploy Feature 025 closeout evidence, confirm the final guarded state, then decide whether Feature 024 T037 resumes
+**Active Spec Kit feature:** 024 — Titus Advanced Dashboard Access
+**Current critical path:** resume Feature 024 at T037, complete owner acceptance and observation, then publish its final closeout
 
 ## Current Delivery Checkpoint — 2026-07-24
 
@@ -34,8 +34,12 @@ the active Spec Kit feature artifacts and the production platform standard.
   container. T051 removed only the rollback marker and restored the exact
   guarded tool set. One normal health interval ended with zero relevant Titus,
   SecurityTeam, Nginx, or Ops errors, and no qualification email or retry was
-  sent. Feature 025 is 76/78 with only publication/deployment and final-state
-  confirmation open. Feature 024 remains paused at 43/52 before T037.
+  sent. Standard PR 42 and OvernightDesk PR 123 then merged, and the exact
+  OvernightDesk merge reached Ready on all production aliases. Final read-only
+  qualification proved guarded sending active with the rollback marker absent,
+  the exact eight hosted reads and two guarded tools healthy, and zero recent
+  critical signatures. Feature 025 is complete at 78/78. Feature 024 is
+  authorized to resume at 43/52 before T037.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered

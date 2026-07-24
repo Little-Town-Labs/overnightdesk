@@ -160,8 +160,8 @@ all scoped unrelated identities and volumes remain.
 - [x] T054 Refresh the exact merged standard on Aegis using `/app/standard/{WHY,HOW,WHAT}` and `KNOWLEDGE_DIR=/app/standard/WHAT`
 - [x] T055 Restart only `overnightdesk-ops` if mounted knowledge changed and prove its health and hashes
 - [x] T056 Publish Feature 025 evidence, task status, and roadmap closeout in `specs/025-titus-guarded-email/` and `.specify/roadmap.md`
-- [ ] T057 Commit, push, open, monitor, merge, and deploy the evidence/standard PRs
-- [ ] T058 Confirm production is either guarded-send active or explicitly read-only, then decide whether Feature 024 T037 resumes
+- [x] T057 Commit, push, open, monitor, merge, and deploy the evidence/standard PRs
+- [x] T058 Confirm production is either guarded-send active or explicitly read-only, then decide whether Feature 024 T037 resumes
 
 ---
 
@@ -240,7 +240,7 @@ all scoped unrelated identities and volumes remain.
 
 ## Notes
 
-- Feature 024 T037 remains paused until T058.
+- Feature 024 T037 is authorized to resume after completed T058.
 - No task authorizes a recipient, subject, body, or test send on the owner's
   behalf; T047 requires the owner's exact draft approval.
 - No direct AgentMail mutation tool is restored, including during rollback.
