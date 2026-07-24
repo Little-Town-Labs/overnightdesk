@@ -2,7 +2,7 @@
 
 **Source:** PRD v2.1 (2026-03-21)
 **Constitution:** v1.0.0 (2026-03-21)
-**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-23
+**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-24
 
 ---
 
@@ -16,7 +16,7 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** 025 — Titus Guarded Outbound Email
-**Current critical path:** finish guarded-email lifecycle and rollback closeout before deciding whether Feature 024 T037 resumes
+**Current critical path:** publish and deploy Feature 025 closeout evidence, confirm the final guarded state, then decide whether Feature 024 T037 resumes
 
 ## Current Delivery Checkpoint — 2026-07-24
 
@@ -28,9 +28,14 @@ the active Spec Kit feature artifacts and the production platform standard.
   removing only AgentMail's exact deterministic footer reproduced each
   immutable pre-send draft digest. PR 121 deployed the exact footer verifier
   with 94/94 tests and a Titus-only restart; all unrelated production
-  identities were preserved. Feature 024 remains paused at 43/52 before T037
-  while Feature 025 lifecycle, email read-only rollback, and final closeout
-  gates remain.
+  identities were preserved. The T050 rehearsal then projected Titus to the
+  exact hosted read-only fallback and preserved the mode-0600 attempt ledger,
+  every named volume, route, certificate, intake state, and unrelated
+  container. T051 removed only the rollback marker and restored the exact
+  guarded tool set. One normal health interval ended with zero relevant Titus,
+  SecurityTeam, Nginx, or Ops errors, and no qualification email or retry was
+  sent. Feature 025 is 76/78 with only publication/deployment and final-state
+  confirmation open. Feature 024 remains paused at 43/52 before T037.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered

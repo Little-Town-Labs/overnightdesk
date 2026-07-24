@@ -115,7 +115,7 @@ retries do not duplicate.
 - [x] T038 [US3] Run the complete fake SecurityTeam/AgentMail failure and retry matrix from `specs/025-titus-guarded-email/quickstart.md`
 - [x] T039 [US3] Run dependency audit, full Titus regression qualification, and content-free logging review
 - [x] T040 [US3] Run five-axis code, interface, security, observability, and deployment review
-- [ ] T041 [US3] Commit, push, open, monitor, and merge the guarded-sender PR
+- [x] T041 [US3] Commit, push, open, monitor, and merge the guarded-sender PR
 
 **Checkpoint**: Reviewed merged source is ready for protected secret binding
 and production qualification; no live email has been sent.
@@ -131,17 +131,17 @@ message, observe it, and rehearse read-only rollback without unrelated impact.
 exact readback, duplicate retry proof, restart persistence, and rollback while
 all scoped unrelated identities and volumes remain.
 
-- [ ] T042 [US4] Run and record the final read-only Aegis/container/route/volume/Feature-024 baseline
-- [ ] T043 [US4] Bind the existing SecurityTeam caller value into the exact Titus Phase runtime path without exposing it
-- [ ] T044 [US4] Stage exact merged source, restart only Titus, and verify hosted reads plus local guarded tools
-- [ ] T045 [US4] Run content-free private validation, SecurityTeam failure, and zero-provider-send gates
-- [ ] T046 [US4] Restart only Titus and prove tool, secret, state, dashboard, chat, memory, and intake persistence
-- [ ] T047 [US4] Obtain owner approval for one exact harmless test draft and send it once through the guarded tool
-- [ ] T048 [US4] Independently verify exact provider readback and same-logical-send no-duplicate retry
-- [ ] T049 [US4] Observe one health interval with zero relevant Titus, SecurityTeam, Nginx, or Ops errors
-- [ ] T050 [US4] Rehearse rollback to hosted read-only email and prove all data, volumes, routes, and unrelated containers preserved
-- [ ] T051 [US4] Restore and requalify the guarded candidate or retain read-only state by explicit owner direction
-- [ ] T052 [US4] Append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T042 [US4] Run and record the final read-only Aegis/container/route/volume/Feature-024 baseline
+- [x] T043 [US4] Bind the existing SecurityTeam caller value into the exact Titus Phase runtime path without exposing it
+- [x] T044 [US4] Stage exact merged source, restart only Titus, and verify hosted reads plus local guarded tools
+- [x] T045 [US4] Run content-free private validation, SecurityTeam failure, and zero-provider-send gates
+- [x] T046 [US4] Restart only Titus and prove tool, secret, state, dashboard, chat, memory, and intake persistence
+- [x] T047 [US4] Obtain owner approval for one exact harmless test draft and send it once through the guarded tool
+- [x] T048 [US4] Independently verify exact provider readback and same-logical-send no-duplicate retry
+- [x] T049 [US4] Observe one health interval with zero relevant Titus, SecurityTeam, Nginx, or Ops errors
+- [x] T050 [US4] Rehearse rollback to hosted read-only email and prove all data, volumes, routes, and unrelated containers preserved
+- [x] T051 [US4] Restore and requalify the guarded candidate or retain read-only state by explicit owner direction
+- [x] T052 [US4] Append every production result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
 ### Discovered T047 refusal-path remediation
 
@@ -159,7 +159,7 @@ all scoped unrelated identities and volumes remain.
 - [x] T053 Update `overnightdesk-platform-standard` WHY/HOW/WHAT contracts for the accepted email authority boundary
 - [x] T054 Refresh the exact merged standard on Aegis using `/app/standard/{WHY,HOW,WHAT}` and `KNOWLEDGE_DIR=/app/standard/WHAT`
 - [x] T055 Restart only `overnightdesk-ops` if mounted knowledge changed and prove its health and hashes
-- [ ] T056 Publish Feature 025 evidence, task status, and roadmap closeout in `specs/025-titus-guarded-email/` and `.specify/roadmap.md`
+- [x] T056 Publish Feature 025 evidence, task status, and roadmap closeout in `specs/025-titus-guarded-email/` and `.specify/roadmap.md`
 - [ ] T057 Commit, push, open, monitor, merge, and deploy the evidence/standard PRs
 - [ ] T058 Confirm production is either guarded-send active or explicitly read-only, then decide whether Feature 024 T037 resumes
 
