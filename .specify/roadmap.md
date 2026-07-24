@@ -15,8 +15,8 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** 024 — Titus Advanced Dashboard Access
-**Current critical path:** publish Feature 024's approved implementation and platform-standard closeout, then verify the exact merged production revisions
+**Active Spec Kit feature:** None — Feature 024 is complete
+**Current critical path:** choose the next separately scoped feature; Feature 023's deferred Walter acceptance and Feature 026's Titus model experiment remain independent
 
 ## Current Delivery Checkpoint — 2026-07-24
 
@@ -41,7 +41,7 @@ the active Spec Kit feature artifacts and the production platform standard.
   critical signatures. Feature 025 is complete at 78/78 and authorized Feature
   024 to resume.
 
-- **Feature 024 — production accepted, publication in progress:** Titus's
+- **Feature 024 — complete at 57/57:** Titus's
   native Hermes dashboard is active at
   `titus-dashboard.overnightdesk.com` behind exact canonical membership,
   runtime-scoped self-hosted OIDC, and the same selected-agent capability path
@@ -57,9 +57,12 @@ the active Spec Kit feature artifacts and the production platform standard.
   the production build, 26 Chromium scenarios, the high-severity audit gate,
   shell/credential/diff checks, and disposable Neon lifecycle coverage. The
   bounded Sol delta approved all five corrections with no new Critical issue.
-  T042-T044 are complete, including exact platform-standard merge `2dc8b02`
-  synchronized to the production-mounted checkout with both Ops listeners
-  healthy. Exact application revision publication remains T045.
+  Platform-standard PR 43 merged at `2dc8b02` and its exact
+  production-mounted checkout is healthy. OvernightDesk PR 125 merged at
+  `42081f0`; its exact Vercel production deployment reached Ready, the exact
+  Titus source synchronized to Aegis without a runtime restart, and final
+  active membership/OIDC, route, source-hash, container, error-sentinel, and
+  public-boundary checks passed. Feature 024 is complete.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered

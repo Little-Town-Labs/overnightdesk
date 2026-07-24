@@ -144,7 +144,7 @@ accepted, observable, and recoverable without coupling either chat deployment.
 - [x] T042e Reuse one bounded, non-secret audit-actor validator across dashboard projection and selector reconciliation, with RED/GREEN invalid-input coverage
 - [x] T043 Update Feature 024 status, task evidence, `.specify/roadmap.md`, `README.md`, and relevant runbooks with only verified behavior in `specs/024-titus-dashboard-access/` and repository documentation
 - [x] T044 Update the capability, authorization, Titus runtime, rollback, and owner-acceptance contract in `/home/frosted639/src/overnightdesk-suite/overnightdesk-platform-standard/README.md`, `docs/decisions/006-capability-driven-composable-agent-workspace.md`, and `docs/runbooks/hermes-agent-update-protocol.md`, then synchronize the accepted production-mounted copy
-- [ ] T045 Commit and push each owning repository, create reviewed pull requests, monitor checks and Vercel/Aegis health, merge only after acceptance, append publication evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`, and prune merged remote branches without discarding retained worktrees
+- [x] T045 Commit and push each owning repository, create reviewed pull requests, monitor checks and Vercel/Aegis health, merge only after acceptance, append publication evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`, and prune merged remote branches without discarding retained worktrees
 
 ---
 

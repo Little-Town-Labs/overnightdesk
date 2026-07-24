@@ -986,11 +986,34 @@ T043 and T044 are complete. No tenant runtime, email, retry, provider, model,
 secret, route, authority, membership, certificate, volume, chat, memory, or
 user-data state changed.
 
-After owner acceptance and technical review:
+### T045 publication and final production confirmation — 2026-07-24
 
-- update `spec.md`, `tasks.md`, roadmap, and this quickstart with value-free
-  evidence;
-- update `overnightdesk-platform-standard` and synchronize the production copy;
-- append production publication and rollback proof to `deploys.log`;
-- review, commit, push, open the PR, monitor checks/deployment, merge only after
-  acceptance, then prune merged remote state without discarding worktrees.
+- OvernightDesk PR 125 merged exact commit `42081f0` after both Vercel checks
+  passed. Its separate production deployment reached Ready and reported the
+  exact merged GitHub SHA.
+- The clean local main checkout fast-forwarded to that merge. Titus
+  qualification passed 94 tests before the exact merged source synchronized to
+  Aegis without restarting the runtime.
+- Installed deployment, qualification, volume-preparation, and
+  container-launcher hashes matched the merged source. Full Titus verification
+  passed guarded email, MiMo, medium reasoning, delegation, memory, Matrix,
+  Control Tower, native authentication, private networking, and zero published
+  ports.
+- Fixed-target production verification returned one active canonical
+  membership and the exact active runtime-scoped OIDC state. The Titus route
+  was present and the durable loopback marker absent.
+- Titus, Walter, both Open WebUI deployments, Nginx, Ops, and SecurityTeam
+  were running with zero restart counts; health-instrumented containers were
+  healthy, Nginx syntax passed, and recent scoped critical signatures were
+  zero.
+- Public `www` returned HTTP 200. Anonymous protected application surfaces
+  returned HTTP 307, and anonymous Titus Dashboard, Titus Chat, and Walter Chat
+  returned HTTP 401.
+- Both merged remote feature branches were removed while their local retained
+  worktrees and branches remained intact. Publication evidence is recorded in
+  the suite deployment ledger.
+
+T045 is complete. Feature 024 is complete at 57/57. No email, retry, provider,
+model, secret, route, authority, membership, certificate, runtime restart,
+volume, chat, memory, or user-data state changed during final publication and
+qualification.

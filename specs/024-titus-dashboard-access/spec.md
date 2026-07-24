@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-22
 
-**Status**: Production accepted; closeout publication in progress
+**Status**: Complete
 
 **Input**: User description: "Titus should have an Advanced Dashboard as well as Open WebUI chat, using the same capability-driven platform approach as Walter while preserving Titus identity, authorization, data, and runtime boundaries."
 
