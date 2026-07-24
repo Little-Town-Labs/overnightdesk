@@ -61,10 +61,12 @@ Walter's isolated chat deployment passed disabled installation, private
 qualification, rollback rehearsal, controlled public activation, denial and
 restoration, session lifecycle, history persistence, cross-surface health, and
 final owner acceptance. Walter's primary Codex OAuth provider policy is
-unchanged. Platform-standard PR 44 is merged and synchronized on Aegis. The
-[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is at
-43/44; only final reviewed evidence publication and exact deployment
-verification remain.
+unchanged. Platform-standard PRs 44 and 45 are merged, and exact `90b46c1` is
+synchronized on Aegis. OvernightDesk PR 130 merged at exact `bf4bad1`; its
+Vercel production deployment is Ready and the public/Aegis health boundaries
+passed. The
+[Feature 023 task list](specs/023-composable-agent-workspace/tasks.md) is
+complete at 44/44.
 
 Feature 024 adds Titus's existing native Hermes dashboard as an independent
 selected-agent capability without copying Walter policy or creating a

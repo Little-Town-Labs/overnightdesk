@@ -15,8 +15,9 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** Feature 023 — final evidence publication at 43/44
-**Current critical path:** publish and verify Feature 023's terminal evidence; Feature 026's Titus model experiment remains independent
+**Active Spec Kit feature:** None — Feature 023 complete at 44/44
+**Current critical path:** select the next scoped feature; Feature 026's Titus
+model experiment is parked with no production model change
 
 ## Current Delivery Checkpoint — 2026-07-24
 
@@ -84,7 +85,7 @@ the active Spec Kit feature artifacts and the production platform standard.
   post-deployment health gates; every production result is in `deploys.log`.
 - **Completed gate:** T050 authenticated owner acceptance passed; Feature 022
   is closed.
-- **Feature 023 — production accepted; final publication at 43/44:** The shared
+- **Feature 023 — complete at 44/44:** The shared
   capability-driven workspace keeps selected-agent chat available while opening
   the exact native Hermes dashboard independently. Walter's distinct Open WebUI
   container, volume, hostname, Phase boundary, OIDC client, TLS route, canonical
@@ -101,8 +102,13 @@ the active Spec Kit feature artifacts and the production platform standard.
   Chat, and Advanced Dashboard experience on 2026-07-24. Platform-standard PR
   44 merged at `38e48fb`, synchronized to its actual production-mounted
   checkout, and passed complete mount parity, both Ops health listeners, clean
-  logs, and scoped container-preservation checks. Only T031 final reviewed
-  application evidence publication and exact Vercel verification remain.
+  logs, and scoped container-preservation checks. Platform-standard PR 45 then
+  published that exact synchronization at `90b46c1`. OvernightDesk PR 130
+  merged at `bf4bad1`; Vercel independently reported that exact Git SHA Ready
+  in production, the public 200/307/401 boundaries passed, both Ops listeners
+  returned HTTP 200, relevant Ops/Nginx errors were zero, and scoped tenant
+  containers remained running with restart count zero. T031 and Feature 023
+  are complete.
 
 ---
 

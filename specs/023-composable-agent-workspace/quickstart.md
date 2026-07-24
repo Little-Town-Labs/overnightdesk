@@ -530,6 +530,41 @@ open under T042-T043.
   tenant/proxy container retained its identity and restart count zero.
 
 **Closeout decision**: T026, T030, and T042-T044 are complete from exact
-production, owner, review, standard, and ledger evidence. T031 remains open
-until this 43/44 evidence state passes review, merges, reaches Ready on Vercel,
-and receives terminal deployment verification.
+production, owner, review, standard, and ledger evidence. T031 remained open
+until this 43/44 evidence state passed review, merged, reached Ready on Vercel,
+and received terminal deployment verification.
+
+## Terminal publication verification — 2026-07-24
+
+- Platform-standard PR 45 merged at exact
+  `90b46c171bc921eab27f3e782cf112915aad9603`. The actual production-mounted
+  checkout at `/home/ubuntu/overnightdesk-platform-standard` fast-forwarded to
+  that revision, all 16 WHAT YAML files parsed, the mounted WHY/HOW/WHAT tree
+  matched at SHA-256
+  `697c32446dc0e7b212a44b4ec42210fcf4a51f29cdb50f6d4b0e7fa50107a173`,
+  both Ops listeners returned HTTP 200, relevant errors were zero, and all
+  scoped tenant/proxy containers retained their identities and restart count
+  zero.
+- OvernightDesk PR 130 merged at exact
+  `bf4bad186b9c05198ee54dff389b96ff1e4c91ed` after both Vercel checks passed.
+  Production deployment `dpl_DTwEUDTfVaxaJWHWYZwXaSqFerR6` independently
+  reported that exact Git SHA on `main` as Ready with all live aliases.
+- Post-deployment verification returned HTTP 200 for the public application,
+  HTTP 307 for the anonymous Dashboard entry, and HTTP 401 for anonymous Walter
+  Chat, Titus Chat, and the Titus native dashboard. Live Nginx configuration
+  confirmed that Walter's canonical dashboard does not use the guessed
+  `walter-dashboard.overnightdesk.com` hostname, so that invalid probe was not
+  treated as a production failure.
+- Both container-internal Ops listeners returned HTTP 200, recent Ops and
+  Nginx error signatures were zero, and Nginx, Hermes Walter, Hermes Titus, and
+  both Open WebUI containers remained running with restart count zero. Titus and
+  both Open WebUI containers remained healthy.
+- The exact production result is recorded in
+  `/home/frosted639/src/overnightdesk-suite/deploys.log`. No Aegis checkout,
+  service, runtime, email, retry, provider, model, secret, route, authority,
+  membership, certificate, database, DNS, volume, chat, memory, or user-data
+  state changed during the application evidence publication.
+
+**Terminal decision**: T031 is complete. Feature 023 is complete at 44/44.
+Feature 026's Titus Nemotron experiment is parked; no production model change
+was made.
