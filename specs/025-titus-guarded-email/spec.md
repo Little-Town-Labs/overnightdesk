@@ -53,7 +53,11 @@ or security-rejected drafts produce zero provider sends.
 
 **Acceptance Scenarios**:
 
-1. **Given** a draft with recipients, subject, and body, **When** Titus requests approval, **Then** the owner sees the exact recipients, full subject, full body, attachment state, and a stable draft fingerprint.
+1. **Given** an ordinary-language request to send an email, **When** Titus has
+   enough trusted context, **Then** Titus composes the complete recipient,
+   subject, and body and presents the readable send-ready draft for approval
+   without requiring an MCP tool name, approval token, or fingerprint from the
+   owner.
 2. **Given** the owner approves one exact draft, **When** Titus invokes the guarded action, **Then** the action accepts only fields whose fingerprint matches that approved draft.
 3. **Given** an empty or whitespace-only subject, **When** the guarded action is invoked, **Then** it fails before screening or delivery.
 4. **Given** both plain-text and HTML bodies are absent or whitespace-only, **When** the guarded action is invoked, **Then** it fails before screening or delivery.
@@ -151,9 +155,10 @@ services are unchanged.
 - **FR-006**: The guarded action MUST reject recipients, subject, body, inbox,
   or approval fields that exceed explicit size or count bounds.
 - **FR-007**: Titus MUST present the exact recipients, subject, complete body,
-  attachment state, and stable draft fingerprint immediately before requesting
-  explicit human approval, and the send boundary MUST obtain a separate
-  fail-closed human approval interaction for that fingerprint.
+  and attachment state immediately before requesting explicit human approval.
+  The system MUST bind that review to a stable draft fingerprint and obtain a
+  separate fail-closed human approval interaction without requiring the owner
+  to name a tool, copy a token, or repeat the fingerprint.
 - **FR-008**: Approval MUST authorize exactly one immutable draft fingerprint;
   any field change requires a new presentation and approval, and no model-only
   tool sequence or mutation annotation may substitute for the human
@@ -210,6 +215,10 @@ services are unchanged.
   objective. A concrete security rule MAY block an unsafe field or transport
   method but MUST preserve the authorized objective and offer a compliant
   path.
+- **FR-027**: Titus MUST accept ordinary-language email requests, use trusted
+  conversation and memory context to compose a complete draft, ask only for
+  genuinely missing or materially ambiguous information, and keep MCP tool
+  names, approval tokens, fingerprints, and technical next actions internal.
 
 ### Key Entities
 
@@ -255,6 +264,9 @@ services are unchanged.
 - **SC-009**: The owner can approve and send a complete harmless test message
   in one review-and-confirm cycle, and Titus reports delivery only after exact
   provider verification.
+- **SC-010**: The owner can request, review, approve, and send an email without
+  being instructed to call an MCP tool, copy an approval token, repeat a
+  fingerprint, or use implementation-specific command syntax.
 
 ## Assumptions
 

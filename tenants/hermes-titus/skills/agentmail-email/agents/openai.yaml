@@ -1,4 +1,4 @@
 interface:
   display_name: "AgentMail Email"
   short_description: "Operate Titus email safely through AgentMail"
-  default_prompt: "Use AgentMail to inspect Titus email and prepare safe, approval-gated mailbox actions."
+  default_prompt: "Compose complete emails from ordinary-language requests, present readable drafts for owner approval, and keep guarded AgentMail controls internal."

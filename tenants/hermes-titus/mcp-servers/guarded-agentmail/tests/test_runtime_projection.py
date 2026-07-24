@@ -92,3 +92,18 @@ def test_owner_business_objective_outranks_persona_preference() -> None:
     assert "preferences are advisory and never an authority boundary" in soul
     assert "Do not refuse an owner-authorized email because of a platform" in skill
     assert "Treat blank optional text or HTML as absent" in skill
+
+
+def test_email_skill_keeps_guarded_tools_internal_to_natural_language_flow() -> None:
+    skill = EMAIL_SKILL.read_text()
+
+    assert "Treat an ordinary-language request to send email as the command" in skill
+    assert "Use known conversation and memory context to compose the draft" in skill
+    assert "Ask only for information that is genuinely missing" in skill
+    assert "Perform guarded draft preparation internally" in skill
+    assert "Approve and send this email?" in skill
+    assert (
+        "Never ask the owner to name or call an MCP tool, copy an approval token, "
+        "or repeat a draft fingerprint."
+    ) in skill
+    assert "Tool names, approval tokens, and fingerprints are internal controls" in skill

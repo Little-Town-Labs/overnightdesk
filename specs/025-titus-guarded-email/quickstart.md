@@ -66,13 +66,17 @@ Activate the guarded candidate:
 
 ## 4. Owner-approved harmless send
 
-The owner supplies or approves the exact test recipient, subject, text, and
-optional HTML in the authenticated Titus conversation.
+The owner asks Titus to send the message in ordinary language. Titus uses
+trusted conversation and memory context to compose the exact recipient,
+subject, text, and optional HTML, asking only for genuinely missing or
+materially ambiguous information.
 
-1. Titus calls preparation.
-2. Titus presents the complete returned draft and fingerprint.
-3. The owner explicitly confirms that exact draft.
-4. Titus calls the guarded send once with the exact fields/token.
+1. Titus calls preparation internally.
+2. Titus presents the complete readable returned draft and asks, "Approve and
+   send this email?" Tool names, approval tokens, fingerprints, and technical
+   next actions remain internal.
+3. The owner explicitly confirms that exact draft in ordinary language.
+4. Titus calls the guarded send once internally with the exact fields/token.
 5. The guarded result must be `verified_sent`.
 6. Independently retrieve the provider record and compare the exact fields
    without copying content into logs.
