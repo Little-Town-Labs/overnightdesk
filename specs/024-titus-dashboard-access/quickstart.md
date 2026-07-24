@@ -849,11 +849,11 @@ route, runtime, or secret change.
 - RED proved the shared audit-actor contract did not yet exist.
 - GREEN added one bounded 3-128 character operator identifier validator and
   reused it for dashboard projection, selector-binding, and membership
-  qualification audit actors. It rejects empty, whitespace, email/URL-shaped,
-  assignment-shaped, control-character, and overlength values rather than
-  sanitizing or persisting them.
+  qualification audit actors. It rejects empty, leading/trailing whitespace,
+  email/URL-shaped, assignment-shaped, control-character, and overlength values
+  rather than sanitizing or persisting them.
 - The shared validator plus both reconciliation stores and the existing
-  membership qualification store passed 31 focused tests. No database
+  membership qualification store passed 32 focused tests. No database
 connection or production mutation occurred. T042e is complete.
 
 #### T042a current platform membership — 2026-07-24

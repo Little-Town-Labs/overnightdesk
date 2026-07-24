@@ -5,6 +5,7 @@ describe("value-free audit actor", () => {
     undefined,
     "",
     "  ",
+    " operator:feature-024 ",
     "operator@example.test",
     "https://operator.example.test",
     "TOKEN=secret-value",
