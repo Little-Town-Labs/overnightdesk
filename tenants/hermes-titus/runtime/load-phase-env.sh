@@ -113,7 +113,7 @@ for key in \
   require_value "$work_dir/core.json" "$key"
 done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN
-jq -e '.HERMES_DEFAULT_MODEL == "x-ai/grok-4.3"' "$work_dir/core.json" >/dev/null || \
+jq -e '.HERMES_DEFAULT_MODEL == "xiaomi/mimo-v2.5-pro"' "$work_dir/core.json" >/dev/null || \
   die 'Titus default model does not match the approved route'
 jq -e '
   (.MEMORY_TENCENTDB_EMBEDDING_ENABLED == "true" or
