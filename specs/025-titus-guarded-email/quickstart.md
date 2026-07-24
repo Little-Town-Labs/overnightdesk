@@ -109,3 +109,40 @@ Rollback rehearsal:
    its health.
 5. Append all production results to `deploys.log`.
 6. Publish, merge, deploy, and decide whether Feature 024 T037 may resume.
+
+## 7. Production closeout evidence — 2026-07-24
+
+- T041-T047 are supported by the merged guarded-sender, containment,
+  activation, private-failure, persistence, natural-language approval, and
+  owner-send increments recorded in `deploys.log`.
+- T048 combines independent provider-record reconciliation with the automated
+  one-send proof. Removing only AgentMail's exact deterministic footer
+  reproduced both immutable pre-send draft digests, while 17 focused
+  readback/idempotency/retry tests proved exact success reuses one provider
+  message identity and does not send twice. No additional live retry or
+  qualification email was required.
+- T049 completed after the guarded restoration: one normal Titus health
+  interval ended with Titus and SecurityTeam healthy, Nginx and Ops running,
+  and zero relevant error signatures across all four.
+- T050 installed only the root-owned mode-0400 read-only marker and restarted
+  only Titus. The live registry exposed exactly eight hosted reads and no
+  guarded mutation tools. The attempt-ledger inode, size, mode, and two
+  content-free rows; runtime, chat, memory, dashboard, and intake volumes;
+  dashboard route and certificate; intake topology; and every unrelated
+  container identity remained unchanged.
+- T051 removed only that marker and restarted only Titus. Full qualification
+  restored exactly two local guarded tools alongside the eight hosted reads.
+  Public `www` returned HTTP 200; anonymous Titus dashboard, Titus Chat, and
+  Walter Chat returned HTTP 401.
+- T052 is satisfied by the value-free deployment ledger through the T050
+  rollback and T049/T051 restoration entries. No email, retry, provider
+  mutation, secret, route, authority, membership, chat, memory, volume, or
+  unrelated-service change occurred during lifecycle qualification.
+- Standard PR 41 merged at `26201b9` and its exact Aegis synchronization
+  loaded all 16 `WHAT/*.yaml` files, including `why.yaml` and `who.yaml`, after
+  an Ops-only restart. The lifecycle rehearsal ended in the already-documented
+  guarded state, so no repeat standard deployment or runtime-fact change is
+  required.
+
+Feature 025 is 76/78. T057 publication/deployment and T058 final production
+confirmation remain open. Feature 024 T037 remains paused until T058.
