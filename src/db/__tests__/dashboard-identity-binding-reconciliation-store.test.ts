@@ -91,6 +91,7 @@ describe("dashboard identity binding reconciliation store", () => {
         {
           actor: "operator:feature-024",
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: true,
         },
         store,
@@ -102,6 +103,48 @@ describe("dashboard identity binding reconciliation store", () => {
       "operator:feature-024",
     );
     expect(store.inspect).toHaveBeenCalledTimes(2);
+  });
+
+  it("promotes an exact compatibility binding with Walter's confirmation", async () => {
+    const compatibility = {
+      ...exactBindings()[0],
+      state: "compatibility" as const,
+    };
+    const store = gateway([
+      snapshot({ bindings: [compatibility, exactBindings()[1]] }),
+      snapshot({ bindings: exactBindings() }),
+    ]);
+
+    await expect(
+      executeDashboardIdentityBindingReconciliation(
+        "apply",
+        descriptors,
+        {
+          actor: "operator:feature-023",
+          confirmation: "APPLY_WALTER_DASHBOARD_IDENTITY_BINDINGS",
+          target: "walter",
+          privateRuntimeQualified: true,
+        },
+        store,
+      ),
+    ).resolves.toEqual({ status: "verified_noop", bindingsVerified: 2 });
+    expect(store.apply).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "ready",
+        bindings: [],
+        bindingStateUpdates: [
+          {
+            bindingId: "binding-0",
+            provider: descriptors[0].provider,
+            kind: descriptors[0].kind,
+            value: descriptors[0].value,
+            expectedState: "compatibility",
+            state: "active",
+          },
+        ],
+      }),
+      "operator:feature-023",
+    );
   });
 
   it("treats exact existing bindings as an idempotent no-op", async () => {
@@ -132,6 +175,7 @@ describe("dashboard identity binding reconciliation store", () => {
         {
           actor: "operator:feature-024",
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: true,
         },
         store,
@@ -147,6 +191,7 @@ describe("dashboard identity binding reconciliation store", () => {
         {
           actor: "operator:feature-024",
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: true,
         },
         gateway([snapshot({ schemaReady: false })]),
@@ -157,7 +202,7 @@ describe("dashboard identity binding reconciliation store", () => {
       executeDashboardIdentityBindingReconciliation(
         "apply",
         descriptors,
-        { actor: "operator:feature-024" },
+        { actor: "operator:feature-024", target: "titus" },
         gateway([snapshot()]),
       ),
     ).rejects.toThrow("Dashboard identity binding confirmation is required");
@@ -168,6 +213,7 @@ describe("dashboard identity binding reconciliation store", () => {
         descriptors,
         {
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: true,
         },
         gateway([snapshot()]),
@@ -181,11 +227,12 @@ describe("dashboard identity binding reconciliation store", () => {
         {
           actor: "operator:feature-024",
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: false,
         },
         gateway([snapshot()]),
       ),
-    ).rejects.toThrow("Private Titus dashboard runtime is not qualified");
+    ).rejects.toThrow("Private dashboard runtime is not qualified");
 
     await expect(
       executeDashboardIdentityBindingReconciliation(
@@ -194,6 +241,7 @@ describe("dashboard identity binding reconciliation store", () => {
         {
           actor: "operator:feature-024",
           confirmation: "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS",
+          target: "titus",
           privateRuntimeQualified: true,
         },
         gateway([snapshot(), snapshot()]),

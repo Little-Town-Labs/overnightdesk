@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, ne, or, sql } from "drizzle-orm";
+import { and, eq, ne, or, sql, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import {
   platformAuditLog,
@@ -15,6 +15,7 @@ import {
   type DashboardIdentityBindingDescriptor,
   type DashboardIdentityBindingPlan,
   type DashboardIdentityBindingSnapshot,
+  type DashboardIdentityBindingTarget,
 } from "@/lib/dashboard-identity-binding-reconciliation";
 import { requireAuditActor } from "@/lib/audit-actor";
 import type { CanonicalIdentityTemplate } from "@/lib/use-case-identity-templates";
@@ -31,6 +32,7 @@ export interface DashboardIdentityBindingReconciliationGateway {
 export interface DashboardIdentityBindingReconciliationOptions {
   actor?: string;
   confirmation?: string;
+  target?: DashboardIdentityBindingTarget;
   privateRuntimeQualified?: boolean;
 }
 
@@ -57,10 +59,12 @@ export async function inspectDashboardIdentityBindings(
   }
   const schemaReady = await dashboardIdentityBindingSchemaReady(database);
   if (!schemaReady) return { schemaReady: false, identities: [], bindings: [] };
-  const [identities, bindings] = await Promise.all([
-    readCanonicalIdentity(database, template),
-    readDashboardBindings(database, descriptors),
-  ]);
+  const identities = await readCanonicalIdentity(database, template);
+  const bindings = await readDashboardBindings(
+    database,
+    descriptors,
+    identities.length === 1 ? identities[0] : null,
+  );
   return { schemaReady, identities, bindings };
 }
 
@@ -88,7 +92,29 @@ function readCanonicalIdentity(
 function readDashboardBindings(
   database: Database,
   descriptors: DashboardIdentityBindingDescriptor[],
+  identity: { useCaseId: string; runtimeIdentityId: string } | null,
 ) {
+  const exactIdentifiers = descriptors.map((descriptor) =>
+    and(
+      eq(resourceBinding.provider, descriptor.provider),
+      eq(resourceBinding.kind, descriptor.kind),
+      eq(resourceBinding.value, descriptor.value),
+    ),
+  );
+  const sameScopeDashboardBindings = identity
+    ? and(
+        eq(resourceBinding.useCaseId, identity.useCaseId),
+        eq(resourceBinding.runtimeIdentityId, identity.runtimeIdentityId),
+        or(
+          ...descriptors.map((descriptor) =>
+            and(
+              eq(resourceBinding.provider, descriptor.provider),
+              eq(resourceBinding.kind, descriptor.kind),
+            ),
+          ),
+        ),
+      )
+    : undefined;
   return database
     .select({
       id: resourceBinding.id,
@@ -104,47 +130,105 @@ function readDashboardBindings(
       and(
         ne(resourceBinding.state, "retired"),
         or(
-          ...descriptors.map((descriptor) =>
-            and(
-              eq(resourceBinding.provider, descriptor.provider),
-              eq(resourceBinding.kind, descriptor.kind),
-              eq(resourceBinding.value, descriptor.value),
-            ),
-          ),
+          ...exactIdentifiers,
+          ...(sameScopeDashboardBindings ? [sameScopeDashboardBindings] : []),
         ),
       ),
     );
 }
 
-async function applyOneOrTwoBindings(
-  plan: ReadyPlan,
-  actor: string,
-  database: Database,
-) {
+function atomicDashboardBindingStatement(plan: ReadyPlan, actor: string) {
   const values = plan.bindings.map((binding) => ({
     id: randomUUID(),
     useCaseId: plan.useCaseId,
     runtimeIdentityId: plan.runtimeIdentityId,
     ...binding,
   }));
-  const audit = database.insert(platformAuditLog).values({
-    actor,
-    action: "canonical_dashboard_bindings_reconciled",
-    target: "canonical-dashboard-bindings",
-    details: { bindingCount: values.length },
-  });
-  if (values.length === 1) {
-    await database.batch([
-      database.insert(resourceBinding).values(values[0]),
-      audit,
-    ] as const);
-    return;
+  const updates = plan.bindingStateUpdates ?? [];
+  const mutations: SQL[] = [];
+  const countChecks: SQL[] = [];
+
+  for (const [index, update] of updates.entries()) {
+    const name = `updated_${index}`;
+    mutations.push(sql`${sql.raw(name)} AS (
+      UPDATE ${resourceBinding}
+      SET
+        state = ${update.state},
+        updated_at = NOW()
+      WHERE
+        ${resourceBinding.id} = ${update.bindingId}
+        AND ${resourceBinding.useCaseId} = ${plan.useCaseId}
+        AND ${resourceBinding.runtimeIdentityId} = ${plan.runtimeIdentityId}
+        AND ${resourceBinding.provider} = ${update.provider}
+        AND ${resourceBinding.kind} = ${update.kind}
+        AND ${resourceBinding.value} = ${update.value}
+        AND ${resourceBinding.state} = ${update.expectedState}
+      RETURNING id
+    )`);
+    countChecks.push(
+      sql`(SELECT COUNT(*) FROM ${sql.raw(name)}) = 1`,
+    );
   }
-  await database.batch([
-    database.insert(resourceBinding).values(values[0]),
-    database.insert(resourceBinding).values(values[1]),
-    audit,
-  ] as const);
+
+  if (values.length > 0) {
+    mutations.push(sql`inserted AS (
+      INSERT INTO ${resourceBinding} (
+        id,
+        use_case_id,
+        runtime_identity_id,
+        provider,
+        kind,
+        value,
+        state
+      )
+      VALUES ${sql.join(
+        values.map(
+          (value) =>
+            sql`(${value.id}, ${value.useCaseId}, ${value.runtimeIdentityId}, ${value.provider}, ${value.kind}, ${value.value}, ${value.state})`,
+        ),
+        sql`, `,
+      )}
+      RETURNING id
+    )`);
+    countChecks.push(sql`(SELECT COUNT(*) FROM inserted) = ${values.length}`);
+  }
+
+  mutations.push(sql`audited AS (
+    INSERT INTO ${platformAuditLog} (
+      actor,
+      action,
+      target,
+      details
+    )
+    VALUES (
+      ${actor},
+      ${"canonical_dashboard_bindings_reconciled"},
+      ${"canonical-dashboard-bindings"},
+      ${JSON.stringify({
+        bindingCount: values.length + updates.length,
+        bindingsCreated: values.length,
+        bindingsActivated: updates.length,
+      })}::jsonb
+    )
+    RETURNING id
+  )`);
+  countChecks.push(sql`(SELECT COUNT(*) FROM audited) = 1`);
+
+  return sql`
+    WITH ${sql.join(mutations, sql`, `)}
+    SELECT 1 / CASE
+      WHEN ${sql.join(countChecks, sql` AND `)} THEN 1
+      ELSE 0
+    END AS applied
+  `;
+}
+
+async function applyBindingChanges(
+  plan: ReadyPlan,
+  actor: string,
+  database: Database,
+) {
+  await database.execute(atomicDashboardBindingStatement(plan, actor));
 }
 
 export function createDashboardIdentityBindingGateway(
@@ -155,7 +239,7 @@ export function createDashboardIdentityBindingGateway(
   return {
     inspect: () =>
       inspectDashboardIdentityBindings(template, descriptors, database),
-    apply: (plan, actor) => applyOneOrTwoBindings(plan, actor, database),
+    apply: (plan, actor) => applyBindingChanges(plan, actor, database),
   };
 }
 
@@ -172,10 +256,16 @@ async function inspectSafely(
 function requireApplyActor(
   options: DashboardIdentityBindingReconciliationOptions,
 ) {
-  requireDashboardIdentityBindingConfirmation(options.confirmation);
+  if (!options.target) {
+    throw new Error("Dashboard identity binding target is required");
+  }
+  requireDashboardIdentityBindingConfirmation(
+    options.target,
+    options.confirmation,
+  );
   const actor = requireAuditActor(options.actor);
   if (!options.privateRuntimeQualified) {
-    throw new Error("Private Titus dashboard runtime is not qualified");
+    throw new Error("Private dashboard runtime is not qualified");
   }
   return actor;
 }

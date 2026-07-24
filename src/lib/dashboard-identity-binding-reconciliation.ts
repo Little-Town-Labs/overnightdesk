@@ -30,6 +30,14 @@ export type DashboardIdentityBindingPlan =
       useCaseId: string;
       runtimeIdentityId: string;
       bindings: DashboardIdentityBindingDescriptor[];
+      bindingStateUpdates?: Array<{
+        bindingId: string;
+        provider: DashboardIdentityBindingDescriptor["provider"];
+        kind: DashboardIdentityBindingDescriptor["kind"];
+        value: string;
+        expectedState: "compatibility";
+        state: "active";
+      }>;
     }
   | { status: "verified_noop"; bindingsVerified: 2 };
 
@@ -102,12 +110,20 @@ function recordMatchesDescriptor(
   );
 }
 
-function missingExactBindings(
+function reconciliationActions(
   snapshot: DashboardIdentityBindingSnapshot,
   descriptors: DashboardIdentityBindingDescriptor[],
   identity: DashboardIdentityBindingSnapshot["identities"][number],
 ) {
   const missing: DashboardIdentityBindingDescriptor[] = [];
+  const bindingStateUpdates: Array<{
+    bindingId: string;
+    provider: DashboardIdentityBindingDescriptor["provider"];
+    kind: DashboardIdentityBindingDescriptor["kind"];
+    value: string;
+    expectedState: "compatibility";
+    state: "active";
+  }> = [];
   for (const descriptor of descriptors) {
     const matches = snapshot.bindings.filter((binding) =>
       recordMatchesDescriptor(binding, descriptor),
@@ -117,9 +133,21 @@ function missingExactBindings(
     } else if (
       matches.length !== 1 ||
       matches[0].useCaseId !== identity.useCaseId ||
-      matches[0].runtimeIdentityId !== identity.runtimeIdentityId ||
-      matches[0].state !== descriptor.state
+      matches[0].runtimeIdentityId !== identity.runtimeIdentityId
     ) {
+      return null;
+    } else if (matches[0].state === descriptor.state) {
+      continue;
+    } else if (matches[0].state === "compatibility") {
+      bindingStateUpdates.push({
+        bindingId: matches[0].id,
+        provider: descriptor.provider,
+        kind: descriptor.kind,
+        value: descriptor.value,
+        expectedState: "compatibility",
+        state: "active",
+      });
+    } else {
       return null;
     }
   }
@@ -129,7 +157,9 @@ function missingExactBindings(
         recordMatchesDescriptor(binding, descriptor),
       ),
   );
-  return containsUnexpected ? null : missing;
+  return containsUnexpected
+    ? null
+    : { bindings: missing, bindingStateUpdates };
 }
 
 export function planDashboardIdentityBindingReconciliation(
@@ -144,21 +174,36 @@ export function planDashboardIdentityBindingReconciliation(
     return { status: "blocked" };
   }
   const [identity] = snapshot.identities;
-  const missing = missingExactBindings(snapshot, descriptors, identity);
-  if (missing === null) return { status: "blocked" };
-  if (missing.length === 0) {
+  const actions = reconciliationActions(snapshot, descriptors, identity);
+  if (actions === null) return { status: "blocked" };
+  if (
+    actions.bindings.length === 0 &&
+    actions.bindingStateUpdates.length === 0
+  ) {
     return { status: "verified_noop", bindingsVerified: 2 };
   }
   return {
     status: "ready",
     useCaseId: identity.useCaseId,
     runtimeIdentityId: identity.runtimeIdentityId,
-    bindings: missing,
+    bindings: actions.bindings,
+    ...(actions.bindingStateUpdates.length > 0
+      ? { bindingStateUpdates: actions.bindingStateUpdates }
+      : {}),
   };
 }
 
-export function requireDashboardIdentityBindingConfirmation(value?: string) {
-  if (value !== "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS") {
+export type DashboardIdentityBindingTarget = "titus" | "walter";
+
+export function requireDashboardIdentityBindingConfirmation(
+  target: DashboardIdentityBindingTarget,
+  value?: string,
+) {
+  const expected =
+    target === "walter"
+      ? "APPLY_WALTER_DASHBOARD_IDENTITY_BINDINGS"
+      : "APPLY_TITUS_DASHBOARD_IDENTITY_BINDINGS";
+  if (value !== expected) {
     throw new Error("Dashboard identity binding confirmation is required");
   }
 }
@@ -168,7 +213,13 @@ export function summarizeDashboardIdentityBindingReconciliation(
 ) {
   switch (plan.status) {
     case "ready":
-      return { status: plan.status, bindingsToCreate: plan.bindings.length };
+      return {
+        status: plan.status,
+        bindingsToCreate: plan.bindings.length,
+        ...(plan.bindingStateUpdates?.length
+          ? { bindingsToActivate: plan.bindingStateUpdates.length }
+          : {}),
+      };
     case "verified_noop":
       return {
         status: plan.status,

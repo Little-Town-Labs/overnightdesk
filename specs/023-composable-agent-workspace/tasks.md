@@ -116,6 +116,16 @@ prove the complete user and session lifecycle.
 - [x] T038 Implement the DRY deployment-managed persona-model seed and Arena disablement for Titus and Walter without changing provider/runtime routes or Open WebUI product branding
 - [x] T039 Run focused RED/GREEN, full Jest/Chromium/build/audit/secret/diff gates and the five-axis review; update T026/T030 only after authenticated owner and production acceptance
 
+---
+
+## Phase 9: Discovered native-dashboard binding drift
+
+- [x] T040 Reproduce the owner-visible Walter Advanced Dashboard login loop and prove, with value-free production evidence, that the current session, owner membership, native/Chat scope, hostname, instance, and OIDC client remain valid
+- [x] T041 Add RED/GREEN coverage and implement one shared guarded reconciliation path that promotes only an exact same-scope `compatibility` dashboard binding, keeps rollback fail closed, and exposes Walter plan/apply/verify commands
+- [ ] T042 Run the complete qualification and Ringer quality gate, review and merge the repair PR, and verify its exact Vercel deployment
+- [ ] T043 Apply and separately verify only Walter's exact active platform-instance and runtime-scoped native OIDC bindings, then repeat authenticated owner acceptance
+- [ ] T044 Reconcile the terminal Feature 023 evidence, platform standard, roadmap, and publication after T026 passes
+
 ## Dependencies and execution order
 
 - Phase 2 blocks every presentation task.
@@ -127,7 +137,7 @@ prove the complete user and session lifecycle.
   rollback rehearsal.
 - Publication and acceptance require all included increment tests and review
   gates; documenting Walter does not authorize deployment.
-- T035-T038 block T026, T030, and T031 because owner acceptance now includes
+- T035-T043 block T026, T030, and T031 because owner acceptance now includes
   the corrective layout and canonical persona-model presentation.
 
 ## Parallel opportunities

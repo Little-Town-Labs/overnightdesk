@@ -427,3 +427,70 @@ remain required before T026/T030/T031 close.
 **Preflight decision**: the source contract matches live production. Publication
 may proceed through review; migration and Aegis reconciliation remain separate
 post-merge writes with rollback and authenticated owner acceptance gates.
+
+## T040-T041 discovered Walter native-dashboard binding drift — 2026-07-24
+
+- Final T026 owner acceptance stopped when Walter's Advanced Dashboard sent the
+  already-authenticated owner back through platform sign-in repeatedly. Titus's
+  native Advanced Dashboard continued to work, and Walter's name/logo and
+  Arena suppression were visible.
+- PR 128 forced the legacy tenant verifier to bypass Better Auth's cookie cache.
+  The change remains valid session-revocation hardening, but the exact deployed
+  owner retest still returned HTTP 401 at `/api/auth/verify-tenant`.
+- Correlated value-free evidence proved the current platform session, active
+  owner membership, Walter Chat/native use-case and runtime IDs, enabled native
+  OIDC client, active hostname, running instance, and Walter Chat authorization
+  all remained valid. Canonical native-dashboard audits recorded
+  `not_authorized`.
+- Exact binding inspection found the remaining fail-closed drift: Walter's
+  `overnightdesk/platform_instance` binding remained `compatibility`, and the
+  linked native `better-auth/oidc_client` binding was absent. Feature 024's
+  stricter shared dashboard context correctly requires both bindings active.
+- RED/GREEN coverage now promotes only an exact same-use-case/runtime
+  `compatibility` dashboard binding to `active`; copied, duplicate, and
+  `rollback` records remain blocked. The same shared reconciler serves Titus
+  and Walter, while a Walter fixed-target OIDC command reuses the existing
+  shared OIDC binding planner/state writer.
+- Plan/apply/verify summaries contain counts and state only. Apply requires
+  exact Walter confirmations, a bounded audit actor, and an explicit private
+  runtime qualification sentinel. No runtime, membership, OIDC-client,
+  Nginx, provider, model, chat, user, secret, or volume mutation has occurred
+  during diagnosis or source implementation.
+
+**T041 decision**: source repair is GREEN and remains undeployed. Review,
+publication, exact two-binding reconciliation, and authenticated owner retest
+remain T042-T043.
+
+### T042 first quality-gate remediation
+
+- The first Ringer Sol review correctly returned `REQUEST CHANGES` before
+  publication. It found that the compatibility promotion was not compare-and-set,
+  unexpected same-scope dashboard identifiers were filtered out before planning,
+  Walter could accept Titus's confirmation literal, and the OIDC binding write
+  committed separately from its audit.
+- The shared platform-binding command now inspects both exact global identifiers
+  and every required provider/kind record in the canonical runtime scope. Each
+  promotion is constrained by exact ID, scope, provider, kind, value, and current
+  `compatibility` state.
+- Inserts, guarded promotions, and their metadata-only audit now execute in one
+  PostgreSQL statement whose affected-row invariant aborts the entire statement
+  on any stale or partial plan. Target-specific confirmation tests prove Walter
+  rejects Titus's phrase and Titus rejects Walter's phrase.
+- The shared OIDC store now exposes one audited reconciliation primitive. Its
+  exact binding insert or compare-and-set update and audit record commit in one
+  statement; concurrent exact writers converge without attributing their write
+  to this operator.
+- Behavioral coverage now includes OIDC insert, update, no-op, atomic audit
+  failure, post-plan copied-scope drift, and concurrent convergence. The
+  disposable-database integration contract covers unexpected same-scope
+  inspection and a mixed insert/promotion rollback race without using production.
+
+**Remediation decision**: the second independent Ringer Sol review returned
+`APPROVE` with no critical or required findings. Focused coverage passed 34/34;
+the complete suite passed 1,200 tests across 109 suites with 27 tests and four
+disposable-only suites skipped; TypeScript, the production build, dependency
+high-threshold audit, and diff checks passed. The final value-free production
+plan remains exact: zero bindings to create and one Walter platform binding to
+activate. Publication, exact deployed-revision verification, OIDC plan/apply
+after the base binding is active, and authenticated owner acceptance remain
+open under T042-T043.
