@@ -17,6 +17,7 @@ import {
   type DashboardInstanceReconciliationPlan,
   type DashboardInstanceReconciliationSnapshot,
 } from "@/lib/dashboard-instance-reconciliation";
+import { requireAuditActor } from "@/lib/audit-actor";
 import type { CanonicalIdentityTemplate } from "@/lib/use-case-identity-templates";
 
 type Database = typeof db;
@@ -361,8 +362,7 @@ export async function executeDashboardInstanceReconciliation(
   }
 
   requireDashboardAssignmentConfirmation(options.confirmation);
-  const actor = options.actor?.trim();
-  if (!actor) throw new Error("Dashboard assignment actor is required");
+  const actor = requireAuditActor(options.actor);
 
   let applyFailed = false;
   try {

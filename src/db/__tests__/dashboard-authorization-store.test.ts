@@ -23,6 +23,7 @@ const exactCandidate: DashboardAuthorizationCandidate = {
   oidcClientId: "public-client-1",
   useCaseId,
   runtimeIdentityId,
+  canonicalContextValid: true,
 };
 
 describe("dashboard authorization store", () => {

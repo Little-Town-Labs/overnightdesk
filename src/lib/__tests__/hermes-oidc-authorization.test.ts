@@ -24,6 +24,7 @@ describe("Hermes OIDC owner authorization", () => {
     return {
       instanceId: "instance-1",
       instanceUserId: "owner-1",
+      instanceTenantId: "tenant-a",
       instanceSubdomain: "tenant-a.overnightdesk.com",
       instanceStatus: "running",
       dashboardAuthStatus: "active",
@@ -31,6 +32,7 @@ describe("Hermes OIDC owner authorization", () => {
       useCaseId: null,
       runtimeIdentityId: null,
       oidcBindingValid: true,
+      canonicalContextValid: true,
       client: {
         clientId: "public-client-id",
         clientSecret: null,
@@ -139,6 +141,7 @@ describe("Hermes OIDC owner authorization", () => {
     ["inactive instance", context({ instanceStatus: "error" })],
     ["inactive linkage", context({ dashboardAuthStatus: "pending" })],
     ["missing runtime-scoped OIDC binding", context({ oidcBindingValid: false })],
+    ["drifted canonical selectors", context({ canonicalContextValid: false })],
     ["disabled client", context({ client: { ...context().client, disabled: true } })],
     ["malformed metadata", context({ client: { ...context().client, metadata: null } })],
   ])("denies %s", async (_name, value) => {

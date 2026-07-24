@@ -67,6 +67,8 @@ async function listAuthorizedRuntimes(
       and(
         eq(useCaseMembership.userId, userId),
         eq(useCaseMembership.status, "active"),
+        isNull(useCaseMembership.suspendedAt),
+        isNull(useCaseMembership.revokedAt),
         or(
           isNull(useCaseMembership.expiresAt),
           gt(useCaseMembership.expiresAt, new Date()),

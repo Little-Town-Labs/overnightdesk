@@ -110,7 +110,7 @@ agent surfaces.
 - [x] T028 [US3] Perform a read-only Aegis preflight of Titus/Walter runtimes, both chat deployments, Nginx, volumes, restart counts, effective provider/model sentinels, current routes, and Ops health and append value-free evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [x] T029a [US3] Publish, plan, apply, and verify the guarded additive reconciliation for the exact runtime-scoped Titus dashboard platform-instance and hostname bindings with private-runtime qualification, explicit confirmation, and one count-only audit in `scripts/dashboard-identity-binding-reconciliation.ts`
 - [x] T029 [US3] Run the guarded production assignment `plan` with zero writes, inspect canonical owner/runtime/binding uniqueness, and record only status/count evidence in `specs/024-titus-dashboard-access/quickstart.md`
-- [x] T030a [US3] Publish and deploy the explicit application-generated projection ID correction after a disposable Neon RED/GREEN plan/apply/verify regression proves the raw SQL path does not rely on a nonexistent database default
+- [x] T030a [US3] Publish and deploy the explicit application-generated projection ID correction after a disposable Neon RED/GREEN plan/apply/verify regression proves the parameterized Drizzle SQL expression path does not rely on a nonexistent database default
 - [x] T030 [US3] Apply and separately verify the canonical Titus dashboard projection with the explicit confirmation sentinel through `scripts/dashboard-instance-reconciliation.ts`
 - [x] T031a [US3] Publish and deploy the guarded fixed-target OIDC lifecycle command plus mode-600 local/mode-0400 Aegis client-ID staging path after disposable database and Titus runtime RED/GREEN qualification
 - [x] T031 [US3] Install the Titus Nginx/runtime candidate disabled, create the public OIDC client and exact runtime-scoped binding disabled, stage configuration through non-logging input, and verify private native auth, no published port, exact restart, and retained `hermes-titus-data` using `tenants/hermes-titus/scripts/deploy-aegis.sh`
@@ -123,9 +123,9 @@ agent surfaces.
 - [x] T035 [US3] Complete explicit platform logout, native-session expiry, OIDC revocation, reauthentication, and final restoration tests and record value-free outcomes in `specs/024-titus-dashboard-access/quickstart.md`
 - [x] T036a [US3] Publish and deploy the RED/GREEN Titus runtime verifier correction for the active Walter intake topology, retained inactive Agent rollback tuple, and all four routed intake volumes before repeating the exact-runtime persistence proof
 - [x] T036 [US3] Prove Titus Chat response, visible history, exact-runtime restart persistence, native dashboard state, Walter isolation, provider/model invariants, public denial, private health, and zero unintended restarts using `tenants/hermes-titus/scripts/deploy-aegis.sh`
-- [ ] T037 [US3] Rehearse active rollback in the specified order, prove Advanced Dashboard becomes unavailable while Chat/data remain healthy, restore the accepted candidate, and append both results to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T038 [US3] Obtain authenticated owner acceptance for Titus name/logo, Chat, dashboard launch, all expected Titus Kanban boards with correct Titus-only scope, retained conversation, and capability consistency across Overview, Chat, Settings, and Admin and record it in `specs/024-titus-dashboard-access/quickstart.md`
-- [ ] T039 [US3] Complete the Titus observation window with Walter, Open WebUI, Nginx, Vercel runtime, Aegis container, auth-sentinel, restart, and Ops-health checks and append the acceptance decision to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T037 [US3] Rehearse active rollback in the specified order, prove Advanced Dashboard becomes unavailable while Chat/data remain healthy, restore the accepted candidate, and append both results to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T038 [US3] Obtain authenticated owner acceptance for Titus name/logo, Chat, dashboard launch, all expected Titus Kanban boards with correct Titus-only scope, retained conversation, and capability consistency across Overview, Chat, Settings, and Admin and record it in `specs/024-titus-dashboard-access/quickstart.md`
+- [x] T039 [US3] Complete the Titus observation window with Walter, Open WebUI, Nginx, Vercel runtime, Aegis container, auth-sentinel, restart, and Ops-health checks and append the acceptance decision to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
 **Checkpoint**: Titus Advanced Dashboard is production-qualified, owner
 accepted, observable, and recoverable without coupling either chat deployment.
@@ -134,11 +134,16 @@ accepted, observable, and recoverable without coupling either chat deployment.
 
 ## Phase 6: Review, documentation, publication, and closeout
 
-- [ ] T040 Run Spec Kit cross-artifact analysis and remediate every critical or high-severity finding in `specs/024-titus-dashboard-access/`
-- [ ] T041 Run the complete Jest suite, production build, Chromium release suite, `npm audit --audit-level=high`, shell syntax checks, secret/value sentinel scan, and `git diff --check`, recording results in `specs/024-titus-dashboard-access/quickstart.md`
-- [ ] T042 Perform five-axis correctness/readability/architecture/security/performance review of the full diff and record findings in `specs/024-titus-dashboard-access/quickstart.md`
-- [ ] T043 Update Feature 024 status, task evidence, `.specify/roadmap.md`, `README.md`, and relevant runbooks with only verified behavior in `specs/024-titus-dashboard-access/` and repository documentation
-- [ ] T044 Update the capability, authorization, Titus runtime, rollback, and owner-acceptance contract in `/home/frosted639/src/overnightdesk-suite/overnightdesk-platform-standard/README.md`, `docs/decisions/006-capability-driven-composable-agent-workspace.md`, and `docs/runbooks/hermes-agent-update-protocol.md`, then synchronize the accepted production-mounted copy
+- [x] T040 Run Spec Kit cross-artifact analysis and remediate every critical or high-severity finding in `specs/024-titus-dashboard-access/`
+- [x] T041 Run the complete Jest suite, production build, Chromium release suite, `npm audit --audit-level=high`, shell syntax checks, secret/value sentinel scan, and `git diff --check`, recording results in `specs/024-titus-dashboard-access/quickstart.md`
+- [x] T042 Perform five-axis correctness/readability/architecture/security/performance review of the full diff and record findings in `specs/024-titus-dashboard-access/quickstart.md`
+- [x] T042a Add RED/GREEN current-membership directory coverage and reject timestamp-suspended or timestamp-revoked memberships from every platform selected-agent surface in `src/db/open-webui-workspace-directory.ts` and its tests
+- [x] T042b Replace the four owner-ID projection reads with one shared, bounded, membership-scoped selected-agent instance loader and prove an authorized non-owner can resolve the exact dashboard without cross-agent or ambiguous fallback
+- [x] T042c Re-prove the exact active use-case/runtime plus platform-instance, hostname, and OIDC bindings in the shared dashboard authorization/OIDC context and fixed Titus lifecycle target, with mismatched-selector RED/GREEN coverage
+- [x] T042d Make the production `rollback` action execute and verify OIDC disable before route removal and loopback restoration, and extend the operator contract tests to enforce that order
+- [x] T042e Reuse one bounded, non-secret audit-actor validator across dashboard projection and selector reconciliation, with RED/GREEN invalid-input coverage
+- [x] T043 Update Feature 024 status, task evidence, `.specify/roadmap.md`, `README.md`, and relevant runbooks with only verified behavior in `specs/024-titus-dashboard-access/` and repository documentation
+- [x] T044 Update the capability, authorization, Titus runtime, rollback, and owner-acceptance contract in `/home/frosted639/src/overnightdesk-suite/overnightdesk-platform-standard/README.md`, `docs/decisions/006-capability-driven-composable-agent-workspace.md`, and `docs/runbooks/hermes-agent-update-protocol.md`, then synchronize the accepted production-mounted copy
 - [ ] T045 Commit and push each owning repository, create reviewed pull requests, monitor checks and Vercel/Aegis health, merge only after acceptance, append publication evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`, and prune merged remote branches without discarding retained worktrees
 
 ---
@@ -165,6 +170,9 @@ accepted, observable, and recoverable without coupling either chat deployment.
 - T036a must merge, deploy, and pass the corrected production verifier after
   the safe exact-runtime restart before T036 may resume its browser persistence
   proof.
+- T042a-T042e are discovered-work gates from the first T042 Sol review. They
+  must pass focused and full qualification before the bounded T042 delta
+  re-review can approve closeout.
 - Publication requires all included tests, rollback proof, observation, owner
   acceptance, standard synchronization, and review gates.
 

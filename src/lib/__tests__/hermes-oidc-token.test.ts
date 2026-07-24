@@ -10,6 +10,7 @@ describe("Hermes OIDC token-time authorization", () => {
   const activeContext: HermesOidcAuthorizationContext = {
     instanceId: "instance-1",
     instanceUserId: "owner-1",
+    instanceTenantId: "aegis-prod",
     instanceSubdomain: "aegis-prod.overnightdesk.com",
     instanceStatus: "running",
     dashboardAuthStatus: "active",
@@ -17,6 +18,7 @@ describe("Hermes OIDC token-time authorization", () => {
     useCaseId: "00000000-0000-4000-8000-000000000000",
     runtimeIdentityId: "00000000-0000-4000-8000-000000000010",
     oidcBindingValid: true,
+    canonicalContextValid: true,
     client: {
       clientId: "public-client-id",
       clientSecret: null,
@@ -77,6 +79,7 @@ describe("Hermes OIDC token-time authorization", () => {
     ["instance stop", { ...activeContext, instanceStatus: "error" }],
     ["linkage disable", { ...activeContext, dashboardAuthStatus: "disabled" }],
     ["OIDC binding rollback", { ...activeContext, oidcBindingValid: false }],
+    ["canonical selector drift", { ...activeContext, canonicalContextValid: false }],
     ["client disable", { ...activeContext, client: { ...activeContext.client, disabled: true } }],
   ])("denies token creation after %s", async (_name, value) => {
     await expect(

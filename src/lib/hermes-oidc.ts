@@ -40,6 +40,7 @@ export interface HermesOidcInstanceRecord {
 export interface HermesOidcAuthorizationContext {
   instanceId: string;
   instanceUserId: string;
+  instanceTenantId: string;
   instanceSubdomain: string;
   instanceStatus: string;
   dashboardAuthStatus: string;
@@ -47,6 +48,7 @@ export interface HermesOidcAuthorizationContext {
   useCaseId: string | null;
   runtimeIdentityId: string | null;
   oidcBindingValid: boolean;
+  canonicalContextValid: boolean;
   client: HermesOidcClientRecord;
 }
 
@@ -203,6 +205,7 @@ function isActiveOidcContext(
     context.dashboardAuthStatus === "active" &&
     context.linkedClientId === context.client.clientId &&
     context.oidcBindingValid &&
+    context.canonicalContextValid &&
     !context.client.disabled &&
     scopes.length > 0 &&
     scopes.includes("openid") &&
@@ -219,7 +222,7 @@ async function selectAuthorizationContext(
   by: "client" | "instance",
   value: string
 ): Promise<HermesOidcAuthorizationContext | null> {
-  const [{ db }, schema, { and, eq }] = await Promise.all([
+  const [{ db }, schema, { eq }] = await Promise.all([
     import("@/db"),
     import("@/db/schema"),
     import("drizzle-orm"),
@@ -228,6 +231,7 @@ async function selectAuthorizationContext(
     .select({
       instanceId: schema.instance.id,
       instanceUserId: schema.instance.userId,
+      instanceTenantId: schema.instance.tenantId,
       instanceSubdomain: schema.instance.subdomain,
       instanceStatus: schema.instance.status,
       dashboardAuthStatus: schema.instance.hermesDashboardAuthStatus,
@@ -262,29 +266,38 @@ async function selectAuthorizationContext(
     )
     .limit(2);
 
-  if (rows.length !== 1 || !rows[0].instanceSubdomain) return null;
+  if (rows.length !== 1) return null;
   const row = rows[0];
+  const hostname = row.instanceSubdomain;
+  if (!hostname) return null;
   const hasUseCase = row.useCaseId !== null;
   const hasRuntime = row.runtimeIdentityId !== null;
   let oidcBindingValid = !hasUseCase && !hasRuntime;
+  let canonicalContextValid = !hasUseCase && !hasRuntime;
   if (hasUseCase && hasRuntime) {
-    const bindings = await db
-      .select({ id: schema.resourceBinding.id })
-      .from(schema.resourceBinding)
-      .where(
-        and(
-          eq(schema.resourceBinding.useCaseId, row.useCaseId!),
-          eq(schema.resourceBinding.runtimeIdentityId, row.runtimeIdentityId!),
-          eq(schema.resourceBinding.provider, "better-auth"),
-          eq(schema.resourceBinding.kind, "oidc_client"),
-          eq(schema.resourceBinding.value, row.client.clientId),
-          eq(schema.resourceBinding.state, "active"),
-        ),
-      )
-      .limit(2);
-    oidcBindingValid = bindings.length === 1;
+    const { readDashboardCanonicalContext } = await import(
+      "@/db/dashboard-canonical-context-store"
+    );
+    canonicalContextValid = await readDashboardCanonicalContext(
+      {
+        useCaseId: row.useCaseId!,
+        runtimeIdentityId: row.runtimeIdentityId!,
+        tenantId: row.instanceTenantId,
+        hostname,
+        oidc: {
+          clientId: row.client.clientId,
+          allowedStates: ["active"],
+        },
+      },
+      db,
+    );
+    oidcBindingValid = canonicalContextValid;
   }
-  return { ...row, oidcBindingValid } as HermesOidcAuthorizationContext;
+  return {
+    ...row,
+    oidcBindingValid,
+    canonicalContextValid,
+  } as HermesOidcAuthorizationContext;
 }
 
 const defaultAuthorizationGateway: HermesOidcAuthorizationGateway = {

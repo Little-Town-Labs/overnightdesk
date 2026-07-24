@@ -16,7 +16,7 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** 024 — Titus Advanced Dashboard Access
-**Current critical path:** resume Feature 024 at T037, complete owner acceptance and observation, then publish its final closeout
+**Current critical path:** publish Feature 024's approved implementation and platform-standard closeout, then verify the exact merged production revisions
 
 ## Current Delivery Checkpoint — 2026-07-24
 
@@ -38,8 +38,28 @@ the active Spec Kit feature artifacts and the production platform standard.
   OvernightDesk merge reached Ready on all production aliases. Final read-only
   qualification proved guarded sending active with the rollback marker absent,
   the exact eight hosted reads and two guarded tools healthy, and zero recent
-  critical signatures. Feature 025 is complete at 78/78. Feature 024 is
-  authorized to resume at 43/52 before T037.
+  critical signatures. Feature 025 is complete at 78/78 and authorized Feature
+  024 to resume.
+
+- **Feature 024 — production accepted, publication in progress:** Titus's
+  native Hermes dashboard is active at
+  `titus-dashboard.overnightdesk.com` behind exact canonical membership,
+  runtime-scoped self-hosted OIDC, and the same selected-agent capability path
+  used by Overview, Chat, Settings, and Admin. Controlled authority denials,
+  logout/expiry/revocation, restart persistence, active rollback/restoration,
+  Titus-only Kanban owner acceptance, and the observation window passed on
+  2026-07-24 without cross-agent state loss. The first Sol review identified
+  five Required authority and lifecycle findings; test-first remediation now
+  rejects timestamp suspension/revocation at the platform boundary, supports
+  canonical non-owner members, revalidates the exact active platform/hostname/
+  OIDC context, executes OIDC-first rollback, and bounds audit actors. Complete
+  regression qualification passed 108 Jest suites/1,190 tests, 94 Titus tests,
+  the production build, 26 Chromium scenarios, the high-severity audit gate,
+  shell/credential/diff checks, and disposable Neon lifecycle coverage. The
+  bounded Sol delta approved all five corrections with no new Critical issue.
+  T042-T044 are complete, including exact platform-standard merge `2dc8b02`
+  synchronized to the production-mounted checkout with both Ops listeners
+  healthy. Exact application revision publication remains T045.
 
 - **Feature 020 — deployed baseline:** Titus Open WebUI is the accepted
   reference canary. Dashboard PRs 83 and 84 deployed the membership-filtered

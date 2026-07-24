@@ -10,6 +10,7 @@ export interface DashboardAuthorizationCandidate {
   oidcClientId: string | null;
   useCaseId: string | null;
   runtimeIdentityId: string | null;
+  canonicalContextValid: boolean;
 }
 
 export type DashboardMembershipDecision =
@@ -61,6 +62,7 @@ const candidateSchema = z
     oidcClientId: z.string().min(1).max(255).nullable(),
     useCaseId: z.string().uuid().nullable(),
     runtimeIdentityId: z.string().uuid().nullable(),
+    canonicalContextValid: z.boolean(),
   })
   .strict();
 
@@ -164,6 +166,7 @@ export async function authorizeDashboardAccess(
   if (canonicalUseCaseId === null || canonicalRuntimeIdentityId === null) {
     return denied("authorization_unavailable");
   }
+  if (!candidate.canonicalContextValid) return denied("not_authorized");
 
   try {
     const rawDecision = await membership.authorize({

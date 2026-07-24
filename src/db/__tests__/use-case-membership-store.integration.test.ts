@@ -11,7 +11,7 @@ const describeIntegration = safeDisposableDatabase ? describe : describe.skip;
 describeIntegration("Drizzle use-case membership store", () => {
   it("resolves only active, unexpired, unsuspended, unrevoked membership within an active canonical assignment", async () => {
     const [
-      { and, eq, inArray },
+      { and, eq, inArray, or },
       { db },
       schema,
       storeModule,
@@ -24,7 +24,11 @@ describeIntegration("Drizzle use-case membership store", () => {
       import("@/lib/use-case-membership-authorization"),
     ]);
     const {
+      instance,
+      oauthClient,
+      personaAssignment,
       platformAuditLog,
+      resourceBinding,
       runtimeIdentity,
       useCase,
       useCaseMembership,
@@ -59,6 +63,16 @@ describeIntegration("Drizzle use-case membership store", () => {
       ids.activeRuntime,
       ids.otherRuntime,
       ids.inactiveRuntime,
+    ];
+    const dashboardTenantId = `membership-tenant-${ids.activeRuntime}`;
+    const dashboardHostname =
+      `membership-${ids.activeRuntime}.overnightdesk.com`;
+    const dashboardOidcClientId = `membership-client-${ids.activeRuntime}`;
+    const dashboardInstanceId = `membership-instance-${ids.activeRuntime}`;
+    const dashboardBindingValues = [
+      dashboardTenantId,
+      dashboardHostname,
+      dashboardOidcClientId,
     ];
 
     try {
@@ -105,6 +119,24 @@ describeIntegration("Drizzle use-case membership store", () => {
           slug: `membership-runtime-${ids.inactiveRuntime}`,
           memoryBoundaryKind: "qualification",
           status: "suspended",
+        },
+      ]);
+      await db.insert(personaAssignment).values([
+        {
+          runtimeIdentityId: ids.activeRuntime,
+          personaKey: "membership-active",
+          displayName: "Active membership agent",
+          isDefault: true,
+          authorityProfile: "qualification",
+          status: "active",
+        },
+        {
+          runtimeIdentityId: ids.otherRuntime,
+          personaKey: "membership-other",
+          displayName: "Other membership agent",
+          isDefault: true,
+          authorityProfile: "qualification",
+          status: "active",
         },
       ]);
       await db.insert(useCaseMembership).values([
@@ -168,6 +200,113 @@ describeIntegration("Drizzle use-case membership store", () => {
           grantedBy: "test:membership-store",
         },
       ]);
+      await db.insert(oauthClient).values({
+        clientId: dashboardOidcClientId,
+        redirectUris: [`https://${dashboardHostname}/auth/callback`],
+      });
+      await db.insert(instance).values({
+        id: dashboardInstanceId,
+        userId: ids.broadUser,
+        tenantId: dashboardTenantId,
+        useCaseId: ids.activeUseCase,
+        runtimeIdentityId: ids.activeRuntime,
+        status: "running",
+        containerId: "hermes-membership-qualification",
+        subdomain: dashboardHostname,
+        hermesOidcClientId: dashboardOidcClientId,
+        hermesDashboardAuthStatus: "active",
+      });
+      await db.insert(resourceBinding).values([
+        {
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: ids.activeRuntime,
+          provider: "overnightdesk",
+          kind: "platform_instance",
+          value: dashboardTenantId,
+          state: "active",
+        },
+        {
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: ids.activeRuntime,
+          provider: "nginx",
+          kind: "hostname",
+          value: dashboardHostname,
+          state: "active",
+        },
+        {
+          useCaseId: ids.activeUseCase,
+          runtimeIdentityId: ids.activeRuntime,
+          provider: "better-auth",
+          kind: "oidc_client",
+          value: dashboardOidcClientId,
+          state: "active",
+        },
+      ]);
+
+      const { readDashboardCanonicalContext } = await import(
+        "@/db/dashboard-canonical-context-store"
+      );
+      const canonicalRequirement = {
+        useCaseId: ids.activeUseCase,
+        runtimeIdentityId: ids.activeRuntime,
+        tenantId: dashboardTenantId,
+        hostname: dashboardHostname,
+        oidc: {
+          clientId: dashboardOidcClientId,
+          allowedStates: ["active"] as const,
+        },
+      };
+      await expect(
+        readDashboardCanonicalContext(canonicalRequirement, db),
+      ).resolves.toBe(true);
+
+      await db
+        .update(resourceBinding)
+        .set({ runtimeIdentityId: ids.otherRuntime })
+        .where(eq(resourceBinding.value, dashboardHostname));
+      await expect(
+        readDashboardCanonicalContext(canonicalRequirement, db),
+      ).resolves.toBe(false);
+      await db
+        .update(resourceBinding)
+        .set({ runtimeIdentityId: ids.activeRuntime })
+        .where(eq(resourceBinding.value, dashboardHostname));
+
+      await db
+        .update(useCase)
+        .set({ status: "suspended" })
+        .where(eq(useCase.id, ids.activeUseCase));
+      await expect(
+        readDashboardCanonicalContext(canonicalRequirement, db),
+      ).resolves.toBe(false);
+      await db
+        .update(useCase)
+        .set({ status: "active" })
+        .where(eq(useCase.id, ids.activeUseCase));
+
+      await db
+        .update(resourceBinding)
+        .set({ state: "rollback" })
+        .where(eq(resourceBinding.value, dashboardOidcClientId));
+      await expect(
+        readDashboardCanonicalContext(canonicalRequirement, db),
+      ).resolves.toBe(false);
+      await expect(
+        readDashboardCanonicalContext(
+          {
+            ...canonicalRequirement,
+            oidc: {
+              clientId: dashboardOidcClientId,
+              allowedStates: ["active", "rollback"],
+            },
+          },
+          db,
+        ),
+      ).resolves.toBe(true);
+      await db
+        .update(resourceBinding)
+        .set({ state: "active" })
+        .where(eq(resourceBinding.value, dashboardOidcClientId));
 
       const store = storeModule.createDrizzleUseCaseMembershipStore(db);
       await expect(
@@ -249,6 +388,50 @@ describeIntegration("Drizzle use-case membership store", () => {
         }),
       ).resolves.toBeNull();
 
+      const { createOpenWebuiWorkspaceDirectoryStore } =
+        await import("@/db/open-webui-workspace-directory");
+      const directory = createOpenWebuiWorkspaceDirectoryStore(db);
+      await expect(
+        directory.listAuthorizedAgents(ids.broadUser),
+      ).resolves.toHaveLength(2);
+      await expect(
+        directory.listAuthorizedAgents(ids.scopedUser),
+      ).resolves.toEqual([
+        expect.objectContaining({ runtimeIdentityId: ids.activeRuntime }),
+      ]);
+      await expect(
+        directory.listAuthorizedAgents(ids.suspendedTimestampUser),
+      ).resolves.toEqual([]);
+      await expect(
+        directory.listAuthorizedAgents(ids.revokedTimestampUser),
+      ).resolves.toEqual([]);
+      await expect(
+        directory.listAuthorizedAgents(ids.expiredUser),
+      ).resolves.toEqual([]);
+
+      const [{ resolveSelectedAgentPageContext }, { resolveAgentDirectory }] =
+        await Promise.all([
+          import("@/db/selected-agent-page-context"),
+          import("@/lib/open-webui-workspace"),
+        ]);
+      const scopedDirectory = await resolveAgentDirectory(
+        ids.scopedUser,
+        directory,
+      );
+      await expect(
+        resolveSelectedAgentPageContext(ids.scopedUser, scopedDirectory),
+      ).resolves.toMatchObject({
+        status: "available",
+        instances: [
+          {
+            tenantId: dashboardTenantId,
+            useCaseId: ids.activeUseCase,
+            runtimeIdentityId: ids.activeRuntime,
+            engineApiKey: null,
+          },
+        ],
+      });
+
       const authorizer = authorizationModule.createUseCaseMembershipAuthorizer({
         store,
         assignment: {
@@ -280,22 +463,65 @@ describeIntegration("Drizzle use-case membership store", () => {
         subjectFingerprint: expect.stringMatching(/^[a-f0-9]{16}$/),
       });
       expect(JSON.stringify(auditRows)).not.toContain(ids.broadUser);
+
+      const { createDrizzleDashboardAuthorizationStore } = await import(
+        "@/db/dashboard-authorization-store"
+      );
+      const dashboardStore = createDrizzleDashboardAuthorizationStore(db);
+      await expect(
+        dashboardStore.authorize({
+          requestedHost: dashboardHostname,
+          userId: ids.broadUser,
+        }),
+      ).resolves.toMatchObject({
+        authorized: true,
+        authority: "canonical",
+      });
+      await db
+        .update(resourceBinding)
+        .set({ runtimeIdentityId: ids.otherRuntime })
+        .where(eq(resourceBinding.value, dashboardHostname));
+      await expect(
+        dashboardStore.authorize({
+          requestedHost: dashboardHostname,
+          userId: ids.broadUser,
+        }),
+      ).resolves.toEqual({
+        authorized: false,
+        reason: "not_authorized",
+      });
+      await db
+        .update(resourceBinding)
+        .set({ runtimeIdentityId: ids.activeRuntime })
+        .where(eq(resourceBinding.value, dashboardHostname));
     } finally {
+      await db
+        .delete(instance)
+        .where(inArray(instance.runtimeIdentityId, runtimeIds));
+      await db
+        .delete(resourceBinding)
+        .where(inArray(resourceBinding.value, dashboardBindingValues));
+      await db
+        .delete(oauthClient)
+        .where(eq(oauthClient.clientId, dashboardOidcClientId));
       await db
         .delete(useCaseMembership)
         .where(inArray(useCaseMembership.userId, userIds));
+      await db
+        .delete(personaAssignment)
+        .where(inArray(personaAssignment.runtimeIdentityId, runtimeIds));
       await db
         .delete(runtimeIdentity)
         .where(inArray(runtimeIdentity.id, runtimeIds));
       await db
         .delete(platformAuditLog)
         .where(
-          and(
-            eq(
-              platformAuditLog.action,
-              "use_case_membership_authorization.granted",
-            ),
+          or(
             eq(platformAuditLog.target, `use_case:${ids.activeUseCase}`),
+            eq(
+              platformAuditLog.target,
+              `instance:${dashboardInstanceId}`,
+            ),
           ),
         );
       await db.delete(useCase).where(inArray(useCase.id, useCaseIds));

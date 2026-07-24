@@ -3,9 +3,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getSubscriptionForUser, isAdmin } from "@/lib/billing";
 import { ManageBillingButton } from "./manage-billing-button";
-import { db } from "@/db";
-import { instance } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { resolveSelectedAgentPageContext } from "@/db/selected-agent-page-context";
 import { AuthStatusBadge } from "./auth-status-badge";
 import { OnboardingWizard } from "./onboarding-wizard";
 import { RestartButton } from "./restart-button";
@@ -36,11 +34,20 @@ export default async function DashboardPage({
   if (!session) redirect("/sign-in");
 
   const userIsAdmin = isAdmin(session.user.email);
-  const [rawSub, instances, agentDirectory] = await Promise.all([
+  const [rawSub, agentDirectory] = await Promise.all([
     getSubscriptionForUser(session.user.id),
-    db.select().from(instance).where(eq(instance.userId, session.user.id)),
     resolveAgentDirectory(session.user.id),
   ]);
+  const pageContext = await resolveSelectedAgentPageContext(
+    session.user.id,
+    agentDirectory,
+  );
+  const resolvedDirectory =
+    pageContext.status === "available"
+      ? pageContext.directory
+      : ({ status: "unavailable" } as const);
+  const instances =
+    pageContext.status === "available" ? pageContext.instances : [];
 
   const sub = rawSub
     ? {
@@ -54,7 +61,7 @@ export default async function DashboardPage({
   const rawAgent = (await searchParams).agent;
   if (Array.isArray(rawAgent)) notFound();
   const agentResolution = resolveSelectedAgentContext(
-    agentDirectory,
+    resolvedDirectory,
     rawAgent,
     instances,
   );

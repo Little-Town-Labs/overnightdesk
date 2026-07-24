@@ -705,9 +705,288 @@ Restore the accepted candidate using the same exact records, then observe
 Titus, Walter, both OpenWebUI deployments, Nginx, and Ops for unexpected
 restarts, auth sentinels, or 5xx responses.
 
+### T037 active rollback and restoration — 2026-07-24
+
+- Read-only preflight verified one active canonical membership, the exact
+  dashboard bindings, active OIDC authorization, guarded email, the effective
+  `xiaomi/mimo-v2.5-pro` route, retained runtime/Open WebUI/intake volumes,
+  SQLite integrity, and healthy zero-restart Titus, Walter, both Open WebUI
+  deployments, Nginx, Ops, and SecurityTeam. The owner confirmed existing
+  Titus history, a fresh response, the authenticated dashboard, and an
+  already-open Chat before mutation.
+- The rollback disabled and separately verified the exact OIDC authorization,
+  removed only the Titus dashboard route, installed the root-owned mode-0400
+  durable rollback marker, and restarted only `hermes-titus`. The replacement
+  was healthy, ran the dashboard on `127.0.0.1:9119`, and published no host
+  ports. The owner confirmed Titus Chat/history and Walter remained available
+  while Advanced Dashboard was unavailable.
+- Restoration installed the same reviewed candidate with its route disabled
+  after 94 Titus tests passed, proved private health and marker persistence
+  across the required candidate-only restart, reactivated and separately
+  verified the exact OIDC record, and enabled the route only after Nginx
+  syntax passed. The owner then confirmed both the authenticated Advanced
+  Dashboard and retained Titus Chat/history returned.
+- Final qualification passed guarded email with the exact eight hosted reads
+  and two guarded tools, MiMo with medium reasoning, delegation, memory,
+  Matrix, Control Tower, private networking, and zero published ports. Public
+  `www` returned HTTP 200 while anonymous Titus Dashboard, Titus Chat, and
+  Walter Chat returned HTTP 401. The rollback marker is absent, route present,
+  and protected client-ID file root-owned mode 0400.
+- Every unrelated container retained its exact identity and restart count
+  zero; all eight named volumes remained present. The guarded-email ledger
+  retained inode `3450668`, size `16384`, mode `0600`, integrity `ok`, and two
+  rows. Open WebUI metadata remained integrity `ok` with one user, nine active
+  chats after owner activity, and zero orphaned active chats. No email, retry,
+  provider, model, membership, chat, memory, volume, or unrelated-service
+  mutation occurred. T037 is complete.
+
+### T038 authenticated owner acceptance — 2026-07-24
+
+The owner authenticated and accepted Titus's name and logo, retained Chat and
+conversation history, Advanced Dashboard launch, all expected Titus Kanban
+boards with correct Titus-only scope and no Walter or other-agent disclosure,
+and consistent Advanced Dashboard availability across Overview, Chat,
+Settings, and Admin. Together with the immediately preceding protected-route
+and restoration qualification, T038 is complete.
+
+### T039 production observation — 2026-07-24
+
+- After the accepted restoration interval, a fresh full Titus qualification
+  passed guarded email, exact hosted/local tool counts, MiMo, medium reasoning,
+  delegation, memory, Matrix, Control Tower, private networking, native health,
+  and zero published ports.
+- Titus, Walter, both Open WebUI deployments, Nginx, Ops, and SecurityTeam were
+  running; every scoped container reported restart count zero, and each
+  health-instrumented container was healthy. Nginx syntax passed and both Ops
+  health listeners returned HTTP 200.
+- Since restoration, Titus, Walter, both Open WebUI deployments, Nginx, and Ops
+  produced zero scoped critical error signatures, and Nginx produced zero HTTP
+  5xx responses. The value-free Titus Open WebUI authentication sentinel was
+  absent from production logs.
+- The Vercel runtime returned HTTP 200 at `/` and fail-closed HTTP 307
+  authentication redirects at `/dashboard`, `/dashboard/chat`,
+  `/dashboard/settings`, and `/dashboard/admin`. Anonymous Titus Dashboard,
+  Titus Chat, and Walter Chat each returned HTTP 401.
+
+The accepted candidate remains healthy, protected, observable, and isolated.
+No production write or restart occurred during observation. T039 is complete.
+
 ## 10. Closeout
 
-After owner acceptance:
+### T040 Spec Kit cross-artifact analysis — 2026-07-24
+
+The repository `speckit-analyze` workflow resolved Feature 024 through an
+explicit feature-directory override because the persisted pointer still names
+the completed Feature 025 package. Analysis mapped all 18 functional
+requirements and nine measurable success criteria to the 52-task delivery
+plan: requirement coverage is 100%, with zero ambiguity, duplication,
+constitution, Critical, or High findings.
+
+Two non-blocking documentation findings were assigned to T043: the
+spec/pointer/roadmap lifecycle status lagged the verified T039 checkpoint, and
+two references to a “raw SQL path” needed to say “parameterized Drizzle SQL
+expression path” to match the implementation and constitution. T043 corrected
+both after inspection confirmed database access remains through Drizzle. T040
+is complete with no Critical or High remediation required.
+
+### T041 complete release qualification — 2026-07-24
+
+- The complete Jest run passed 105 suites and 1,158 tests, with the established
+  four suites and 27 tests skipped.
+- Titus qualification passed 94 Python tests plus runtime/configuration
+  contracts, shell syntax, and the source credential-literal sentinel.
+- The Next.js 15.5.21 production build passed with the documented unreachable
+  build-only PostgreSQL URL. Better Auth emitted non-production default-secret
+  warnings during static generation, but compilation, type checking, page
+  generation, optimization, and trace collection completed successfully.
+- Chromium passed all 26 release scenarios after the repository fixture was
+  launched through the managed web-application test runner. The initial direct
+  invocation failed all scenarios before assertions with `ECONNREFUSED` because
+  port 4173 had no fixture server; no product failure was observed.
+- `npm audit --audit-level=high` passed with zero High or Critical findings.
+  Five known Moderate findings remain: one OAuth resource-indicator advisory
+  has no available fix, and the development-only esbuild chain requires a
+  breaking `drizzle-kit` downgrade to auto-fix.
+- Explicit shell syntax checks and `git diff --check` passed. The first build
+  invocation also failed closed before page collection because no
+  `DATABASE_URL` was supplied; the corrected build used no production
+  credential and made no database connection.
+
+T041 is complete. No production state changed.
+
+### T042 initial five-axis review — 2026-07-24
+
+Ringer Sol completed a read-only feature-level correctness, readability,
+architecture, security, and performance review
+(`overnightdesk-feature-024-t042-sol-review-20260724T141408Z-p231007`). It
+accepted the T037-T041 production evidence as internally consistent and found
+no Critical issue, but returned `REQUEST_CHANGES` with five Required findings:
+
+1. the platform selected-agent directory did not reject timestamp suspension
+   or revocation even though the direct and native boundaries did;
+2. the four platform surfaces still loaded dashboard projections through the
+   legacy owner ID, preventing a valid non-owner canonical member from
+   receiving the capability;
+3. request-time authorization and the fixed lifecycle command did not re-prove
+   the exact active platform-instance and hostname selectors;
+4. the production command named `rollback` did not itself enforce the
+   documented OIDC-disable-first sequence; and
+5. the two reconciliation audit actors were non-empty but not bounded to the
+   value-free operator identifier contract.
+
+The review also recorded three Optional follow-ups: batching the selected-agent
+directory's per-runtime reads, compare-and-set OIDC binding updates, and
+separating raw failure diagnostics from closeout evidence. They do not expand
+the Required remediation round.
+
+T042 remains open. T042a-T042e are explicit discovered-work gates for
+test-first remediation and a bounded Sol delta re-review. Production remains in
+the accepted, guarded state; this review made no production, database, email,
+route, runtime, or secret change.
+
+#### T042e bounded audit actors — 2026-07-24
+
+- RED proved the shared audit-actor contract did not yet exist.
+- GREEN added one bounded 3-128 character operator identifier validator and
+  reused it for dashboard projection, selector-binding, and membership
+  qualification audit actors. It rejects empty, leading/trailing whitespace,
+  email/URL-shaped, assignment-shaped, control-character, and overlength values
+  rather than sanitizing or persisting them.
+- The shared validator plus both reconciliation stores and the existing
+  membership qualification store passed 32 focused tests. No database
+  connection or production mutation occurred. T042e is complete.
+
+#### T042a current platform membership — 2026-07-24
+
+- RED extended the real Drizzle disposable-database qualification to the
+  membership-filtered selected-agent directory. An active-status membership
+  carrying `suspended_at` incorrectly returned both active runtimes, reproducing
+  the production card/direct-boundary mismatch before any implementation edit.
+- GREEN added the same null suspension and revocation predicates already used
+  by the canonical direct/OIDC membership store. The complete disposable
+  qualification then passed current broad/runtime-scoped membership,
+  timestamp suspension, timestamp revocation, expiry, six guarded
+  denial/restoration transitions, six count-only audits, and final active
+  restoration.
+- The harness created and force-dropped only its uniquely named disposable
+  database. No production membership, dashboard, runtime, email, route, or
+  user-data state changed. T042a is complete.
+
+#### T042b membership-scoped dashboard projections — 2026-07-24
+
+- RED proved the shared projection loader did not yet exist and established
+  fail-closed coverage for duplicate or mismatched canonical projections,
+  non-members, and all four selected-agent surfaces.
+- GREEN replaced the four owner-ID instance reads with one bounded loader. It
+  queries canonical projections only by the runtime identities already
+  authorized by the current directory, validates each exact use-case/runtime
+  pair and uniqueness, and keeps legacy owner fallback restricted to rows with
+  no canonical links.
+- The focused loader suite passed four tests, TypeScript passed, and the real
+  disposable-database qualification proved a runtime-scoped non-owner member
+  can load the exact canonical dashboard projection while receiving no engine
+  credential. The qualification retained its six guarded lifecycle
+  transitions, six count-only audit records, and final active state.
+
+No production database, membership, dashboard, runtime, route, email, or
+user-data state changed. T042b is complete.
+
+#### T042c exact canonical dashboard context — 2026-07-24
+
+- RED established one shared context contract and deliberately mismatched the
+  active use case, active runtime, runtime/use-case relationship,
+  platform-instance selector, hostname selector, OIDC selector state, and
+  selector cardinality. The request-time verifier and both OIDC gates also
+  failed their new drift-denial expectations before the context was consumed.
+- GREEN added one bounded canonical dashboard context reader. It requires the
+  exact active use-case/runtime pair, one active
+  `overnightdesk/platform_instance` selector, one active `nginx/hostname`
+  selector, and the exact runtime-scoped `better-auth/oidc_client` selector.
+  Request-time authorization and OIDC authorization/token issuance require the
+  OIDC selector to be active. The fixed Titus lifecycle target additionally
+  requires the exact `timeless-tech-solutions`/`hermes-titus` slugs and permits
+  only the exact active or rollback OIDC state needed for guarded lifecycle
+  inspection.
+- Eighty-one focused tests and TypeScript passed. The protected disposable
+  Neon qualification exercised the real Drizzle reader and request-time store,
+  denied a cross-runtime hostname selector and inactive use case, distinguished
+  active from rollback OIDC state, completed six guarded membership
+  transitions, verified six count-only audit records, restored final active
+  state, and force-dropped only its unique test database.
+
+No production database, OIDC, membership, dashboard, runtime, route, email, or
+user-data state changed. T042c is complete.
+
+#### T042d executable OIDC-first rollback — 2026-07-24
+
+- RED extended the Titus operator contract to require the production
+  `rollback` action itself to contain the OIDC disable, separate disabled-state
+  verification, route removal, durable loopback marker, and exact Titus
+  stop/start in that order. The prior host-only action failed this contract
+  before implementation.
+- GREEN makes `rollback` require the exact
+  `DISABLE_TITUS_DASHBOARD_OIDC` confirmation, run the canonical database
+  disable command, and run the separate `verify-disabled` command before
+  calling the route-removal or loopback-runtime steps. Missing database
+  authority, failed disable, or failed verification therefore stops before any
+  host route or runtime change.
+- The focused operator suite passed all six tests, Bash syntax passed, and the
+  diff is whitespace-clean. This source correction did not repeat the already
+  accepted production rollback rehearsal.
+
+No production database, OIDC, route, runtime, restart, email, or user-data
+state changed. T042d is complete.
+
+#### T042 post-remediation qualification and delta review — 2026-07-24
+
+- The complete Jest regression passed 108 suites and 1,190 tests, with the
+  established four suites and 27 tests skipped.
+- Titus qualification passed 94 tests and its runtime, configuration, shell,
+  and credential-literal contracts.
+- The Next.js 15.5.21 production build passed with the documented unreachable
+  build-only PostgreSQL URL, and all 26 Chromium release scenarios passed
+  through the managed fixture server.
+- `npm audit --audit-level=high` passed with no High or Critical findings; the
+  five known Moderate advisories remain unchanged. TypeScript, explicit Bash
+  syntax, the source credential-literal sentinel, and `git diff --check`
+  passed.
+- The protected disposable Neon qualification passed the real Drizzle
+  membership, projection, and canonical-context readers, six guarded
+  denial/restoration transitions, six count-only audits, and final active
+  restoration before force-dropping only its unique test database.
+- One bounded read-only Ringer Sol delta review
+  (`overnightdesk-feature-024-t042-sol-delta-20260724T155032Z-p265886`)
+  inspected only R1-R5. Each finding is resolved, no new Critical security or
+  correctness regression was identified, and the final verdict is `APPROVE`.
+  Optional O1-O3 were not promoted or added to this closeout.
+
+T042 is complete. No production, database, membership, OIDC, route, runtime,
+restart, email, credential, or user-data state changed during remediation,
+qualification, or review.
+
+### T043-T044 documentation and platform-standard synchronization — 2026-07-24
+
+- The active Spec Kit pointer, plan pointer, lifecycle status, roadmap,
+  repository README, task evidence, and Drizzle terminology now match the
+  verified Feature 024 state.
+- Platform-standard PR 43 merged exact revision `2dc8b02`. README, ADR 006, the
+  Hermes update protocol, WHY/WHO projections, and Titus identity, Hermes, and
+  service inventories now define the shared capability path, current canonical
+  membership and exact runtime-selector authority, self-hosted public-client
+  OIDC, OIDC-first rollback, and the separate Titus owner-acceptance contract.
+- The clean production-mounted standard fast-forwarded from `26201b9` through
+  the bookkeeping-only prior merge to exact `2dc8b02`. Only
+  `overnightdesk-ops` restarted.
+- All 16 WHAT YAML files parsed; mounted `why.yaml`, `who.yaml`,
+  `identity.yaml`, `hermes.yaml`, and `services.yaml` checksums matched the
+  merged checkout. Both internal Ops listeners returned HTTP 200,
+  `restart_count` remained zero, and recent relevant errors were zero.
+
+T043 and T044 are complete. No tenant runtime, email, retry, provider, model,
+secret, route, authority, membership, certificate, volume, chat, memory, or
+user-data state changed.
+
+After owner acceptance and technical review:
 
 - update `spec.md`, `tasks.md`, roadmap, and this quickstart with value-free
   evidence;

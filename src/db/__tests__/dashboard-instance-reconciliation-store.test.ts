@@ -200,6 +200,20 @@ describe("dashboard instance reconciliation store", () => {
       ),
     ).rejects.toThrow("Dashboard assignment confirmation is required");
 
+    const invalidActor = gateway([snapshot()]);
+    await expect(
+      executeDashboardInstanceReconciliation(
+        "apply",
+        descriptor,
+        {
+          actor: "TOKEN=secret-value",
+          confirmation: "APPLY_CANONICAL_DASHBOARD_ASSIGNMENT",
+          now: current,
+        },
+        invalidActor,
+      ),
+    ).rejects.toThrow("Audit actor is invalid");
+
     const conflicting = gateway([
       snapshot(),
       snapshot({
