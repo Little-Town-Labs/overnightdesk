@@ -16,6 +16,7 @@ import {
   type DashboardIdentityBindingPlan,
   type DashboardIdentityBindingSnapshot,
 } from "@/lib/dashboard-identity-binding-reconciliation";
+import { requireAuditActor } from "@/lib/audit-actor";
 import type { CanonicalIdentityTemplate } from "@/lib/use-case-identity-templates";
 
 type Database = typeof db;
@@ -172,8 +173,7 @@ function requireApplyActor(
   options: DashboardIdentityBindingReconciliationOptions,
 ) {
   requireDashboardIdentityBindingConfirmation(options.confirmation);
-  const actor = options.actor?.trim();
-  if (!actor) throw new Error("Dashboard identity binding actor is required");
+  const actor = requireAuditActor(options.actor);
   if (!options.privateRuntimeQualified) {
     throw new Error("Private Titus dashboard runtime is not qualified");
   }

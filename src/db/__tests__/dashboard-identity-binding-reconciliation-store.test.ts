@@ -172,7 +172,7 @@ describe("dashboard identity binding reconciliation store", () => {
         },
         gateway([snapshot()]),
       ),
-    ).rejects.toThrow("Dashboard identity binding actor is required");
+    ).rejects.toThrow("Audit actor is invalid");
 
     await expect(
       executeDashboardIdentityBindingReconciliation(

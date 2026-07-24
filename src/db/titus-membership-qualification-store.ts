@@ -17,6 +17,7 @@ import {
   type TitusMembershipQualificationPlan,
   type TitusMembershipQualificationState,
 } from "@/lib/titus-membership-qualification";
+import { requireAuditActor } from "@/lib/audit-actor";
 
 type Database = typeof db;
 type ReadyPlan = Extract<TitusMembershipQualificationPlan, { status: "ready" }>;
@@ -306,14 +307,6 @@ async function inspectSafely(gateway: TitusMembershipQualificationGateway) {
   }
 }
 
-function validActor(actor?: string) {
-  const value = actor?.trim();
-  if (!value || !/^[A-Za-z0-9][A-Za-z0-9:._-]{2,127}$/.test(value)) {
-    throw new Error("Titus membership qualification actor is invalid");
-  }
-  return value;
-}
-
 export async function executeTitusMembershipQualification(
   command: TitusMembershipQualificationCommand,
   desiredState: TitusMembershipQualificationState,
@@ -346,7 +339,12 @@ export async function executeTitusMembershipQualification(
     before.desiredState,
     options.confirmation,
   );
-  const actor = validActor(options.actor);
+  let actor: string;
+  try {
+    actor = requireAuditActor(options.actor);
+  } catch {
+    throw new Error("Titus membership qualification actor is invalid");
+  }
   let applyFailed = false;
   try {
     await gateway.apply(before, actor, now);
