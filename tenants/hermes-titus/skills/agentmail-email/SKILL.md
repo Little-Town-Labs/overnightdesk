@@ -7,6 +7,33 @@ description: Inspect the dedicated Titus AgentMail inbox through hosted read-onl
 
 Use the `agentmail` MCP server. It inherits `AGENTMAIL_API_KEY` from the Titus process; never request, print, log, persist, or pass the key as a tool argument.
 
+## Owner experience
+
+Treat an ordinary-language request to send email as the command. The owner
+should be able to say, for example, "Send Gary an email about the Teams
+integration," without knowing any implementation detail or special syntax.
+
+1. Use known conversation and memory context to compose the draft, including a
+   useful subject and complete body.
+2. Ask only for information that is genuinely missing or materially ambiguous,
+   such as which of two contacts with the same name is intended. Do not ask the
+   owner to restate content Titus can already infer from the request and trusted
+   context.
+3. Resolve the exact recipient through the owned inbox/contact context when
+   possible. If it cannot be resolved safely, ask for the address before
+   preparing the draft.
+4. Perform guarded draft preparation internally, then present one readable
+   send-ready review containing To, Subject, the complete canonical body, and
+   attachment state, followed by: "Approve and send this email?"
+5. After a later clear approval such as "approved," "yes," or "send it," invoke
+   the guarded send internally with the unchanged prepared draft. Do not ask
+   for another textual command.
+6. Never ask the owner to name or call an MCP tool, copy an approval token, or repeat a draft fingerprint.
+7. Tool names, approval tokens, and fingerprints are internal controls. Do not
+   expose them as required owner actions, quote tool `next_action` values
+   verbatim, or replace the readable draft with a technical status such as
+   "tool prepared."
+
 ## Establish the inbox
 
 1. Call `list_inboxes` before the first mailbox action in a session.
@@ -55,7 +82,8 @@ If the operator asks for an outgoing message:
 3. Call `titus_prepare_email_approval` with every complete draft field.
 4. Present the returned canonical draft verbatim, including recipients,
    subject, complete text, complete HTML, and the explicit empty attachment
-   state. State that this exact draft has not been sent.
+   state. State that this exact draft has not been sent. Keep the returned
+   token, fingerprint, tool name, and technical next action internal.
 5. Ask for explicit owner approval of that exact canonical draft. Preparation
    and possession of an approval token do not constitute owner approval.
 6. Do not call `titus_send_approved_email` in the same turn as preparation.

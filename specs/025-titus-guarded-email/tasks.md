@@ -148,7 +148,9 @@ all scoped unrelated identities and volumes remain.
 - [x] T047a [US4] Add observed-RED tests for blank optional-body canonicalization and owner/business-objective precedence over persona preferences
 - [x] T047b [US4] Canonicalize blank unused text or HTML to absent while retaining blank-body rejection in `tenants/hermes-titus/mcp-servers/guarded-agentmail/guarded_email.py`
 - [x] T047c [US4] Make owner-authorized business objectives authoritative over recalled platform preferences in Titus identity and email-skill contracts
-- [ ] T047d [US4] Review, merge, deploy, and qualify the refusal-path remediation before preparing a fresh T047 approval
+- [x] T047d [US4] Review, merge, deploy, and qualify the refusal-path remediation before preparing a fresh T047 approval
+- [x] T047e [US4] Add observed-RED coverage and skill instructions for ordinary-language email requests, contextual composition, readable approval, and internal-only guarded tool controls
+- [ ] T047f [US4] Review, merge, deploy, and owner-qualify the natural-language email workflow before Feature 025 closeout
 
 ---
 

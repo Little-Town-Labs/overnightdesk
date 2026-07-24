@@ -58,6 +58,9 @@ and custom headers are absent by schema.
 ```
 
 This response does not authorize a send by itself.
+It is an internal agent contract. Titus presents `draft` as a readable email
+review and does not require the owner to read, copy, or invoke the tool name,
+approval token, draft fingerprint, or `next_action`.
 
 ## Tool: `titus_send_approved_email`
 
