@@ -6,6 +6,7 @@ import json
 import re
 import sqlite3
 import time
+import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -175,9 +176,9 @@ def reconcile(database_path, raw_config):
             (config["modelId"],),
         ).rowcount
         inserted = connection.execute(
-            "INSERT OR IGNORE INTO access_grant(resource_type, resource_id, principal_type, principal_id, permission, created_at) "
-            "VALUES ('model', ?, 'user', '*', 'read', ?)",
-            (config["modelId"], now),
+            "INSERT OR IGNORE INTO access_grant(id, resource_type, resource_id, principal_type, principal_id, permission, created_at) "
+            "VALUES (?, 'model', ?, 'user', '*', 'read', ?)",
+            (str(uuid.uuid4()), config["modelId"], now),
         ).rowcount
         connection.commit()
         return "updated" if changed or removed or inserted else "unchanged"
