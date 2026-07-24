@@ -917,6 +917,26 @@ user-data state changed. T042b is complete.
 No production database, OIDC, membership, dashboard, runtime, route, email, or
 user-data state changed. T042c is complete.
 
+#### T042d executable OIDC-first rollback — 2026-07-24
+
+- RED extended the Titus operator contract to require the production
+  `rollback` action itself to contain the OIDC disable, separate disabled-state
+  verification, route removal, durable loopback marker, and exact Titus
+  stop/start in that order. The prior host-only action failed this contract
+  before implementation.
+- GREEN makes `rollback` require the exact
+  `DISABLE_TITUS_DASHBOARD_OIDC` confirmation, run the canonical database
+  disable command, and run the separate `verify-disabled` command before
+  calling the route-removal or loopback-runtime steps. Missing database
+  authority, failed disable, or failed verification therefore stops before any
+  host route or runtime change.
+- The focused operator suite passed all six tests, Bash syntax passed, and the
+  diff is whitespace-clean. This source correction did not repeat the already
+  accepted production rollback rehearsal.
+
+No production database, OIDC, route, runtime, restart, email, or user-data
+state changed. T042d is complete.
+
 After owner acceptance:
 
 - update `spec.md`, `tasks.md`, roadmap, and this quickstart with value-free

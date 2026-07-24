@@ -58,6 +58,27 @@ describe("Titus native dashboard OIDC runtime staging", () => {
       deploy.indexOf("rollback_runtime()"),
       deploy.indexOf("\n}\n\ncase", deploy.indexOf("rollback_runtime()")),
     );
+    const oidcDisable = rollback.indexOf(
+      "identity:titus:dashboard-oidc:disable",
+    );
+    const oidcVerifyDisabled = rollback.indexOf(
+      "identity:titus:dashboard-oidc:verify-disabled",
+    );
+    const routeDisable = rollback.indexOf("disable_route");
+    const markerInstall = rollback.indexOf(
+      "/opt/hermes-titus/rollback-loopback-dashboard",
+    );
+    const runtimeStop = rollback.indexOf(
+      "systemctl stop hermes-titus.service",
+    );
+    expect(rollback).toContain(
+      "TITUS_DASHBOARD_OIDC_CONFIRM must equal DISABLE_TITUS_DASHBOARD_OIDC",
+    );
+    expect(oidcDisable).toBeGreaterThan(-1);
+    expect(oidcVerifyDisabled).toBeGreaterThan(oidcDisable);
+    expect(routeDisable).toBeGreaterThan(oidcVerifyDisabled);
+    expect(markerInstall).toBeGreaterThan(routeDisable);
+    expect(runtimeStop).toBeGreaterThan(markerInstall);
     expect(prepareVolume).toContain(
       "/opt/hermes-titus/rollback-loopback-dashboard",
     );

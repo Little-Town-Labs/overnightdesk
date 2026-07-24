@@ -392,6 +392,15 @@ email_guarded() {
 }
 
 rollback_runtime() {
+  test "${TITUS_DASHBOARD_OIDC_CONFIRM:-}" = DISABLE_TITUS_DASHBOARD_OIDC || {
+    printf 'TITUS_DASHBOARD_OIDC_CONFIRM must equal DISABLE_TITUS_DASHBOARD_OIDC\n' >&2
+    return 1
+  }
+  (
+    cd "$repo_root"
+    npm run identity:titus:dashboard-oidc:disable
+    npm run identity:titus:dashboard-oidc:verify-disabled
+  )
   disable_route
   "${ssh_cmd[@]}" '
     set -eu
