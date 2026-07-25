@@ -8,7 +8,7 @@ upstream_ref='nousresearch/hermes-agent@sha256:c1731f7ffd49c37f2b4b6cd01873d4256
 arm64_digest='sha256:4586e3f2375e42e70a13282a19dfe16d4145b22da92a3c46b7aa1643c74a0ec1'
 derived_tag='overnightdesk/hermes-agent:0.19.0-coder'
 derived_image_id='sha256:258a879177424dd1a530d26c4962c215a0716095e73e36af8a5cfebb1a58503c'
-candidate_status='staging_qualified_review_pending'
+release_status='accepted_live'
 
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
@@ -67,7 +67,7 @@ require_fixed "$upstream_ref" "$standard_root/WHAT/hermes.yaml"
 require_fixed "$arm64_digest" "$standard_root/WHAT/hermes.yaml"
 require_fixed "$derived_tag" "$standard_root/WHAT/services.yaml"
 
-python - "$standard_root/WHAT" "$derived_tag" "$derived_image_id" "$candidate_status" <<'PY'
+python - "$standard_root/WHAT" "$derived_tag" "$derived_image_id" "$release_status" <<'PY'
 import sys
 from pathlib import Path
 
@@ -76,7 +76,7 @@ import yaml
 what_root = Path(sys.argv[1])
 derived_tag = sys.argv[2]
 derived_image_id = sys.argv[3]
-candidate_status = sys.argv[4]
+release_status = sys.argv[4]
 
 for path in sorted(what_root.glob("*.yaml")):
     with path.open() as handle:
@@ -84,12 +84,19 @@ for path in sorted(what_root.glob("*.yaml")):
 
 hermes = yaml.safe_load((what_root / "hermes.yaml").read_text()) or {}
 candidate = hermes.get("upgrade_candidate_2026_07_24") or {}
-if candidate.get("status") != candidate_status:
-    raise SystemExit("FAIL: aggregate Hermes candidate status is inconsistent")
+if candidate.get("status") != release_status:
+    raise SystemExit("FAIL: aggregate Hermes release status is inconsistent")
 if candidate.get("derived_image_id") != derived_image_id:
     raise SystemExit("FAIL: derived image ID is missing or incorrectly typed")
 if "derived_image_digest" in candidate:
     raise SystemExit("FAIL: local derived image ID is mislabeled as a digest")
+production = candidate.get("production_evidence") or {}
+if production.get("image_id") != derived_image_id:
+    raise SystemExit("FAIL: production image ID is missing or inconsistent")
+if production.get("aggregate_qualification") != "passed":
+    raise SystemExit("FAIL: aggregate production qualification is not recorded")
+if production.get("rollback_handles") != "retained":
+    raise SystemExit("FAIL: production rollback handles are not recorded")
 
 services = yaml.safe_load((what_root / "services.yaml").read_text()) or {}
 by_name = {
@@ -101,8 +108,10 @@ for name in ("hermes-mitchel", "hermes-walter", "hermes-titus"):
     service = by_name.get(name) or {}
     if service.get("candidate_image") != derived_tag:
         raise SystemExit(f"FAIL: {name} candidate image is inconsistent")
-    if service.get("candidate_status") != candidate_status:
-        raise SystemExit(f"FAIL: {name} candidate status is inconsistent")
+    if service.get("candidate_status") != release_status:
+        raise SystemExit(f"FAIL: {name} release status is inconsistent")
+    if service.get("image") != derived_tag:
+        raise SystemExit(f"FAIL: {name} current image is inconsistent")
 
 print("platform-standard YAML: parsed")
 PY

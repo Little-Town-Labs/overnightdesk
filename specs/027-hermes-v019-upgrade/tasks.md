@@ -84,18 +84,18 @@ containers and named volumes remain intact.
 
 ### Candidate Publication
 
-- [ ] T026 [US2] Commit, push, review, and merge the application candidate PR
-- [ ] T027 [US2] Commit, push, review, and merge the platform-standard playbook candidate PR
-- [ ] T028 [US2] Synchronize only exact merged application and standard source required by Aegis and verify source hashes
+- [x] T026 [US2] Commit, push, review, and merge the application candidate PR
+- [x] T027 [US2] Commit, push, review, and merge the platform-standard playbook candidate PR
+- [x] T028 [US2] Synchronize only exact merged application and standard source required by Aegis and verify source hashes
 
 ### Sequential Production Cutover
 
-- [ ] T029 [US2] Upgrade and independently qualify `hermes-mitchel`, retaining its v0.18 container rollback handle
-- [ ] T030 [US2] Upgrade and independently qualify `hermes-walter`, retaining its v0.18 container rollback handle
-- [ ] T031 [US2] Upgrade only `hermes-titus.service` through its repository launcher and run the full Titus qualification suite
-- [ ] T032 [US2] Refresh the future-tenant provisioner to the exact immutable v0.19 digest and verify its effective environment
-- [ ] T033 [US2] Run aggregate all-runtime, protected-route, Nginx, Ops, cron, MCP, provider/model, approval, volume, and unrelated-container qualification
-- [ ] T034 [US2] Observe at least one healthy scheduler/health interval and retain all v0.18 rollback handles
+- [x] T029 [US2] Upgrade and independently qualify `hermes-mitchel`, retaining its v0.18 container rollback handle
+- [x] T030 [US2] Upgrade and independently qualify `hermes-walter`, retaining its v0.18 container rollback handle
+- [x] T031 [US2] Upgrade only `hermes-titus.service` through its repository launcher and run the full Titus qualification suite
+- [x] T032 [US2] Refresh the future-tenant provisioner to the exact immutable v0.19 digest and verify its effective environment
+- [x] T033 [US2] Run aggregate all-runtime, protected-route, Nginx, Ops, cron, MCP, provider/model, approval, volume, and unrelated-container qualification
+- [x] T034 [US2] Observe at least one healthy scheduler/health interval and retain all v0.18 rollback handles
 
 **Checkpoint**: All three live agents and future provisioning use the accepted
 release, or the failed runtime has been isolated and rolled back.
@@ -110,9 +110,9 @@ release, or the failed runtime has been isolated and rolled back.
 and runtime state, future-tenant pin, PR history, and deployment ledger agree
 on the exact successful or rolled-back result.
 
-- [ ] T035 [US3] Append every production mutation and result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T036 [US3] Reconcile production image IDs, runtime evidence, rollback handles, and final status in Feature 027 and the platform standard
-- [ ] T037 [US3] Run final source, YAML, shell, Spec Kit, Ringer Sol, and diff qualification
+- [x] T035 [US3] Append every production mutation and result to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T036 [US3] Reconcile production image IDs, runtime evidence, rollback handles, and final status in Feature 027 and the platform standard
+- [x] T037 [US3] Run final source, YAML, shell, Spec Kit, Ringer Sol, and diff qualification
 - [ ] T038 [US3] Publish, review, merge, and verify the application closeout PR
 - [ ] T039 [US3] Publish, review, merge, synchronize, and verify the platform-standard closeout PR
 - [ ] T040 [US3] Confirm final GitHub, local-main, Aegis, deploy-ledger, and worktree state; remove only clean merged worktrees
