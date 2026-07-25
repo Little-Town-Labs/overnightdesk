@@ -16,26 +16,29 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** Feature 027 — Hermes v0.19 production upgrade
-**Current critical path:** publish the source-qualified v0.19.0 candidate,
-synchronize only exact merged source, sequentially upgrade Mitchel, Walter,
-and Titus, then reconcile exact image and production evidence. Feature 026's
-Titus model experiment remains parked with no production model change.
+**Current critical path:** publish the Feature 027 closeout evidence and
+platform-standard reconciliation after the successful v0.19.0 production
+upgrade. Feature 026's Titus model experiment remains parked with no production
+model change.
 
 ## Current Delivery Checkpoint — 2026-07-24
 
-- **Feature 027 — candidate ready at 25/40:** Official release intake
-  identifies Hermes Agent v0.19.0 / v2026.7.20 as the latest non-prerelease.
-  The exact ARM64 base produced derived image ID `sha256:258a879...503c`.
-  Copied-volume staging passed version, doctor, config, database, cron,
-  gateway/dashboard, auth, MCP, provider/model, and tenant-specific checks for
-  Mitchel, Walter, and Titus with delivery disabled. Sol's first review found
-  two Required identity/inventory contradictions; both were fixed test-first,
-  nine negative contract mutations now fail as intended, and the bounded delta
-  review approved the candidate. The release retains config schema 33 but
-  changes the default dangerous-command policy from manual to LLM smart, so
-  every tenant remains explicitly manual/deny. All three live runtimes remain
-  unchanged on v0.18.0; no runtime restart, route change, provider/model change,
-  production message, or live-volume mutation has occurred.
+- **Feature 027 — production qualified at 37/40:** Official release intake
+  identified Hermes Agent v0.19.0 / v2026.7.20 and exact OCI index
+  `sha256:c1731f7...15ea82`; the exact ARM64 base produced derived image ID
+  `sha256:258a879...503c`. Copied-volume staging, bounded Sol review, merged
+  source synchronization, and sequential Mitchel, Walter, then Titus cutovers
+  passed. All three live runtimes report v0.19.0 with config schema 33,
+  explicit manual/deny approvals, preserved provider/model routes, exact
+  tenant cron/MCP/auth contracts, unchanged named volumes, zero published
+  ports, and zero restarts. The future-tenant provisioner uses the exact v0.19
+  digest. Public protected routes, Nginx, Ops, aggregate logs, and observation
+  passed; v0.18 rollback handles remain retained. No production test message,
+  authority change, provider/model change, or volume deletion occurred. The
+  playbook now includes every harness and live-projection lesson discovered
+  during rollout. Final source, YAML, shell, Spec Kit, bounded Ringer Sol, and
+  diff qualification passed. T038-T040 remain for PR publication, exact
+  standard synchronization, and clean worktree confirmation.
 
 - **Feature 025 — guarded production path active:** Direct hosted AgentMail
   mutations remain removed. Titus now uses one approval-bound, SecurityTeam-
