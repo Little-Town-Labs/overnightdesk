@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.18.0-coder}
+image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.19.0-coder}
 volume=${TITUS_VOLUME:-hermes-titus-data}
 source_root=${TITUS_SOURCE_ROOT:-/opt/hermes-titus/source}
 rollback_marker=${TITUS_DASHBOARD_ROLLBACK_MARKER:-/opt/hermes-titus/rollback-loopback-dashboard}
