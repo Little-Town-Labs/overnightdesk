@@ -71,8 +71,10 @@ if rg -n 'proxy_pass|upstream' "$orchestrator_vhost"; then
 fi
 rg -q 'server_name orchestrator\.overnightdesk\.com' "$orchestrator_vhost" ||
   fail "retired orchestrator vhost is not bound to the exact hostname"
-[[ "$(rg -c 'return 404;' "$orchestrator_vhost")" -ge 2 ]] ||
-  fail "retired orchestrator vhost must deny both HTTP and HTTPS"
+rg -q 'return 404;' "$orchestrator_vhost" ||
+  fail "retired orchestrator vhost must deny HTTP"
+rg -q 'ssl_reject_handshake on;' "$orchestrator_vhost" ||
+  fail "retired orchestrator vhost must reject HTTPS before default routing"
 
 provisioner_vhost="${repo_root}/infra/nginx/provisioner.conf"
 require_file "$provisioner_vhost"
