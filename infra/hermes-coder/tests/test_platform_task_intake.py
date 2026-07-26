@@ -241,6 +241,7 @@ class PublicIngressTests(unittest.TestCase):
             "activation_cleanup",
             "migrate_profile.py",
             "hermes-email-intake@walter.service",
+            "-m unittest discover -s /workspace/infra/hermes-coder/tests -v",
             '"$profile_migration" apply',
             '"$profile_migration" rollback',
             "docker rename \"$runtime\" \"$rollback_container\"",
