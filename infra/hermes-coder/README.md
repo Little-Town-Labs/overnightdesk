@@ -1,11 +1,26 @@
 # OvernightDesk Hermes Coder Image
 
 This directory is the source of the thin production image used by Walter,
-Titus, and Mitchel. It adds GitHub CLI and the approved Git identity required
-by Walter's `the_guardian` profile to an immutable official Hermes base.
+Titus, and Mitchel. It adds GitHub CLI, the approved Git identity required by
+Walter's `platform_code_worker` profile, and Walter's least-authority
+Production Guardian task-intake adapter to an immutable official Hermes base.
 
 It contains no credentials. GitHub tokens and all tenant secrets remain
 runtime-injected from Phase or permission-restricted local runtime files.
+
+## Production Guardian intake
+
+The adapter exposes only two exact, bearer-protected routes:
+
+- `POST /api/plugins/platform-task-intake/tasks`
+- `POST /api/plugins/platform-task-intake/resolve`
+
+Create requests are forced to Walter's default board as unassigned `triage`
+tasks in a scratch workspace. The schema rejects assignee, model, provider,
+skill, workspace, board, and status fields. Resolution is limited to tasks
+created by `overnightdesk-production-guardian`. The dedicated
+`PLATFORM_TASK_INTAKE_TOKEN` is injected at runtime from Phase and grants no
+general dashboard or Kanban authority.
 
 ## Release identity
 
@@ -34,3 +49,23 @@ embedded Hermes version, `gh --version`, image ID, and base pin before staging.
 
 Follow the complete protocol in
 `overnightdesk-platform-standard/docs/runbooks/hermes-agent-update-protocol.md`.
+
+For the Production Guardian intake adapter, use the rollback-safe deployment
+helper from the merged repository:
+
+```bash
+sudo infra/hermes-coder/deploy-walter-intake.sh preflight
+sudo infra/hermes-coder/deploy-walter-intake.sh prepare
+sudo infra/hermes-coder/deploy-walter-intake.sh activate --approve-walter-restart
+sudo infra/hermes-coder/deploy-walter-intake.sh verify
+```
+
+The helper reads only `WALTER_INTAKE_TOKEN` from the Guardian Phase path,
+stops the routed Walter email intake, applies the reviewed
+`platform_code_worker` profile migration from the merged `overnightdesk-ops`
+checkout, recreates Walter with the exact existing environment plus the
+adapter token, and then restarts intake. It retains the stopped previous
+container and restores both that container and the old profile automatically
+if the private route, Nginx denial, public status, intake, or runtime checks
+fail. Run `rollback` to restore the retained container and profile during the
+observation window.

@@ -1,0 +1,7 @@
+{
+  "name": "platform-task-intake",
+  "label": "Platform Task Intake",
+  "description": "Least-authority service intake for Production Guardian",
+  "version": "1.0.0",
+  "api": "plugin_api.py"
+}
