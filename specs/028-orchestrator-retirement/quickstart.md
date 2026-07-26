@@ -31,6 +31,8 @@ workloads before changing ingress or containers.
 
 ## Observation
 
-For 14 days, verify the three containers remain stopped and restart-disabled,
-the retired hostname remains denied, no Docker socket access returns, and
-named business workloads remain healthy. Cleanup is not part of this feature.
+Through `2026-08-09T01:33:03Z`, verify the three containers remain stopped and
+restart-disabled, the retired hostname remains denied, no Docker socket access
+returns, and named business workloads remain healthy. Walter owns the
+owner-facing reminder through the communication module. Cleanup is not part of
+this feature and remains unapproved.

@@ -4,7 +4,8 @@
 
 **Created**: 2026-07-25
 
-**Status**: Approved for implementation
+**Status**: Production activated; observation active through
+`2026-08-09T01:33:03Z`; destructive cleanup unapproved
 
 **Input**: Retire the unused customer-hosting orchestrator and Docker socket
 proxy, reframe OvernightDesk as an authenticated internal business workspace
