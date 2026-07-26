@@ -81,7 +81,11 @@ prepare() {
   docker build --pull=false --tag "$candidate_image" "$repo_root/infra/hermes-coder"
   docker run --rm --entrypoint /opt/hermes/.venv/bin/python "$candidate_image" \
     -c 'import hermes_cli; print("candidate_import=pass")'
-  python3 -m unittest discover -s "$repo_root/infra/hermes-coder/tests" -v
+  docker run --rm \
+    --volume "$repo_root:/workspace:ro" \
+    --entrypoint /opt/hermes/.venv/bin/python \
+    "$candidate_image" \
+    -m unittest discover -s /workspace/infra/hermes-coder/tests -v
   printf 'image=%s candidate=qualified\n' "$candidate_image"
 }
 
