@@ -2,7 +2,7 @@
 
 **Source:** PRD v2.1 (2026-03-21)
 **Constitution:** v1.0.0 (2026-03-21)
-**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-24
+**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-26
 
 ---
 
@@ -15,11 +15,24 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** Feature 027 — Hermes v0.19 production upgrade
-**Current critical path:** publish the Feature 027 closeout evidence and
-platform-standard reconciliation after the successful v0.19.0 production
-upgrade. Feature 026's Titus model experiment remains parked with no production
-model change.
+**Active Spec Kit feature:** Feature 029 — Titus Codex OAuth migration
+**Current critical path:** decouple Titus's OpenRouter-backed memory processing
+from its interactive model selector, qualify the Sol/medium and Luna/high Codex
+projection, enroll a Titus-owned OAuth credential, and perform a reversible
+Titus-only production cutover. Feature 026's broader model experiment remains
+parked and is not reused by this approved provider migration.
+
+## Current Delivery Checkpoint — 2026-07-26
+
+- **Feature 029 — implementation authorized:** Live read-only preflight proved
+  Walter and Mitchel use separate Titus-independent Codex OAuth credentials and
+  that Hermes v0.19.0 supports the required `openai-codex` provider. Titus is
+  healthy on OpenRouter, but its current startup projection couples the primary
+  model selector to the TencentDB memory LLM. The approved migration therefore
+  introduces an explicit MiMo memory selector before changing Titus to
+  Sol/medium with bounded Luna/high delegation. No credential copying,
+  authority expansion, route, identity, volume, channel, tool, or memory
+  backend change is permitted.
 
 ## Current Delivery Checkpoint — 2026-07-24
 

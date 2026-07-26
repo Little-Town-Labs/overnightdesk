@@ -91,7 +91,8 @@ jq -e '
     "MEMORY_TENCENTDB_EMBEDDING_ENABLED",
     "MEMORY_TENCENTDB_EMBEDDING_MODEL",
     "MEMORY_TENCENTDB_EMBEDDING_PROVIDER",
-    "MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS"
+    "MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS",
+    "MEMORY_TENCENTDB_LLM_MODEL"
   ]
 ' "$work_dir/memory.json" >/dev/null || die 'unexpected key in Titus memory Phase path'
 jq -e 'has("HERMES_API_KEY") and (.HERMES_API_KEY | type == "string" and length >= 32)' \
@@ -113,11 +114,12 @@ for key in \
   require_value "$work_dir/core.json" "$key"
 done
 require_value "$work_dir/control-tower.json" CONTROL_TOWER_TOKEN
-jq -e '.HERMES_DEFAULT_MODEL == "xiaomi/mimo-v2.5-pro"' "$work_dir/core.json" >/dev/null || \
+jq -e '.HERMES_DEFAULT_MODEL == "gpt-5.6-sol"' "$work_dir/core.json" >/dev/null || \
   die 'Titus default model does not match the approved route'
 jq -e '
   (.MEMORY_TENCENTDB_EMBEDDING_ENABLED == "true" or
    .MEMORY_TENCENTDB_EMBEDDING_ENABLED == "false") and
+  .MEMORY_TENCENTDB_LLM_MODEL == "xiaomi/mimo-v2.5-pro" and
   .MEMORY_TENCENTDB_EMBEDDING_PROVIDER == "openrouter" and
   .MEMORY_TENCENTDB_EMBEDDING_BASE_URL == "https://openrouter.ai/api/v1" and
   .MEMORY_TENCENTDB_EMBEDDING_MODEL == "perplexity/pplx-embed-v1-4b" and

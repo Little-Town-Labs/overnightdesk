@@ -34,6 +34,7 @@ describe("managed agent variable catalog", () => {
       phaseKey: "OPENROUTER_API_KEY",
       scope: "runtime",
       enabledBoundaryKinds: ["managed_variable_v1"],
+      help: "Replace the OpenRouter credential used by this runtime's memory processing and embeddings.",
     });
     expect(getManagedVariableDefinition("unknown")).toBeNull();
   });

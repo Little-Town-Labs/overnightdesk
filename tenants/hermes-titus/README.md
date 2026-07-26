@@ -26,13 +26,16 @@ Core runtime:
 
 - `/agents/hermes-titus/runtime`: `OPENROUTER_API_KEY`, `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID`, `AGENTMAIL_EMAIL_ADDRESS`, `HERMES_DEFAULT_MODEL`, `SECURITY_SERVICE_TOKEN`
 - `/agents/hermes-titus/overnightdesk`: `CONTROL_TOWER_TOKEN`
-- `/agents/hermes-titus/memory`: `MEMORY_TENCENTDB_EMBEDDING_ENABLED`, `MEMORY_TENCENTDB_EMBEDDING_PROVIDER`, `MEMORY_TENCENTDB_EMBEDDING_BASE_URL`, `MEMORY_TENCENTDB_EMBEDDING_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS`, `MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS`
+- `/agents/hermes-titus/memory`: `MEMORY_TENCENTDB_LLM_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_ENABLED`, `MEMORY_TENCENTDB_EMBEDDING_PROVIDER`, `MEMORY_TENCENTDB_EMBEDDING_BASE_URL`, `MEMORY_TENCENTDB_EMBEDDING_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS`, `MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS`
 
 The memory path is fail closed. With
 `MEMORY_TENCENTDB_EMBEDDING_ENABLED=false`, Titus keeps keyword/BM25 recall and
 does not load the remote embedding configuration. Activation requires the
 exact Perplexity 4B route, 1,536 dimensions, `sendDimensions=true`, and a controlled
-Titus-only restart.
+Titus-only restart. `MEMORY_TENCENTDB_LLM_MODEL` independently fixes memory
+processing to `xiaomi/mimo-v2.5-pro`; the Phase-backed OpenRouter credential is
+not used for Titus's interactive inference. OpenRouter remains scoped to memory
+processing and embeddings.
 
 TTS Teams preparation:
 
@@ -115,20 +118,33 @@ Matrix is Titus's primary interactive channel and uses Hermes's native Matrix
 adapter, so authorized room messages enter the normal Hermes reasoning, tools,
 memory, session, and approval pipeline. No public ingress port is required.
 
-Titus's approved default route is OpenRouter model `xiaomi/mimo-v2.5-pro` with
-Hermes `agent.reasoning_effort` set to `medium`. The model supports tool
-calling and reasoning through OpenRouter; the change reduces the default
-inference cost without changing Titus's authority, tools, or memory. The
-Phase-backed `HERMES_DEFAULT_MODEL` is shared by the interactive gateway and
-standalone email poller; reasoning effort applies to Hermes agent turns.
-The gateway exports `HERMES_INFERENCE_MODEL` from that Phase value so the
-approved route has process-level precedence over mutable dashboard or restored-
-session model selections.
+Titus's approved default route is Codex provider `openai-codex`, model
+`gpt-5.6-sol`, and reasoning effort `medium`. The Phase-backed
+`HERMES_DEFAULT_MODEL` is projected to `HERMES_INFERENCE_MODEL`, so the approved
+interactive route has process-level precedence over mutable dashboard or
+restored-session selections.
 
-Hermes sub-agent delegation remains on OpenRouter model `x-ai/grok-build-0.1`.
-MiMo V2.5 Pro is text-only, so Titus vision/image analysis is unavailable until
-a compatible image-input/text-output model is separately approved. Image
-generation or editing routes are not substitutes for a vision-analysis slot.
+Hermes sub-agent delegation uses `gpt-5.6-luna` at reasoning effort `high`.
+Delegation is bounded to three concurrent children, one spawn level, 30
+iterations, and a 600-second child timeout. Orchestrator support and inherited
+MCP toolsets remain enabled, but subagent auto-approval remains disabled and
+the existing manual/deny approval policy continues to govern sensitive
+actions.
+
+Codex authentication is a fresh Titus-owned OAuth enrollment in the persistent
+Hermes auth store. It must report active provider `openai-codex` and auth mode
+`chatgpt`, and `auth.json` must remain owned by `10000:10000` with mode 0600.
+Do not copy Walter's or Mitchel's auth file, store OAuth material in Phase, or
+print tokens, authorization codes, callback URLs, or credential documents.
+The owner's browser authorization is the only interactive enrollment step.
+
+The OpenRouter credential remains required by the separate TencentDB memory
+processing and embedding clients. That split is intentional: changing
+`HERMES_DEFAULT_MODEL` must not change `TDAI_LLM_MODEL`. Production activation
+must stage compatible source first, update the exact Sol primary and MiMo
+memory selectors as one transaction, and restart only
+`hermes-titus.service`. Any failed auth, projection, health, delegation, or
+memory gate stops the cutover and invokes the retained Titus-only rollback.
 
 The repository fixes the channel policy at required E2EE, one exact operator,
 one exact shared room, room-scoped sessions, queue-mode busy input, requester-

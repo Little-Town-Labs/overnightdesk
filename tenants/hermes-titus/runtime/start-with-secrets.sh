@@ -22,7 +22,8 @@ done
 for key in \
   MEMORY_TENCENTDB_EMBEDDING_ENABLED MEMORY_TENCENTDB_EMBEDDING_PROVIDER \
   MEMORY_TENCENTDB_EMBEDDING_BASE_URL MEMORY_TENCENTDB_EMBEDDING_MODEL \
-  MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS; do
+  MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS \
+  MEMORY_TENCENTDB_LLM_MODEL; do
   value=${!key:-}
   test -n "$value" || {
     printf 'hermes-titus: required memory configuration unavailable: %s\n' "$key" >&2
@@ -55,7 +56,7 @@ export XDG_CACHE_HOME=/opt/data/.cache
 export PYTHONPATH=/opt/data/python-packages:/opt/hermes
 export TDAI_LLM_API_KEY=$OPENROUTER_API_KEY
 export TDAI_LLM_BASE_URL=https://openrouter.ai/api/v1
-export TDAI_LLM_MODEL=$HERMES_DEFAULT_MODEL
+export TDAI_LLM_MODEL=$MEMORY_TENCENTDB_LLM_MODEL
 export TDAI_DATA_DIR=/opt/data/memory-tencentdb/data
 export MEMORY_TENCENTDB_GATEWAY_HOST=127.0.0.1
 export MEMORY_TENCENTDB_GATEWAY_PORT=8420
@@ -100,8 +101,20 @@ import yaml
 path = Path('/opt/data/config.yaml')
 config = yaml.safe_load(path.read_text()) or {}
 config.setdefault('model', {})['default'] = os.environ['HERMES_DEFAULT_MODEL']
-config['model']['provider'] = 'openrouter'
-config['model']['base_url'] = 'https://openrouter.ai/api/v1'
+config['model']['provider'] = 'openai-codex'
+config['model']['base_url'] = 'https://chatgpt.com/backend-api/codex'
+delegation = config.setdefault('delegation', {})
+delegation['provider'] = 'openai-codex'
+delegation['base_url'] = 'https://chatgpt.com/backend-api/codex'
+delegation['model'] = 'gpt-5.6-luna'
+delegation['reasoning_effort'] = 'high'
+delegation['orchestrator_enabled'] = True
+delegation['max_concurrent_children'] = 3
+delegation['max_iterations'] = 30
+delegation['max_spawn_depth'] = 1
+delegation['child_timeout_seconds'] = 600
+delegation['inherit_mcp_toolsets'] = True
+delegation['subagent_auto_approve'] = False
 config.setdefault('memory', {})['provider'] = 'memory_tencentdb'
 matrix = config.setdefault('platforms', {}).setdefault('matrix', {})
 matrix['enabled'] = os.environ.get('TITUS_MATRIX_STATE') == 'ready'

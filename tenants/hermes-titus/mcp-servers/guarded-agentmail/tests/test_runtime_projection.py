@@ -11,10 +11,14 @@ CONFIG = Path(__file__).parents[3] / "config" / "config.yaml"
 SOUL = Path(__file__).parents[3] / "config" / "SOUL.md"
 EMAIL_SKILL = Path(__file__).parents[3] / "skills" / "agentmail-email" / "SKILL.md"
 LOAD_PHASE_ENV = Path(__file__).parents[3] / "runtime" / "load-phase-env.sh"
+START_WITH_SECRETS = Path(__file__).parents[3] / "runtime" / "start-with-secrets.sh"
 DEPLOY_SCRIPT = Path(__file__).parents[3] / "scripts" / "deploy-aegis.sh"
 QUALIFY_SCRIPT = Path(__file__).parents[3] / "scripts" / "qualify.sh"
 TENANT_README = Path(__file__).parents[3] / "README.md"
-APPROVED_DEFAULT_MODEL = "xiaomi/mimo-v2.5-pro"
+APPROVED_DEFAULT_MODEL = "gpt-5.6-sol"
+APPROVED_DELEGATION_MODEL = "gpt-5.6-luna"
+APPROVED_MEMORY_MODEL = "xiaomi/mimo-v2.5-pro"
+CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
 SPEC = importlib.util.spec_from_file_location("apply_email_mode", SCRIPT)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)
@@ -128,20 +132,104 @@ def test_email_skill_never_reinterprets_ambiguous_send_as_success() -> None:
     ) in skill
 
 
-def test_titus_default_model_contract_uses_approved_mimo_route() -> None:
+def test_titus_primary_model_contract_uses_codex_sol_at_medium_effort() -> None:
+    config = yaml.safe_load(CONFIG.read_text())
     load_phase = LOAD_PHASE_ENV.read_text()
+    startup = START_WITH_SECRETS.read_text()
     deploy = DEPLOY_SCRIPT.read_text()
     qualify = QUALIFY_SCRIPT.read_text()
     readme = TENANT_README.read_text()
 
+    assert config["model"] == {
+        "default": "__FROM_PHASE__",
+        "provider": "openai-codex",
+        "base_url": CODEX_BASE_URL,
+    }
+    assert config["agent"]["reasoning_effort"] == "medium"
     assert f'.HERMES_DEFAULT_MODEL == "{APPROVED_DEFAULT_MODEL}"' in load_phase
     assert (
         f'pid1_env.get("HERMES_INFERENCE_MODEL") == "{APPROVED_DEFAULT_MODEL}"'
         in deploy
     )
+    assert "config['model']['provider'] = 'openai-codex'" in startup
+    assert f"config['model']['base_url'] = '{CODEX_BASE_URL}'" in startup
     assert f"effective_model_route={APPROVED_DEFAULT_MODEL}" in deploy
-    assert "xiaomi/mimo-v2\\.5-pro" in qualify
+    assert "provider=openai-codex" in deploy
+    assert "auth_mode=chatgpt" in deploy
+    assert "gpt-5\\.6-sol" in qualify
     assert f"`{APPROVED_DEFAULT_MODEL}`" in readme
-    assert "MiMo V2.5 Pro is text-only" in readme
-    assert "vision/image analysis is unavailable" in readme
-    assert "remains on its existing route" not in readme
+    assert "reasoning effort `medium`" in readme
+
+
+def test_titus_delegation_contract_uses_bounded_luna_at_high_effort() -> None:
+    config = yaml.safe_load(CONFIG.read_text())
+    startup = START_WITH_SECRETS.read_text()
+    deploy = DEPLOY_SCRIPT.read_text()
+    qualify = QUALIFY_SCRIPT.read_text()
+    delegation = config["delegation"]
+
+    assert delegation == {
+        "provider": "openai-codex",
+        "base_url": CODEX_BASE_URL,
+        "model": APPROVED_DELEGATION_MODEL,
+        "reasoning_effort": "high",
+        "orchestrator_enabled": True,
+        "max_concurrent_children": 3,
+        "max_iterations": 30,
+        "max_spawn_depth": 1,
+        "child_timeout_seconds": 600,
+        "inherit_mcp_toolsets": True,
+        "subagent_auto_approve": False,
+    }
+    assert "delegation['reasoning_effort'] = 'high'" in startup
+    assert "delegation['max_concurrent_children'] = 3" in startup
+    assert "delegation['max_spawn_depth'] = 1" in startup
+    assert "delegation['subagent_auto_approve'] = False" in startup
+    assert f"delegation_route={APPROVED_DELEGATION_MODEL}" in deploy
+    assert "delegation_reasoning_effort=high" in deploy
+    assert "gpt-5\\.6-luna" in qualify
+
+
+def test_titus_memory_model_is_independent_from_primary_inference() -> None:
+    load_phase = LOAD_PHASE_ENV.read_text()
+    startup = START_WITH_SECRETS.read_text()
+    deploy = DEPLOY_SCRIPT.read_text()
+    qualify = QUALIFY_SCRIPT.read_text()
+    readme = TENANT_README.read_text()
+
+    assert '"MEMORY_TENCENTDB_LLM_MODEL"' in load_phase
+    assert (
+        f'.MEMORY_TENCENTDB_LLM_MODEL == "{APPROVED_MEMORY_MODEL}"'
+        in load_phase
+    )
+    assert "MEMORY_TENCENTDB_LLM_MODEL" in startup
+    assert "export TDAI_LLM_MODEL=$MEMORY_TENCENTDB_LLM_MODEL" in startup
+    assert "export TDAI_LLM_MODEL=$HERMES_DEFAULT_MODEL" not in startup
+    assert (
+        f'pid1_env.get("TDAI_LLM_MODEL") == "{APPROVED_MEMORY_MODEL}"'
+        in deploy
+    )
+    assert f"memory_llm_route={APPROVED_MEMORY_MODEL}" in deploy
+    assert "MEMORY_TENCENTDB_LLM_MODEL" in qualify
+    assert "`MEMORY_TENCENTDB_LLM_MODEL`" in readme
+    assert (
+        "OpenRouter remains scoped to memory processing and embeddings"
+        in " ".join(readme.split())
+    )
+
+
+def test_titus_oauth_verification_is_value_free_and_titus_scoped() -> None:
+    deploy = DEPLOY_SCRIPT.read_text()
+    readme = TENANT_README.read_text()
+
+    assert "auth.json" in deploy
+    assert 'auth.get("active_provider") == "openai-codex"' in deploy
+    assert 'credential.get("auth_type") == "oauth"' in deploy
+    assert 'endswith("device_code")' in deploy
+    assert 'credential.get("access_token")' in deploy
+    assert 'credential.get("refresh_token")' in deploy
+    assert "auth_stat.st_mode & 0o777 == 0o600" in deploy
+    assert "auth_stat.st_uid == 10000" in deploy
+    assert "auth_stat.st_gid == 10000" in deploy
+    assert "fresh Titus-owned OAuth" in readme
+    assert "Do not copy" in readme
