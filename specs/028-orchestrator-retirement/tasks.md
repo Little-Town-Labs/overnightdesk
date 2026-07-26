@@ -34,9 +34,9 @@ container has Docker socket access, and named workloads remain healthy.
 - [x] T011 [US1] Remove active orchestrator, database, proxy, dependencies, and volumes from `docker-compose.yml`
 - [x] T012 [US1] Remove proxy exceptions, retired upstreams, and retired log collection from `overnightdesk-operations-audit/standards/`, `overnightdesk-operations-audit/internal/engines/compliance.go`, and `overnightdesk-operations-audit/deploy/collect.sh`
 - [x] T013 [US1] Make `scripts/qualify-orchestrator-retirement.sh` pass against the candidate source
-- [ ] T014 [US1] Capture a protected live evidence bundle and checked database backup on Aegis following `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md`
-- [ ] T015 [US1] Deploy Ops and standard candidates, explicitly deny the retired Nginx hostname, disable restart, and stop the three retained containers without deletion
-- [ ] T016 [US1] Run post-activation negative reachability, socket-access, restart-policy, and named-workload health acceptance
+- [x] T014 [US1] Capture a protected live evidence bundle and checked database backup on Aegis following `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md`
+- [x] T015 [US1] Deploy Ops and standard candidates, explicitly deny the retired Nginx hostname, disable restart, and stop the three retained containers without deletion
+- [x] T016 [US1] Run post-activation negative reachability, socket-access, restart-policy, and named-workload health acceptance
 
 ## Phase 4: User Story 2 - Share Titus Without Sharing Identity (Priority: P1)
 
@@ -63,7 +63,7 @@ runtime from signup/billing or redeploy the retired control plane.
 - [x] T020 [P] [US3] Replace customer-hosting product direction in `README.md`, `PRD.md`, and `.specify/memory/constitution.md`
 - [x] T021 [P] [US3] Replace active provisioning guidance in `overnightdesk-platform-standard/HOW/architecture.md`, `overnightdesk-platform-standard/HOW/deployment.md`, and `overnightdesk-platform-standard/HOW/tenant-provisioning.md`
 - [x] T022 [US3] Reconcile active machine inventories in `overnightdesk-platform-standard/WHAT/services.yaml`, `WHAT/network.yaml`, `WHAT/databases.yaml`, `WHAT/secrets.yaml`, `WHAT/hermes.yaml`, and `WHAT/tenant-provisioning.yaml`
-- [ ] T023 [US3] Mark customer lifecycle provisioner endpoints denied/inert in `overnightdesk-platform-standard/WHAT/services.yaml` and enforce the Nginx denial during production activation
+- [x] T023 [US3] Mark customer lifecycle provisioner endpoints denied/inert in `overnightdesk-platform-standard/WHAT/services.yaml` and enforce the Nginx denial during production activation
 
 ## Phase 6: User Story 4 - Retire Without Losing Recovery Evidence (Priority: P2)
 
@@ -77,18 +77,18 @@ restore prior policies and startup order without deleting business data.
 - [x] T024 [P] [US4] Add failing static incident-search tests in `overnightdesk-ops/src/mcp/tools/find-similar-incidents.test.ts`
 - [x] T025 [US4] Replace database incident search with knowledge-backed search in `overnightdesk-ops/src/mcp/tools/find-similar-incidents.ts` and `overnightdesk-ops/src/mcp/server.ts`
 - [x] T026 [US4] Add `platform-incidents` to the Ops resource contract in `overnightdesk-ops/src/mcp/server.ts`
-- [ ] T027 [US4] Verify incident count, checksums, retained volumes/configuration, rollback ordering, and 14-day no-cleanup boundary from the live evidence bundle
+- [x] T027 [US4] Verify incident count, checksums, retained volumes/configuration, rollback ordering, and 14-day no-cleanup boundary from the live evidence bundle
 
 ## Phase 7: Polish and Publication
 
 - [x] T028 Run `npm test` and `npm run build` in `overnightdesk-ops`
 - [x] T029 Run `go test ./...` in `overnightdesk-operations-audit`
-- [ ] T030 Run YAML, Markdown, Compose, shell, and feature qualification checks across all four worktrees
+- [x] T030 Run YAML, Markdown, Compose, shell, and feature qualification checks across all four worktrees
 - [x] T031 Perform scoped code and security review of all candidate diffs
 - [x] T032 Re-run Spec Kit cross-artifact analysis and mark completed tasks in `specs/028-orchestrator-retirement/tasks.md`
-- [ ] T033 Append the exact production result and rollback handles to `/home/frosted639/src/overnightdesk-suite/deploys.log`
-- [ ] T034 Commit and push each owning repository branch, open reviewed pull requests, merge approved changes, and synchronize exact merged revisions on Aegis
-- [ ] T035 Record the 14-day observation end date and leave destructive cleanup unapproved in `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md`
+- [x] T033 Append the exact production result and rollback handles to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T034 Commit and push each owning repository branch, open reviewed pull requests, merge approved changes, and synchronize exact merged revisions on Aegis
+- [x] T035 Record the 14-day observation end date and leave destructive cleanup unapproved in `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md`
 
 ## Dependencies
 
