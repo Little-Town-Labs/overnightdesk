@@ -2,9 +2,10 @@
 
 **Your business never sleeps.**
 
-Customer-facing web platform for OvernightDesk: landing pages, auth, billing,
-dashboard, provisioning callbacks, tenant workflow source, and operator-facing
-admin surfaces.
+Authenticated internal business workspace for OvernightDesk and Timeless Tech
+Solutions. It provides identity, membership-scoped workspace launch, named
+agent-runtime source, and operator-facing administration for approved
+collaborators.
 
 ## Architecture
 
@@ -12,8 +13,8 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 
 | Repo | Language | Purpose | Status |
 |------|----------|---------|--------|
-| **overnightdesk** (this repo) | TypeScript/Next.js | Vercel frontend, auth, billing, dashboard, provisioning orchestration | Active |
-| [overnightdesk-engine](../overnightdesk-engine) | Go | Platform orchestrator and Hermes provisioning support | Active control-plane code |
+| **overnightdesk** (this repo) | TypeScript/Next.js | Vercel workspace shell, auth, memberships, dashboards, and named-runtime source | Active |
+| [overnightdesk-engine](../overnightdesk-engine) | Go | Historical orchestrator and provisioning source retained for rollback/reference | Retired from active Aegis deployment |
 | [overnightdesk-securityteam](../overnightdesk-securityteam) | TypeScript/Fastify | Message traffic security, outbound guards, approval support | Active |
 | [overnightdesk-SecurityCouncil](../overnightdesk-SecurityCouncil) | Go | Platform security scanning and review | Active |
 | [overnightdesk-communicationmodule](../overnightdesk-communicationmodule) | Go | gRPC notification bus for Telegram and Discord dispatch | Active |
@@ -102,6 +103,34 @@ The retained `hermes-agent` name is a rollback identity during the Walter
 migration. References to the upstream Hermes Agent product or image keep the
 upstream `hermes-agent` name.
 
+Gary and Austin share the Titus business workspace through separate
+authenticated accounts and exact Titus memberships. They do not share
+credentials, sessions, recovery material, or access to unrelated runtimes.
+
+## Production Management Boundary
+
+Aegis hosts a small set of named, human-approved business workloads. It is not
+a general customer container-hosting service. New runtime creation, retirement,
+identity, secret, or authority changes require explicit owner approval and a
+reviewed deployment and rollback procedure.
+
+Future customer workloads and customer data planes normally belong in
+separately approved infrastructure outside `aegis-prod`—for example a
+customer- or engagement-specific Azure, Vultr, or other provider environment.
+Provider selection follows the engagement's security, data, capacity,
+contractual, recovery, and cost requirements.
+
+New first-party services, agents, operational daemons, CLIs, and infrastructure
+automation default to Go when practical. Browser UI and small changes inside an
+established non-Go service stay in their existing stack unless a deliberate
+migration is justified and approved.
+
+The former platform orchestrator and Docker socket proxy are retired from
+active deployment under
+[`specs/028-orchestrator-retirement`](specs/028-orchestrator-retirement).
+Legacy signup, billing, wizard, callback, and provisioning source remains
+inert pending a separate verified cleanup feature.
+
 ## Tenant Workflow Source
 
 Tenant-specific Hermes workflow source lives under `tenants/<tenant-id>/`.
@@ -144,10 +173,12 @@ See `.env.example` for the full list. Key groups:
 
 - `DATABASE_URL`, `DATABASE_TEST_URL`
 - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
-- Stripe keys and price IDs
-- `NEXT_PUBLIC_BILLING_ENABLED`, `ADMIN_EMAILS`, `INVITED_EMAILS`
+- Legacy Stripe keys and price IDs (inactive compatibility surface)
+- `NEXT_PUBLIC_BILLING_ENABLED` (must remain disabled), `ADMIN_EMAILS`,
+  `INVITED_EMAILS`
 - `RESEND_API_KEY`, `EMAIL_FROM`
-- `PROVISIONER_URL`, `PROVISIONER_SECRET`
+- Legacy `PROVISIONER_URL`, `PROVISIONER_SECRET` (must not authorize customer
+  hosting on Aegis)
 - `MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID` (server-only; unset means read-only)
 - `CRON_SECRET`, owner notification settings
 
