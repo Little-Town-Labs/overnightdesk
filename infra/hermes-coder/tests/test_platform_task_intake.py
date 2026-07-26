@@ -256,6 +256,10 @@ class PublicIngressTests(unittest.TestCase):
             "phase secrets export --format dotenv",
         ):
             self.assertNotIn(forbidden, script)
+        self.assertLess(
+            script.index('if ! docker start "$runtime"'),
+            script.index('install -o root -g root -m 0644 "$nginx_source"'),
+        )
 
 
 if __name__ == "__main__":
