@@ -281,6 +281,9 @@ activate() {
   for attempt in $(seq 1 60); do
     if verify >/dev/null 2>&1; then
       activation_succeeded=true
+      trap - EXIT INT TERM
+      find "$work_dir" -type f -delete 2>/dev/null || true
+      rmdir "$work_dir" 2>/dev/null || true
       printf 'runtime=%s rollback_container=%s activation=pass\n' \
         "$runtime" "$rollback_container"
       return
