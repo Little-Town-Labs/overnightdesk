@@ -246,6 +246,10 @@ class PublicIngressTests(unittest.TestCase):
             '"$profile_migration" rollback',
             "docker rename \"$runtime\" \"$rollback_container\"",
             "docker exec \"$runtime\"",
+            "verify_profile_route",
+            "/opt/data/profiles/platform_code_worker/config.yaml",
+            'model.get("default") == "gpt-5.6-sol"',
+            'delegation.get("model") == "gpt-5.6-luna"',
             "location = /api/plugins/platform-task-intake/tasks { return 404; }",
             "location = /api/plugins/platform-task-intake/resolve { return 404; }",
         ):

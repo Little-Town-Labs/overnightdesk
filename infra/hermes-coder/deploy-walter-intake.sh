@@ -140,6 +140,26 @@ print("private_intake=authenticated")
 '
 }
 
+verify_profile_route() {
+  docker exec "$runtime" /opt/hermes/.venv/bin/python -c '
+from pathlib import Path
+import yaml
+path = Path("/opt/data/profiles/platform_code_worker/config.yaml")
+assert path.is_file()
+config = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+model = config.get("model") or {}
+agent = config.get("agent") or {}
+delegation = config.get("delegation") or {}
+assert model.get("provider") == "openai-codex"
+assert model.get("default") == "gpt-5.6-sol"
+assert agent.get("reasoning_effort") == "high"
+assert delegation.get("provider") == "openai-codex"
+assert delegation.get("model") == "gpt-5.6-luna"
+assert delegation.get("reasoning_effort") == "high"
+print("platform_worker_profile=readable route=approved")
+'
+}
+
 verify() {
   require_root
   container_exists "$runtime" || fail "$runtime is unavailable"
@@ -155,6 +175,7 @@ verify() {
     'location = /api/plugins/platform-task-intake/resolve { return 404; }' "$nginx_live"
   docker exec overnightdesk-nginx nginx -t >/dev/null
   verify_route
+  verify_profile_route
   test "$(systemctl is-active "$walter_intake_unit")" = active
   curl --silent --show-error --fail --max-time 15 \
     https://aegis-prod.overnightdesk.com/api/status >/dev/null
