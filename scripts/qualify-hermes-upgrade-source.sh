@@ -28,7 +28,13 @@ test -f "$repo_root/infra/hermes-coder/Dockerfile" ||
 
 require_fixed "FROM $upstream_ref" "$repo_root/infra/hermes-coder/Dockerfile"
 require_fixed "$derived_tag" "$repo_root/infra/hermes-coder/Dockerfile"
+require_fixed "plugins/dashboard_auth/platform_task_intake/" "$repo_root/infra/hermes-coder/Dockerfile"
+require_fixed "plugins/platform_task_intake/" "$repo_root/infra/hermes-coder/Dockerfile"
 require_fixed "$upstream_ref" "$repo_root/docker-compose.yml"
+
+python3 -m unittest discover \
+  -s "$repo_root/infra/hermes-coder/tests" \
+  -p 'test_*.py' -v
 
 for path in \
   "$repo_root/tenants/hermes-titus/runtime/run-container.sh" \

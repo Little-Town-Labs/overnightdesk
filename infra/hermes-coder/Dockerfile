@@ -1,5 +1,5 @@
 # overnightdesk/hermes-agent:0.19.0-coder
-# Thin derived image: immutable upstream Hermes + gh CLI/git identity for the_guardian.
+# Thin derived image: immutable upstream Hermes + approved platform worker tooling.
 FROM nousresearch/hermes-agent@sha256:c1731f7ffd49c37f2b4b6cd01873d4256ba6f06217dfca2cc41cede55815ea82
 
 USER root
@@ -15,7 +15,16 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
-# Pre-set the repository identity used by the_guardian.
+# Pre-set the repository identity used by platform_code_worker.
 RUN su hermes -c 'git config --global user.name "poorlyordered" && git config --global user.email "netgleb@gmail.com"'
+
+# Least-authority Production Guardian -> Walter task intake. These overlays use
+# Hermes's exact-path bearer-token seam and expose no general Kanban authority.
+COPY --chown=hermes:hermes \
+  plugins/dashboard_auth/platform_task_intake/ \
+  /opt/hermes/plugins/dashboard_auth/platform_task_intake/
+COPY --chown=hermes:hermes \
+  plugins/platform_task_intake/ \
+  /opt/hermes/plugins/platform_task_intake/
 
 USER root

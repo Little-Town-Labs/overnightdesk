@@ -1,0 +1,7 @@
+name: platform-task-intake
+version: 1.0.0
+description: "Exact-route bearer authentication for the Production Guardian task intake."
+author: OvernightDesk
+kind: backend
+requires_env:
+  - PLATFORM_TASK_INTAKE_TOKEN
