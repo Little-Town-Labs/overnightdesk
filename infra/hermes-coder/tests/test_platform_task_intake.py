@@ -260,6 +260,15 @@ class PublicIngressTests(unittest.TestCase):
             script.index('if ! docker start "$runtime"'),
             script.index('install -o root -g root -m 0644 "$nginx_source"'),
         )
+        success_block = script[
+            script.index("activation_succeeded=true"):
+            script.index('fail "candidate Walter failed verification')
+        ]
+        self.assertLess(
+            success_block.index("trap - EXIT INT TERM"),
+            success_block.index("return"),
+        )
+        self.assertIn('find "$work_dir" -type f -delete', success_block)
 
 
 if __name__ == "__main__":
