@@ -267,16 +267,16 @@ activate() {
     fail "candidate container creation failed"
   fi
 
+  if ! docker start "$runtime" >/dev/null; then
+    restore_previous
+    fail "candidate Walter failed to start"
+  fi
   install -o root -g root -m 0644 "$nginx_source" "$nginx_live"
   if ! docker exec overnightdesk-nginx nginx -t >/dev/null; then
     restore_previous
     fail "candidate Nginx configuration failed"
   fi
   docker kill --signal HUP overnightdesk-nginx >/dev/null
-  if ! docker start "$runtime" >/dev/null; then
-    restore_previous
-    fail "candidate Walter failed to start"
-  fi
   systemctl start "$walter_intake_unit"
   for attempt in $(seq 1 60); do
     if verify >/dev/null 2>&1; then
