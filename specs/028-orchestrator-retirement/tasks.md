@@ -108,7 +108,7 @@ communication-module contract, and no named runtime restarts.
 - [x] T040 [US1] Run reminder tests, shell/static validation, YAML parsing, Spec Kit analysis, scoped secret review, and one bounded Luna implementation plus Sol quality gate
 - [x] T041 [US1] Back up Walter cron state, pause only job `eb193b734d68`, install and enable the reminder timer on Aegis, and avoid all service restarts
 - [x] T042 [US1] Verify the exact Walter cron delta, timer persistence and due time, non-sending communication readiness, named-runtime health, stopped orchestrator state, and zero early notification
-- [ ] T043 [US1] Record the deployment, publish and merge both reviewed repository changes, synchronize exact merged revisions on Aegis, and mark the corrective tasks complete
+- [x] T043 [US1] Record the deployment, publish and merge both reviewed repository changes, synchronize exact merged revisions on Aegis, and mark the corrective tasks complete
 
 ## Dependencies
 
