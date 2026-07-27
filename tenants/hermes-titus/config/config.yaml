@@ -1,7 +1,7 @@
 model:
   default: "__FROM_PHASE__"
-  provider: openrouter
-  base_url: "https://openrouter.ai/api/v1"
+  provider: openai-codex
+  base_url: "https://chatgpt.com/backend-api/codex"
 
 agent:
   reasoning_effort: medium
@@ -13,8 +13,17 @@ approvals:
   cron_mode: deny
 
 delegation:
-  provider: openrouter
-  model: "x-ai/grok-build-0.1"
+  provider: openai-codex
+  base_url: "https://chatgpt.com/backend-api/codex"
+  model: "gpt-5.6-luna"
+  reasoning_effort: high
+  orchestrator_enabled: true
+  max_concurrent_children: 3
+  max_iterations: 30
+  max_spawn_depth: 1
+  child_timeout_seconds: 600
+  inherit_mcp_toolsets: true
+  subagent_auto_approve: false
 
 memory:
   memory_enabled: true

@@ -269,6 +269,21 @@ print("agentmail_titus_inbox=" + ("present" if matches else "not_identified"))
 
 matrix_state = os.environ.get("TITUS_MATRIX_STATE", "disabled")
 config = yaml.safe_load(Path("/opt/data/config.yaml").read_text()) or {}
+auth_file = Path("/opt/data/auth.json")
+assert auth_file.is_file() and not auth_file.is_symlink(), "Titus auth file unavailable"
+auth_stat = auth_file.stat()
+assert auth_stat.st_mode & 0o777 == 0o600, "unexpected Titus auth file mode"
+assert auth_stat.st_uid == 10000, "unexpected Titus auth file owner"
+assert auth_stat.st_gid == 10000, "unexpected Titus auth file group"
+auth = json.loads(auth_file.read_text())
+assert auth.get("active_provider") == "openai-codex", "unexpected Titus active auth provider"
+credentials = (auth.get("credential_pool") or {}).get("openai-codex") or []
+assert len(credentials) == 1, "unexpected Titus Codex credential count"
+credential = credentials[0]
+assert credential.get("auth_type") == "oauth", "unexpected Titus Codex auth type"
+assert str(credential.get("source", "")).endswith("device_code"), "unexpected Titus Codex auth source"
+assert credential.get("access_token"), "missing Titus Codex access token"
+assert credential.get("refresh_token"), "missing Titus Codex refresh token"
 guarded_email_expected = os.environ["TITUS_GUARDED_EMAIL_EXPECT"]
 guarded_email_configured = "guarded_agentmail" in (config.get("mcp_servers") or {})
 assert guarded_email_configured == (guarded_email_expected == "guarded"), "unexpected guarded email mode"
@@ -284,13 +299,32 @@ for entry in Path("/proc/1/environ").read_bytes().split(b"\0"):
     if b"=" in entry:
         key, value = entry.split(b"=", 1)
         pid1_env[key.decode()] = value.decode()
-assert pid1_env.get("HERMES_INFERENCE_MODEL") == "xiaomi/mimo-v2.5-pro", "unexpected effective Titus model"
+assert pid1_env.get("HERMES_INFERENCE_MODEL") == "gpt-5.6-sol", "unexpected effective Titus model"
+assert (config.get("model") or {}).get("provider") == "openai-codex", "unexpected Titus model provider"
+assert (config.get("model") or {}).get("base_url") == "https://chatgpt.com/backend-api/codex", "unexpected Titus model base URL"
+assert (config.get("model") or {}).get("default") == "gpt-5.6-sol", "unexpected Titus configured model"
 assert (config.get("agent") or {}).get("reasoning_effort") == "medium", "unexpected Titus reasoning effort"
-assert (config.get("delegation") or {}).get("provider") == "openrouter", "unexpected Titus delegation provider"
-assert (config.get("delegation") or {}).get("model") == "x-ai/grok-build-0.1", "unexpected Titus delegation model"
-print("effective_model_route=xiaomi/mimo-v2.5-pro")
+delegation = config.get("delegation") or {}
+assert delegation.get("provider") == "openai-codex", "unexpected Titus delegation provider"
+assert delegation.get("base_url") == "https://chatgpt.com/backend-api/codex", "unexpected Titus delegation base URL"
+assert delegation.get("model") == "gpt-5.6-luna", "unexpected Titus delegation model"
+assert delegation.get("reasoning_effort") == "high", "unexpected Titus delegation reasoning effort"
+assert delegation.get("orchestrator_enabled") is True, "Titus delegation orchestrator disabled"
+assert delegation.get("max_concurrent_children") == 3, "unexpected Titus child concurrency"
+assert delegation.get("max_iterations") == 30, "unexpected Titus delegation iteration bound"
+assert delegation.get("max_spawn_depth") == 1, "unexpected Titus delegation depth"
+assert delegation.get("child_timeout_seconds") == 600, "unexpected Titus child timeout"
+assert delegation.get("inherit_mcp_toolsets") is True, "Titus delegation toolsets not inherited"
+assert delegation.get("subagent_auto_approve") is False, "Titus subagent auto approval enabled"
+assert pid1_env.get("TDAI_LLM_MODEL") == "xiaomi/mimo-v2.5-pro", "unexpected memory LLM model"
+assert pid1_env.get("TDAI_LLM_BASE_URL") == "https://openrouter.ai/api/v1", "unexpected memory LLM base URL"
+print("provider=openai-codex")
+print("auth_mode=chatgpt")
+print("effective_model_route=gpt-5.6-sol")
 print("reasoning_effort=medium")
-print("delegation_route=x-ai/grok-build-0.1")
+print("delegation_route=gpt-5.6-luna")
+print("delegation_reasoning_effort=high")
+print("memory_llm_route=xiaomi/mimo-v2.5-pro")
 embedding_enabled = os.environ.get("MEMORY_TENCENTDB_EMBEDDING_ENABLED") == "true"
 assert memory_health.get("stores", {}).get("embeddingService") is embedding_enabled, "unexpected memory embedding health"
 assert os.environ.get("MEMORY_TENCENTDB_EMBEDDING_MODEL") == "perplexity/pplx-embed-v1-4b", "unexpected memory embedding model"

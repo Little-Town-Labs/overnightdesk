@@ -48,7 +48,7 @@ const definitions: readonly ManagedVariableDefinition[] = [
     id: "openrouter_api_key",
     phaseKey: "OPENROUTER_API_KEY",
     label: "OpenRouter API key",
-    help: "Replace the model-provider credential used by this runtime.",
+    help: "Replace the OpenRouter credential used by this runtime's memory processing and embeddings.",
     sensitivity: "secret",
     allowedRoles: ["owner"],
     scope: "runtime",
