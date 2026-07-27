@@ -106,8 +106,8 @@ communication-module contract, and no named runtime restarts.
 - [x] T038 [US1] Implement the reminder client, hardened one-shot service, and persistent timer in `infra/orchestrator-retirement/`
 - [x] T039 [P] [US1] Record the heartbeat correction, reminder control, rollback boundary, and post-observation cleanup gate in `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md` and `overnightdesk-platform-standard/WHAT/services.yaml`
 - [x] T040 [US1] Run reminder tests, shell/static validation, YAML parsing, Spec Kit analysis, scoped secret review, and one bounded Luna implementation plus Sol quality gate
-- [ ] T041 [US1] Back up Walter cron state, pause only job `eb193b734d68`, install and enable the reminder timer on Aegis, and avoid all service restarts
-- [ ] T042 [US1] Verify the exact Walter cron delta, timer persistence and due time, non-sending communication readiness, named-runtime health, stopped orchestrator state, and zero early notification
+- [x] T041 [US1] Back up Walter cron state, pause only job `eb193b734d68`, install and enable the reminder timer on Aegis, and avoid all service restarts
+- [x] T042 [US1] Verify the exact Walter cron delta, timer persistence and due time, non-sending communication readiness, named-runtime health, stopped orchestrator state, and zero early notification
 - [ ] T043 [US1] Record the deployment, publish and merge both reviewed repository changes, synchronize exact merged revisions on Aegis, and mark the corrective tasks complete
 
 ## Dependencies
