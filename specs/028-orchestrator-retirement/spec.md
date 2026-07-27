@@ -193,6 +193,18 @@ and protected data volumes exist before activation.
 - **FR-023**: New first-party services, agents, operational daemons, CLIs, and
   infrastructure automation SHOULD use Go when practical; exceptions and any
   decision not to migrate an existing stable service MUST be explicit.
+- **FR-024**: Retirement reconciliation MUST enumerate tenant-local scheduled
+  jobs, scripts, and environment references to the retired control plane.
+  Active health probes for a deliberately stopped component MUST be paused
+  during the observation window without deleting their rollback artifacts or
+  credential references.
+- **FR-025**: The observation-end owner reminder MUST use a distinct,
+  restart-persistent, one-shot schedule for `2026-08-09T01:33:03Z`, dispatch
+  through the communication module, and remain independently verifiable
+  without sending the reminder before its due time.
+- **FR-026**: Corrective retirement work MUST preserve all unrelated Walter
+  schedules, avoid restarting named runtimes, and record the exact production
+  state delta in the platform standard and deployment ledger.
 
 ### Key Entities
 
@@ -235,6 +247,10 @@ and protected data volumes exist before activation.
   update, route to, or depend on the retired orchestrator or socket proxy.
 - **SC-008**: Rollback can be initiated from the preserved evidence without
   deleting or recreating any persistent business-runtime data.
+- **SC-009**: Walter job `eb193b734d68` is paused, all unrelated Walter job
+  identities and enabled states are unchanged, and an enabled persistent
+  one-shot reminder targets `2026-08-09T01:33:03Z` through the communication
+  module with no early owner notification.
 
 ## Assumptions
 

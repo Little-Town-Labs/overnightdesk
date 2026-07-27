@@ -50,7 +50,10 @@ checks complete within their existing timeouts
 
 **Constraints**: Zero destructive cleanup; no secret values in evidence or
 Git; no production mutation before source and rollback evidence qualify; the
-retired state must survive Docker/host restart
+retired state must survive Docker/host restart; the stale recorder heartbeat
+must be paused rather than deleted during observation; the observation-end
+reminder must be one-shot, restart-persistent, and use the existing
+communication-module API without logging its API key
 
 **Scale/Scope**: One public hostname, three stopped containers, two retained
 named volumes, three incident records, four source repositories, and the named
@@ -99,7 +102,12 @@ overnightdesk/
 ├── docker-compose.yml
 ├── README.md
 ├── PRD.md
+├── infra/orchestrator-retirement/
+│   ├── walter-orchestrator-retirement-reminder.sh
+│   ├── walter-orchestrator-retirement-reminder.service
+│   └── walter-orchestrator-retirement-reminder.timer
 ├── scripts/qualify-orchestrator-retirement.sh
+├── scripts/test-walter-orchestrator-retirement-reminder.py
 └── specs/028-orchestrator-retirement/
 
 overnightdesk-ops/
@@ -123,7 +131,12 @@ overnightdesk-operations-audit/
 **Structure Decision**: Keep each child repository independent. The parent
 platform repo owns active Compose and product direction; Ops owns operator
 tools; the platform standard owns durable runtime truth and incident
-knowledge; operations-audit owns enforcement policy.
+knowledge; operations-audit owns enforcement policy. The corrective
+observation reminder is a bounded host timer because the communication module
+already publishes its authenticated gRPC API only on Aegis loopback. Walter
+owns the reminder operationally, while systemd supplies the restart-persistent
+one-shot schedule and the existing communication module remains the sole
+outbound transport.
 
 ## Complexity Tracking
 

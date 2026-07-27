@@ -90,6 +90,26 @@ restore prior policies and startup order without deleting business data.
 - [x] T034 Commit and push each owning repository branch, open reviewed pull requests, merge approved changes, and synchronize exact merged revisions on Aegis
 - [x] T035 Record the 14-day observation end date and leave destructive cleanup unapproved in `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md`
 
+## Phase 8: Corrective Observation Reconciliation
+
+**Goal**: Stop the retired Flight Recorder probe from producing false alerts
+while preserving rollback evidence and supplying the missing restart-persistent
+observation-end reminder through the communication module.
+
+**Independent Test**: Walter job `eb193b734d68` is paused with every unrelated
+job unchanged; the one-shot systemd timer is enabled for
+`2026-08-09T01:33:03Z`, passes a non-sending readiness check against the
+communication-module contract, and no named runtime restarts.
+
+- [x] T036 [US1] Reproduce the stale heartbeat, verify the retired service state, and search Walter cron, task, and host schedules for the required observation reminder without reading secret values
+- [ ] T037 [US1] Add failing contract tests for the fixed communication-module payload, secret-safe failure behavior, exact one-shot schedule, and persistent timer in `scripts/test-walter-orchestrator-retirement-reminder.py`
+- [ ] T038 [US1] Implement the reminder client, hardened one-shot service, and persistent timer in `infra/orchestrator-retirement/`
+- [ ] T039 [P] [US1] Record the heartbeat correction, reminder control, rollback boundary, and post-observation cleanup gate in `overnightdesk-platform-standard/docs/runbooks/orchestrator-retirement.md` and `overnightdesk-platform-standard/WHAT/services.yaml`
+- [ ] T040 [US1] Run reminder tests, shell/static validation, YAML parsing, Spec Kit analysis, scoped secret review, and one bounded Luna implementation plus Sol quality gate
+- [ ] T041 [US1] Back up Walter cron state, pause only job `eb193b734d68`, install and enable the reminder timer on Aegis, and avoid all service restarts
+- [ ] T042 [US1] Verify the exact Walter cron delta, timer persistence and due time, non-sending communication readiness, named-runtime health, stopped orchestrator state, and zero early notification
+- [ ] T043 [US1] Record the deployment, publish and merge both reviewed repository changes, synchronize exact merged revisions on Aegis, and mark the corrective tasks complete
+
 ## Dependencies
 
 - Setup and foundational evidence block all implementation.
@@ -97,6 +117,9 @@ restore prior policies and startup order without deleting business data.
 - US2 and US3 documentation can proceed after the feature artifacts.
 - US4 static incident search must deploy before the retired database stops.
 - Publication follows all source tests, review, and production acceptance.
+- T036 authorizes the corrective slice. T037 must fail before T038 begins.
+  T038 and T039 may proceed in parallel; T040 gates T041. Live verification in
+  T042 gates publication and task completion in T043.
 
 ## Implementation Strategy
 

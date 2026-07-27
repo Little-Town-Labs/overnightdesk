@@ -36,3 +36,16 @@ restart-disabled, the retired hostname remains denied, no Docker socket access
 returns, and named business workloads remain healthy. Walter owns the
 owner-facing reminder through the communication module. Cleanup is not part of
 this feature and remains unapproved.
+
+### Corrective heartbeat reconciliation
+
+The retired Flight Recorder heartbeat is not an observation reminder. Preserve
+its script and credential references for rollback, but keep Walter job
+`eb193b734d68` paused while the orchestrator is intentionally stopped.
+
+Use the versioned `walter-orchestrator-retirement-reminder.timer` for the
+observation-end notification. Before enabling it, run the reminder script's
+non-sending readiness check with the protected communication-module
+environment. Verify the timer has exactly one activation at
+`2026-08-09T01:33:03Z`, `Persistent=true`, and no early execution. Do not test
+the dispatch mode before the due time.
