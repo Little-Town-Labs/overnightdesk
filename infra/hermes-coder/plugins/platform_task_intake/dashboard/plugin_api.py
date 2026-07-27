@@ -58,6 +58,34 @@ def _validate_key(key: str, signal_key: Optional[str] = None) -> None:
         )
 
 
+def _prepare_for_resolution(conn, row) -> None:
+    if row["assignee"] is not None:
+        raise HTTPException(
+            status_code=409, detail="Guardian task is assigned"
+        )
+    if row["status"] in ("done", "blocked"):
+        return
+    if row["status"] not in ("triage", "todo", "ready"):
+        raise HTTPException(
+            status_code=409, detail="Guardian task is running"
+        )
+    # Move the exact unassigned Guardian-owned row to blocked so it cannot
+    # become or remain runnable before the audited completion call. A crash
+    # leaves a safe state that the same idempotent resolution can retry.
+    prepared = conn.execute(
+        """
+        UPDATE tasks SET status='blocked'
+        WHERE id=? AND status=? AND assignee IS NULL AND created_by=?
+        """,
+        (row["id"], row["status"], SERVICE),
+    )
+    conn.commit()
+    if prepared.rowcount != 1:
+        raise HTTPException(
+            status_code=409, detail="Guardian task state changed"
+        )
+
+
 @router.post("/tasks")
 def create_task(request: CreateTask):
     _validate_key(request.idempotency_key, request.source.signal_key)
@@ -114,7 +142,7 @@ def resolve_task(request: ResolveTask):
     with _conn() as conn:
         row = conn.execute(
             """
-            SELECT id,status FROM tasks
+            SELECT id,status,assignee FROM tasks
             WHERE idempotency_key=? AND created_by=? AND status!='archived'
             ORDER BY created_at DESC LIMIT 1
             """,
@@ -122,6 +150,7 @@ def resolve_task(request: ResolveTask):
         ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Guardian task not found")
+        _prepare_for_resolution(conn, row)
         if row["status"] != "done":
             completed = kanban_db.complete_task(
                 conn,

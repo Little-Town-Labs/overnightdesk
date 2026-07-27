@@ -31,6 +31,8 @@ class FakeKanban:
             """
         )
         self.counter = 0
+        self.fail_completion = False
+        self.completed_from: list[str] = []
 
     def init_db(self, board=None):
         return None
@@ -65,8 +67,17 @@ class FakeKanban:
         return task_id
 
     def complete_task(self, conn, task_id, **kwargs):
+        if self.fail_completion:
+            return False
+        row = conn.execute(
+            "SELECT status FROM tasks WHERE id=?",
+            (task_id,),
+        ).fetchone()
+        if row:
+            self.completed_from.append(row["status"])
         changed = conn.execute(
-            "UPDATE tasks SET status='done',result=? WHERE id=? AND status!='done'",
+            """UPDATE tasks SET status='done',result=?
+               WHERE id=? AND status IN ('running','ready','blocked')""",
             (kwargs.get("result"), task_id),
         ).rowcount
         conn.commit()
@@ -161,6 +172,13 @@ class IntakeAPITests(unittest.TestCase):
             })
         )
         self.assertEqual(resolved["task_id"], created["task_id"])
+        row = self.fake.conn.execute(
+            "SELECT status,assignee FROM tasks WHERE id=?",
+            (created["task_id"],),
+        ).fetchone()
+        self.assertEqual(row["status"], "done")
+        self.assertIsNone(row["assignee"])
+        self.assertEqual(self.fake.completed_from, ["blocked"])
         again = self.api.resolve_task(
             self.api.ResolveTask.model_validate({
                 "idempotency_key": self.payload()["idempotency_key"],
@@ -181,6 +199,77 @@ class IntakeAPITests(unittest.TestCase):
                 "resolution": "try",
             }))
         self.assertEqual(denied.exception.status_code, 404)
+
+    def test_resolve_fails_closed_for_assigned_guardian_task(self):
+        created = self.response_json(
+            self.api.create_task(self.api.CreateTask.model_validate(self.payload()))
+        )
+        self.fake.conn.execute(
+            "UPDATE tasks SET assignee='platform_code_worker' WHERE id=?",
+            (created["task_id"],),
+        )
+        self.fake.conn.commit()
+
+        with self.assertRaises(HTTPException) as denied:
+            self.api.resolve_task(
+                self.api.ResolveTask.model_validate({
+                    "idempotency_key": self.payload()["idempotency_key"],
+                    "resolution": "Upstream run superseded",
+                })
+            )
+        self.assertEqual(denied.exception.status_code, 409)
+        row = self.fake.conn.execute(
+            "SELECT status,assignee FROM tasks WHERE id=?",
+            (created["task_id"],),
+        ).fetchone()
+        self.assertEqual(row["status"], "triage")
+        self.assertEqual(row["assignee"], "platform_code_worker")
+
+    def test_failed_completion_leaves_non_runnable_retry_state(self):
+        created = self.response_json(
+            self.api.create_task(self.api.CreateTask.model_validate(self.payload()))
+        )
+        request = self.api.ResolveTask.model_validate({
+            "idempotency_key": self.payload()["idempotency_key"],
+            "resolution": "Upstream run superseded",
+        })
+        self.fake.fail_completion = True
+        with self.assertRaises(HTTPException) as denied:
+            self.api.resolve_task(request)
+        self.assertEqual(denied.exception.status_code, 409)
+        row = self.fake.conn.execute(
+            "SELECT status FROM tasks WHERE id=?",
+            (created["task_id"],),
+        ).fetchone()
+        self.assertEqual(row["status"], "blocked")
+
+        self.fake.fail_completion = False
+        retried = self.api.resolve_task(request)
+        self.assertTrue(retried["resolved"])
+
+    def test_resolve_fails_closed_for_running_guardian_task(self):
+        created = self.response_json(
+            self.api.create_task(self.api.CreateTask.model_validate(self.payload()))
+        )
+        self.fake.conn.execute(
+            "UPDATE tasks SET status='running' WHERE id=?",
+            (created["task_id"],),
+        )
+        self.fake.conn.commit()
+
+        with self.assertRaises(HTTPException) as denied:
+            self.api.resolve_task(
+                self.api.ResolveTask.model_validate({
+                    "idempotency_key": self.payload()["idempotency_key"],
+                    "resolution": "Upstream run superseded",
+                })
+            )
+        self.assertEqual(denied.exception.status_code, 409)
+        row = self.fake.conn.execute(
+            "SELECT status FROM tasks WHERE id=?",
+            (created["task_id"],),
+        ).fetchone()
+        self.assertEqual(row["status"], "running")
 
 
 class AuthProviderTests(unittest.TestCase):
