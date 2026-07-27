@@ -18,7 +18,9 @@ The adapter exposes only two exact, bearer-protected routes:
 Create requests are forced to Walter's default board as unassigned `triage`
 tasks in a scratch workspace. The schema rejects assignee, model, provider,
 skill, workspace, board, and status fields. Resolution is limited to tasks
-created by `overnightdesk-production-guardian`. The dedicated
+created by `overnightdesk-production-guardian`. An unassigned Guardian
+`triage` task is moved through non-runnable `blocked` state before the normal
+audited Hermes completion path; assigned tasks fail closed. The dedicated
 `PLATFORM_TASK_INTAKE_TOKEN` is injected at runtime from Phase and grants no
 general dashboard or Kanban authority.
 
