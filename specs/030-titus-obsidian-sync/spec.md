@@ -1,5 +1,8 @@
 # Feature Specification: Titus Obsidian Headless Sync
 
+> Historical implementation record. Feature 031 supersedes this optional
+> paid-sync design with an Aegis-local Markdown knowledge volume for Titus.
+
 **Feature Branch**: `agent/codex/feature-030-titus-obsidian-sync`
 
 **Created**: 2026-07-29

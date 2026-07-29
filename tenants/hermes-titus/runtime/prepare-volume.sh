@@ -3,6 +3,7 @@ set -euo pipefail
 
 image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.19.0-coder}
 volume=${TITUS_VOLUME:-hermes-titus-data}
+knowledge_volume=${TITUS_PROJECT_KNOWLEDGE_VOLUME:-titus-project-knowledge-data}
 source_root=${TITUS_SOURCE_ROOT:-/opt/hermes-titus/source}
 rollback_marker=${TITUS_DASHBOARD_ROLLBACK_MARKER:-/opt/hermes-titus/rollback-loopback-dashboard}
 guarded_email_marker=${TITUS_GUARDED_EMAIL_READ_ONLY_MARKER:-/opt/hermes-titus/guarded-email-read-only}
@@ -49,6 +50,26 @@ if test -e "$guarded_email_marker" || test -L "$guarded_email_marker"; then
 fi
 
 docker volume inspect "$volume" >/dev/null 2>&1 || docker volume create "$volume" >/dev/null
+docker volume inspect "$knowledge_volume" >/dev/null 2>&1 ||
+  docker volume create "$knowledge_volume" >/dev/null
+
+docker run --rm \
+  --user 0:0 \
+  --network none \
+  --volume "$volume:/source-data:ro" \
+  --volume "$knowledge_volume:/knowledge" \
+  --entrypoint /usr/bin/bash \
+  "$image" -euo pipefail -c '
+    install -d -o 10000 -g 10000 -m 0750 /knowledge
+    if ! find /knowledge -mindepth 1 -print -quit | grep -q .; then
+      test -d /source-data/project-briefs || {
+        printf "Titus project briefs are unavailable\n" >&2
+        exit 1
+      }
+      cp -a /source-data/project-briefs/. /knowledge/
+    fi
+    chown -R 10000:10000 /knowledge
+  '
 
 docker run --rm \
   --user 0:0 \
