@@ -46,7 +46,9 @@ LINEAR_MUTATION_VERBS = frozenset(
         "write",
     }
 )
-LINEAR_READ_VERBS = frozenset({"find", "get", "inspect", "list", "read", "search"})
+LINEAR_READ_VERBS = frozenset(
+    {"extract", "find", "get", "inspect", "list", "read", "search"}
+)
 
 
 def prefixed(server: str, tools: Iterable[str]) -> set[str]:
