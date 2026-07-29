@@ -88,7 +88,7 @@ state while existing Titus capabilities remain healthy.
 
 ## Phase 7: Publish and Production Readiness
 
-- [ ] T025 Commit, push, open the OvernightDesk pull request, and pass required GitHub checks for branch `032-titus-linear-readonly`
+- [x] T025 Commit, push, open the OvernightDesk pull request, and pass required GitHub checks for branch `032-titus-linear-readonly`
 - [x] T026 Commit, push, open the platform-standard pull request, and pass required GitHub checks for branch `agent/codex/linear-work-management-standard`
 - [ ] T027 Merge reviewed source in dependency order and deploy the exact merged OvernightDesk commit with Linear disabled using `tenants/hermes-titus/scripts/deploy-aegis.sh`
 - [ ] T028 Verify disabled production health and unrelated Titus capabilities, then append value-safe deployment evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`

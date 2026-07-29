@@ -102,6 +102,10 @@ activation T029 remains the terminal external gate.
   `33955fea40dda74c902196fe0e5548fcafdd53aa`
 - Platform-standard checks: repository reports no configured checks; GitHub
   reported the PR clean and mergeable before merge.
+- OvernightDesk implementation PR:
+  `https://github.com/Little-Town-Labs/overnightdesk/pull/151`
+- OvernightDesk checks: repository reports no configured checks; local
+  qualification is the required release evidence.
 
 ## Local qualification
 
