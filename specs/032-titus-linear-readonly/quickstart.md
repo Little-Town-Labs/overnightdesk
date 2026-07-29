@@ -104,8 +104,34 @@ activation T029 remains the terminal external gate.
   reported the PR clean and mergeable before merge.
 - OvernightDesk implementation PR:
   `https://github.com/Little-Town-Labs/overnightdesk/pull/151`
+- Production-preflight permission fix:
+  `https://github.com/Little-Town-Labs/overnightdesk/pull/152`
+- Deterministic timeout-test fix:
+  `https://github.com/Little-Town-Labs/overnightdesk/pull/153`
 - OvernightDesk checks: Vercel deployment and Vercel Preview Comments passed;
   local qualification supplies the tenant-specific release evidence.
+
+## Disabled production evidence
+
+- Exact deployed merge:
+  `854f04caedc205bd26ac27333851d8b3afc9538e`
+- Phase profile classification before deployment: `absent`
+- Final qualification: `134 passed`
+- Runtime projection: `linear_state=disabled`,
+  `linear_mcp=disabled`, read-only endpoint fixed, authorization header absent,
+  and Linear skill present
+- Exact-source proof: SHA-256 hashes for the source configuration, Phase
+  loader, registry verifier, and installed skill matched between the merged
+  worktree and Aegis
+- Unrelated health: Control Tower, exact AgentMail and guarded-email tools,
+  project knowledge, memory, Matrix, dashboard, private networking, and no
+  published ports passed before and after a Titus-only restart; Teams retained
+  its existing `pending` state
+- Safety evidence: zero recent error markers, zero retired-connector source references,
+  and no Linear account, credential, record, GitHub integration, database,
+  webhook, bridge, service, route, or port was created or changed
+- Deployment log:
+  `/home/frosted639/src/overnightdesk-suite/deploys.log`
 
 ## Local qualification
 

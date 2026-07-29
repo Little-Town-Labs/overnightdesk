@@ -16,23 +16,24 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** Feature 032 — Titus Linear read-only delivery
-**Current critical path:** qualify and publish the disabled-by-default direct
-Linear read boundary, synchronize the TTS operating standard, deploy the exact
-merged source with Linear disabled, then stop at the human workspace/team/key
-gate before a controlled read-only activation.
+**Current critical path:** complete the human Linear workspace, `TTS` team,
+native GitHub integration, and team-scoped Read-key gate before the controlled
+read-only activation canaries.
 
 ## Current Delivery Checkpoint — 2026-07-29
 
-- **Feature 032 — implementation in progress:** Linear is selected as the TTS
-  technical-delivery system of record. The first release adds only the hosted
+- **Feature 032 — disabled release deployed; human activation pending:** The
+  operating standard and source are merged, and exact commit `854f04c` is
+  deployed on Aegis with `linear_state=disabled`, no authorization header, no
+  registered Linear tools, and all unrelated Titus verification healthy
+  before and after a controlled restart. The first release adds only the hosted
   read-only MCP endpoint, a team-scoped Read key loaded from a dedicated Phase
   path, strict disabled/ready projection, value-safe verification, and the
   Austin/Gary/Titus/contractor operating model. It adds no write path, webhook,
   bridge, database copy, cache, event ledger, semantic copy, GitHub credential,
-  or GitHub Issues synchronization. Done requires verification in the target
-  environment. Source may deploy disabled before a human configures workspace
-  `Timeless Technology Solutions`, team `TTS`, the native GitHub repository
-  allowlist, and the team-limited key.
+  or GitHub Issues synchronization. Human setup of workspace `Timeless
+  Technology Solutions`, team `TTS`, the native GitHub repository allowlist,
+  and the team-limited key is the remaining gate.
 
 ## Current Delivery Checkpoint — 2026-07-26
 
