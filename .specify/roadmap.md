@@ -1,8 +1,8 @@
 # OvernightDesk — Implementation Roadmap
 
 **Source:** PRD v2.1 (2026-03-21)
-**Constitution:** v1.0.0 (2026-03-21)
-**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-26
+**Current Constitution:** v3.0.0; roadmap lineage began at v1.0.0 (2026-03-21)
+**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-29
 
 ---
 
@@ -15,12 +15,24 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** Feature 029 — Titus Codex OAuth migration
-**Current critical path:** decouple Titus's OpenRouter-backed memory processing
-from its interactive model selector, qualify the Sol/medium and Luna/high Codex
-projection, enroll a Titus-owned OAuth credential, and perform a reversible
-Titus-only production cutover. Feature 026's broader model experiment remains
-parked and is not reused by this approved provider migration.
+**Active Spec Kit feature:** Feature 032 — Titus Linear read-only delivery
+**Current critical path:** qualify and publish the disabled-by-default direct
+Linear read boundary, synchronize the TTS operating standard, deploy the exact
+merged source with Linear disabled, then stop at the human workspace/team/key
+gate before a controlled read-only activation.
+
+## Current Delivery Checkpoint — 2026-07-29
+
+- **Feature 032 — implementation in progress:** Linear is selected as the TTS
+  technical-delivery system of record. The first release adds only the hosted
+  read-only MCP endpoint, a team-scoped Read key loaded from a dedicated Phase
+  path, strict disabled/ready projection, value-safe verification, and the
+  Austin/Gary/Titus/contractor operating model. It adds no write path, webhook,
+  bridge, database copy, cache, event ledger, semantic copy, GitHub credential,
+  or GitHub Issues synchronization. Done requires verification in the target
+  environment. Source may deploy disabled before a human configures workspace
+  `Timeless Technology Solutions`, team `TTS`, the native GitHub repository
+  allowlist, and the team-limited key.
 
 ## Current Delivery Checkpoint — 2026-07-26
 

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Linear Technical Delivery"
+  short_description: "Read current TTS technical delivery safely"
+  default_prompt: "Use $linear-technical-delivery to inspect current read-only delivery state for the Timeless Technology Solutions TTS team."
+
