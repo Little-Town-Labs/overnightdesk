@@ -104,8 +104,8 @@ activation T029 remains the terminal external gate.
   reported the PR clean and mergeable before merge.
 - OvernightDesk implementation PR:
   `https://github.com/Little-Town-Labs/overnightdesk/pull/151`
-- OvernightDesk checks: repository reports no configured checks; local
-  qualification is the required release evidence.
+- OvernightDesk checks: Vercel deployment and Vercel Preview Comments passed;
+  local qualification supplies the tenant-specific release evidence.
 
 ## Local qualification
 
