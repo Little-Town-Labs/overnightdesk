@@ -1,7 +1,7 @@
 # Feature Specification: Titus Local Project Knowledge
 
 **Feature Branch**: `agent/codex/titus-local-project-knowledge`
-**Status**: Implementation
+**Status**: Complete
 **Input**: Keep Titus project background organized on Aegis without an
 Obsidian account, paid sync service, or second user-facing copy.
 
