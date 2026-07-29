@@ -170,6 +170,7 @@ require_pattern 'HostConfig\.SecurityOpt' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'HostConfig\.PidsLimit' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'Config\.Env' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'NRestarts' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'test -n.*health.*health=absent' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'sync\.log.*-mmin -15' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'knowledge_backup_coverage' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'titus_project_knowledge_skill=installed' \

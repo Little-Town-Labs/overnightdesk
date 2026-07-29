@@ -92,11 +92,14 @@
 ## Deferred Production Activation
 
 - [ ] T033 Provision the dedicated Phase token path without printing values
-- [ ] T034 Install the reviewed sidecar image/unit disabled on Aegis
-- [ ] T035 Migrate and compare the live project briefs without deleting source
+- [x] T034 Install the reviewed sidecar image/unit disabled on Aegis
+- [x] T035 Migrate and compare the live project briefs without deleting source
 - [ ] T036 Interactively link the owner-approved remote vault and run one-shot
   sync qualification
 - [ ] T037 Complete an encrypted backup and isolated knowledge-vault restore
+  (the Titus-inclusive encrypted set, local verification, immutable Drive copy,
+  cloud checksum comparison, and receipt passed; decryption/restore remains
+  pending the off-box break-glass identity)
 - [ ] T038 Activate the marker and sidecar under explicit owner authorization
 - [ ] T039 Run bidirectional, conflict, outage-isolation, restart, and
   observation canaries

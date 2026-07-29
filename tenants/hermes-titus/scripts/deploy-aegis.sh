@@ -270,7 +270,8 @@ obsidian_status() {
     set -eu
     enabled=$(sudo systemctl is-enabled obsidian-sync-titus.service 2>/dev/null || true)
     active=$(sudo systemctl is-active obsidian-sync-titus.service 2>/dev/null || true)
-    health=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" obsidian-sync-titus 2>/dev/null || echo absent)
+    health=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" obsidian-sync-titus 2>/dev/null || true)
+    test -n "$health" || health=absent
     restart_count=$(sudo systemctl show --property=NRestarts --value obsidian-sync-titus.service 2>/dev/null || echo unknown)
     installed_version=$(sudo docker run --rm \
       --user 10000:10000 \
