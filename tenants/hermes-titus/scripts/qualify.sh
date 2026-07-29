@@ -439,6 +439,7 @@ require_pattern 'guarded_agentmail_mcp=read_only_rollback' "$tenant_root/runtime
 require_pattern 'linear_mcp=disabled' "$tenant_root/runtime/verify-mcp-registry.py"
 require_pattern 'linear_mcp=healthy_read_only' "$tenant_root/runtime/verify-mcp-registry.py"
 require_pattern 'preflight' "$tenant_root/scripts/deploy-aegis.sh"
+require_pattern 'sudo test -f /run/hermes-titus/runtime\.env' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'linear_state=' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'MATRIX_ACCESS_TOKEN' "$tenant_root/scripts/deploy-aegis.sh"
 require_pattern 'MATRIX_RECOVERY_KEY' "$tenant_root/scripts/deploy-aegis.sh"

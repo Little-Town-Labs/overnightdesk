@@ -19,7 +19,7 @@ preflight() {
   "${ssh_cmd[@]}" '
     set -eu
     test -d /opt/hermes-titus/source
-    test -f /run/hermes-titus/runtime.env
+    sudo test -f /run/hermes-titus/runtime.env
     linear_state=$(
       sudo sed -n "s/^TITUS_LINEAR_STATE=//p" \
         /run/hermes-titus/runtime.env | tail -n 1
