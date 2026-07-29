@@ -90,8 +90,8 @@ state while existing Titus capabilities remain healthy.
 
 - [x] T025 Commit, push, open the OvernightDesk pull request, and pass required GitHub checks for branch `032-titus-linear-readonly`
 - [x] T026 Commit, push, open the platform-standard pull request, and pass required GitHub checks for branch `agent/codex/linear-work-management-standard`
-- [ ] T027 Merge reviewed source in dependency order and deploy the exact merged OvernightDesk commit with Linear disabled using `tenants/hermes-titus/scripts/deploy-aegis.sh`
-- [ ] T028 Verify disabled production health and unrelated Titus capabilities, then append value-safe deployment evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`
+- [x] T027 Merge reviewed source in dependency order and deploy the exact merged OvernightDesk commit with Linear disabled using `tenants/hermes-titus/scripts/deploy-aegis.sh`
+- [x] T028 Verify disabled production health and unrelated Titus capabilities, then append value-safe deployment evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T029 At the human Linear account gate, activate the team-scoped Read key, verify five representative reads and zero mutation tools/changes, rehearse restart and rollback, and record evidence in `specs/032-titus-linear-readonly/quickstart.md`
 
 ## Dependencies
