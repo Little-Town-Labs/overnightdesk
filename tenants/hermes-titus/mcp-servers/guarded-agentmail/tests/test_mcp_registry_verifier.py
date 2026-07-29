@@ -76,6 +76,7 @@ def test_linear_ready_accepts_provider_agnostic_read_tools() -> None:
     actual = prefixed("agentmail", *verifier.AGENTMAIL_READ_TOOLS)
     actual |= prefixed(
         "linear",
+        "extract_images",
         "get_comment",
         "list_issue_updates",
         "search_assigned_issues",
