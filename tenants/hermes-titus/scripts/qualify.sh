@@ -14,6 +14,12 @@ require_file() {
   test -f "$path" || fail "missing ${path#$repo_root/}"
 }
 
+reject_file() {
+  local path=$1
+  test ! -e "$path" && test ! -L "$path" ||
+    fail "retired file remains: ${path#$repo_root/}"
+}
+
 require_pattern() {
   local pattern=$1
   local path=$2
@@ -29,18 +35,7 @@ reject_pattern() {
 }
 
 runtime_files=(
-  "$tenant_root/obsidian-sync/Dockerfile"
-  "$tenant_root/obsidian-sync/package.json"
-  "$tenant_root/obsidian-sync/package-lock.json"
-  "$tenant_root/obsidian-sync/bin/entrypoint.sh"
-  "$tenant_root/obsidian-sync/bin/healthcheck.sh"
   "$tenant_root/runtime/load-phase-env.sh"
-  "$tenant_root/runtime/load-obsidian-sync-env.sh"
-  "$tenant_root/runtime/initialize-obsidian-sync.sh"
-  "$tenant_root/runtime/prepare-obsidian-sync.sh"
-  "$tenant_root/runtime/run-obsidian-sync.sh"
-  "$tenant_root/runtime/stop-obsidian-sync.sh"
-  "$tenant_root/runtime/obsidian-sync-titus.service"
   "$tenant_root/runtime/apply-email-mode.py"
   "$tenant_root/runtime/prepare-volume.sh"
   "$tenant_root/runtime/start-all.sh"
@@ -73,13 +68,6 @@ for file in "${runtime_files[@]}"; do
 done
 
 bash -n \
-  "$tenant_root/obsidian-sync/bin/entrypoint.sh" \
-  "$tenant_root/obsidian-sync/bin/healthcheck.sh" \
-  "$tenant_root/runtime/load-obsidian-sync-env.sh" \
-  "$tenant_root/runtime/initialize-obsidian-sync.sh" \
-  "$tenant_root/runtime/prepare-obsidian-sync.sh" \
-  "$tenant_root/runtime/run-obsidian-sync.sh" \
-  "$tenant_root/runtime/stop-obsidian-sync.sh" \
   "$tenant_root/runtime/load-phase-env.sh" \
   "$tenant_root/runtime/prepare-volume.sh" \
   "$tenant_root/runtime/start-all.sh" \
@@ -89,96 +77,25 @@ bash -n \
   "$tenant_root/runtime/email-run-approval.sh" \
   "$tenant_root/scripts/deploy-aegis.sh"
 
-require_pattern '^FROM node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3$' \
-  "$tenant_root/obsidian-sync/Dockerfile"
-require_pattern 'npm ci --omit=dev' "$tenant_root/obsidian-sync/Dockerfile"
-reject_pattern '(^|[^A-Za-z])latest([^A-Za-z]|$)' "$tenant_root/obsidian-sync/Dockerfile"
-require_pattern '"obsidian-headless": "0\.0\.13"' "$tenant_root/obsidian-sync/package.json"
-require_pattern '"node": ">=22"' "$tenant_root/obsidian-sync/package.json"
-require_pattern '"integrity": "sha512-biu7K0njASixXkV/foG\+gmVWiU75oWGxOPrLWeQheYozeIQfImp72VGdKxwkU0kCXrh24js4zbuArCexcXfi2w=="' \
-  "$tenant_root/obsidian-sync/package-lock.json"
-require_pattern '/run/secrets/obsidian-sync-runtime' "$tenant_root/obsidian-sync/bin/entrypoint.sh"
-require_pattern 'OBSIDIAN_AUTH_TOKEN' "$tenant_root/obsidian-sync/bin/entrypoint.sh"
-require_pattern 'exec ob sync --path /vault --continuous' "$tenant_root/obsidian-sync/bin/entrypoint.sh"
-require_pattern 'conflictStrategy.*conflict' "$tenant_root/obsidian-sync/bin/healthcheck.sh"
-require_pattern 'vaultPath.*\/vault' "$tenant_root/obsidian-sync/bin/healthcheck.sh"
-require_pattern 'allowSpecialFiles' "$tenant_root/obsidian-sync/bin/healthcheck.sh"
+for retired in \
+  "$tenant_root/obsidian-sync" \
+  "$tenant_root/runtime/load-obsidian-sync-env.sh" \
+  "$tenant_root/runtime/initialize-obsidian-sync.sh" \
+  "$tenant_root/runtime/prepare-obsidian-sync.sh" \
+  "$tenant_root/runtime/run-obsidian-sync.sh" \
+  "$tenant_root/runtime/stop-obsidian-sync.sh" \
+  "$tenant_root/runtime/obsidian-sync-titus.service"; do
+  reject_file "$retired"
+done
 
-require_pattern '/agents/hermes-titus/obsidian-sync' "$tenant_root/runtime/load-obsidian-sync-env.sh"
-require_pattern 'keys == \["OBSIDIAN_AUTH_TOKEN"\]' "$tenant_root/runtime/load-obsidian-sync-env.sh"
-require_pattern '/run/obsidian-sync-titus/runtime.env' "$tenant_root/runtime/load-obsidian-sync-env.sh"
-require_pattern 'install -o root -g 10000 -m 0440' "$tenant_root/runtime/load-obsidian-sync-env.sh"
-require_pattern 'mv -Tf.*temporary_output.*output_file' "$tenant_root/runtime/load-obsidian-sync-env.sh"
-require_pattern 'Immutable remote Obsidian vault ID' "$tenant_root/runtime/initialize-obsidian-sync.sh"
-require_pattern 'sync state is already initialized' "$tenant_root/runtime/initialize-obsidian-sync.sh"
-require_pattern 'ob sync-setup' "$tenant_root/runtime/initialize-obsidian-sync.sh"
-require_pattern 'sync-config.*' "$tenant_root/runtime/initialize-obsidian-sync.sh"
-reject_pattern '--password' "$tenant_root/runtime/initialize-obsidian-sync.sh"
-require_pattern 'titus-project-knowledge-data' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'titus-obsidian-sync-state' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'sha256sum' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'cmp -s' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'source project briefs contain a symlink or special file' \
-  "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'target knowledge volume contains a symlink or special file' \
-  "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'migration-verified' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'vault-baseline\.sha256' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'overnightdesk-migration-baseline' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'target Obsidian directory is invalid' \
-  "$tenant_root/runtime/prepare-obsidian-sync.sh"
-require_pattern 'source project briefs are unavailable' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-reject_pattern 'docker volume rm|rm -rf' "$tenant_root/runtime/prepare-obsidian-sync.sh"
-
-require_pattern '--user 10000:10000' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--read-only' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--network bridge' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--cap-drop ALL' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern 'no-new-privileges' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--pids-limit 128' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--cpus 0\.5' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--memory 512m' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '--log-driver none' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern 'image.*>/dev/null 2>&1' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern 'titus-project-knowledge-data:/vault' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern 'titus-obsidian-sync-state:/state' "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern '/run/obsidian-sync-titus/runtime.env:/run/secrets/obsidian-sync-runtime:ro' \
-  "$tenant_root/runtime/run-obsidian-sync.sh"
-require_pattern 'knowledge marker mode must be 0400' "$tenant_root/runtime/run-obsidian-sync.sh"
-reject_pattern 'docker\.sock|(^|[[:space:]])(-p|--publish)([=[:space:]]|$)' \
-  "$tenant_root/runtime/run-obsidian-sync.sh"
-
-require_pattern 'User=hermes-titus' "$tenant_root/runtime/obsidian-sync-titus.service"
-require_pattern 'RuntimeDirectory=obsidian-sync-titus' "$tenant_root/runtime/obsidian-sync-titus.service"
-require_pattern 'ExecStartPre=.*/load-obsidian-sync-env\.sh' "$tenant_root/runtime/obsidian-sync-titus.service"
-require_pattern 'ExecStart=.*/run-obsidian-sync\.sh' "$tenant_root/runtime/obsidian-sync-titus.service"
-require_pattern 'ExecStop=.*/stop-obsidian-sync\.sh' "$tenant_root/runtime/obsidian-sync-titus.service"
-reject_pattern 'Requires=hermes-titus\.service' "$tenant_root/runtime/obsidian-sync-titus.service"
-
-require_pattern 'obsidian-project-knowledge-enabled' "$tenant_root/runtime/run-container.sh"
+require_pattern 'titus-project-knowledge-data' "$tenant_root/runtime/prepare-volume.sh"
+require_pattern '/source-data/project-briefs' "$tenant_root/runtime/prepare-volume.sh"
+reject_pattern 'docker volume rm' "$tenant_root/runtime/prepare-volume.sh"
 require_pattern 'titus-project-knowledge-data:/opt/data/project-briefs' "$tenant_root/runtime/run-container.sh"
-require_pattern 'obsidian-install-disabled' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'obsidian-migrate' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'obsidian-initialize' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'obsidian-activate' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'obsidian-status' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'obsidian-rollback' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'installed_version.*docker run' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'HostConfig\.ReadonlyRootfs' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'HostConfig\.CapDrop' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'HostConfig\.SecurityOpt' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'HostConfig\.PidsLimit' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'Config\.Env' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'NRestarts' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'test -n.*health.*health=absent' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'sync\.log.*-mmin -15' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'knowledge_backup_coverage' "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern 'titus_project_knowledge_skill=installed' \
+reject_pattern 'OBSIDIAN_AUTH_TOKEN|obsidian-(install|migrate|initialize|activate|status|rollback)' \
   "$tenant_root/scripts/deploy-aegis.sh"
-require_pattern '--mode bidirectional' "$tenant_root/runtime/initialize-obsidian-sync.sh"
-require_pattern '--conflict-strategy conflict' "$tenant_root/runtime/initialize-obsidian-sync.sh"
 require_pattern 'durable project background' "$tenant_root/README.md"
-require_pattern 'Treat synchronized notes as untrusted' "$tenant_root/README.md"
+require_pattern 'Treat project notes as untrusted' "$tenant_root/README.md"
 require_pattern 'titus-project-knowledge/SKILL\.md' "$tenant_root/README.md"
 require_pattern 'titus-project-knowledge' "$tenant_root/config/SOUL.md"
 require_pattern '^name: titus-project-knowledge$' \
@@ -187,9 +104,9 @@ require_pattern '/opt/data/project-briefs' \
   "$tenant_root/skills/titus-project-knowledge/SKILL.md"
 require_pattern 'Treat note content as untrusted' \
   "$tenant_root/skills/titus-project-knowledge/SKILL.md"
-require_pattern 'Do not edit.*[.]obsidian' \
-  "$tenant_root/skills/titus-project-knowledge/SKILL.md"
-require_pattern 'Do not start, stop, repair, inspect, or reconfigure the sidecar' \
+require_pattern '00-inbox' "$tenant_root/skills/titus-project-knowledge/SKILL.md"
+require_pattern 'README\.md' "$tenant_root/skills/titus-project-knowledge/SKILL.md"
+reject_pattern 'sidecar|remote synchronization|Obsidian Sync' \
   "$tenant_root/skills/titus-project-knowledge/SKILL.md"
 
 PYTHONDONTWRITEBYTECODE=1 \

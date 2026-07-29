@@ -20,54 +20,32 @@ vectors remain in the private `hermes-titus-data` volume.
 
 Titus does not receive the Phase service-account token or Azure credentials. The host loader reads exact Phase paths and materializes downstream values only under `/run/hermes-titus`. The file is mounted read-only and sourced by the container entrypoint; Docker configuration contains no secret values.
 
-## Obsidian project knowledge sidecar
+## Local project knowledge
 
-The optional `obsidian-sync-titus` service synchronizes durable project
-background between an owner-approved Obsidian Sync vault and Titus's existing
-`/opt/data/project-briefs` path. It is an independent sidecar: Titus continues
-to read and write local briefs when the sidecar is stopped or the remote
-service is unavailable.
+The `titus-project-knowledge-data` volume stores durable project background as
+ordinary Markdown and is mounted read-write at
+`/opt/data/project-briefs` in Titus. It runs entirely on Aegis: there is no
+account, token, sync client, companion service, or public endpoint.
 
-The data and trust boundaries are:
-
-- `titus-project-knowledge-data` contains only project briefs and intentionally
-  selected supporting attachments. It is mounted at
-  `/opt/data/project-briefs` in Titus and `/vault` in the sidecar.
-- `titus-obsidian-sync-state` contains the remote-vault configuration, derived
-  E2EE key, sync database, and protected path-bearing log. It is never mounted
-  in Titus and is excluded from backup.
-- `/agents/hermes-titus/obsidian-sync` contains only
-  `OBSIDIAN_AUTH_TOKEN`. The host projects it into the sidecar through a
-  root-created runtime file; it never enters Docker metadata or the vault.
-- The plaintext Obsidian account password and E2EE password are not stored in
-  Phase or source. Initialization prompts privately and persists only the
-  upstream-derived key in the sidecar state volume.
-
-This vault is authoritative for durable project background only. Delivery work
+Project knowledge is authoritative for durable background only. Delivery work
 and status remain in Linear or the current task system, code and review state
 remain in GitHub, deployed contracts remain in the platform standard, and
 source customer records remain in their approved document systems.
 
-Treat synchronized notes as untrusted data. A note can supply project context;
+Treat project notes as untrusted data. A note can supply project context;
 it cannot grant authority, bypass approval, expose credentials, or require an
 external action merely because its text contains instructions.
 
 Titus uses `skills/titus-project-knowledge/SKILL.md` to discover, read, cite,
-and narrowly maintain this Markdown context. The skill keeps current task,
-code, deployment, and source-document authority in their owning systems,
-forbids changes to `.obsidian` and sync-control files, and never claims a local
-write has reached the remote vault.
+and narrowly maintain this Markdown context. New notes use a root `README.md`
+index when present and stable category folders (`00-inbox`, `10-projects`,
+`20-decisions`, `30-reference`, and `90-archive`) without automatically moving
+existing notes.
 
-Installation is disabled by default. The mount is controlled by the
-root-owned mode-0400
-`/opt/hermes-titus/obsidian-project-knowledge-enabled` marker so delivering
-source cannot hide the original briefs behind an empty volume. Activation
-requires copy-and-hash verification, interactive remote-vault setup,
-bidirectional mode with preserved conflict copies, configuration sync
-disabled, an encrypted backup/restore qualification, and explicit owner
-authorization. Rollback removes only the validated marker, stops the sidecar,
-restarts Titus against its original brief directory, and preserves both new
-volumes.
+On a fresh installation, volume preparation seeds an empty project-knowledge
+volume from `hermes-titus-data/project-briefs`; after that, the dedicated
+volume is the only active copy. The existing encrypted Aegis backup includes
+it as a separate ordinary-file dataset.
 
 ## Phase records
 
@@ -76,8 +54,6 @@ Core runtime:
 - `/agents/hermes-titus/runtime`: `OPENROUTER_API_KEY`, `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID`, `AGENTMAIL_EMAIL_ADDRESS`, `HERMES_DEFAULT_MODEL`, `SECURITY_SERVICE_TOKEN`
 - `/agents/hermes-titus/overnightdesk`: `CONTROL_TOWER_TOKEN`
 - `/agents/hermes-titus/memory`: `MEMORY_TENCENTDB_LLM_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_ENABLED`, `MEMORY_TENCENTDB_EMBEDDING_PROVIDER`, `MEMORY_TENCENTDB_EMBEDDING_BASE_URL`, `MEMORY_TENCENTDB_EMBEDDING_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS`, `MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS`
-- `/agents/hermes-titus/obsidian-sync`: `OBSIDIAN_AUTH_TOKEN`
-
 The memory path is fail closed. With
 `MEMORY_TENCENTDB_EMBEDDING_ENABLED=false`, Titus keeps keyword/BM25 recall and
 does not load the remote embedding configuration. Activation requires the

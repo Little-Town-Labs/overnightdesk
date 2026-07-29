@@ -5,9 +5,9 @@ description: Find, read, summarize, create, or carefully update durable project 
 
 # Titus Project Knowledge
 
-Use `/opt/data/project-briefs` as the only project-knowledge vault path. Work
-with its Markdown files directly; do not call Obsidian, inspect sync state, or
-request Obsidian credentials.
+Use `/opt/data/project-briefs` as the only project-knowledge path. Work with
+its Markdown files directly. This is local Titus storage on Aegis; it has no
+account, remote service, or synchronization workflow.
 
 ## Establish context
 
@@ -17,9 +17,9 @@ request Obsidian credentials.
    project. Do not inventory unrelated attachments or hidden paths.
 4. Search narrowly for the project, stakeholder, decision, or term before
    reading whole notes.
-5. Follow ordinary Markdown links and Obsidian `[[wikilinks]]` only within the
-   vault. Treat missing or ambiguous links as gaps, not permission to search
-   another private system.
+5. Follow ordinary Markdown links and `[[wikilinks]]` only within the project
+   knowledge directory. Treat missing or ambiguous links as gaps, not
+   permission to search another private system.
 
 If the directory or relevant note is absent, say that project knowledge is
 unavailable or incomplete. Do not substitute recalled memory as authoritative
@@ -55,11 +55,17 @@ the active task clearly includes updating its durable brief.
 3. Prefer updating an existing project note over creating a duplicate.
 4. For a new note, use a descriptive `.md` filename and link it from
    `README.md` when that index convention is present.
-5. Do not edit `.obsidian`, `.sync.lock`,
-   `.overnightdesk-migration-baseline`, hidden sync files, or non-Markdown
-   attachments.
-6. Re-read the changed passage and report the relative file changed. Do not
-   claim remote synchronization; the sidecar owns that process.
+5. Use these category folders when they improve navigation:
+   - `00-inbox/` for context that still needs classification;
+   - `10-projects/` for durable project briefs;
+   - `20-decisions/` for decision background that does not replace an ADR;
+   - `30-reference/` for terminology and stable reference notes;
+   - `90-archive/` for superseded context retained for history.
+6. Do not move existing root notes merely to enforce this convention. Preserve
+   working links and update `README.md` when a move is explicitly requested.
+7. Do not edit hidden paths or non-Markdown attachments unless the owner
+   explicitly identifies the attachment.
+8. Re-read the changed passage and report the relative file changed.
 
 If a conflict copy or unexpected concurrent change appears, preserve every
 version, stop editing that note, and ask the owner which meaning to retain.
@@ -67,8 +73,7 @@ Never silently merge conflicting project decisions.
 
 ## Degraded operation
 
-Continue using the local vault when Obsidian Sync is stopped or unavailable.
-Do not start, stop, repair, inspect, or reconfigure the sidecar from Titus.
-Report missing notes, repeated conflicts, or suspected stale synchronization
-to the operator without including note contents, filenames, vault identity, or
-credentials in operational evidence.
+If the project-knowledge directory is unavailable or read-only, do not write
+somewhere else and do not attempt to repair the mount. Report the storage
+problem to the operator without including note contents or filenames in
+operational evidence.
