@@ -91,8 +91,8 @@ contract, quickstart, and task list have complete requirement coverage:
 
 No unresolved ambiguity, duplication, constitution conflict, missing
 requirement mapping, or retired connector reference remains. Publication and
-disabled production tasks T025-T028 are intentionally open, and human
-activation T029 remains the terminal external gate.
+disabled production tasks T025-T028 are complete, and human activation T029
+remains the terminal external gate.
 
 ## Publication record
 
