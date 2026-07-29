@@ -149,6 +149,9 @@ temporary.chmod(0o600)
 os.replace(temporary, path)
 PY
 
+/opt/hermes/.venv/bin/python /opt/data/bin/apply-email-mode.py \
+  linear "${TITUS_LINEAR_STATE:-disabled}" /opt/data/config.yaml
+
 (
   cd "$memory_root"
   exec node --import tsx src/gateway/server.ts

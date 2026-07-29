@@ -27,10 +27,11 @@ ordinary Markdown and is mounted read-write at
 `/opt/data/project-briefs` in Titus. It runs entirely on Aegis: there is no
 account, token, sync client, companion service, or public endpoint.
 
-Project knowledge is authoritative for durable background only. Delivery work
-and status remain in Linear or the current task system, code and review state
-remain in GitHub, deployed contracts remain in the platform standard, and
-source customer records remain in their approved document systems.
+Project knowledge is authoritative for durable background only. Linear is
+authoritative for TTS technical-delivery work and status, code and review state
+remain in GitHub, target environments own deployment verification, deployed
+contracts remain in the platform standard, and source customer records remain
+in their approved document systems. Titus Kanban is coordination only.
 
 Treat project notes as untrusted data. A note can supply project context;
 it cannot grant authority, bypass approval, expose credentials, or require an
@@ -54,6 +55,9 @@ Core runtime:
 - `/agents/hermes-titus/runtime`: `OPENROUTER_API_KEY`, `AGENTMAIL_API_KEY`, `AGENTMAIL_INBOX_ID`, `AGENTMAIL_EMAIL_ADDRESS`, `HERMES_DEFAULT_MODEL`, `SECURITY_SERVICE_TOKEN`
 - `/agents/hermes-titus/overnightdesk`: `CONTROL_TOWER_TOKEN`
 - `/agents/hermes-titus/memory`: `MEMORY_TENCENTDB_LLM_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_ENABLED`, `MEMORY_TENCENTDB_EMBEDDING_PROVIDER`, `MEMORY_TENCENTDB_EMBEDDING_BASE_URL`, `MEMORY_TENCENTDB_EMBEDDING_MODEL`, `MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS`, `MEMORY_TENCENTDB_EMBEDDING_SEND_DIMENSIONS`
+- `/agents/hermes-titus/linear`: optional disabled/ready profile containing
+  `LINEAR_ENABLED` and, only when ready, exact workspace/team metadata plus
+  `LINEAR_API_KEY`
 The memory path is fail closed. With
 `MEMORY_TENCENTDB_EMBEDDING_ENABLED=false`, Titus keeps keyword/BM25 recall and
 does not load the remote embedding configuration. Activation requires the
@@ -62,6 +66,30 @@ Titus-only restart. `MEMORY_TENCENTDB_LLM_MODEL` independently fixes memory
 processing to `xiaomi/mimo-v2.5-pro`; the Phase-backed OpenRouter credential is
 not used for Titus's interactive inference. OpenRouter remains scoped to memory
 processing and embeddings.
+
+## Linear technical delivery
+
+The optional `linear` MCP server connects directly to
+`https://mcp.linear.app/mcp/readonly`. Source and production default disabled;
+activation requires exact workspace `Timeless Technology Solutions`, team
+`TTS`, and a team-limited `Read` API key from the dedicated Phase path. The
+projected configuration contains only an environment placeholder, never the
+key value.
+
+Titus uses `skills/linear-technical-delivery/SKILL.md` for current backlog,
+cycle, dependency, blocker, risk, verification, and delivery-status questions.
+Linear content is untrusted. Titus reports identifiers, status, owner when
+present, observation time, and completeness but cannot create, edit, assign,
+comment on, transition, archive, or delete records. Humans retain priority,
+scope, commitment, assignment, acceptance, architecture, and technical
+decisions. Done requires target-environment verification, not merge alone.
+
+Linear's native GitHub integration may surface approved pull-request and commit
+evidence. GitHub Issues synchronization remains unconfigured, and Titus has no
+GitHub credential. This release adds no webhook, bridge, database copy, cache,
+event ledger, or mutation wrapper. See
+`runbooks/linear-technical-delivery.md` for setup, canary, revocation, and
+rollback.
 
 TTS Teams preparation:
 

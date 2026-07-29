@@ -8,6 +8,7 @@ output_file=${TITUS_RUNTIME_ENV:-/run/hermes-titus/runtime.env}
 phase_app=${TITUS_PHASE_APP:-timeless-tech-solutions}
 phase_env=${TITUS_PHASE_ENVIRONMENT:-production}
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-/opt/hermes-titus/secrets/dashboard-oidc-client-id}
+phase_timeout=${TITUS_PHASE_TIMEOUT_SECONDS:-30}
 
 die() {
   printf 'hermes-titus phase load: %s\n' "$*" >&2
@@ -15,6 +16,11 @@ die() {
 }
 
 test "$(id -u)" -eq 0 || die 'must run as root'
+case "$phase_timeout" in
+  ''|*[!0-9]*) die 'Phase timeout must be a positive integer' ;;
+esac
+test "$phase_timeout" -ge 1 && test "$phase_timeout" -le 30 ||
+  die 'Phase timeout must be between 1 and 30 seconds'
 test -x "$phase_bin" || die 'Phase CLI unavailable'
 test -f "$token_file" && test ! -L "$token_file" || die 'Phase token file unavailable'
 test "$(stat -c %a "$token_file")" = 400 || die 'Phase token file mode must be 0400'
@@ -47,12 +53,26 @@ test -n "$PHASE_SERVICE_TOKEN" || die 'Phase token is empty'
 fetch_path() {
   local path=$1
   local target=$2
-  timeout 30 "$phase_bin" secrets export \
+  timeout "$phase_timeout" "$phase_bin" secrets export \
     --app "$phase_app" \
     --env "$phase_env" \
     --path "$path" \
     --format json >"$target"
   jq -e 'type == "object"' "$target" >/dev/null || die "invalid Phase export for $path"
+}
+
+fetch_optional_path() {
+  local path=$1
+  local target=$2
+  if ! timeout "$phase_timeout" "$phase_bin" secrets export \
+    --app "$phase_app" \
+    --env "$phase_env" \
+    --path "$path" \
+    --format json >"$target"; then
+    die "Phase export failed for optional path $path"
+  fi
+  jq -e 'type == "object"' "$target" >/dev/null ||
+    die "invalid Phase export for optional path $path"
 }
 
 fetch_path /agents/hermes-titus/runtime "$work_dir/core.json"
@@ -61,6 +81,9 @@ fetch_path /agents/hermes-titus/teams "$work_dir/teams.json"
 fetch_path /agents/hermes-titus/matrix "$work_dir/matrix.json"
 fetch_path /agents/hermes-titus/memory "$work_dir/memory.json"
 fetch_path /agents/hermes-email-intake/titus "$work_dir/email-intake.json"
+fetch_optional_path \
+  /agents/hermes-titus/linear \
+  "$work_dir/linear.json"
 
 jq -e '
   (keys - [
@@ -188,15 +211,46 @@ case "$matrix_enabled" in
     ;;
 esac
 
+linear_state=disabled
+if jq -e 'length == 0' "$work_dir/linear.json" >/dev/null; then
+  :
+elif jq -e '
+  keys == ["LINEAR_ENABLED"] and .LINEAR_ENABLED == "false"
+' "$work_dir/linear.json" >/dev/null; then
+  :
+elif jq -e '
+  keys == [
+    "LINEAR_API_KEY",
+    "LINEAR_ENABLED",
+    "LINEAR_TEAM_KEY",
+    "LINEAR_WORKSPACE_NAME"
+  ] and
+  .LINEAR_ENABLED == "true" and
+  .LINEAR_WORKSPACE_NAME == "Timeless Technology Solutions" and
+  .LINEAR_TEAM_KEY == "TTS" and
+  (.LINEAR_API_KEY | type == "string") and
+  (.LINEAR_API_KEY | length >= 20 and length <= 512) and
+  (.LINEAR_API_KEY != "NOT_CONFIGURED") and
+  (.LINEAR_API_KEY | test("\\s") | not)
+' "$work_dir/linear.json" >/dev/null; then
+  jq -s '.[0] * .[1]' \
+    "$work_dir/final.json" "$work_dir/linear.json" >"$work_dir/linear-final.json"
+  mv "$work_dir/linear-final.json" "$work_dir/final.json"
+  linear_state=ready
+else
+  die 'Titus Linear profile is invalid'
+fi
+
 {
   jq -r 'to_entries[] | "\(.key)=\(.value | @sh)"' "$work_dir/final.json"
   printf 'TITUS_TEAMS_STATE=%q\n' "$teams_state"
   printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
   printf 'TITUS_MEMORY_EMBEDDING_STATE=%q\n' "$memory_state"
+  printf 'TITUS_LINEAR_STATE=%q\n' "$linear_state"
   printf 'TITUS_DASHBOARD_OIDC_CLIENT_ID=%q\n' "$oidc_client_id"
 } >"$work_dir/runtime.env"
 
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
-printf 'hermes-titus phase load: core=ready teams=%s matrix=%s memory_embedding=%s\n' \
-  "$teams_state" "$matrix_state" "$memory_state"
+printf 'hermes-titus phase load: core=ready teams=%s matrix=%s memory_embedding=%s linear=%s\n' \
+  "$teams_state" "$matrix_state" "$memory_state" "$linear_state"

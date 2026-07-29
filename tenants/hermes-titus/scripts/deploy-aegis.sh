@@ -10,8 +10,36 @@ ssh_cmd=(ssh -i "$ssh_key" "$remote")
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-}
 
 usage() {
-  printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {preflight|prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
   exit 2
+}
+
+preflight() {
+  "$tenant_root/scripts/qualify.sh"
+  "${ssh_cmd[@]}" '
+    set -eu
+    test -d /opt/hermes-titus/source
+    test -f /run/hermes-titus/runtime.env
+    linear_state=$(
+      sudo sed -n "s/^TITUS_LINEAR_STATE=//p" \
+        /run/hermes-titus/runtime.env | tail -n 1
+    )
+    test -n "$linear_state" || linear_state=not_configured
+    case "$linear_state" in
+      disabled|ready|not_configured) ;;
+      *) echo "unexpected Titus Linear state" >&2; exit 1 ;;
+    esac
+    if test "$linear_state" != ready; then
+      ! sudo grep -q "^LINEAR_API_KEY=" /run/hermes-titus/runtime.env
+    fi
+    sudo systemctl is-active --quiet hermes-titus.service
+    test -z "$(sudo docker port hermes-titus)"
+    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus |
+      grep -Eq "(LINEAR_API_KEY|Authorization)"
+    echo "hermes_titus=healthy"
+    echo "linear_state=$linear_state"
+    echo "linear_credential_output=absent"
+  '
 }
 
 stage_oidc_client() {
@@ -239,7 +267,7 @@ verify() {
     sudo docker inspect -f "{{json .HostConfig.CapDrop}}" hermes-titus | grep -q ALL
     sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" hermes-titus | grep -q no-new-privileges
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
-    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY)"
+    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY|LINEAR_API_KEY)"
     sudo docker volume inspect hermes-titus-data >/dev/null
     sudo docker volume inspect titus-project-knowledge-data >/dev/null
     sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination .RW}}{{end}}" hermes-titus |
@@ -266,7 +294,9 @@ verify() {
       test "$(sudo stat -c %u "$guarded_email_marker")" = 0
       guarded_email_expect=read_only
     fi
-    sudo docker exec --env TITUS_GUARDED_EMAIL_EXPECT="$guarded_email_expect" hermes-titus /usr/bin/bash -lc '\''
+    sudo docker exec \
+      --env TITUS_GUARDED_EMAIL_EXPECT="$guarded_email_expect" \
+      hermes-titus /usr/bin/bash -lc '\''
       set -euo pipefail
       set -a
       . /run/secrets/hermes-titus-runtime
@@ -303,7 +333,24 @@ print("agentmail_inbox_count=" + str(len(items)))
 print("agentmail_titus_inbox=" + ("present" if matches else "not_identified"))
 
 matrix_state = os.environ.get("TITUS_MATRIX_STATE", "disabled")
-config = yaml.safe_load(Path("/opt/data/config.yaml").read_text()) or {}
+config_text = Path("/opt/data/config.yaml").read_text()
+config = yaml.safe_load(config_text) or {}
+linear_state = os.environ.get("TITUS_LINEAR_STATE", "disabled")
+assert linear_state in {"disabled", "ready"}, "unexpected Linear state"
+linear = (config.get("mcp_servers") or {}).get("linear") or {}
+assert linear.get("url") == "https://mcp.linear.app/mcp/readonly", "unexpected Linear endpoint"
+assert linear.get("tools") == {"resources": False, "prompts": False}, "unexpected Linear auxiliary surface"
+assert bool(linear.get("enabled")) == (linear_state == "ready"), "unexpected Linear enable state"
+if linear_state == "ready":
+    assert os.environ.get("LINEAR_WORKSPACE_NAME") == "Timeless Technology Solutions", "unexpected Linear workspace"
+    assert os.environ.get("LINEAR_TEAM_KEY") == "TTS", "unexpected Linear team"
+    assert os.environ.get("LINEAR_API_KEY"), "Linear API key unavailable"
+    assert linear.get("headers") == {"Authorization": "Bearer ${LINEAR_API_KEY}"}, "unexpected Linear authorization projection"
+    assert os.environ["LINEAR_API_KEY"] not in config_text, "Linear key persisted in configuration"
+else:
+    assert "LINEAR_API_KEY" not in os.environ, "Linear key present while disabled"
+    assert "headers" not in linear, "Linear authorization present while disabled"
+print("linear_state=" + linear_state)
 auth_file = Path("/opt/data/auth.json")
 assert auth_file.is_file() and not auth_file.is_symlink(), "Titus auth file unavailable"
 auth_stat = auth_file.stat()
@@ -401,6 +448,7 @@ print("matrix_state=" + matrix_state)
 PY
       test -f /opt/data/skills/agentmail-email/SKILL.md
       test -f /opt/data/skills/control-tower-hermes/SKILL.md
+      test -f /opt/data/skills/linear-technical-delivery/SKILL.md
       test -f /opt/data/mcp-servers/guarded-agentmail/guarded_email.py
       test -f /opt/data/mcp-servers/guarded-agentmail/service.py
       test -f /opt/data/mcp-servers/guarded-agentmail/server.py
@@ -498,6 +546,7 @@ rollback_runtime() {
 }
 
 case "$action" in
+  preflight) preflight ;;
   prepare) prepare ;;
   install) install_runtime ;;
   install-disabled) install_disabled ;;
