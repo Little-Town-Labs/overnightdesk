@@ -166,6 +166,24 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
             os.chmod(target, mode)
         """,
     )
+    write_executable(
+        fake_bin / "timeout",
+        """
+        #!/usr/bin/env bash
+        shift
+        if test "${PHASE_TEST_SCENARIO:-}" = timeout; then
+          previous=
+          for argument in "$@"; do
+            if test "$previous" = --path &&
+              test "$argument" = /agents/hermes-titus/linear; then
+              exit 124
+            fi
+            previous=$argument
+          done
+        fi
+        exec "$@"
+        """,
+    )
     phase = fake_bin / "phase"
     write_executable(
         phase,
