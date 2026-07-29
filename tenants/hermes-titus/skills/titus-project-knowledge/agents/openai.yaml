@@ -1,0 +1,4 @@
+interface:
+  display_name: "Titus Project Knowledge"
+  short_description: "Use the shared Titus project knowledge vault"
+  default_prompt: "Use $titus-project-knowledge to find, read, or update durable project background safely."

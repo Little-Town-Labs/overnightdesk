@@ -1,0 +1,13 @@
+{
+  "name": "overnightdesk-obsidian-sync-titus",
+  "version": "0.0.13",
+  "private": true,
+  "description": "Pinned runtime dependency for the Titus Obsidian Headless sidecar",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "obsidian-headless": "0.0.13"
+  }
+}

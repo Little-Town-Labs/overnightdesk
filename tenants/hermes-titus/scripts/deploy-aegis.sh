@@ -10,7 +10,7 @@ ssh_cmd=(ssh -i "$ssh_key" "$remote")
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-}
 
 usage() {
-  printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback|obsidian-install-disabled|obsidian-migrate|obsidian-initialize|obsidian-activate|obsidian-status|obsidian-rollback}\n' "$0" >&2
   exit 2
 }
 
@@ -63,14 +63,297 @@ prepare() {
     sudo install -d -o root -g root -m 0755 /opt/hermes-titus/source /opt/hermes-titus/bin
     sudo cp -a /tmp/hermes-titus-deploy/. /opt/hermes-titus/source/
     sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/load-phase-env.sh /opt/hermes-titus/bin/load-phase-env.sh
+    sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/load-obsidian-sync-env.sh /opt/hermes-titus/bin/load-obsidian-sync-env.sh
+    sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/initialize-obsidian-sync.sh /opt/hermes-titus/bin/initialize-obsidian-sync.sh
+    sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/prepare-obsidian-sync.sh /opt/hermes-titus/bin/prepare-obsidian-sync.sh
+    sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/run-obsidian-sync.sh /opt/hermes-titus/bin/run-obsidian-sync.sh
+    sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/stop-obsidian-sync.sh /opt/hermes-titus/bin/stop-obsidian-sync.sh
     sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/prepare-volume.sh /opt/hermes-titus/bin/prepare-volume.sh
     sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/run-container.sh /opt/hermes-titus/bin/run-container.sh
     sudo install -o root -g root -m 0755 /opt/hermes-titus/source/runtime/stop-container.sh /opt/hermes-titus/bin/stop-container.sh
     sudo install -o root -g root -m 0644 /opt/hermes-titus/source/runtime/hermes-titus.service /etc/systemd/system/hermes-titus.service
+    sudo install -o root -g root -m 0644 /opt/hermes-titus/source/runtime/obsidian-sync-titus.service /etc/systemd/system/obsidian-sync-titus.service
     sudo find /opt/hermes-titus/source -type d -exec chmod go-w {} +
     sudo find /opt/hermes-titus/source -type f -exec chmod go-w {} +
     find /tmp/hermes-titus-deploy -mindepth 1 -delete
     rmdir /tmp/hermes-titus-deploy
+  '
+}
+
+obsidian_install_disabled() {
+  prepare
+  "${ssh_cmd[@]}" '
+    set -eu
+    marker=/opt/hermes-titus/obsidian-project-knowledge-enabled
+    test ! -e "$marker" && test ! -L "$marker" || {
+      echo "refusing disabled installation over an activated vault" >&2
+      exit 1
+    }
+    sudo docker build \
+      --tag overnightdesk/obsidian-sync-titus:0.0.13 \
+      /opt/hermes-titus/source/obsidian-sync
+    installed_version=$(sudo docker run --rm \
+      --user 10000:10000 \
+      --read-only \
+      --network none \
+      --cap-drop ALL \
+      --security-opt no-new-privileges \
+      --entrypoint ob \
+      overnightdesk/obsidian-sync-titus:0.0.13 \
+      --version 2>/dev/null)
+    test "$installed_version" = 0.0.13
+    sudo /opt/hermes-titus/bin/prepare-obsidian-sync.sh prepare
+    sudo systemctl daemon-reload
+    sudo systemctl disable --now obsidian-sync-titus.service
+    test "$(sudo systemctl is-enabled obsidian-sync-titus.service 2>/dev/null || true)" = disabled
+    test "$(sudo systemctl is-active obsidian-sync-titus.service 2>/dev/null || true)" = inactive
+    sudo docker volume inspect titus-project-knowledge-data >/dev/null
+    sudo docker volume inspect titus-obsidian-sync-state >/dev/null
+    titus_was_active=false
+    if sudo systemctl is-active --quiet hermes-titus.service; then
+      titus_was_active=true
+      sudo systemctl stop hermes-titus.service
+    fi
+    restore_titus() {
+      if test "$titus_was_active" = true; then sudo systemctl start hermes-titus.service; fi
+    }
+    trap restore_titus EXIT
+    sudo /opt/hermes-titus/bin/prepare-volume.sh
+    if test "$titus_was_active" = true; then
+      sudo systemctl start hermes-titus.service
+      for i in $(seq 1 60); do
+        titus_state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" hermes-titus 2>/dev/null || true)
+        test "$titus_state" = healthy && break
+        test "$i" -lt 60 || exit 1
+        sleep 2
+      done
+      sudo docker exec hermes-titus \
+        test -f /opt/data/skills/titus-project-knowledge/SKILL.md
+      sudo docker exec hermes-titus \
+        grep -Fq "titus-project-knowledge" /opt/data/SOUL.md
+      titus_was_active=false
+    fi
+    echo "obsidian_sync=installed_disabled"
+    echo "titus_project_knowledge_skill=installed"
+  '
+}
+
+obsidian_migrate() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    test "$(sudo systemctl is-enabled obsidian-sync-titus.service 2>/dev/null || true)" = disabled
+    sidecar_state=$(sudo systemctl is-active obsidian-sync-titus.service 2>/dev/null || true)
+    test "$sidecar_state" = inactive
+    titus_was_active=false
+    if sudo systemctl is-active --quiet hermes-titus.service; then
+      titus_was_active=true
+      sudo systemctl stop hermes-titus.service
+    fi
+    restore_titus() {
+      if test "$titus_was_active" = true; then sudo systemctl start hermes-titus.service; fi
+    }
+    trap restore_titus EXIT
+    sudo /opt/hermes-titus/bin/prepare-obsidian-sync.sh migrate
+    if test "$titus_was_active" = true; then
+      sudo systemctl start hermes-titus.service
+      for i in $(seq 1 60); do
+        titus_state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" hermes-titus 2>/dev/null || true)
+        test "$titus_state" = healthy && break
+        test "$i" -lt 60 || exit 1
+        sleep 2
+      done
+      titus_was_active=false
+    fi
+    test ! -e /opt/hermes-titus/obsidian-project-knowledge-enabled &&
+      test ! -L /opt/hermes-titus/obsidian-project-knowledge-enabled
+    echo "obsidian_sync_migration=verified_source_retained"
+  '
+}
+
+obsidian_initialize() {
+  test "${TITUS_OBSIDIAN_INITIALIZE_CONFIRM:-}" = INITIALIZE_TITUS_OBSIDIAN_SYNC || {
+    printf 'TITUS_OBSIDIAN_INITIALIZE_CONFIRM must equal INITIALIZE_TITUS_OBSIDIAN_SYNC\n' >&2
+    return 1
+  }
+  ssh -t -i "$ssh_key" "$remote" '
+    set -eu
+    cleanup_runtime() {
+      sudo rm -f /run/obsidian-sync-titus/runtime.env
+    }
+    trap cleanup_runtime EXIT
+    sudo /opt/hermes-titus/bin/load-obsidian-sync-env.sh
+    sudo /opt/hermes-titus/bin/initialize-obsidian-sync.sh
+  '
+}
+
+obsidian_activate() {
+  test "${TITUS_OBSIDIAN_ACTIVATION_CONFIRM:-}" = ACTIVATE_TITUS_OBSIDIAN_SYNC || {
+    printf 'TITUS_OBSIDIAN_ACTIVATION_CONFIRM must equal ACTIVATE_TITUS_OBSIDIAN_SYNC\n' >&2
+    return 1
+  }
+  "${ssh_cmd[@]}" '
+    set -eu
+    marker=/opt/hermes-titus/obsidian-project-knowledge-enabled
+    restore_gate=/var/lib/overnightdesk/titus-obsidian-migration/backup-restore-qualified
+    test ! -e "$marker" && test ! -L "$marker"
+    sudo test -f "$restore_gate" && ! sudo test -L "$restore_gate"
+    test "$(sudo stat -c %a "$restore_gate")" = 400
+    test "$(sudo stat -c %u "$restore_gate")" = 0
+    sudo grep -Fq "/var/lib/docker/volumes/titus-project-knowledge-data/_data" \
+      /etc/overnightdesk/recovery/backup-producer.json
+    sudo grep -Fq "quiesce-titus-obsidian-sync.sh stop-if-active" \
+      /etc/systemd/system/aegis-backup-producer.service
+    ! sudo grep -Fq "titus-obsidian-sync-state" \
+      /etc/overnightdesk/recovery/backup-producer.json
+    sudo systemctl stop obsidian-sync-titus.service
+    sudo systemctl stop hermes-titus.service
+    rollback_activation() {
+      sudo systemctl disable --now obsidian-sync-titus.service >/dev/null 2>&1 || true
+      if sudo test -f "$marker" && ! sudo test -L "$marker"; then sudo rm -f "$marker"; fi
+      sudo systemctl start hermes-titus.service >/dev/null 2>&1 || true
+    }
+    trap rollback_activation EXIT
+    sudo /opt/hermes-titus/bin/prepare-obsidian-sync.sh verify
+    sudo docker run --rm \
+      --user 10000:10000 \
+      --read-only \
+      --network none \
+      --cap-drop ALL \
+      --security-opt no-new-privileges \
+      --env OBSIDIAN_HEALTH_REQUIRE_LOCK=false \
+      --volume titus-project-knowledge-data:/vault:ro \
+      --volume titus-obsidian-sync-state:/state:ro \
+      --entrypoint /usr/local/bin/healthcheck \
+      overnightdesk/obsidian-sync-titus:0.0.13
+    sudo install -o root -g root -m 0400 /dev/null "$marker"
+    sudo systemctl start hermes-titus.service
+    sudo systemctl enable --now obsidian-sync-titus.service
+    for i in $(seq 1 60); do
+      titus_state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" hermes-titus 2>/dev/null || true)
+      sync_state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" obsidian-sync-titus 2>/dev/null || true)
+      test "$titus_state" = healthy && test "$sync_state" = healthy && break
+      test "$i" -lt 60 || exit 1
+      sleep 2
+    done
+    sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination}}{{end}}" hermes-titus |
+      grep -Fq "titus-project-knowledge-data /opt/data/project-briefs"
+    sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination}}{{end}}" obsidian-sync-titus |
+      grep -Fq "titus-obsidian-sync-state /state"
+    test -z "$(sudo docker port obsidian-sync-titus)"
+    test "$(sudo docker inspect -f "{{.Config.User}}" obsidian-sync-titus)" = "10000:10000"
+    test "$(sudo docker inspect -f "{{.HostConfig.ReadonlyRootfs}}" obsidian-sync-titus)" = true
+    test "$(sudo docker inspect -f "{{.HostConfig.NetworkMode}}" obsidian-sync-titus)" = bridge
+    test "$(sudo docker inspect -f "{{.HostConfig.LogConfig.Type}}" obsidian-sync-titus)" = none
+    test "$(sudo docker inspect -f "{{.HostConfig.NanoCpus}}" obsidian-sync-titus)" = 500000000
+    test "$(sudo docker inspect -f "{{.HostConfig.Memory}}" obsidian-sync-titus)" = 536870912
+    test "$(sudo docker inspect -f "{{.HostConfig.PidsLimit}}" obsidian-sync-titus)" = 128
+    sudo docker inspect -f "{{json .HostConfig.CapDrop}}" obsidian-sync-titus |
+      grep -Eq "^\[[\"]ALL[\"]\]$"
+    sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" obsidian-sync-titus |
+      grep -Fq "no-new-privileges"
+    test "$(sudo docker inspect -f "{{len .Mounts}}" obsidian-sync-titus)" = 3
+    ! sudo docker inspect -f "{{range .Mounts}}{{println .Source .Destination}}{{end}}" obsidian-sync-titus |
+      grep -Eq "docker[.]sock|hermes-titus-data"
+    ! sudo docker inspect -f "{{range .Config.Env}}{{println .}}{{end}}" obsidian-sync-titus |
+      grep -Eq "^OBSIDIAN_AUTH_TOKEN="
+    ! sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination}}{{end}}" hermes-titus |
+      grep -Fq "titus-obsidian-sync-state /state"
+    trap - EXIT
+    echo "obsidian_sync=healthy_active"
+    echo "obsidian_sync_isolation=verified"
+    echo "titus_project_knowledge=dedicated_volume"
+  '
+}
+
+obsidian_status() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    enabled=$(sudo systemctl is-enabled obsidian-sync-titus.service 2>/dev/null || true)
+    active=$(sudo systemctl is-active obsidian-sync-titus.service 2>/dev/null || true)
+    health=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" obsidian-sync-titus 2>/dev/null || echo absent)
+    restart_count=$(sudo systemctl show --property=NRestarts --value obsidian-sync-titus.service 2>/dev/null || echo unknown)
+    installed_version=$(sudo docker run --rm \
+      --user 10000:10000 \
+      --read-only \
+      --network none \
+      --cap-drop ALL \
+      --security-opt no-new-privileges \
+      --entrypoint ob \
+      overnightdesk/obsidian-sync-titus:0.0.13 \
+      --version 2>/dev/null)
+    test "$installed_version" = 0.0.13
+    recent_activity=stale_or_absent
+    marker=absent
+    marker_path=/opt/hermes-titus/obsidian-project-knowledge-enabled
+    if sudo test -e "$marker_path" || sudo test -L "$marker_path"; then
+      marker=invalid
+      if sudo test -f "$marker_path" &&
+         ! sudo test -L "$marker_path" &&
+         test "$(sudo stat -c %a "$marker_path")" = 400 &&
+         test "$(sudo stat -c %u "$marker_path")" = 0; then
+        marker=present
+      fi
+    fi
+    backup_coverage=invalid
+    if sudo grep -Fq "/var/lib/docker/volumes/titus-project-knowledge-data/_data" \
+         /etc/overnightdesk/recovery/backup-producer.json 2>/dev/null &&
+       ! sudo grep -Fq "titus-obsidian-sync-state" \
+         /etc/overnightdesk/recovery/backup-producer.json 2>/dev/null &&
+       sudo grep -Fq "quiesce-titus-obsidian-sync.sh stop-if-active" \
+         /etc/systemd/system/aegis-backup-producer.service 2>/dev/null; then
+      backup_coverage=verified
+    fi
+    sudo docker volume inspect titus-project-knowledge-data >/dev/null
+    sudo docker volume inspect titus-obsidian-sync-state >/dev/null
+    if sudo docker run --rm \
+      --user 10000:10000 \
+      --read-only \
+      --network none \
+      --cap-drop ALL \
+      --security-opt no-new-privileges \
+      --volume titus-obsidian-sync-state:/state:ro \
+      --entrypoint /bin/sh \
+      overnightdesk/obsidian-sync-titus:0.0.13 \
+      -c "find /state -type f -name sync.log -mmin -15 -print -quit | grep -q ." \
+      >/dev/null 2>&1; then
+      recent_activity=recent
+    fi
+    printf "obsidian_headless_version=%s\n" "$installed_version"
+    printf "obsidian_sync_enabled=%s\n" "$enabled"
+    printf "obsidian_sync_active=%s\n" "$active"
+    printf "obsidian_sync_health=%s\n" "$health"
+    printf "obsidian_sync_restarts=%s\n" "$restart_count"
+    printf "obsidian_sync_activity=%s\n" "$recent_activity"
+    printf "titus_knowledge_marker=%s\n" "$marker"
+    printf "knowledge_backup_coverage=%s\n" "$backup_coverage"
+    echo "knowledge_volume=present"
+    echo "sync_state_volume=present_excluded_from_backup"
+  '
+}
+
+obsidian_rollback() {
+  test "${TITUS_OBSIDIAN_ROLLBACK_CONFIRM:-}" = ROLLBACK_TITUS_OBSIDIAN_SYNC || {
+    printf 'TITUS_OBSIDIAN_ROLLBACK_CONFIRM must equal ROLLBACK_TITUS_OBSIDIAN_SYNC\n' >&2
+    return 1
+  }
+  "${ssh_cmd[@]}" '
+    set -eu
+    marker=/opt/hermes-titus/obsidian-project-knowledge-enabled
+    sudo systemctl disable --now obsidian-sync-titus.service
+    if sudo test -e "$marker" || sudo test -L "$marker"; then
+      sudo test -f "$marker" && ! sudo test -L "$marker"
+      test "$(sudo stat -c %a "$marker")" = 400
+      test "$(sudo stat -c %u "$marker")" = 0
+      sudo rm -f "$marker"
+    fi
+    sudo systemctl restart hermes-titus.service
+    sudo systemctl is-active --quiet hermes-titus.service
+    ! sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination}}{{end}}" hermes-titus |
+      grep -Fq "titus-project-knowledge-data /opt/data/project-briefs"
+    sudo docker volume inspect titus-project-knowledge-data >/dev/null
+    sudo docker volume inspect titus-obsidian-sync-state >/dev/null
+    echo "obsidian_sync=rolled_back_disabled"
+    echo "retained_volumes=verified"
   '
 }
 
@@ -477,5 +760,11 @@ case "$action" in
   email-guarded) email_guarded ;;
   stop) stop_runtime ;;
   rollback) rollback_runtime ;;
+  obsidian-install-disabled) obsidian_install_disabled ;;
+  obsidian-migrate) obsidian_migrate ;;
+  obsidian-initialize) obsidian_initialize ;;
+  obsidian-activate) obsidian_activate ;;
+  obsidian-status) obsidian_status ;;
+  obsidian-rollback) obsidian_rollback ;;
   *) usage ;;
 esac
