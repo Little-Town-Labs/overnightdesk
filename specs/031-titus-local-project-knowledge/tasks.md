@@ -11,7 +11,7 @@
 - [x] T008 Simplify backup configuration and tests.
 - [x] T009 Revise the platform standard and ADR.
 - [x] T010 Run qualification, security, and quality review.
-- [ ] T011 Commit, push, open/update PRs, and pass checks.
-- [ ] T012 Deploy from merged source and verify read/write plus restart.
-- [ ] T013 Produce and verify a fresh encrypted backup.
-- [ ] T014 Append the production deployment ledger.
+- [x] T011 Commit, push, open/update PRs, and pass checks.
+- [x] T012 Deploy from merged source and verify read/write plus restart.
+- [x] T013 Verify the production backup inventory with a dry-run.
+- [x] T014 Append the production deployment ledger.
