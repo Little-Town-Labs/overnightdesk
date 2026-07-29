@@ -16,24 +16,26 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** Feature 032 — Titus Linear read-only delivery
-**Current critical path:** complete the human Linear workspace, `TTS` team,
-native GitHub integration, and team-scoped Read-key gate before the controlled
-read-only activation canaries.
+**Current critical path:** complete the approved workflow statuses and
+target-verification policy, add representative project/cycle/GitHub and
+hostile-content fixtures, then finish the remaining workspace acceptance
+canaries.
 
 ## Current Delivery Checkpoint — 2026-07-29
 
-- **Feature 032 — disabled release deployed; human activation pending:** The
-  operating standard and source are merged, and exact commit `854f04c` is
-  deployed on Aegis with `linear_state=disabled`, no authorization header, no
-  registered Linear tools, and all unrelated Titus verification healthy
-  before and after a controlled restart. The first release adds only the hosted
-  read-only MCP endpoint, a team-scoped Read key loaded from a dedicated Phase
-  path, strict disabled/ready projection, value-safe verification, and the
-  Austin/Gary/Titus/contractor operating model. It adds no write path, webhook,
+- **Feature 032 — read-only connection active; workspace acceptance pending:**
+  Exact runtime commit `06a4297` is deployed on Aegis with
+  `linear_state=ready`, 32 read-only tools, and all unrelated Titus
+  verification healthy. Live canaries proved the single approved team,
+  team/status/project/cycle/issue/detail reads, six unavailable mutation
+  dispatches, an unchanged provider snapshot, unapproved-team denial, restart
+  persistence, and disabled-to-ready rollback. Ringer approved the one
+  production compatibility correction for the provider's `extract_images`
+  read tool. T029 remains open because the workspace still has default
+  statuses, no projects or current cycle, no hostile-content fixture, and no
+  native GitHub link evidence. The release still adds no write path, webhook,
   bridge, database copy, cache, event ledger, semantic copy, GitHub credential,
-  or GitHub Issues synchronization. Human setup of workspace `Timeless
-  Technology Solutions`, team `TTS`, the native GitHub repository allowlist,
-  and the team-limited key is the remaining gate.
+  or GitHub Issues synchronization.
 
 ## Current Delivery Checkpoint — 2026-07-26
 

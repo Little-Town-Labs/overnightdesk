@@ -84,15 +84,15 @@ contract, quickstart, and task list have complete requirement coverage:
 - FR-014 through FR-016 map to the two-state runtime, strict normal verifier,
   supported disabled rollback, qualification matrix, runbook, and installed
   skill;
-- SC-001 through SC-006 have executable or human activation tasks. The
-  live-workspace reads, wrong-team check, restart, and rollback correctly
-  remain in T029 because they require the human-created Linear workspace,
-  team-scoped Read key, and representative issues.
+- SC-001 through SC-006 have executable or human acceptance tasks. Runtime
+  activation, live reads, team-boundary denial, mutation denial, restart, and
+  rollback are complete. T029 remains open for the missing workflow,
+  project/cycle, hostile-content, Done-policy, and native GitHub fixtures.
 
 No unresolved ambiguity, duplication, constitution conflict, missing
 requirement mapping, or retired connector reference remains. Publication and
-disabled production tasks T025-T028 are complete, and human activation T029
-remains the terminal external gate.
+disabled production tasks T025-T028 are complete, and workspace acceptance
+T029 remains the terminal external gate.
 
 ## Publication record
 
@@ -108,6 +108,8 @@ remains the terminal external gate.
   `https://github.com/Little-Town-Labs/overnightdesk/pull/152`
 - Deterministic timeout-test fix:
   `https://github.com/Little-Town-Labs/overnightdesk/pull/153`
+- Linear `extract_images` compatibility fix:
+  `https://github.com/Little-Town-Labs/overnightdesk/pull/156`
 - OvernightDesk checks: Vercel deployment and Vercel Preview Comments passed;
   local qualification supplies the tenant-specific release evidence.
 
@@ -132,6 +134,46 @@ remains the terminal external gate.
   webhook, bridge, service, route, or port was created or changed
 - Deployment log:
   `/home/frosted639/src/overnightdesk-suite/deploys.log`
+
+## Ready production activation evidence
+
+- Exact active runtime merge:
+  `06a4297d7b61bae16d9ce11c14fc933a47c65e39`
+- Phase profile: exact four-key ready profile; no value appeared in command
+  output, logs, source, reports, or evidence
+- Initial gate: strict verification failed closed on the provider's legitimate
+  `extract_images` read tool; no provider mutation was attempted
+- Compatibility review: Ringer run
+  `overnightdesk-feature-032-linear-extract-review-20260729T170556Z-p2074796`
+  returned `APPROVE` with no Critical or Required findings
+- Final runtime: `linear_state=ready`, `linear_mcp=healthy_read_only`, 32
+  registered Linear tools, zero mutation-shaped tools, and all unrelated
+  qualified capabilities healthy
+- Live reads: exactly one accessible `Timeless Technology Solutions` team;
+  team, status, project, current-cycle, issue-list, and issue-detail calls
+  succeeded; four issues were readable
+- Mutation boundary: create, update, assign, comment, transition, and delete
+  dispatches were unavailable, and the complete issue ID/update/status snapshot
+  was unchanged before and after
+- Team boundary: an unapproved-team UUID probe was denied and only one team was
+  discoverable
+- Persistence and rollback: ready survived a Titus-only restart; the exact
+  disabled Phase profile projected `linear_state=disabled` with no Linear
+  tools; the original ready profile was restored and reverified; all temporary
+  root-only files were removed
+
+Workspace acceptance remains open:
+
+- Current statuses are `Backlog`, `Canceled`, `Done`, `Duplicate`,
+  `In Progress`, and `Todo`; configure the approved `Ready`, `In Review`,
+  `Verification`, and `Blocked` states plus the target-verification Done policy.
+- No project or current cycle exists, so representative project/cycle delivery
+  evidence is not yet available.
+- No human-prepared hostile-content fixture exists.
+- No native GitHub pull-request/commit link was available to verify, and GitHub
+  Issues synchronization must remain unconfigured.
+- Add a merged-but-target-unverified issue in `Verification` before completing
+  the Done-policy canary.
 
 ## Local qualification
 

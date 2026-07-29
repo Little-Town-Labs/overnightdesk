@@ -93,6 +93,9 @@ state while existing Titus capabilities remain healthy.
 - [x] T027 Merge reviewed source in dependency order and deploy the exact merged OvernightDesk commit with Linear disabled using `tenants/hermes-titus/scripts/deploy-aegis.sh`
 - [x] T028 Verify disabled production health and unrelated Titus capabilities, then append value-safe deployment evidence to `/home/frosted639/src/overnightdesk-suite/deploys.log`
 - [ ] T029 At the human Linear account gate, activate the team-scoped Read key, verify five representative reads and zero mutation tools/changes, rehearse restart and rollback, and record evidence in `specs/032-titus-linear-readonly/quickstart.md`
+  - Runtime activation, reads, mutation denial, restart, and rollback are
+    complete; workflow-status, project/cycle, hostile-content, Done-policy, and
+    native GitHub link acceptance fixtures remain.
 
 ## Dependencies
 
@@ -104,8 +107,9 @@ state while existing Titus capabilities remain healthy.
 - User Story 3 (T018-T020) depends on US1 runtime states and registry behavior.
 - Ringer and complete quality gates (T021-T024) precede publication.
 - Platform-standard publication must precede final production activation.
-- T029 requires human-created Linear workspace/team/key and GitHub integration;
-  source may ship safely in disabled mode before this gate.
+- T029 now requires human-created workflow/project/cycle/hostile-content/Done
+  fixtures and native GitHub link evidence; the ready source and key are
+  already active and verified.
 
 ## Parallel Opportunities
 
