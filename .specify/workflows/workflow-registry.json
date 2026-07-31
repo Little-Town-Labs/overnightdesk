@@ -8,6 +8,14 @@
       "source": "bundled",
       "installed_at": "2026-06-23T18:38:10.671512+00:00",
       "updated_at": "2026-06-23T18:38:10.671524+00:00"
+    },
+    "sol-luna-delivery": {
+      "name": "Sol-Luna Spec Kit Delivery",
+      "version": "1.0.1",
+      "description": "Prepare, approve, and run bounded Sol-Luna delivery after Spec Kit analysis",
+      "source": "/home/frosted639/src/ringer-workflows/workflows/sol-luna-delivery/workflow.yml",
+      "installed_at": "2026-07-31T13:26:14.449076+00:00",
+      "updated_at": "2026-07-31T13:39:09.361719+00:00"
     }
   }
 }

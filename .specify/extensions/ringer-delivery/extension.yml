@@ -1,0 +1,51 @@
+schema_version: "1.0"
+
+extension:
+  id: ringer-delivery
+  name: "Sol-Luna Ringer Delivery"
+  version: "1.0.1"
+  description: "Classifies delivery risk and prepares bounded Sol-Luna Ringer handoffs"
+  category: process
+  effect: read-write
+  author: "Timeless Technology Solutions"
+
+requires:
+  speckit_version: ">=0.12.8"
+  tools:
+    - name: ringer
+      required: true
+    - name: codebase-memory-mcp
+      # Conditional dependency: the generator fails closed for brownfield
+      # feature/system requests but does not burden greenfield or micro work.
+      required: false
+
+provides:
+  commands:
+    - name: speckit.ringer-delivery.prepare
+      file: commands/speckit.ringer-delivery.prepare.md
+      description: "Classify the active work and generate checked delivery evidence and manifests"
+    - name: speckit.ringer-delivery.run
+      file: commands/speckit.ringer-delivery.run.md
+      description: "Execute the prepared bounded Luna delivery and Sol quality flow"
+  config:
+    - name: ringer-delivery-config.yml
+      template: config-template.yml
+      description: "Project-level Sol-Luna routing and local tool paths"
+      required: true
+
+hooks:
+  after_analyze:
+    command: speckit.ringer-delivery.prepare
+    optional: false
+    description: "Classify analyzed work and prepare bounded delegation before implementation"
+
+tags:
+  - spec-kit
+  - ringer
+  - delegation
+  - delivery
+
+defaults:
+  max_parallel: 3
+  remediation_rounds: 1
+  delta_review_rounds: 1
