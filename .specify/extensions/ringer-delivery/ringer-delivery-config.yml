@@ -1,0 +1,36 @@
+schema_version: "1.0"
+profile_version: "1.0.1"
+
+tools:
+  generator: "/home/frosted639/src/ringer-workflows/scripts/delivery_profile.py"
+  ringer: "/home/frosted639/src/ringer/ringer.py"
+  ringer_config: "/home/frosted639/src/ringer-workflows/config/config.toml"
+
+routing:
+  planning: codex-sol
+  implementation: codex-luna
+  routine_review: codex-luna
+  quality_gate: codex-sol
+  fallback: codex-fallback
+  max_parallel: 3
+
+bounds:
+  task_attempts: 2
+  luna_remediation_rounds: 1
+  sol_delta_review_rounds: 1
+
+graph:
+  brownfield_feature_system: required-before-planning
+  brownfield_micro: targeted-optional
+  greenfield_feature_system: after-initial-architecture
+  enforcement: generator-validation
+
+safety:
+  mutable_risks:
+    - routine
+  readonly_only_risks:
+    - sensitive
+    - production
+  workers_may_commit: false
+  workers_may_push: false
+  workers_may_update_canonical_tasks: false

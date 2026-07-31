@@ -1,5 +1,6 @@
 installed:
 - git
+- ringer-delivery
 settings:
   auto_execute_hooks: true
 hooks:
@@ -138,6 +139,14 @@ hooks:
     optional: true
     prompt: Commit analysis results?
     description: Auto-commit after analysis
+    condition: null
+  - extension: ringer-delivery
+    command: speckit.ringer-delivery.prepare
+    enabled: true
+    optional: false
+    priority: 10
+    prompt: Execute speckit.ringer-delivery.prepare?
+    description: Classify analyzed work and prepare bounded delegation before implementation
     condition: null
   after_taskstoissues:
   - extension: git

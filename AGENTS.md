@@ -58,6 +58,27 @@ not as a replacement for Spec Kit artifacts.
   deployment, or production state require explicit human approval.
 - Keep docs, specs, plans, and tasks synchronized with implementation changes.
 
+## Adaptive Delivery
+
+- Classify work by greenfield/brownfield context, micro/feature/system scale,
+  and routine/sensitive/production risk. Keep routine micro-fixes and small
+  configuration corrections lightweight; use Spec Kit for substantial work.
+- Sol owns planning, architecture, orchestration, integration, auth/identity,
+  business-action, sensitive or production mutation, and the final quality
+  gate. Luna is the default lane for bounded routine implementation, tests,
+  docs, diagnostics, reading, and review.
+- Production, Aegis, identity, secrets, payments, outreach, customer/prospect
+  data, agent authority, runtime lifecycle, and deployment work permits
+  read-only Ringer analysis only.
+- Brownfield feature/system planning uses the canonical codebase graph and
+  targeted source verification. Do not treat transient worktree indexes as the
+  canonical repository.
+- After `analyze`, use the installed `ringer-delivery` extension. Workers receive
+  dependency-ready task IDs, disjoint owned paths, non-goals, and executable
+  checks; they never commit, push, edit `.git`, widen scope, or update canonical
+  task status.
+- Allow at most one Luna remediation and one Sol delta review.
+
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
