@@ -20,8 +20,22 @@ class SecurityContractTests(unittest.TestCase):
                     paths.append(path)
         return "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
-    def test_no_content_webhook_subscription_or_public_port_surface(self):
-        text = self.production_text()
+    def test_only_exact_transcript_content_route_and_no_recording_content_surface(self):
+        content_client = (ROOT / "internal" / "graph" / "content.go").read_text(encoding="utf-8")
+        self.assertIn('"/transcripts/" + url.PathEscape(transcriptID) + "/content"', content_client)
+        self.assertNotIn("recordings/", content_client.lower())
+        paths = []
+        for directory in ("cmd", "internal", "runtime", "scripts"):
+            for path in (ROOT / directory).rglob("*"):
+                if (
+                    path.is_file()
+                    and path != ROOT / "internal" / "graph" / "content.go"
+                    and not path.name.endswith("_test.go")
+                    and path.name != "qualify.sh"
+                    and "testfixture" not in path.parts
+                ):
+                    paths.append(path)
+        text = "\n".join(path.read_text(encoding="utf-8") for path in paths)
         forbidden = [
             r"/content(?:['\"? /]|$)",
             r"changeNotifications",

@@ -255,17 +255,20 @@ The initial container includes Hermes's pinned Teams dependencies but leaves the
 6. Add the reviewed nginx TLS route to the container's internal port 3978.
 7. Restart only Titus and verify `/health`, one authorized message, and one unauthorized denial.
 
-Meeting artifact discovery is a separate, independently disabled service under
-`meeting-processor/`. It uses organizer-scoped Microsoft Graph delta queries
-for transcript and recording metadata only. It has no webhook, subscription,
-public route, content client, agent tool, or automatic Hermes run. Its private
-state retains protected provider IDs and opaque cursors for idempotency; its
-safe derived handoff contains no provider IDs or URLs and is not mounted into
-Titus in this release. See
+Meeting artifact discovery and transcript custody run in the separate
+`meeting-processor/` service. Organizer-scoped Microsoft Graph delta queries
+continue to discover transcript and recording metadata. A separately gated
+content slice can retrieve one transcript WebVTT per cycle into memory, screen
+it through SecurityTeam's non-persisting block mode, and request one stateless
+Titus meeting analysis. Recording content remains unavailable. The worker has
+no webhook, subscription, public route, or Graph agent tool. Its private state
+retains protected provider IDs, opaque cursors, digests, lifecycle metadata,
+and bounded Titus Markdown; raw and screened transcript input is never written
+or placed in a reusable Titus session. See
 `runbooks/meeting-artifact-discovery.md` for qualification, canaries, failure
-response, and rollback. Content and Hermes consumption remain separate future
-decisions requiring retention, destination, deletion, access, and security
-approval.
+response, content activation, and rollback. Publishing the derived handoff to
+project knowledge or another user-facing destination remains a separate future
+decision.
 
 ## Operator commands
 

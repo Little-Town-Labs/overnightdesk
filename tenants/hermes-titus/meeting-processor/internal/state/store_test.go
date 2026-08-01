@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/testfixture"
@@ -79,6 +80,11 @@ func TestValidateRejectsSemanticallyInvalidState(t *testing.T) {
 			artifact.DiscoveredAt = "not-a-time"
 			doc.Artifacts[validArtifactReference] = artifact
 		},
+		"artifact content status": func(doc Document) {
+			artifact := doc.Artifacts[validArtifactReference]
+			artifact.ContentStatus = "processed"
+			doc.Artifacts[validArtifactReference] = artifact
+		},
 		"artifact count mismatch": func(doc Document) {
 			stream := doc.Streams["organizer_1:transcript"]
 			stream.ArtifactCount = 2
@@ -123,7 +129,7 @@ func validStateDocument(t *testing.T) Document {
 	doc.Artifacts[validArtifactReference] = Artifact{
 		InternalReference: validArtifactReference, OrganizerFingerprint: testDigest(testfixture.OrganizerOne),
 		OrganizerSlot: "organizer_1", ArtifactType: "transcript", ProviderArtifactID: "artifact-1",
-		ProviderMeetingID: "meeting-1", ProviderCreatedAt: now, DiscoveredAt: now,
+		ProviderMeetingID: "meeting-1", ProviderCreatedAt: now, DiscoveredAt: now, ContentStatus: "pending",
 	}
 	if err := validate(doc); err != nil {
 		t.Fatalf("valid fixture rejected: %v", err)
@@ -157,7 +163,7 @@ func TestOpenRejectsConcurrentProcessLock(t *testing.T) {
 }
 
 func TestOpenRejectsMalformedOrUnsupportedState(t *testing.T) {
-	for _, body := range []string{`not-json`, `{"version":2,"streams":{},"artifacts":{},"metadata":{}}`, `{"version":1,"streams":null,"artifacts":{},"metadata":{}}`} {
+	for _, body := range []string{`not-json`, `{"version":3,"streams":{},"artifacts":{},"metadata":{}}`, `{"version":1,"streams":null,"artifacts":{},"metadata":{}}`} {
 		path := filepath.Join(t.TempDir(), "state.json")
 		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 			t.Fatal(err)
@@ -165,6 +171,33 @@ func TestOpenRejectsMalformedOrUnsupportedState(t *testing.T) {
 		if _, err := Open(path); err == nil || ErrorCode(err) != "state_invalid" {
 			t.Fatalf("expected state_invalid for %s, got %v", body, err)
 		}
+	}
+}
+
+func TestOpenMigratesVersionOneAndPreservesDiscoveryState(t *testing.T) {
+	doc := validStateDocument(t)
+	doc.Version = 1
+	for key, artifact := range doc.Artifacts {
+		artifact.ContentStatus = ""
+		doc.Artifacts[key] = artifact
+	}
+	path := filepath.Join(t.TempDir(), "state.json")
+	raw, _ := json.Marshal(doc)
+	if err := os.WriteFile(path, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	store, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	migrated := store.Document()
+	if migrated.Version != 2 || len(migrated.Streams) != 4 || len(migrated.Artifacts) != 1 || migrated.Artifacts[validArtifactReference].ContentStatus != "pending" {
+		t.Fatalf("migration lost state: %#v", migrated)
+	}
+	persisted, _ := os.ReadFile(path)
+	if !strings.Contains(string(persisted), `"version":2`) || strings.Contains(string(persisted), `"version":1`) {
+		t.Fatalf("migration was not committed: %s", persisted)
 	}
 }
 
@@ -289,6 +322,7 @@ func addValidArtifact(doc Document, slot, organizerID, artifactType, suffix stri
 		InternalReference: reference, OrganizerFingerprint: testDigest(organizerID), OrganizerSlot: slot,
 		ArtifactType: artifactType, ProviderArtifactID: providerID, ProviderMeetingID: "meeting-" + suffix,
 		ProviderCreatedAt: "2026-08-01T12:00:00Z", DiscoveredAt: "2026-08-01T12:00:00Z",
+		ContentStatus: map[bool]string{true: "not_applicable", false: "pending"}[artifactType == "recording"],
 	}
 	key := slot + ":" + artifactType
 	stream := doc.Streams[key]

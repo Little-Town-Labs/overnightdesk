@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
 )
 
 type Event struct {
@@ -47,6 +49,15 @@ type Health struct {
 	TimestampEpoch int64          `json:"timestamp_epoch"`
 	TokenHealth    string         `json:"token_health"`
 	Streams        []StreamHealth `json:"streams"`
+	Content        ContentHealth  `json:"content"`
+}
+
+type ContentHealth struct {
+	Enabled        bool `json:"enabled"`
+	Pending        int  `json:"pending"`
+	Processed      int  `json:"processed"`
+	Blocked        int  `json:"blocked"`
+	RetryableError int  `json:"retryable_error"`
 }
 
 var cyclePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
@@ -54,6 +65,27 @@ var cyclePattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 var allowedEvents = map[string]bool{
 	"cycle_start": true, "cycle_complete": true, "cycle_failed": true,
 	"stream_start": true, "stream_complete": true, "stream_failed": true, "retry": true,
+	"content_processed": true, "content_blocked": true, "content_retryable_error": true,
+}
+
+func contentHealth(document state.Document, enabled bool) ContentHealth {
+	health := ContentHealth{Enabled: enabled}
+	for _, artifact := range document.Artifacts {
+		if artifact.ArtifactType != "transcript" {
+			continue
+		}
+		switch artifact.ContentStatus {
+		case "pending":
+			health.Pending++
+		case "processed":
+			health.Processed++
+		case "blocked":
+			health.Blocked++
+		case "retryable_error":
+			health.RetryableError++
+		}
+	}
+	return health
 }
 
 func WriteEvent(output io.Writer, event Event) error {
@@ -79,11 +111,26 @@ func WriteHealth(path string, health Health) error {
 			return errors.New("health stream invalid")
 		}
 	}
+	if health.Content.Pending < 0 || health.Content.Processed < 0 || health.Content.Blocked < 0 || health.Content.RetryableError < 0 {
+		return errors.New("health content invalid")
+	}
 	raw, err := json.Marshal(health)
 	if err != nil {
 		return errors.New("health record invalid")
 	}
 	return atomicWrite(path, raw)
+}
+
+func ReadContentHealth(path string) (ContentHealth, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return ContentHealth{}, errors.New("health unavailable")
+	}
+	var health Health
+	if json.Unmarshal(raw, &health) != nil || health.Content.Pending < 0 || health.Content.Processed < 0 || health.Content.Blocked < 0 || health.Content.RetryableError < 0 {
+		return ContentHealth{}, errors.New("health invalid")
+	}
+	return health.Content, nil
 }
 
 func HealthStatus(path string, now time.Time, maximumAge time.Duration) string {

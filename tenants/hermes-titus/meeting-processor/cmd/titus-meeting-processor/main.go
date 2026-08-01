@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,7 +16,9 @@ import (
 
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/config"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/securityteam"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/titus"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/worker"
 )
 
@@ -58,11 +61,32 @@ func execute(args []string, stdout, stderr io.Writer) error {
 		return runOnce(context.Background(), configured, stdout, stderr)
 	case "health":
 		return runHealth(args[1:], stdout)
+	case "content-status":
+		return runContentStatus(args[1:], stdout)
 	case "init-volume":
 		return initVolume(args[1:])
 	default:
 		return errors.New("command_invalid")
 	}
+}
+
+func runContentStatus(args []string, stdout io.Writer) error {
+	flags := flag.NewFlagSet("content-status", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	path := ""
+	flags.StringVar(&path, "health", "/data/health.json", "safe health")
+	if err := flags.Parse(args); err != nil || flags.NArg() != 0 || path == "" {
+		return errors.New("arguments_invalid")
+	}
+	content, err := worker.ReadContentHealth(path)
+	if err != nil {
+		return errors.New("health_invalid")
+	}
+	_, err = fmt.Fprintf(stdout, "titus_meeting_content_enabled=%t pending=%d processed=%d blocked=%d retryable_error=%d\n", content.Enabled, content.Pending, content.Processed, content.Blocked, content.RetryableError)
+	if err != nil {
+		return errors.New("output_unavailable")
+	}
+	return nil
 }
 
 func parseWorkerFlags(name string, args []string) (paths, error) {
@@ -92,7 +116,7 @@ func runOnce(ctx context.Context, paths paths, stdout, stderr io.Writer) error {
 	if err != nil {
 		return errors.New("cycle_failed")
 	}
-	_, err = fmt.Fprintf(stdout, "titus_meeting_processor_cycle=healthy streams=%d new_count=%d known_count=%d\n", result.Streams, result.NewCount, result.KnownCount)
+	_, err = fmt.Fprintf(stdout, "titus_meeting_processor_cycle=healthy streams=%d new_count=%d known_count=%d content_attempted=%t content_processed=%t\n", result.Streams, result.NewCount, result.KnownCount, result.ContentAttempted, result.ContentProcessed)
 	return err
 }
 
@@ -124,9 +148,25 @@ func buildProcessor(paths paths, stderr io.Writer) (worker.Processor, *state.Sto
 		store.Close()
 		return worker.Processor{}, nil, errors.New("config_invalid")
 	}
+	graphClient := graph.NewClient(tokens, httpClient)
 	processor := worker.Processor{
-		Config: runtimeConfig, Store: store, Fetcher: graph.NewClient(tokens, httpClient),
+		Config: runtimeConfig, Store: store, Fetcher: graphClient,
 		HealthPath: paths.health, HandoffPath: paths.handoff, Events: stderr,
+	}
+	if runtimeConfig.ContentEnabled {
+		securityClient, securityErr := securityteam.NewClient(runtimeConfig.SecurityTeamBaseURL, runtimeConfig.SecurityServiceToken, &http.Client{Timeout: 30 * time.Second})
+		if securityErr != nil {
+			store.Close()
+			return worker.Processor{}, nil, errors.New("config_invalid")
+		}
+		titusClient, titusErr := titus.NewClient(runtimeConfig.HermesBaseURL, runtimeConfig.HermesAPIKey, &http.Client{Timeout: 180 * time.Second})
+		if titusErr != nil {
+			store.Close()
+			return worker.Processor{}, nil, errors.New("config_invalid")
+		}
+		processor.Content = graphClient
+		processor.Scanner = securityClient
+		processor.Analyzer = titusClient
 	}
 	return processor, store, nil
 }
@@ -188,7 +228,7 @@ func safeCLIError(err error) string {
 		"command_missing": true, "command_invalid": true, "arguments_invalid": true,
 		"config_invalid": true, "state_invalid": true, "state_unavailable": true,
 		"state_lock_busy": true, "cycle_failed": true,
-		"volume_unavailable": true, "output_unavailable": true,
+		"volume_unavailable": true, "output_unavailable": true, "health_invalid": true,
 	}
 	if err != nil && allowed[err.Error()] {
 		return err.Error()

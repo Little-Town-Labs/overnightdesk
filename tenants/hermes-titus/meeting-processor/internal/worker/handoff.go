@@ -15,15 +15,18 @@ type handoffDocument struct {
 }
 
 type handoffDiscovery struct {
-	InternalReference string `json:"internal_reference"`
-	OrganizerSlot     string `json:"organizer_slot"`
-	ArtifactType      string `json:"artifact_type"`
-	ProviderCreatedAt string `json:"provider_created_at,omitempty"`
-	DiscoveredAt      string `json:"discovered_at"`
+	InternalReference  string `json:"internal_reference"`
+	OrganizerSlot      string `json:"organizer_slot"`
+	ArtifactType       string `json:"artifact_type"`
+	ProviderCreatedAt  string `json:"provider_created_at,omitempty"`
+	DiscoveredAt       string `json:"discovered_at"`
+	ContentProcessedAt string `json:"content_processed_at,omitempty"`
+	TitusOutputDigest  string `json:"titus_output_digest,omitempty"`
+	TitusOutput        string `json:"titus_output,omitempty"`
 }
 
 func WriteHandoff(path string, document state.Document, now time.Time) error {
-	handoff := handoffDocument{Version: 1, GeneratedAt: now.UTC().Format(time.RFC3339Nano), Discoveries: make([]handoffDiscovery, 0, len(document.Artifacts))}
+	handoff := handoffDocument{Version: 2, GeneratedAt: now.UTC().Format(time.RFC3339Nano), Discoveries: make([]handoffDiscovery, 0, len(document.Artifacts))}
 	keys := make([]string, 0, len(document.Artifacts))
 	for key := range document.Artifacts {
 		keys = append(keys, key)
@@ -34,6 +37,7 @@ func WriteHandoff(path string, document state.Document, now time.Time) error {
 		handoff.Discoveries = append(handoff.Discoveries, handoffDiscovery{
 			InternalReference: artifact.InternalReference, OrganizerSlot: artifact.OrganizerSlot,
 			ArtifactType: artifact.ArtifactType, ProviderCreatedAt: artifact.ProviderCreatedAt, DiscoveredAt: artifact.DiscoveredAt,
+			ContentProcessedAt: artifact.ContentProcessedAt, TitusOutputDigest: artifact.TitusOutputDigest, TitusOutput: artifact.TitusOutput,
 		})
 	}
 	raw, err := json.Marshal(handoff)

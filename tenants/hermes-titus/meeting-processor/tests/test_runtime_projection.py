@@ -24,24 +24,44 @@ class RuntimeProjectionTests(unittest.TestCase):
             "MSGRAPH_WEBHOOK_PORT": "8787",
         }
 
-    def run_loader(self, source):
+    def run_loader(self, source, content=False, marker_mode="444"):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         base = Path(temporary.name)
         fixture = base / "phase.json"
         fixture.write_text(json.dumps(source), encoding="utf-8")
+        core = base / "core.json"
+        core.write_text(json.dumps({
+            "AGENTMAIL_API_KEY": "a" * 32,
+            "AGENTMAIL_EMAIL_ADDRESS": "titus@example.invalid",
+            "AGENTMAIL_INBOX_ID": "inbox",
+            "HERMES_DEFAULT_MODEL": "gpt-5.6-sol",
+            "OPENROUTER_API_KEY": "o" * 32,
+            "SECURITY_SERVICE_TOKEN": "s" * 32,
+        }), encoding="utf-8")
+        email = base / "email.json"
+        email.write_text(json.dumps({"HERMES_API_KEY": "h" * 32, "HERMES_BASE_URL": "http://hermes-titus:8642"}), encoding="utf-8")
         token = base / "phase-token"
         token.write_text("fixture-phase-token-value-123456", encoding="utf-8")
         token.chmod(0o400)
         runtime = base / "runtime"
+        marker = base / "content.enabled"
+        if content:
+            marker.write_bytes(b"")
         fake_bin = base / "bin"
         fake_bin.mkdir()
         self.write_executable(fake_bin / "id", "#!/bin/sh\ntest \"$1\" = -u && printf '0\\n'\n")
         self.write_executable(
             fake_bin / "stat",
-            "#!/bin/sh\ncase \"$2\" in %a) printf '400\\n';; %u) printf '10001\\n';; %s) printf '32\\n';; *) exit 2;; esac\n",
+            "#!/bin/sh\n"
+            "if test \"$3\" = \"$CONTENT_MARKER\"; then case \"$2\" in %a) printf '%s\\n' \"$MARKER_MODE\";; %u) printf '0\\n';; %s) printf '0\\n';; *) exit 2;; esac; "
+            "else case \"$2\" in %a) printf '400\\n';; %u) printf '10001\\n';; %s) printf '32\\n';; *) exit 2;; esac; fi\n",
         )
-        self.write_executable(fake_bin / "phase", "#!/bin/sh\ncat \"$PHASE_FIXTURE\"\n")
+        self.write_executable(
+            fake_bin / "phase",
+            "#!/bin/sh\npath=\nwhile test $# -gt 0; do if test \"$1\" = --path; then path=$2; shift 2; else shift; fi; done\n"
+            "case \"$path\" in /agents/hermes-titus/teamsmeetings) cat \"$PHASE_FIXTURE\";; /agents/hermes-titus/runtime) cat \"$PHASE_CORE_FIXTURE\";; /agents/hermes-email-intake/titus) cat \"$PHASE_EMAIL_FIXTURE\";; *) exit 4;; esac\n",
+        )
         self.write_executable(
             fake_bin / "install",
             "#!/bin/sh\n"
@@ -56,7 +76,12 @@ class RuntimeProjectionTests(unittest.TestCase):
                 "PHASE_BIN": str(fake_bin / "phase"),
                 "PHASE_TOKEN_FILE": str(token),
                 "PHASE_FIXTURE": str(fixture),
+                "PHASE_CORE_FIXTURE": str(core),
+                "PHASE_EMAIL_FIXTURE": str(email),
                 "MEETING_PROCESSOR_RUNTIME_ROOT": str(runtime),
+                "MEETING_PROCESSOR_CONTENT_MARKER": str(marker),
+                "CONTENT_MARKER": str(marker),
+                "MARKER_MODE": marker_mode,
             }
         )
         result = subprocess.run([str(LOADER)], env=environment, text=True, capture_output=True, check=False)
@@ -106,6 +131,31 @@ class RuntimeProjectionTests(unittest.TestCase):
                 result, output = self.run_loader(source)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse(output.exists())
+
+    def test_content_marker_projects_only_fixed_content_fields(self):
+        result, output = self.run_loader(self.source(), content=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        projected = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(projected["TRANSCRIPT_CONTENT_ENABLED"], "true")
+        self.assertEqual(projected["SECURITYTEAM_BASE_URL"], "http://overnightdesk-securityteam:4700")
+        self.assertEqual(projected["HERMES_BASE_URL"], "http://hermes-titus:8642")
+        self.assertEqual(projected["TRANSCRIPT_MAX_BYTES"], "1000000")
+        self.assertEqual(projected["SECURITYTEAM_MAX_RESPONSE_BYTES"], "1250000")
+        self.assertEqual(projected["TITUS_MAX_OUTPUT_BYTES"], "65536")
+        self.assertEqual(set(projected) - {
+            "MSGRAPH_TENANT_ID", "MSGRAPH_CLIENT_ID", "MSGRAPH_CLIENT_SECRET",
+            "MSGRAPH_ORGANIZER_USER_IDS", "MSGRAPH_POLL_INTERVAL_SECONDS",
+            "MSGRAPH_INITIAL_LOOKBACK_HOURS",
+        }, {
+            "TRANSCRIPT_CONTENT_ENABLED", "SECURITYTEAM_BASE_URL", "SECURITY_SERVICE_TOKEN",
+            "HERMES_BASE_URL", "HERMES_API_KEY", "TRANSCRIPT_MAX_BYTES",
+            "SECURITYTEAM_MAX_RESPONSE_BYTES", "TITUS_MAX_OUTPUT_BYTES",
+        })
+
+    def test_rejects_malformed_content_marker(self):
+        result, output = self.run_loader(self.source(), content=True, marker_mode="644")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(output.exists())
 
 
 if __name__ == "__main__":
