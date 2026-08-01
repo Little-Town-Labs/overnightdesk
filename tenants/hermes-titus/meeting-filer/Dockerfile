@@ -1,3 +1,4 @@
+ARG HERMES_BASE_IMAGE=overnightdesk/hermes-agent:0.19.0-coder
 FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.24.4-alpine3.22@sha256:68932fa6d4d4059845c8f40ad7e654e626f3ebd3706eef7846f319293ab5cb7a AS build
 ARG TARGETOS=linux
 ARG TARGETARCH=arm64
@@ -8,7 +9,7 @@ COPY cmd ./cmd
 COPY internal ./internal
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/titus-meeting-filer ./cmd/titus-meeting-filer
 
-FROM overnightdesk/hermes-agent:0.19.1-coder
+FROM ${HERMES_BASE_IMAGE}
 USER root
 COPY --from=build --chown=10004:10004 /out/titus-meeting-filer /usr/local/bin/titus-meeting-filer
 ENV HOME=/opt/data
