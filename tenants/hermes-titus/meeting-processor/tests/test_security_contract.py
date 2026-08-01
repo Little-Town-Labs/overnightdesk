@@ -74,6 +74,16 @@ class SecurityContractTests(unittest.TestCase):
         self.assertIn("--exclude='*.py[co]'", deploy)
         self.assertNotIn("cp -a /tmp/titus-meeting-processor-deploy/. /opt/titus-meeting-processor/source/", deploy)
 
+    def test_analyzer_uses_the_reviewed_aegis_local_hermes_image(self):
+        runner = (ROOT / "runtime" / "run-analyzer-container.sh").read_text(encoding="utf-8")
+        deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
+
+        self.assertIn("image=overnightdesk/hermes-agent:0.19.0-coder", runner)
+        self.assertNotIn("TITUS_MEETING_ANALYZER_IMAGE", runner)
+        self.assertIn("analyzer_image=overnightdesk/hermes-agent:0.19.0-coder", deploy)
+        self.assertIn('docker image inspect "$analyzer_image" >/dev/null', deploy)
+        self.assertIn(".Config.Image", deploy)
+
     def test_deployment_revalidates_root_owned_nonwritable_release_before_build(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
         promote = 'promote /tmp/titus-meeting-processor-deploy /opt/titus-meeting-processor/releases 0 0'
