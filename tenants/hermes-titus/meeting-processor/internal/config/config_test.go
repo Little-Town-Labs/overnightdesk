@@ -31,6 +31,25 @@ func TestLoadValidAssignsStableOrganizerSlots(t *testing.T) {
 	}
 }
 
+func TestLoadContentConfigurationIsAllOrNothingAndFixedOrigin(t *testing.T) {
+	cfg, err := Load(writeConfig(t, testfixture.RuntimeContentJSON()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cfg.ContentEnabled || cfg.SecurityTeamBaseURL != "http://overnightdesk-securityteam:4700" || cfg.HermesBaseURL != "http://hermes-titus:8642" {
+		t.Fatalf("unexpected content config: %#v", cfg)
+	}
+	for _, body := range []string{
+		strings.Replace(testfixture.RuntimeContentJSON(), "http://hermes-titus:8642", "https://evil.example", 1),
+		strings.Replace(testfixture.RuntimeContentJSON(), `"HERMES_API_KEY": "h`+testfixture.ClientSecret+`",`+"\n", "", 1),
+		strings.Replace(testfixture.RuntimeContentJSON(), `"TRANSCRIPT_CONTENT_ENABLED": "true"`, `"TRANSCRIPT_CONTENT_ENABLED": "false"`, 1),
+	} {
+		if _, err := Load(writeConfig(t, body)); err == nil {
+			t.Fatal("invalid content configuration accepted")
+		}
+	}
+}
+
 func TestLoadRejectsUnknownMissingAndTrailingJSON(t *testing.T) {
 	cases := []string{
 		strings.Replace(testfixture.RuntimeJSON(), "\n}", ",\n  \"EXTRA\": \"no\"\n}", 1),

@@ -30,6 +30,11 @@ type Config struct {
 	Organizers           [2]Organizer
 	PollIntervalSeconds  int
 	InitialLookbackHours int
+	ContentEnabled       bool
+	SecurityTeamBaseURL  string
+	SecurityServiceToken string
+	HermesBaseURL        string
+	HermesAPIKey         string
 }
 
 type runtimeDocument struct {
@@ -39,6 +44,14 @@ type runtimeDocument struct {
 	OrganizerUserIDs     string `json:"MSGRAPH_ORGANIZER_USER_IDS"`
 	PollIntervalSeconds  string `json:"MSGRAPH_POLL_INTERVAL_SECONDS"`
 	InitialLookbackHours string `json:"MSGRAPH_INITIAL_LOOKBACK_HOURS"`
+	ContentEnabled       string `json:"TRANSCRIPT_CONTENT_ENABLED,omitempty"`
+	SecurityTeamBaseURL  string `json:"SECURITYTEAM_BASE_URL,omitempty"`
+	SecurityServiceToken string `json:"SECURITY_SERVICE_TOKEN,omitempty"`
+	HermesBaseURL        string `json:"HERMES_BASE_URL,omitempty"`
+	HermesAPIKey         string `json:"HERMES_API_KEY,omitempty"`
+	TranscriptMaxBytes   string `json:"TRANSCRIPT_MAX_BYTES,omitempty"`
+	SecurityMaxBytes     string `json:"SECURITYTEAM_MAX_RESPONSE_BYTES,omitempty"`
+	TitusMaxOutputBytes  string `json:"TITUS_MAX_OUTPUT_BYTES,omitempty"`
 }
 
 func Load(path string) (Config, error) {
@@ -77,6 +90,20 @@ func Load(path string) (Config, error) {
 	if raw.PollIntervalSeconds != fmt.Sprint(PollIntervalSeconds) || raw.InitialLookbackHours != fmt.Sprint(InitialLookbackHours) {
 		return Config{}, errors.New("runtime scheduling configuration invalid")
 	}
+	contentValues := []string{raw.ContentEnabled, raw.SecurityTeamBaseURL, raw.SecurityServiceToken, raw.HermesBaseURL, raw.HermesAPIKey, raw.TranscriptMaxBytes, raw.SecurityMaxBytes, raw.TitusMaxOutputBytes}
+	contentEnabled := raw.ContentEnabled == "true"
+	if raw.ContentEnabled == "" {
+		for _, value := range contentValues[1:] {
+			if value != "" {
+				return Config{}, errors.New("runtime content configuration invalid")
+			}
+		}
+	} else if !contentEnabled || raw.SecurityTeamBaseURL != "http://overnightdesk-securityteam:4700" || raw.HermesBaseURL != "http://hermes-titus:8642" ||
+		len(raw.SecurityServiceToken) < 32 || len(raw.SecurityServiceToken) > 4096 || strings.IndexFunc(raw.SecurityServiceToken, unicode.IsControl) >= 0 ||
+		len(raw.HermesAPIKey) < 32 || len(raw.HermesAPIKey) > 4096 || strings.IndexFunc(raw.HermesAPIKey, unicode.IsControl) >= 0 ||
+		raw.TranscriptMaxBytes != "1000000" || raw.SecurityMaxBytes != "1250000" || raw.TitusMaxOutputBytes != "65536" {
+		return Config{}, errors.New("runtime content configuration invalid")
+	}
 
 	return Config{
 		TenantID:     raw.TenantID,
@@ -88,5 +115,7 @@ func Load(path string) (Config, error) {
 		},
 		PollIntervalSeconds:  PollIntervalSeconds,
 		InitialLookbackHours: InitialLookbackHours,
+		ContentEnabled:       contentEnabled, SecurityTeamBaseURL: raw.SecurityTeamBaseURL,
+		SecurityServiceToken: raw.SecurityServiceToken, HermesBaseURL: raw.HermesBaseURL, HermesAPIKey: raw.HermesAPIKey,
 	}, nil
 }

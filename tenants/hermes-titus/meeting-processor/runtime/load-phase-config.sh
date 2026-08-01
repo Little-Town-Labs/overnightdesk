@@ -8,6 +8,7 @@ output_file=$runtime_dir/runtime.json
 phase_app=${MEETING_PROCESSOR_PHASE_APP:-timeless-tech-solutions}
 phase_env=${MEETING_PROCESSOR_PHASE_ENVIRONMENT:-production}
 phase_path=/agents/hermes-titus/teamsmeetings
+content_marker=${MEETING_PROCESSOR_CONTENT_MARKER:-/etc/overnightdesk/titus-meeting-transcript-content.enabled}
 
 die() { printf 'titus meeting processor phase load: %s\n' "$*" >&2; exit 1; }
 
@@ -31,6 +32,19 @@ export PHASE_SERVICE_TOKEN
 test -n "$PHASE_SERVICE_TOKEN" || die 'Phase token is empty'
 timeout 30 "$phase_bin" secrets export --app "$phase_app" --env "$phase_env" \
   --path "$phase_path" --format json >"$work_dir/source.json"
+
+content_enabled=false
+if test -e "$content_marker" || test -L "$content_marker"; then
+  test -f "$content_marker" && test ! -L "$content_marker" || die 'content marker is invalid'
+  test "$(stat -c %u "$content_marker")" = 0 || die 'content marker owner is invalid'
+  test "$(stat -c %a "$content_marker")" = 444 || die 'content marker mode is invalid'
+  test "$(stat -c %s "$content_marker")" = 0 || die 'content marker must be empty'
+  content_enabled=true
+  timeout 30 "$phase_bin" secrets export --app "$phase_app" --env "$phase_env" \
+    --path /agents/hermes-titus/runtime --format json >"$work_dir/core.json"
+  timeout 30 "$phase_bin" secrets export --app "$phase_app" --env "$phase_env" \
+    --path /agents/hermes-email-intake/titus --format json >"$work_dir/email.json"
+fi
 unset PHASE_SERVICE_TOKEN
 
 jq -e 'keys == [
@@ -59,7 +73,33 @@ jq '{
   MSGRAPH_ORGANIZER_USER_IDS,
   MSGRAPH_POLL_INTERVAL_SECONDS: "300",
   MSGRAPH_INITIAL_LOOKBACK_HOURS: "168"
-}' "$work_dir/source.json" >"$work_dir/runtime.json"
+}' "$work_dir/source.json" >"$work_dir/runtime-base.json"
+
+if $content_enabled; then
+  jq -e '
+    (keys - [
+      "AGENTMAIL_API_KEY", "AGENTMAIL_EMAIL_ADDRESS", "AGENTMAIL_INBOX_ID",
+      "HERMES_DEFAULT_MODEL", "OPENROUTER_API_KEY", "SECURITY_SERVICE_TOKEN"
+    ] | length) == 0 and
+    (.SECURITY_SERVICE_TOKEN | type == "string" and length >= 32 and length <= 4096 and (test("[[:cntrl:]]") | not))
+  ' "$work_dir/core.json" >/dev/null || die 'content SecurityTeam configuration invalid'
+  jq -e '
+    (.HERMES_API_KEY | type == "string" and length >= 32 and length <= 4096 and (test("[[:cntrl:]]") | not)) and
+    .HERMES_BASE_URL == "http://hermes-titus:8642"
+  ' "$work_dir/email.json" >/dev/null || die 'content Titus configuration invalid'
+  jq -s '.[0] * {
+    TRANSCRIPT_CONTENT_ENABLED: "true",
+    SECURITYTEAM_BASE_URL: "http://overnightdesk-securityteam:4700",
+    SECURITY_SERVICE_TOKEN: .[1].SECURITY_SERVICE_TOKEN,
+    HERMES_BASE_URL: .[2].HERMES_BASE_URL,
+    HERMES_API_KEY: .[2].HERMES_API_KEY,
+    TRANSCRIPT_MAX_BYTES: "1000000",
+    SECURITYTEAM_MAX_RESPONSE_BYTES: "1250000",
+    TITUS_MAX_OUTPUT_BYTES: "65536"
+  }' "$work_dir/runtime-base.json" "$work_dir/core.json" "$work_dir/email.json" >"$work_dir/runtime.json"
+else
+  mv "$work_dir/runtime-base.json" "$work_dir/runtime.json"
+fi
 
 install -o root -g 10003 -m 0440 "$work_dir/runtime.json" "$output_file"
 printf 'titus meeting processor phase load: ready\n'

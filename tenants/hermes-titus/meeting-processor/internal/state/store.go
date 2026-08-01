@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	CurrentVersion      = 1
+	CurrentVersion      = 2
 	MaxStateArtifacts   = 10000
 	MaxStateStringBytes = int64(32 << 20)
 	MaxStateFileBytes   = int64(64 << 20)
@@ -101,9 +101,16 @@ func Open(path string) (*Store, error) {
 		store.Close()
 		return nil, safeError{code: "state_unavailable"}
 	}
-	if err := decodeDocument(raw, &store.doc); err != nil {
+	migrated, err := decodeDocument(raw, &store.doc)
+	if err != nil {
 		store.Close()
 		return nil, err
+	}
+	if migrated {
+		if err := store.persist(store.doc); err != nil {
+			store.Close()
+			return nil, err
+		}
 	}
 	if err := os.Chmod(path, 0o600); err != nil {
 		store.Close()
@@ -121,17 +128,35 @@ func newDocument() Document {
 	}
 }
 
-func decodeDocument(raw []byte, target *Document) error {
+func decodeDocument(raw []byte, target *Document) (bool, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(target); err != nil {
-		return safeError{code: "state_invalid"}
+		return false, safeError{code: "state_invalid"}
 	}
 	var trailing any
 	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		return safeError{code: "state_invalid"}
+		return false, safeError{code: "state_invalid"}
 	}
-	return validate(*target)
+	migrated := false
+	if target.Version == 1 {
+		for key, artifact := range target.Artifacts {
+			if artifact.ContentStatus != "" || artifact.RawContentDigest != "" || artifact.SafeContentDigest != "" || artifact.TitusOutputDigest != "" || artifact.TitusOutput != "" || artifact.LastContentAttemptAt != "" || artifact.ContentProcessedAt != "" || artifact.ContentRetryCount != 0 || artifact.ContentErrorCode != "" {
+				return false, invalidState()
+			}
+			if artifact.ArtifactType == "transcript" {
+				artifact.ContentStatus = "pending"
+			} else if artifact.ArtifactType == "recording" {
+				artifact.ContentStatus = "not_applicable"
+			} else {
+				return false, invalidState()
+			}
+			target.Artifacts[key] = artifact
+		}
+		target.Version = CurrentVersion
+		migrated = true
+	}
+	return migrated, validate(*target)
 }
 
 func validate(doc Document) error {
@@ -193,7 +218,8 @@ func validateWithLimits(doc Document, maxArtifacts int, maxStringBytes int64) er
 		if !ok || key != artifact.InternalReference || !digestPattern.MatchString(key) ||
 			artifact.OrganizerFingerprint != stream.OrganizerFingerprint ||
 			!boundedProviderValue(artifact.ProviderArtifactID) || !boundedProviderValue(artifact.ProviderMeetingID) ||
-			!validOptionalTimestamp(artifact.ProviderCreatedAt) || !validTimestamp(artifact.DiscoveredAt) {
+			!validOptionalTimestamp(artifact.ProviderCreatedAt) || !validTimestamp(artifact.DiscoveredAt) ||
+			!validContentLifecycle(artifact) {
 			return invalidState()
 		}
 		expectedReference := digestString(organizerIDs[artifact.OrganizerSlot] + "\x00" + artifact.ArtifactType + "\x00" + artifact.ProviderArtifactID)
@@ -241,7 +267,10 @@ func withinStringBudget(doc Document, maximum int64) bool {
 	for key, artifact := range doc.Artifacts {
 		if !add(key, artifact.InternalReference, artifact.OrganizerFingerprint, artifact.OrganizerSlot,
 			artifact.ArtifactType, artifact.ProviderArtifactID, artifact.ProviderMeetingID,
-			artifact.ProviderCreatedAt, artifact.DiscoveredAt) {
+			artifact.ProviderCreatedAt, artifact.DiscoveredAt, artifact.ContentStatus,
+			artifact.RawContentDigest, artifact.SafeContentDigest, artifact.TitusOutputDigest,
+			artifact.TitusOutput, artifact.LastContentAttemptAt, artifact.ContentProcessedAt,
+			artifact.ContentErrorCode) {
 			return false
 		}
 	}
@@ -249,8 +278,9 @@ func withinStringBudget(doc Document, maximum int64) bool {
 }
 
 var (
-	digestPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
-	uuidPattern   = regexp.MustCompile(`^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[1-5][0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}$`)
+	digestPattern           = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	uuidPattern             = regexp.MustCompile(`^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[1-5][0-9A-Fa-f]{3}-[89ABab][0-9A-Fa-f]{3}-[0-9A-Fa-f]{12}$`)
+	credentialOutputPattern = regexp.MustCompile(`(?i)(authorization\s*:\s*bearer|MSGRAPH_[A-Z0-9_]*(SECRET|TOKEN|KEY)|HERMES_API_KEY|SECURITY_SERVICE_TOKEN)`)
 )
 
 func invalidState() error { return safeError{code: "state_invalid"} }
@@ -275,8 +305,46 @@ func validSafeCode(code string) bool {
 	switch code {
 	case "", "token_unavailable", "token_rejected", "payment_required", "forbidden",
 		"transcripts_disabled", "throttled", "provider_unavailable", "provider_rejected",
-		"provider_response_invalid", "state_invalid", "handoff_unavailable", "health_unavailable":
+		"provider_response_invalid", "transcript_content_invalid", "securityteam_unavailable",
+		"securityteam_response_invalid", "securityteam_blocked", "titus_unavailable",
+		"titus_response_invalid", "titus_output_rejected", "state_invalid",
+		"handoff_unavailable", "health_unavailable":
 		return true
+	default:
+		return false
+	}
+}
+
+func validContentLifecycle(artifact Artifact) bool {
+	if artifact.ContentRetryCount < 0 || artifact.ContentRetryCount > 1000 ||
+		!validOptionalTimestamp(artifact.LastContentAttemptAt) || !validOptionalTimestamp(artifact.ContentProcessedAt) ||
+		(artifact.RawContentDigest != "" && !digestPattern.MatchString(artifact.RawContentDigest)) ||
+		(artifact.SafeContentDigest != "" && !digestPattern.MatchString(artifact.SafeContentDigest)) ||
+		(artifact.TitusOutputDigest != "" && !digestPattern.MatchString(artifact.TitusOutputDigest)) ||
+		!validSafeCode(artifact.ContentErrorCode) {
+		return false
+	}
+	if artifact.ArtifactType == "recording" {
+		return artifact.ContentStatus == "not_applicable" && artifact.RawContentDigest == "" && artifact.SafeContentDigest == "" &&
+			artifact.TitusOutputDigest == "" && artifact.TitusOutput == "" && artifact.LastContentAttemptAt == "" &&
+			artifact.ContentProcessedAt == "" && artifact.ContentRetryCount == 0 && artifact.ContentErrorCode == ""
+	}
+	switch artifact.ContentStatus {
+	case "pending":
+		return artifact.RawContentDigest == "" && artifact.SafeContentDigest == "" && artifact.TitusOutputDigest == "" &&
+			artifact.TitusOutput == "" && artifact.LastContentAttemptAt == "" && artifact.ContentProcessedAt == "" &&
+			artifact.ContentRetryCount == 0 && artifact.ContentErrorCode == ""
+	case "processed":
+		return digestPattern.MatchString(artifact.RawContentDigest) && digestPattern.MatchString(artifact.SafeContentDigest) &&
+			digestPattern.MatchString(artifact.TitusOutputDigest) && artifact.TitusOutputDigest == digestString(artifact.TitusOutput) &&
+			artifact.TitusOutput != "" && len(artifact.TitusOutput) <= 65536 &&
+			utf8.ValidString(artifact.TitusOutput) && !strings.ContainsRune(artifact.TitusOutput, 0) &&
+			!strings.Contains(artifact.TitusOutput, artifact.ProviderArtifactID) && !strings.Contains(artifact.TitusOutput, artifact.ProviderMeetingID) &&
+			!strings.Contains(strings.ToLower(artifact.TitusOutput), "graph.microsoft.com") && !credentialOutputPattern.MatchString(artifact.TitusOutput) &&
+			validTimestamp(artifact.LastContentAttemptAt) && validTimestamp(artifact.ContentProcessedAt) && artifact.ContentErrorCode == ""
+	case "blocked", "retryable_error":
+		return validTimestamp(artifact.LastContentAttemptAt) && artifact.ContentProcessedAt == "" && artifact.ContentRetryCount > 0 &&
+			artifact.ContentErrorCode != "" && artifact.TitusOutput == "" && artifact.TitusOutputDigest == ""
 	default:
 		return false
 	}
@@ -375,7 +443,7 @@ func (store *Store) persist(doc Document) error {
 }
 
 func writeDocumentJSON(writer io.Writer, doc Document) error {
-	if _, err := io.WriteString(writer, `{"version":1,"streams":{`); err != nil {
+	if _, err := io.WriteString(writer, `{"version":2,"streams":{`); err != nil {
 		return err
 	}
 	streamKeys := sortedKeys(doc.Streams)

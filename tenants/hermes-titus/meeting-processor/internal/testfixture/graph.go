@@ -21,6 +21,20 @@ func RuntimeJSON() string {
 }`, TenantID, ClientID, ClientSecret, OrganizerOne+","+OrganizerTwo)
 }
 
+func RuntimeContentJSON() string {
+	base := RuntimeJSON()
+	return base[:len(base)-2] + fmt.Sprintf(`,
+  "TRANSCRIPT_CONTENT_ENABLED": "true",
+  "SECURITYTEAM_BASE_URL": "http://overnightdesk-securityteam:4700",
+  "SECURITY_SERVICE_TOKEN": %q,
+  "HERMES_BASE_URL": "http://hermes-titus:8642",
+  "HERMES_API_KEY": %q,
+  "TRANSCRIPT_MAX_BYTES": "1000000",
+  "SECURITYTEAM_MAX_RESPONSE_BYTES": "1250000",
+  "TITUS_MAX_OUTPUT_BYTES": "65536"
+}`, "s"+ClientSecret, "h"+ClientSecret)
+}
+
 func DeltaPage(artifactID, meetingID, createdAt, nextLink, deltaLink string) string {
 	return fmt.Sprintf(`{
   "value": [{"id": %q, "meetingId": %q, "createdDateTime": %q,

@@ -22,6 +22,50 @@ type scriptedFetcher struct {
 	retryCount int
 }
 
+type fakeContentFetcher struct {
+	calls int
+	body  []byte
+	err   error
+}
+
+func (fetcher *fakeContentFetcher) FetchTranscriptContent(context.Context, string, string, string) ([]byte, error) {
+	fetcher.calls++
+	return append([]byte(nil), fetcher.body...), fetcher.err
+}
+
+type fakeScanner struct {
+	calls int
+	safe  string
+	err   error
+}
+
+func (scanner *fakeScanner) Scan(_ context.Context, raw []byte, _, _ string) (string, error) {
+	scanner.calls++
+	if strings.Contains(string(raw), "private transcript phrase") == false {
+		return "", errors.New("unexpected raw fixture")
+	}
+	return scanner.safe, scanner.err
+}
+
+type fakeAnalyzer struct {
+	calls  int
+	output string
+	err    error
+}
+
+func (analyzer *fakeAnalyzer) Analyze(_ context.Context, _, safe string, protected []string) (string, error) {
+	analyzer.calls++
+	if safe != "screened wrapper" || len(protected) < 6 {
+		return "", errors.New("boundary mismatch")
+	}
+	return analyzer.output, analyzer.err
+}
+
+type contentCodeError string
+
+func (err contentCodeError) Error() string    { return string(err) }
+func (err contentCodeError) SafeCode() string { return string(err) }
+
 func (fetcher *scriptedFetcher) FetchDelta(_ context.Context, organizerID string, kind graph.ArtifactType, _ string) (graph.Round, error) {
 	fetcher.calls++
 	if fetcher.failAt > 0 && fetcher.calls == fetcher.failAt {
@@ -146,6 +190,78 @@ func TestRunOnceReportsOnlyTheFailedStreamRetryExhaustion(t *testing.T) {
 	}
 	if failed != 1 || !strings.Contains(events.String(), `"event":"retry"`) || !strings.Contains(events.String(), `"retry_count":2`) {
 		t.Fatalf("retry exhaustion was not safely observable: %s", events.String())
+	}
+}
+
+func TestRunOnceProcessesOneTranscriptWithoutPersistingInputAndIsIdempotent(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	store, _ := state.Open(statePath)
+	defer store.Close()
+	content := &fakeContentFetcher{body: []byte("WEBVTT\nprivate transcript phrase")}
+	scanner := &fakeScanner{safe: "screened wrapper"}
+	analyzer := &fakeAnalyzer{output: "## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\nNone\n\n## Unresolved Questions\nNone"}
+	cfg := workerConfig()
+	cfg.ContentEnabled = true
+	processor := Processor{Config: cfg, Store: store, Fetcher: &scriptedFetcher{}, Content: content, Scanner: scanner, Analyzer: analyzer, HealthPath: filepath.Join(dir, "health.json"), HandoffPath: filepath.Join(dir, "handoff.json"), Now: fixedWorkerTime}
+	result, err := processor.RunOnce(context.Background())
+	if err != nil || !result.ContentAttempted || !result.ContentProcessed {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+	if content.calls != 1 || scanner.calls != 1 || analyzer.calls != 1 {
+		t.Fatalf("calls=%d/%d/%d", content.calls, scanner.calls, analyzer.calls)
+	}
+	doc := store.Document()
+	processed := 0
+	for _, artifact := range doc.Artifacts {
+		if artifact.ArtifactType == "transcript" && artifact.ContentStatus == "processed" {
+			processed++
+			if artifact.RawContentDigest == "" || artifact.SafeContentDigest == "" || artifact.TitusOutputDigest == "" {
+				t.Fatal("missing provenance digests")
+			}
+		}
+		if artifact.ArtifactType == "recording" && artifact.ContentStatus != "not_applicable" {
+			t.Fatal("recording content was activated")
+		}
+	}
+	if processed != 1 {
+		t.Fatalf("processed=%d", processed)
+	}
+	for _, path := range []string{statePath, processor.HandoffPath, processor.HealthPath} {
+		raw, _ := os.ReadFile(path)
+		if strings.Contains(string(raw), "private transcript phrase") || strings.Contains(string(raw), "screened wrapper") {
+			t.Fatalf("input persisted in %s", path)
+		}
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if content.calls != 1 || analyzer.calls != 1 {
+		t.Fatal("completed transcript was processed twice")
+	}
+}
+
+func TestRunOnceBlocksUnsafeTranscriptBeforeTitusAndKeepsMetadata(t *testing.T) {
+	dir := t.TempDir()
+	store, _ := state.Open(filepath.Join(dir, "state.json"))
+	defer store.Close()
+	cfg := workerConfig()
+	cfg.ContentEnabled = true
+	content := &fakeContentFetcher{body: []byte("WEBVTT\nprivate transcript phrase")}
+	scanner := &fakeScanner{err: contentCodeError("securityteam_blocked")}
+	analyzer := &fakeAnalyzer{output: "should not run"}
+	processor := Processor{Config: cfg, Store: store, Fetcher: &scriptedFetcher{}, Content: content, Scanner: scanner, Analyzer: analyzer, HealthPath: filepath.Join(dir, "health.json"), HandoffPath: filepath.Join(dir, "handoff.json"), Now: fixedWorkerTime}
+	result, err := processor.RunOnce(context.Background())
+	if err != nil || !result.ContentAttempted || result.ContentProcessed || analyzer.calls != 0 {
+		t.Fatalf("result=%#v analyzer=%d err=%v", result, analyzer.calls, err)
+	}
+	if len(store.Document().Streams) != 4 || len(store.Document().Artifacts) != 2 {
+		t.Fatal("metadata discovery was not committed")
+	}
+	for _, artifact := range store.Document().Artifacts {
+		if artifact.ArtifactType == "transcript" && artifact.ContentStatus != "blocked" {
+			t.Fatalf("unsafe status: %#v", artifact)
+		}
 	}
 }
 

@@ -7,11 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"time"
 
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/config"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/securityteam"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/titus"
 )
 
 var ErrCycleFailed = errors.New("meeting discovery cycle failed")
@@ -20,10 +23,25 @@ type DeltaFetcher interface {
 	FetchDelta(context.Context, string, graph.ArtifactType, string) (graph.Round, error)
 }
 
+type TranscriptContentFetcher interface {
+	FetchTranscriptContent(context.Context, string, string, string) ([]byte, error)
+}
+
+type SecurityScanner interface {
+	Scan(context.Context, []byte, string, string) (string, error)
+}
+
+type TitusAnalyzer interface {
+	Analyze(context.Context, string, string, []string) (string, error)
+}
+
 type Processor struct {
 	Config      config.Config
 	Store       *state.Store
 	Fetcher     DeltaFetcher
+	Content     TranscriptContentFetcher
+	Scanner     SecurityScanner
+	Analyzer    TitusAnalyzer
 	HealthPath  string
 	HandoffPath string
 	Events      io.Writer
@@ -31,10 +49,12 @@ type Processor struct {
 }
 
 type CycleResult struct {
-	CycleID    string
-	NewCount   int
-	KnownCount int
-	Streams    int
+	CycleID          string
+	NewCount         int
+	KnownCount       int
+	Streams          int
+	ContentAttempted bool
+	ContentProcessed bool
 }
 
 func (processor Processor) RunOnce(ctx context.Context) (CycleResult, error) {
@@ -91,6 +111,7 @@ func (processor Processor) RunOnce(ctx context.Context) (CycleResult, error) {
 					InternalReference: reference, OrganizerFingerprint: fingerprint, OrganizerSlot: organizer.Slot,
 					ArtifactType: string(artifactType), ProviderArtifactID: artifact.ID, ProviderMeetingID: artifact.MeetingID,
 					ProviderCreatedAt: artifact.CreatedAt, DiscoveredAt: now.Format(time.RFC3339Nano),
+					ContentStatus: contentStatusFor(artifactType),
 				}
 				newCount++
 			}
@@ -115,14 +136,120 @@ func (processor Processor) RunOnce(ctx context.Context) (CycleResult, error) {
 	if err := processor.Store.Commit(document); err != nil {
 		return result, processor.failCycle(cycleID, state.ErrorCode(err), nil, processor.Store.Document())
 	}
+	if processor.Config.ContentEnabled {
+		if processor.Content == nil || processor.Scanner == nil || processor.Analyzer == nil {
+			return result, processor.failCycle(cycleID, "content_config_invalid", nil, document)
+		}
+		attempted, processed := processor.processOneTranscript(ctx, &document, now, cycleID)
+		result.ContentAttempted = attempted
+		result.ContentProcessed = processed
+		if attempted {
+			if err := processor.Store.Commit(document); err != nil {
+				return result, processor.failCycle(cycleID, state.ErrorCode(err), nil, processor.Store.Document())
+			}
+		}
+	}
 	if err := WriteHandoff(processor.HandoffPath, document, now); err != nil {
 		return result, processor.failCycle(cycleID, "handoff_unavailable", nil, document)
 	}
-	if err := WriteHealth(processor.HealthPath, Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Streams: healthStreams}); err != nil {
+	if err := WriteHealth(processor.HealthPath, Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Streams: healthStreams, Content: contentHealth(document, processor.Config.ContentEnabled)}); err != nil {
 		return result, fmt.Errorf("%w: health_unavailable", ErrCycleFailed)
 	}
 	processor.event(Event{Event: "cycle_complete", CycleID: cycleID, State: "healthy", NewCount: result.NewCount, KnownCount: result.KnownCount, TotalCount: len(document.Artifacts)})
 	return result, nil
+}
+
+func contentStatusFor(kind graph.ArtifactType) string {
+	if kind == graph.Transcript {
+		return "pending"
+	}
+	return "not_applicable"
+}
+
+func (processor Processor) processOneTranscript(ctx context.Context, document *state.Document, now time.Time, cycleID string) (bool, bool) {
+	keys := make([]string, 0, len(document.Artifacts))
+	for key, artifact := range document.Artifacts {
+		if artifact.ArtifactType == "transcript" && (artifact.ContentStatus == "pending" || artifact.ContentStatus == "retryable_error") {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+	if len(keys) == 0 {
+		return false, false
+	}
+	key := keys[0]
+	artifact := document.Artifacts[key]
+	organizerID := ""
+	for _, organizer := range processor.Config.Organizers {
+		if organizer.Slot == artifact.OrganizerSlot {
+			organizerID = organizer.UserID
+		}
+	}
+	attemptAt := now.Format(time.RFC3339Nano)
+	raw, err := processor.Content.FetchTranscriptContent(ctx, organizerID, artifact.ProviderMeetingID, artifact.ProviderArtifactID)
+	if err != nil {
+		markContentFailure(&artifact, graph.SafeCode(err), attemptAt, retryableContentCode(graph.SafeCode(err)))
+		document.Artifacts[key] = artifact
+		processor.contentEvent(cycleID, artifact)
+		return true, false
+	}
+	rawDigest := sha256.Sum256(raw)
+	safe, err := processor.Scanner.Scan(ctx, raw, artifact.InternalReference, artifact.OrganizerSlot)
+	artifact.RawContentDigest = hex.EncodeToString(rawDigest[:])
+	if err != nil {
+		code := securityteam.SafeCode(err)
+		markContentFailure(&artifact, code, attemptAt, code == "securityteam_unavailable")
+		document.Artifacts[key] = artifact
+		processor.contentEvent(cycleID, artifact)
+		return true, false
+	}
+	safeDigest := sha256.Sum256([]byte(safe))
+	artifact.SafeContentDigest = hex.EncodeToString(safeDigest[:])
+	protected := []string{processor.Config.TenantID, processor.Config.ClientID, artifact.ProviderMeetingID, artifact.ProviderArtifactID}
+	for _, organizer := range processor.Config.Organizers {
+		protected = append(protected, organizer.UserID)
+	}
+	output, err := processor.Analyzer.Analyze(ctx, artifact.InternalReference, safe, protected)
+	if err != nil {
+		code := titus.SafeCode(err)
+		markContentFailure(&artifact, code, attemptAt, code == "titus_unavailable" || code == "titus_response_invalid")
+		document.Artifacts[key] = artifact
+		processor.contentEvent(cycleID, artifact)
+		return true, false
+	}
+	outputDigest := sha256.Sum256([]byte(output))
+	artifact.ContentStatus = "processed"
+	artifact.TitusOutput = output
+	artifact.TitusOutputDigest = hex.EncodeToString(outputDigest[:])
+	artifact.LastContentAttemptAt = attemptAt
+	artifact.ContentProcessedAt = attemptAt
+	artifact.ContentErrorCode = ""
+	document.Artifacts[key] = artifact
+	processor.contentEvent(cycleID, artifact)
+	return true, true
+}
+
+func markContentFailure(artifact *state.Artifact, code, attemptAt string, retryable bool) {
+	artifact.ContentRetryCount++
+	artifact.LastContentAttemptAt = attemptAt
+	artifact.ContentProcessedAt = ""
+	artifact.TitusOutput = ""
+	artifact.TitusOutputDigest = ""
+	artifact.ContentErrorCode = code
+	if retryable {
+		artifact.ContentStatus = "retryable_error"
+	} else {
+		artifact.ContentStatus = "blocked"
+	}
+}
+
+func retryableContentCode(code string) bool {
+	return code == "provider_unavailable" || code == "throttled" || code == "token_unavailable"
+}
+
+func (processor Processor) contentEvent(cycleID string, artifact state.Artifact) {
+	eventName := "content_" + artifact.ContentStatus
+	processor.event(Event{Event: eventName, CycleID: cycleID, OrganizerSlot: artifact.OrganizerSlot, ArtifactType: "transcript", State: artifact.ContentStatus, SafeErrorCode: artifact.ContentErrorCode, RetryCount: artifact.ContentRetryCount})
 }
 
 func (processor Processor) failCycle(cycleID, code string, failed *StreamHealth, document state.Document) error {
@@ -130,7 +257,7 @@ func (processor Processor) failCycle(cycleID, code string, failed *StreamHealth,
 	if now == nil {
 		now = time.Now
 	}
-	_ = WriteHealth(processor.HealthPath, Health{State: "degraded", Timestamp: now().UTC().Format(time.RFC3339Nano), TokenHealth: tokenHealthFor(code), Streams: processor.degradedStreams(document, code, failed)})
+	_ = WriteHealth(processor.HealthPath, Health{State: "degraded", Timestamp: now().UTC().Format(time.RFC3339Nano), TokenHealth: tokenHealthFor(code), Streams: processor.degradedStreams(document, code, failed), Content: contentHealth(document, processor.Config.ContentEnabled)})
 	retries := 0
 	if failed != nil {
 		retries = failed.RetryCount

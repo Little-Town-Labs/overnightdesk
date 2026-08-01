@@ -35,6 +35,21 @@ func TestHealthCommandPrintsExactlyOneSafeLine(t *testing.T) {
 	}
 }
 
+func TestContentStatusPrintsOnlyAggregateCounts(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "health.json")
+	now := time.Now().UTC()
+	if err := worker.WriteHealth(path, worker.Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Content: worker.ContentHealth{Enabled: true, Pending: 1, Processed: 2}}); err != nil {
+		t.Fatal(err)
+	}
+	var output bytes.Buffer
+	if err := execute([]string{"content-status", "--health", path}, &output, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	if output.String() != "titus_meeting_content_enabled=true pending=1 processed=2 blocked=0 retryable_error=0\n" {
+		t.Fatalf("output=%q", output.String())
+	}
+}
+
 func TestInitVolumeCreatesPrivateOwnedDirectory(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "data")
 	uid := strconv.Itoa(os.Getuid())

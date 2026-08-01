@@ -15,16 +15,27 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** Feature 033 — Titus meeting artifact discovery
-**Current critical path:** publish the qualified source change, synchronize the
-platform standard in its own repository, then perform the authorized disabled
-production install, activation, metadata-only canary, and restart-idempotency
-proof before beginning the separately gated content-custody slice.
+**Active Spec Kit feature:** Feature 034 — Titus transcript custody
+**Current critical path:** publish the qualified meeting-worker change, deploy
+it with transcript content disabled, activate the Gary transcript canary,
+prove restart idempotency, and synchronize the platform standard.
 
 ## Current Delivery Checkpoint — 2026-08-01
 
-- **Feature 033 — source implemented and locally qualified; production remains
-  inactive:** The completed Gary pilot proved one transcript and one recording,
+- **Feature 034 — implementation qualified; publication and canary pending:**
+  The SecurityTeam block-on-review dependency is merged, deployed, and
+  zero-enqueue-canary verified. The meeting worker now has bounded in-memory
+  transcript VTT retrieval, fixed-origin SecurityTeam screening, stateless
+  Titus analysis, version-2 state migration, protected-output rejection,
+  private derived handoff, aggregate health, and root-marker activation with
+  content-only rollback. Go unit/race/vet/build, 14 Python contracts, shell and
+  leak checks, plus pinned ARM64 hardened-container qualification pass. Raw and
+  screened transcript input receives zero durable retention. Recording
+  content, channel meetings, public ingress, subscriptions, general
+  project-knowledge writes, and an Austin meeting remain outside this slice.
+
+- **Feature 033 — merged, deployed, active, and restart-verified:** The
+  completed Gary pilot proved one transcript and one recording,
   while Austin correctly returned zero artifacts because he did not conduct the
   meeting. Proper organizer-wide delta checks returned HTTP 200 and a final
   cursor for all four organizer/type streams, so both application access
@@ -39,10 +50,10 @@ proof before beginning the separately gated content-custody slice.
   before every build or reuse, and proved each invariant behaviorally against
   temporary release trees and an isolated unsupported-type mutant. Go
   unit/race/vet/build checks, 12 Python security/projection contracts, shell
-  checks, and a Docker-format ARM64 Podman image/container inspection pass. No
-  Graph content endpoint, Hermes tool, webhook,
-  subscription, production deployment, service activation, commit, push, or
-  pull request has been performed.
+  checks, and a Docker-format ARM64 Podman image/container inspection pass. PR
+  160 merged, the worker was installed disabled and separately activated, all
+  four cursors remained healthy across restart, and no Graph content endpoint,
+  Hermes handoff, webhook, or subscription was introduced.
 
 ## Current Delivery Checkpoint — 2026-07-29
 
