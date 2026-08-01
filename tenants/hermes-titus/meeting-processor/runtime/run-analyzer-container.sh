@@ -2,7 +2,7 @@
 set -euo pipefail
 
 name=hermes-titus-meeting-analyzer
-image=${TITUS_MEETING_ANALYZER_IMAGE:-overnightdesk/hermes-agent:0.19.1-coder}
+image=overnightdesk/hermes-agent:0.19.0-coder
 runtime=${TITUS_MEETING_ANALYZER_ENV:-/run/titus-meeting-analyzer/runtime.env}
 config=${TITUS_MEETING_ANALYZER_CONFIG:-/opt/titus-meeting-analyzer/config.yaml}
 

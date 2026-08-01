@@ -7,6 +7,7 @@ ssh_key=${AEGIS_SSH_KEY:-/home/frosted639/.ssh/ssh-key-2026-03-15}
 remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 image=${TITUS_MEETING_PROCESSOR_IMAGE:-overnightdesk/titus-meeting-processor:0.1.0}
+analyzer_image=overnightdesk/hermes-agent:0.19.0-coder
 content_marker=/etc/overnightdesk/titus-meeting-transcript-content.enabled
 brief_marker=/etc/overnightdesk/titus-meeting-briefs.enabled
 filing_marker=/etc/overnightdesk/titus-meeting-filing.enabled
@@ -312,9 +313,11 @@ restore_brief_disabled() {
 }
 
 enable_brief() {
-  if ! "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" <<'REMOTE'
+  if ! "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" "$analyzer_image" <<'REMOTE'
 set -euo pipefail
 marker=$1
+analyzer_image=$2
+docker image inspect "$analyzer_image" >/dev/null
 test ! -e "$marker" && test ! -L "$marker"
 install -o root -g root -m 0444 /dev/null "$marker.next"
 mv -Tf "$marker.next" "$marker"
@@ -336,12 +339,14 @@ REMOTE
 
 verify_brief() {
   verify
-  "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" <<'REMOTE'
+  "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" "$analyzer_image" <<'REMOTE'
 set -euo pipefail
 marker=$1
+analyzer_image=$2
 test -f "$marker" && test ! -L "$marker" && test "$(stat -c %a "$marker")" = 444
 systemctl is-active --quiet titus-meeting-analyzer.service
 systemctl is-active --quiet hermes-email-intake@titus.service
+test "$(docker inspect -f '{{.Config.Image}}' hermes-titus-meeting-analyzer)" = "$analyzer_image"
 test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' hermes-titus-meeting-analyzer)" = true
 test -z "$(docker port hermes-titus-meeting-analyzer)"
 ! docker inspect -f '{{json .Mounts}}' hermes-titus-meeting-analyzer | grep -Eq '(hermes-titus-data|project-knowledge|sessions)'
