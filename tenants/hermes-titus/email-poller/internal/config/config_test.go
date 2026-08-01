@@ -42,7 +42,7 @@ func TestLoadValidDisabledRouteConfig(t *testing.T) {
 	}
 	if configuration.Enabled || configuration.RouteID != "titus" ||
 		configuration.TargetAgent != "hermes-titus" || configuration.MaxMessages != 20 ||
-		configuration.MaxCleanClaims != 10 || configuration.RunTimeout.Seconds() != 900 {
+		configuration.MaxCleanClaims != 10 || configuration.RunTimeout.Seconds() != 900 || configuration.CleanClaimStaleSeconds != 1020 {
 		t.Fatalf("unexpected parsed config: %#v", configuration)
 	}
 	if _, ok := configuration.AllowedSenders["garyb@timelesstechs.com"]; !ok {
@@ -96,5 +96,21 @@ func TestLoadRejectsUnsafeBoundsAndEnabledTypos(t *testing.T) {
 	typo := strings.Replace(validJSON(), `"AGENTMAIL_POLLING_ENABLED":"false"`, `"AGENTMAIL_POLLING_ENABLED":"False"`, 1)
 	if _, err := Load(writeConfig(t, typo)); err == nil {
 		t.Fatal("non-canonical enabled value accepted")
+	}
+}
+
+func TestLoadMeetingReviewCredentialsAreIndependentAndDisabledFirst(t *testing.T) {
+	enabled := strings.Replace(validJSON(), "\n}", ",\n\"MEETING_REVIEW_ENABLED\":\"true\",\n\"MEETING_REVIEW_BASE_URL\":\"http://titus-meeting-processor:8080\",\n\"MEETING_REVIEW_BEARER\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n\"MEETING_REVIEW_SIGNING_SECRET\":\"ssssssssssssssssssssssssssssssss\"\n}", 1)
+	configuration, err := Load(writeConfig(t, enabled))
+	if err != nil || !configuration.MeetingReviewEnabled {
+		t.Fatalf("valid review configuration rejected: %#v %v", configuration, err)
+	}
+	credentialWhileDisabled := strings.Replace(enabled, `"MEETING_REVIEW_ENABLED":"true"`, `"MEETING_REVIEW_ENABLED":"false"`, 1)
+	if _, err := Load(writeConfig(t, credentialWhileDisabled)); err == nil {
+		t.Fatal("disabled review accepted projected credentials")
+	}
+	missing := strings.Replace(enabled, strings.Repeat("s", 32), "", 1)
+	if _, err := Load(writeConfig(t, missing)); err == nil {
+		t.Fatal("enabled review accepted missing signing secret")
 	}
 }

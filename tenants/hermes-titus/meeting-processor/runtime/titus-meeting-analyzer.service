@@ -1,0 +1,26 @@
+[Unit]
+Description=OvernightDesk isolated Titus meeting brief analyzer
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=titus-meeting-analyzer
+Group=titus-meeting-analyzer
+SupplementaryGroups=docker
+ExecStartPre=+/opt/titus-meeting-analyzer/bin/load-phase-env.sh
+ExecStart=/opt/titus-meeting-analyzer/bin/run-container.sh
+ExecStop=+/opt/titus-meeting-analyzer/bin/stop-container.sh
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/run/titus-meeting-analyzer
+
+[Install]
+WantedBy=multi-user.target

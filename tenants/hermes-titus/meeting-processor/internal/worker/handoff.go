@@ -22,7 +22,6 @@ type handoffDiscovery struct {
 	DiscoveredAt       string `json:"discovered_at"`
 	ContentProcessedAt string `json:"content_processed_at,omitempty"`
 	TitusOutputDigest  string `json:"titus_output_digest,omitempty"`
-	TitusOutput        string `json:"titus_output,omitempty"`
 }
 
 func WriteHandoff(path string, document state.Document, now time.Time) error {
@@ -37,7 +36,7 @@ func WriteHandoff(path string, document state.Document, now time.Time) error {
 		handoff.Discoveries = append(handoff.Discoveries, handoffDiscovery{
 			InternalReference: artifact.InternalReference, OrganizerSlot: artifact.OrganizerSlot,
 			ArtifactType: artifact.ArtifactType, ProviderCreatedAt: artifact.ProviderCreatedAt, DiscoveredAt: artifact.DiscoveredAt,
-			ContentProcessedAt: artifact.ContentProcessedAt, TitusOutputDigest: artifact.TitusOutputDigest, TitusOutput: artifact.TitusOutput,
+			ContentProcessedAt: artifact.ContentProcessedAt, TitusOutputDigest: artifact.TitusOutputDigest,
 		})
 	}
 	raw, err := json.Marshal(handoff)

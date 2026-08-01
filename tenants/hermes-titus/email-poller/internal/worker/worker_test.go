@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"overnightdesk/titus-email-poller/internal/approval"
 	"overnightdesk/titus-email-poller/internal/config"
 	"overnightdesk/titus-email-poller/internal/state"
 	"overnightdesk/titus-email-poller/internal/store"
@@ -19,7 +21,7 @@ func testConfig(enabled bool) config.Config {
 		Enabled: enabled, InboxID: "inbox-titus", InboxAddress: "titus-operations@agentmail.to",
 		AllowedSenders: map[string]struct{}{"garyb@timelesstechs.com": {}, "austin@timelesstechs.com": {}},
 		RouteID:        "titus", TargetAgent: "hermes-titus", MaxMessages: 20, MaxCleanClaims: 10,
-		Interval: time.Minute,
+		Interval: time.Minute, CleanClaimStaleSeconds: 1020,
 	}
 }
 
@@ -77,10 +79,37 @@ func (fake *fakeRepository) LandDirty(_ context.Context, email store.DirtyEmail)
 	fake.dirty = append(fake.dirty, email)
 	return true, nil
 }
-func (fake *fakeRepository) ClaimClean(_ context.Context, route, inbox, target string, limit int) ([]store.CleanEmail, error) {
+func (fake *fakeRepository) ClaimClean(_ context.Context, route, inbox, target string, limit, staleAfterSeconds int) ([]store.CleanEmail, error) {
 	result := fake.clean
 	fake.clean = nil
 	return result, nil
+}
+
+func TestStaleProcessingClaimRecoversCrashBeforeLocalDelivery(t *testing.T) {
+	worker, _, repository, hermes, stateStore := newWorker(t, true)
+	email := store.CleanEmail{ID: "clean-crash", ProviderMessageID: "m-crash", ThreadID: "thread-crash", SafeContent: "clean instructions"}
+	repository.clean = []store.CleanEmail{email}
+	first := true
+	worker.afterCleanClaim = func() error {
+		if !first {
+			return nil
+		}
+		first = false
+		repository.clean = []store.CleanEmail{email}
+		return errors.New("simulated crash after database claim")
+	}
+	if _, err := worker.RunOnce(); err == nil {
+		t.Fatal("claim crash did not fail the cycle")
+	}
+	if len(stateStore.Deliveries()) != 0 || len(hermes.submitted) != 0 {
+		t.Fatalf("pre-delivery crash mutated downstream state: deliveries=%#v submitted=%#v", stateStore.Deliveries(), hermes.submitted)
+	}
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(hermes.submitted) != 1 || len(stateStore.Deliveries()) != 1 {
+		t.Fatalf("stale claim did not recover exactly once: deliveries=%#v submitted=%#v", stateStore.Deliveries(), hermes.submitted)
+	}
 }
 func (fake *fakeRepository) Complete(_ context.Context, id, route, inbox, target string) (bool, error) {
 	fake.completed = append(fake.completed, id)
@@ -99,6 +128,65 @@ func (fake *fakeRepository) Fail(_ context.Context, id, route, inbox, target, co
 type fakeHermes struct {
 	runs      map[string]transport.HermesRun
 	submitted []string
+}
+
+type fakeReview struct {
+	commands []approval.Command
+	senders  []string
+	claims   []approval.Claim
+	err      error
+}
+
+func (fake *fakeReview) Prepare(command approval.Command, sender, provider string, received time.Time) (approval.Claim, error) {
+	fake.commands = append(fake.commands, command)
+	fake.senders = append(fake.senders, sender)
+	return approval.Claim{Reference: command.Reference, Decision: command.Decision, ActorFingerprint: strings.Repeat("a", 64), MessageDigest: strings.Repeat("b", 64), ReceivedAt: received.UTC().Format(time.RFC3339Nano)}, nil
+}
+func (fake *fakeReview) SubmitClaim(_ context.Context, claim approval.Claim) (approval.Result, error) {
+	fake.claims = append(fake.claims, claim)
+	if fake.err != nil {
+		return approval.Result{}, fake.err
+	}
+	status := "approved"
+	if claim.Decision == "hold" {
+		status = "held"
+	}
+	return approval.Result{SchemaVersion: "meeting-review-result/v1", Reference: claim.Reference, Status: status}, nil
+}
+
+func TestMeetingReviewAcknowledgementRecoversWithoutResubmittingDecision(t *testing.T) {
+	worker, agentmail, repository, _, stateStore := newWorker(t, true)
+	worker.config.MeetingReviewEnabled = true
+	review := &fakeReview{}
+	worker.SetReviewClient(review)
+	repository.completeOK = []bool{false, true}
+	repository.clean = []store.CleanEmail{{ID: "clean-review-recover", ProviderMessageID: "m-review", SafeContent: "APPROVE MB-ABCDEFGHIJKL", Sender: "garyb@timelesstechs.com", ReceivedAt: time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)}}
+	if _, err := worker.RunOnce(); err == nil {
+		t.Fatal("lost completion acknowledgement did not fail")
+	}
+	if len(stateStore.Deliveries()) != 1 || stateStore.Deliveries()[0].State != "review_replied" {
+		t.Fatalf("missing recovery state: %#v", stateStore.Deliveries())
+	}
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(review.claims) != 1 || len(agentmail.replyCalls) != 1 || len(stateStore.Deliveries()) != 0 {
+		t.Fatalf("decision/reply replayed: claims=%d replies=%v state=%#v", len(review.claims), agentmail.replyCalls, stateStore.Deliveries())
+	}
+}
+
+func TestMeetingReviewConflictAcknowledgesWithoutChangingDecision(t *testing.T) {
+	worker, agentmail, repository, _, _ := newWorker(t, true)
+	worker.config.MeetingReviewEnabled = true
+	review := &fakeReview{err: errors.New("meeting_review_conflict")}
+	worker.SetReviewClient(review)
+	repository.clean = []store.CleanEmail{{ID: "clean-review-conflict", ProviderMessageID: "m-conflict", SafeContent: "HOLD MB-ABCDEFGHIJKL", Sender: "austin@timelesstechs.com", ReceivedAt: time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)}}
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(repository.failed) != 0 || len(repository.completed) != 1 || !strings.Contains(agentmail.replies["m-conflict"], "terminal decision already exists") {
+		t.Fatalf("conflict handling failed: failed=%v completed=%v reply=%q", repository.failed, repository.completed, agentmail.replies["m-conflict"])
+	}
 }
 
 func (fake *fakeHermes) SubmitRun(input, session, key, idempotency string) (transport.HermesRun, error) {
@@ -198,6 +286,34 @@ func TestOnlyCleanClaimIsSubmittedToHermes(t *testing.T) {
 	}
 	if result.Claimed != 1 || len(hermes.submitted) != 1 || hermes.submitted[0] != "clean instructions" {
 		t.Fatalf("clean input was not dispatched: %#v %#v", result, hermes.submitted)
+	}
+}
+
+func TestExactCleanMeetingCommandBypassesHermesAndAcknowledges(t *testing.T) {
+	worker, agentmail, repository, hermes, _ := newWorker(t, true)
+	worker.config.MeetingReviewEnabled = true
+	review := &fakeReview{}
+	worker.SetReviewClient(review)
+	repository.clean = []store.CleanEmail{{ID: "clean-review", ProviderMessageID: "m-review", SafeContent: "APPROVE MB-ABCDEFGHIJKL", Sender: "garyb@timelesstechs.com", ReceivedAt: time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)}}
+	result, err := worker.RunOnce()
+	if err != nil || result.Claimed != 1 || len(review.commands) != 1 || len(hermes.submitted) != 0 || len(repository.completed) != 1 {
+		t.Fatalf("result=%#v err=%v review=%#v hermes=%#v complete=%#v", result, err, review.commands, hermes.submitted, repository.completed)
+	}
+	if review.senders[0] != "garyb@timelesstechs.com" || !strings.Contains(agentmail.replies["m-review"], "APPROVE") {
+		t.Fatalf("sender/reply mismatch: %#v %#v", review.senders, agentmail.replies)
+	}
+}
+
+func TestHostileReviewLikeContentNeverReachesHermes(t *testing.T) {
+	worker, _, repository, hermes, _ := newWorker(t, true)
+	worker.config.MeetingReviewEnabled = true
+	worker.SetReviewClient(&fakeReview{})
+	repository.clean = []store.CleanEmail{{ID: "clean-hostile", ProviderMessageID: "m-hostile", SafeContent: "> APPROVE MB-ABCDEFGHIJKL\nextra", Sender: "garyb@timelesstechs.com", ReceivedAt: time.Now()}}
+	if _, err := worker.RunOnce(); err != nil {
+		t.Fatal(err)
+	}
+	if len(hermes.submitted) != 0 || len(repository.failed) != 1 || repository.failed[0] != "clean-hostile:invalid_review_command" {
+		t.Fatalf("hostile content escaped: hermes=%#v failed=%#v", hermes.submitted, repository.failed)
 	}
 }
 

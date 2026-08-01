@@ -1,6 +1,8 @@
 package config
 
 import (
+	"bytes"
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"strings"
@@ -16,6 +18,25 @@ func writeConfig(t *testing.T, body string) string {
 		t.Fatal(err)
 	}
 	return path
+}
+
+func meetingRuntimeJSON() string {
+	key := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))
+	extra := `,
+  "MEETING_BRIEF_ENABLED": "true",
+  "MEETING_ANALYZER_BASE_URL": "http://hermes-titus-meeting-analyzer:8642",
+  "MEETING_ANALYZER_API_KEY": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "MEETING_RAW_CUSTODY_ACTIVE_KEY_ID": "key-2026-08",
+  "MEETING_RAW_CUSTODY_KEYS_JSON": "{\"key-2026-08\":\"` + key + `\"}",
+  "MEETING_PROJECT_ROUTES_JSON": "[{\"canonicalProject\":\"OvernightDesk\",\"aliases\":[\"overnightdesk\"],\"noteDirectory\":\"10-projects/overnightdesk\",\"kanbanBoard\":\"overnightdesk\"}]",
+  "MEETING_AGENTMAIL_API_KEY": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+  "MEETING_AGENTMAIL_INBOX_ID": "titus-operations@agentmail.to",
+  "MEETING_GARY_EMAIL": "gary@example.com",
+  "MEETING_AUSTIN_EMAIL": "austin@example.com",
+  "MEETING_REVIEW_BEARER": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+  "MEETING_REVIEW_SIGNING_SECRET": "ssssssssssssssssssssssssssssssss",
+  "MEETING_RECORDING_MAX_BYTES": "2147483648"`
+	return strings.Replace(testfixture.RuntimeContentJSON(), "\n}", extra+"\n}", 1)
 }
 
 func TestLoadValidAssignsStableOrganizerSlots(t *testing.T) {
@@ -90,5 +111,27 @@ func TestErrorsDoNotContainProtectedValues(t *testing.T) {
 		if strings.Contains(err.Error(), protected) {
 			t.Fatal("error exposed protected configuration")
 		}
+	}
+}
+
+func TestLoadMeetingBriefAndFilingGatesAreIndependent(t *testing.T) {
+	configuration, err := Load(writeConfig(t, meetingRuntimeJSON()))
+	if err != nil || !configuration.MeetingBriefEnabled || configuration.MeetingFilingEnabled || configuration.MeetingRecordingMaxBytes != 2<<30 {
+		t.Fatalf("configuration=%#v err=%v", configuration, err)
+	}
+	filing := strings.Replace(meetingRuntimeJSON(), "\n}", `,
+  "MEETING_FILING_ENABLED": "true",
+  "MEETING_FILER_BASE_URL": "http://titus-meeting-filer:8090",
+  "MEETING_FILER_BEARER": "ffffffffffffffffffffffffffffffff"
+}`, 1)
+	configuration, err = Load(writeConfig(t, filing))
+	if err != nil || !configuration.MeetingFilingEnabled {
+		t.Fatalf("filing configuration rejected: %#v %v", configuration, err)
+	}
+	credentialWithoutGate := strings.Replace(testfixture.RuntimeContentJSON(), "\n}", `,
+  "MEETING_ANALYZER_API_KEY": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}`, 1)
+	if _, err := Load(writeConfig(t, credentialWithoutGate)); err == nil {
+		t.Fatal("meeting credential accepted without activation gate")
 	}
 }

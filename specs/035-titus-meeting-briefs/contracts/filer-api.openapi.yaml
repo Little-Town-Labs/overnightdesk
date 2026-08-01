@@ -1,0 +1,123 @@
+openapi: 3.1.0
+info:
+  title: Titus Meeting Filer API
+  version: 1.0.0
+  description: Private deterministic interface for approved internal notes and Kanban work.
+servers:
+  - url: http://titus-meeting-filer:8090
+paths:
+  /v1/filings:
+    post:
+      operationId: createMeetingFiling
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, pattern: '^[a-f0-9]{64}$' }
+          description: Lowercase SHA-256 of the exact UTF-8 request body bytes; mismatch fails before parsing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FilingInput' }
+      responses:
+        '200':
+          description: Existing identical filing returned idempotently.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FilingResult' }
+        '201':
+          description: Filing created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FilingResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '500': { $ref: '#/components/responses/Internal' }
+  /health:
+    get:
+      operationId: getHealth
+      responses:
+        '200':
+          description: Aggregate safe health.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [status, schemaVersion]
+                properties:
+                  status: { const: healthy }
+                  schemaVersion: { const: meeting-filer-health/v1 }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  schemas:
+    ProjectRoute:
+      type: object
+      additionalProperties: false
+      required: [canonicalProject, noteDirectory, kanbanBoard, configDigest]
+      properties:
+        canonicalProject: { type: string, minLength: 1, maxLength: 80 }
+        noteDirectory: { type: string, pattern: '^10-projects/[a-z0-9][a-z0-9/-]{0,159}$' }
+        kanbanBoard: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,62}$' }
+        configDigest: { type: string, pattern: '^[a-f0-9]{64}$' }
+    FilingInput:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, reference, approvedBy, approvedAt, briefDigest, brief, projectRoute]
+      properties:
+        schemaVersion: { const: meeting-filing/v1 }
+        reference: { type: string, pattern: '^MB-[A-Z2-7]{12}$' }
+        approvedBy: { enum: [gary, austin] }
+        approvedAt: { type: string, format: date-time }
+        briefDigest: { type: string, pattern: '^[a-f0-9]{64}$' }
+        brief: { $ref: './meeting-brief.schema.json' }
+        projectRoute:
+          oneOf:
+            - { type: 'null' }
+            - { $ref: '#/components/schemas/ProjectRoute' }
+    FilingResult:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, reference, requestDigest, noteRelativePath, noteDigest, noteKey, board, triageTaskKey, actionTaskKeys, filedAt]
+      properties:
+        schemaVersion: { const: meeting-filing-result/v1 }
+        reference: { type: string, pattern: '^MB-[A-Z2-7]{12}$' }
+        requestDigest: { type: string, pattern: '^[a-f0-9]{64}$' }
+        noteRelativePath: { type: string, maxLength: 240 }
+        noteDigest: { type: string, pattern: '^[a-f0-9]{64}$' }
+        noteKey:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: Versioned length-delimited meeting-filing-item key using kind note and index 000000.
+        board: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,62}$' }
+        triageTaskKey:
+          oneOf: [{ type: 'null' }, { type: string, pattern: '^[a-f0-9]{64}$' }]
+        actionTaskKeys:
+          type: array
+          maxItems: 45
+          items: { type: string, pattern: '^[a-f0-9]{64}$' }
+        filedAt: { type: string, format: date-time }
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code: { type: string, pattern: '^[A-Z_]{3,40}$' }
+            message: { type: string, maxLength: 160 }
+  responses:
+    BadRequest: { description: Malformed input, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: Invalid bearer, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: Idempotency or create-only conflict, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unprocessable: { description: Invalid schema, route, or lifecycle, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Internal: { description: Safe internal failure, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

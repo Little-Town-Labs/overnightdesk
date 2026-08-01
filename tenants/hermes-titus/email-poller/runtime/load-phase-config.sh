@@ -15,6 +15,7 @@ output_file=$runtime_dir/runtime.json
 phase_app=${EMAIL_INTAKE_PHASE_APP:-$default_phase_app}
 phase_env=${EMAIL_INTAKE_PHASE_ENVIRONMENT:-production}
 phase_path=/agents/hermes-email-intake/$instance
+review_marker=${EMAIL_INTAKE_MEETING_REVIEW_MARKER:-/etc/overnightdesk/titus-meeting-briefs.enabled}
 
 die() { printf 'hermes email intake %s phase load: %s\n' "$instance" "$*" >&2; exit 1; }
 
@@ -38,6 +39,14 @@ export PHASE_SERVICE_TOKEN
 test -n "$PHASE_SERVICE_TOKEN" || die 'Phase token is empty'
 timeout 30 "$phase_bin" secrets export --app "$phase_app" --env "$phase_env" \
   --path "$phase_path" --format json >"$work_dir/runtime.json"
+review_enabled=false
+if test "$instance" = titus && { test -e "$review_marker" || test -L "$review_marker"; }; then
+  test -f "$review_marker" && test ! -L "$review_marker" || die 'meeting review marker is invalid'
+  test "$(stat -c %u "$review_marker")" = 0 && test "$(stat -c %a "$review_marker")" = 444 && test "$(stat -c %s "$review_marker")" = 0 || die 'meeting review marker is invalid'
+  review_enabled=true
+  timeout 30 "$phase_bin" secrets export --app timeless-tech-solutions --env "$phase_env" \
+    --path /agents/hermes-titus/meetingbriefs --format json >"$work_dir/meeting.json"
+fi
 unset PHASE_SERVICE_TOKEN
 
 jq -e 'keys == [
@@ -52,6 +61,13 @@ jq -e --arg route "$instance" '
   .EMAIL_ROUTE_ID == $route and
   (.AGENTMAIL_POLLING_ENABLED == "true" or .AGENTMAIL_POLLING_ENABLED == "false")
 ' "$work_dir/runtime.json" >/dev/null || die 'runtime must be complete and route-consistent'
+
+if $review_enabled; then
+  jq -e '(.MEETING_REVIEW_API_TOKEN | type == "string" and length >= 32) and (.MEETING_REVIEW_SIGNING_SECRET | type == "string" and length >= 32)' "$work_dir/meeting.json" >/dev/null || die 'meeting review configuration invalid'
+  jq -s '.[0] * {MEETING_REVIEW_ENABLED:"true",MEETING_REVIEW_BASE_URL:"http://titus-meeting-processor:8080",MEETING_REVIEW_BEARER:.[1].MEETING_REVIEW_API_TOKEN,MEETING_REVIEW_SIGNING_SECRET:.[1].MEETING_REVIEW_SIGNING_SECRET}' \
+    "$work_dir/runtime.json" "$work_dir/meeting.json" >"$work_dir/review-runtime.json"
+  mv "$work_dir/review-runtime.json" "$work_dir/runtime.json"
+fi
 
 install -o root -g 10002 -m 0440 "$work_dir/runtime.json" "$output_file"
 printf 'hermes email intake %s phase load: ready\n' "$instance"

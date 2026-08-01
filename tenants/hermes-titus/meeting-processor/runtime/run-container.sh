@@ -23,11 +23,14 @@ exec docker run --rm \
   --security-opt no-new-privileges \
   --pids-limit 128 \
   --cpus 0.5 \
-  --memory 256m \
-  --volume titus-meeting-processor-data:/data \
+	--memory 256m \
+	--volume titus-meeting-processor-data:/data \
+	--volume titus-meeting-custody-data:/custody \
   --volume "$runtime:/run/secrets/runtime.json:ro" \
   "$image" run \
     --config /run/secrets/runtime.json \
     --state /data/state.json \
+    --brief-state /data/meeting-brief-state.json \
+	--custody-dir /custody \
     --health /data/health.json \
     --handoff /data/handoff.json

@@ -30,17 +30,17 @@ func TestDirtyMetadataContainsOnlyTrustedRoutingFields(t *testing.T) {
 }
 
 func TestSQLContractsAreParameterizedAndRouteIsolated(t *testing.T) {
-	for _, token := range []string{"$1", "$2", "$3", "$4", "FOR UPDATE OF im SKIP LOCKED", "sender_authorized' = 'true'"} {
+	for _, token := range []string{"$1", "$2", "$3", "$4", "$5", "FOR UPDATE OF im SKIP LOCKED", "sender_authorized' = 'true'"} {
 		if !strings.Contains(claimCleanSQL, token) {
 			t.Fatalf("claim contract missing %q", token)
 		}
 	}
-	for _, condition := range []string{"route_id", "inbox_id", "target_agent", "agent_zero_status = 'queued'", "approval_status IN ('approved', 'auto_approved')"} {
+	for _, condition := range []string{"route_id", "inbox_id", "target_agent", "agent_zero_status = 'queued'", "agent_zero_status = 'processing'", "agent_zero_run_at < NOW() - make_interval(secs => $5::double precision)", "approval_status IN ('approved', 'auto_approved')"} {
 		if !strings.Contains(claimCleanSQL, condition) {
 			t.Fatalf("claim isolation missing %q", condition)
 		}
 	}
-	for _, condition := range []string{"cs.source = 'agentmail'", "provider_message_id", "safe_content"} {
+	for _, condition := range []string{"cs.source = 'agentmail'", "provider_message_id", "safe_content", "cs.sender", "cs.received_at"} {
 		if !strings.Contains(claimCleanSQL, condition) {
 			t.Fatalf("claim provenance validation missing %q", condition)
 		}
@@ -58,6 +58,15 @@ func TestSQLContractsAreParameterizedAndRouteIsolated(t *testing.T) {
 	}
 	if !strings.Contains(updateCleanSQL, "$5 = 'done' AND im.agent_zero_status = 'done'") {
 		t.Fatal("completion transition is not restart-idempotent")
+	}
+}
+
+func TestClaimRecoveryBoundFailsClosedBeforeDatabaseAccess(t *testing.T) {
+	repository := &Postgres{}
+	for _, value := range []int{0, 119, 4201} {
+		if _, err := repository.ClaimClean(t.Context(), "route", "inbox", "target", 1, value); err == nil || !strings.Contains(err.Error(), "recovery bound") {
+			t.Fatalf("bound %d accepted: %v", value, err)
+		}
 	}
 }
 

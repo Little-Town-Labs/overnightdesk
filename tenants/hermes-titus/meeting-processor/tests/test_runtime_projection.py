@@ -24,7 +24,7 @@ class RuntimeProjectionTests(unittest.TestCase):
             "MSGRAPH_WEBHOOK_PORT": "8787",
         }
 
-    def run_loader(self, source, content=False, marker_mode="444"):
+    def run_loader(self, source, content=False, brief=False, filing=False, marker_mode="444"):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         base = Path(temporary.name)
@@ -41,26 +41,45 @@ class RuntimeProjectionTests(unittest.TestCase):
         }), encoding="utf-8")
         email = base / "email.json"
         email.write_text(json.dumps({"HERMES_API_KEY": "h" * 32, "HERMES_BASE_URL": "http://hermes-titus:8642"}), encoding="utf-8")
+        meeting = base / "meeting.json"
+        meeting.write_text(json.dumps({
+            "MEETING_ANALYZER_API_KEY": "z" * 32,
+            "MEETING_ANALYZER_MODEL": "anthropic/claude-sonnet-4.5",
+            "MEETING_AUSTIN_EMAIL": "austin@example.com",
+            "MEETING_FILER_API_TOKEN": "f" * 32,
+            "MEETING_GARY_EMAIL": "gary@example.com",
+            "MEETING_PROJECT_ROUTES_JSON": '[{"canonicalProject":"OvernightDesk","aliases":["OvernightDesk"],"noteDirectory":"10-projects/overnightdesk","kanbanBoard":"overnightdesk"}]',
+            "MEETING_RAW_CUSTODY_ACTIVE_KEY_ID": "active",
+            "MEETING_RAW_CUSTODY_KEYS_JSON": '{"active":"BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc="}',
+            "MEETING_REVIEW_API_TOKEN": "r" * 32,
+            "MEETING_REVIEW_SIGNING_SECRET": "s" * 32,
+        }), encoding="utf-8")
         token = base / "phase-token"
         token.write_text("fixture-phase-token-value-123456", encoding="utf-8")
         token.chmod(0o400)
         runtime = base / "runtime"
         marker = base / "content.enabled"
+        brief_marker = base / "brief.enabled"
+        filing_marker = base / "filing.enabled"
         if content:
             marker.write_bytes(b"")
+        if brief:
+            brief_marker.write_bytes(b"")
+        if filing:
+            filing_marker.write_bytes(b"")
         fake_bin = base / "bin"
         fake_bin.mkdir()
         self.write_executable(fake_bin / "id", "#!/bin/sh\ntest \"$1\" = -u && printf '0\\n'\n")
         self.write_executable(
             fake_bin / "stat",
             "#!/bin/sh\n"
-            "if test \"$3\" = \"$CONTENT_MARKER\"; then case \"$2\" in %a) printf '%s\\n' \"$MARKER_MODE\";; %u) printf '0\\n';; %s) printf '0\\n';; *) exit 2;; esac; "
+            "if test \"$3\" = \"$CONTENT_MARKER\" -o \"$3\" = \"$BRIEF_MARKER\" -o \"$3\" = \"$FILING_MARKER\"; then case \"$2\" in %a) printf '%s\\n' \"$MARKER_MODE\";; %u) printf '0\\n';; %s) printf '0\\n';; *) exit 2;; esac; "
             "else case \"$2\" in %a) printf '400\\n';; %u) printf '10001\\n';; %s) printf '32\\n';; *) exit 2;; esac; fi\n",
         )
         self.write_executable(
             fake_bin / "phase",
             "#!/bin/sh\npath=\nwhile test $# -gt 0; do if test \"$1\" = --path; then path=$2; shift 2; else shift; fi; done\n"
-            "case \"$path\" in /agents/hermes-titus/teamsmeetings) cat \"$PHASE_FIXTURE\";; /agents/hermes-titus/runtime) cat \"$PHASE_CORE_FIXTURE\";; /agents/hermes-email-intake/titus) cat \"$PHASE_EMAIL_FIXTURE\";; *) exit 4;; esac\n",
+            "case \"$path\" in /agents/hermes-titus/teamsmeetings) cat \"$PHASE_FIXTURE\";; /agents/hermes-titus/runtime) cat \"$PHASE_CORE_FIXTURE\";; /agents/hermes-email-intake/titus) cat \"$PHASE_EMAIL_FIXTURE\";; /agents/hermes-titus/meetingbriefs) cat \"$PHASE_MEETING_FIXTURE\";; *) exit 4;; esac\n",
         )
         self.write_executable(
             fake_bin / "install",
@@ -78,9 +97,14 @@ class RuntimeProjectionTests(unittest.TestCase):
                 "PHASE_FIXTURE": str(fixture),
                 "PHASE_CORE_FIXTURE": str(core),
                 "PHASE_EMAIL_FIXTURE": str(email),
+                "PHASE_MEETING_FIXTURE": str(meeting),
                 "MEETING_PROCESSOR_RUNTIME_ROOT": str(runtime),
                 "MEETING_PROCESSOR_CONTENT_MARKER": str(marker),
+                "MEETING_PROCESSOR_BRIEF_MARKER": str(brief_marker),
+                "MEETING_PROCESSOR_FILING_MARKER": str(filing_marker),
                 "CONTENT_MARKER": str(marker),
+                "BRIEF_MARKER": str(brief_marker),
+                "FILING_MARKER": str(filing_marker),
                 "MARKER_MODE": marker_mode,
             }
         )
@@ -154,6 +178,26 @@ class RuntimeProjectionTests(unittest.TestCase):
 
     def test_rejects_malformed_content_marker(self):
         result, output = self.run_loader(self.source(), content=True, marker_mode="644")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(output.exists())
+
+    def test_brief_and_filing_are_independent_exact_projections(self):
+        result, output = self.run_loader(self.source(), brief=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        projected = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(projected["MEETING_BRIEF_ENABLED"], "true")
+        self.assertNotIn("MEETING_FILING_ENABLED", projected)
+        self.assertEqual(projected["MEETING_ANALYZER_BASE_URL"], "http://hermes-titus-meeting-analyzer:8642")
+        self.assertEqual(projected["MEETING_RECORDING_MAX_BYTES"], "2147483648")
+
+        result, output = self.run_loader(self.source(), brief=True, filing=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        projected = json.loads(output.read_text(encoding="utf-8"))
+        self.assertEqual(projected["MEETING_FILING_ENABLED"], "true")
+        self.assertEqual(projected["MEETING_FILER_BASE_URL"], "http://titus-meeting-filer:8090")
+
+    def test_filing_marker_requires_brief_marker(self):
+        result, output = self.run_loader(self.source(), filing=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(output.exists())
 

@@ -15,12 +15,35 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** Feature 034 — Titus transcript custody
-**Current critical path:** Feature 034 is complete. No next feature is selected;
-issue 159 remains open for separately specified recording-content ingestion and
-an Austin-organized pilot when available.
+**Active Spec Kit feature:** Feature 035 — Titus meeting briefs
+**Current critical path:** Build the reviewed organizer-meeting workflow:
+seven-day encrypted transcript custody, hard no-tool Hermes analysis, fixed
+Gary/Austin draft email, exact approve/hold, deterministic project-note/Kanban
+filing, and stream/discard recording verification. Austin availability is not a
+gate; the completed Gary meeting is the production canary. Channel meetings and
+Graph webhook subscriptions are the next separately gated feature.
 
 ## Current Delivery Checkpoint — 2026-08-01
+
+- **Feature 035 — implemented and locally qualified; publication pending:** The approved
+  workflow turns an organizer-scoped Teams transcript into strict Meeting Brief
+  v1 JSON through a separate no-tool/no-memory Hermes analyzer, encrypts raw VTT
+  for exactly seven days, and automatically emails a deterministic draft to
+  exactly Gary and Austin after outbound SecurityTeam screening. A clean exact
+  `APPROVE <reference>` or `HOLD <reference>` reply from either owner is parsed
+  deterministically by the existing email poller; approval invokes a private
+  least-privilege filer for create-only internal project notes and one Kanban
+  task per action/commitment. Unknown projects route to a dedicated
+  `meeting-triage` board. Recording MP4 is streamed, hashed, correlated, and
+  discarded without media analysis. The feature is brownfield/system and
+  sensitive/production: Ringer is read-only, Sol owns all mutation and final
+  quality, and deployment is disabled-first. Channel bot installation,
+  channel-meeting discovery, and Graph subscription/webhook lifecycle remain a
+  separate follow-on.
+  Unit, race, vet, build, runtime projection, security-contract, and filer
+  qualification gates pass. The implementation remains undeployed; production
+  preparation and both activation markers are intentionally deferred until a
+  later operator-authorized deployment turn.
 
 - **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
   deployed the non-persisting block-mode dependency. OvernightDesk PR 161
