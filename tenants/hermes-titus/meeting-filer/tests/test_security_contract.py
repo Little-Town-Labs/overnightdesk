@@ -33,6 +33,18 @@ class SecurityContractTests(unittest.TestCase):
         self.assertNotIn('find "$base/source" -mindepth 1 -delete', deploy)
         self.assertNotIn('cp -a /tmp/titus-meeting-filer-deploy/. "$base/source/"', deploy)
 
+    def test_deployment_requires_local_hermes_base_without_registry_pull(self):
+        deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
+        dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+
+        self.assertIn("ARG HERMES_BASE_IMAGE=overnightdesk/hermes-agent:0.19.0-coder", dockerfile)
+        self.assertIn("FROM ${HERMES_BASE_IMAGE}", dockerfile)
+        self.assertLess(dockerfile.index("ARG HERMES_BASE_IMAGE="), dockerfile.index("FROM --platform="))
+        self.assertIn("base_image=overnightdesk/hermes-agent:0.19.0-coder", deploy)
+        self.assertIn('docker image inspect "$base_image" >/dev/null', deploy)
+        self.assertIn('--build-arg HERMES_BASE_IMAGE="$base_image"', deploy)
+        self.assertNotIn('docker build --pull -t "$release_image"', deploy)
+
     def test_rollback_restores_release_and_image_without_touching_state(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
         self.assertIn('previous_target=$(readlink -f "$previous_link")', deploy)

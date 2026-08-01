@@ -7,6 +7,7 @@ ssh_key=${AEGIS_SSH_KEY:-/home/frosted639/.ssh/ssh-key-2026-03-15}
 remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 image=${TITUS_MEETING_FILER_IMAGE:-overnightdesk/titus-meeting-filer:0.1.0}
+base_image=overnightdesk/hermes-agent:0.19.0-coder
 marker=/etc/overnightdesk/titus-meeting-filing.enabled
 
 usage() { printf 'usage: %s {prepare|install-disabled|initialize|enable|verify|verify-disabled|disable|rollback|status}\n' "$0" >&2; exit 2; }
@@ -26,10 +27,11 @@ prepare() {
   release_id=${release_dir##*/}
   [[ $release_dir == "/opt/titus-meeting-filer/releases/$release_id" && $release_id =~ ^[0-9a-f]{64}$ ]]
 
-  "${ssh_cmd[@]}" sudo bash -s -- "$image" "$release_dir" <<'REMOTE'
+  "${ssh_cmd[@]}" sudo bash -s -- "$image" "$base_image" "$release_dir" <<'REMOTE'
 set -euo pipefail
 image=$1
-release_dir=$2
+base_image=$2
+release_dir=$3
 base=/opt/titus-meeting-filer
 releases=$base/releases
 source_link=$base/source
@@ -54,7 +56,8 @@ elif test -e "$source_link"; then
   exit 1
 fi
 
-docker build --pull -t "$release_image" "$release_dir"
+docker image inspect "$base_image" >/dev/null
+docker build --pull=false --build-arg HERMES_BASE_IMAGE="$base_image" -t "$release_image" "$release_dir"
 docker tag "$release_image" "$image"
 for script in load-phase-config.sh prepare-volumes.sh initialize-project-paths.sh run-container.sh stop-container.sh; do
   install -o root -g root -m 0755 "$release_dir/runtime/$script" "$base/bin/$script"
