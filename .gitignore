@@ -48,6 +48,9 @@ drizzle/meta/
 __pycache__/
 *.py[cod]
 /tenants/hermes-titus/email-poller/titus-email-poller
+/tenants/hermes-titus/meeting-processor/titus-meeting-processor
+*.test
+*.out
 
 # sibling/nested standards repository; commit inside its own repo
 overnightdesk-platform-standard/

@@ -94,6 +94,11 @@ rollback.
 TTS Teams preparation:
 
 - `/agents/hermes-titus/teams`: `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, `TEAMS_TENANT_ID`, `TEAMS_ALLOWED_USERS`, `TEAMS_ALLOWED_USER_EMAILS`, `TEAMS_ALLOW_ALL_USERS`, `TEAMS_PORT`, `TEAMS_HOME_CHANNEL`, `TEAMS_HOME_CHANNEL_NAME`, `TEAMS_DELIVERY_MODE`, `TEAMS_TEAM_ID`, `TEAMS_CHANNEL_ID`
+- `/agents/hermes-titus/teamsmeetings`: the separate `MSGRAPH_*` meeting
+  application identity, strict two-organizer allowlist, disabled webhook
+  settings, and one-time qualification input. The root meeting-processor loader
+  projects only tenant/client credentials, the organizer allowlist, and fixed
+  polling/lookback bounds; it never projects webhook or join values.
 
 Matrix channel:
 
@@ -250,7 +255,17 @@ The initial container includes Hermes's pinned Teams dependencies but leaves the
 6. Add the reviewed nginx TLS route to the container's internal port 3978.
 7. Restart only Titus and verify `/health`, one authorized message, and one unauthorized denial.
 
-Meeting transcript/recording ingestion is not part of the initial activation. It requires separate Graph permissions, a `/msgraph/webhook` route, a client-state secret, data-retention approval, and automated subscription renewal.
+Meeting artifact discovery is a separate, independently disabled service under
+`meeting-processor/`. It uses organizer-scoped Microsoft Graph delta queries
+for transcript and recording metadata only. It has no webhook, subscription,
+public route, content client, agent tool, or automatic Hermes run. Its private
+state retains protected provider IDs and opaque cursors for idempotency; its
+safe derived handoff contains no provider IDs or URLs and is not mounted into
+Titus in this release. See
+`runbooks/meeting-artifact-discovery.md` for qualification, canaries, failure
+response, and rollback. Content and Hermes consumption remain separate future
+decisions requiring retention, destination, deletion, access, and security
+approval.
 
 ## Operator commands
 

@@ -2,7 +2,7 @@
 
 **Source:** PRD v2.1 (2026-03-21)
 **Current Constitution:** v3.0.0; roadmap lineage began at v1.0.0 (2026-03-21)
-**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-07-29
+**Generated:** 2026-03-21; current-delivery checkpoint refreshed 2026-08-01
 
 ---
 
@@ -15,11 +15,34 @@ catalog below is retained for lineage; current delivery status is governed by
 the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
-**Active Spec Kit feature:** Feature 032 — Titus Linear read-only delivery
-**Current critical path:** complete the approved workflow statuses and
-target-verification policy, add representative project/cycle/GitHub and
-hostile-content fixtures, then finish the remaining workspace acceptance
-canaries.
+**Active Spec Kit feature:** Feature 033 — Titus meeting artifact discovery
+**Current critical path:** publish the qualified source change, synchronize the
+platform standard in its own repository, then perform the authorized disabled
+production install, activation, metadata-only canary, and restart-idempotency
+proof before beginning the separately gated content-custody slice.
+
+## Current Delivery Checkpoint — 2026-08-01
+
+- **Feature 033 — source implemented and locally qualified; production remains
+  inactive:** The completed Gary pilot proved one transcript and one recording,
+  while Austin correctly returned zero artifacts because he did not conduct the
+  meeting. Proper organizer-wide delta checks returned HTTP 200 and a final
+  cursor for all four organizer/type streams, so both application access
+  policies are working. The isolated Go worker now provides exact Phase
+  projection, four-stream atomic delta state, metadata-only deduplication, safe
+  health/handoff output, bounded retry, no public ingress, and independent
+  disable/rollback. Sol review remediation added provider-returned continuation
+  compatibility, complete state semantics, retry-exhaustion telemetry,
+  deletion-aware source releases, and a cycle-wide retained-state memory
+  envelope under the 256 MiB runtime limit. T046 and T047 then made release
+  trees root-owned and nonwritable, added content/type/ownership revalidation
+  before every build or reuse, and proved each invariant behaviorally against
+  temporary release trees and an isolated unsupported-type mutant. Go
+  unit/race/vet/build checks, 12 Python security/projection contracts, shell
+  checks, and a Docker-format ARM64 Podman image/container inspection pass. No
+  Graph content endpoint, Hermes tool, webhook,
+  subscription, production deployment, service activation, commit, push, or
+  pull request has been performed.
 
 ## Current Delivery Checkpoint — 2026-07-29
 
