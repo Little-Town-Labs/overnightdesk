@@ -39,3 +39,19 @@ Print only service state, container hardening, cursor presence, artifact counts,
 content lifecycle counts, retry counts, safe error codes, digests-present
 booleans, and output-present booleans. Never print transcript or Titus output,
 provider IDs/URLs, organizer IDs, credentials, or request bodies.
+
+## Production result — 2026-08-01
+
+- SecurityTeam dependency: PR 3, merge `4759c3f`, block-mode zero-queue canary
+- Meeting worker: PR 161, merge `f7a4f3d`
+- Disabled-first migration: state v2, retained totals `1/1/0/0`, one pending
+  transcript, content credentials absent
+- Gary transcript canary: processed `1`, blocked `0`, retryable `0`, retries `0`
+- Custody verification: 22 value-safe checks passed; no retained raw/screened
+  transcript payload and no secret-bearing container environment
+- Restart idempotency: zero content lifecycle events, one processed retained
+- Platform standard: PRs 74–76, canonical Aegis checkout `5112f11`
+- Consumers: both OvernightDesk Ops listeners HTTP 200; meeting worker, Hermes
+  Titus, and SecurityTeam healthy with scoped restart continuity
+- Issue evidence: `#issuecomment-5152570035`; issue remains open only because
+  recording ingestion and an Austin-organized pilot are separate remaining scope

@@ -85,3 +85,24 @@ links to any ADR, runbook, roadmap, or Spec Kit artifact that remains durable.
   verification, case-insensitive protected-output matching, SecurityTeam body
   and response validation, and activation rollback. No Critical or Required
   code finding remains.
+
+## Publication and Production Evidence
+
+- OvernightDesk PR 161 passed both Vercel checks and merged at `f7a4f3d`.
+- The disabled-first Aegis stage installed the immutable release, migrated state
+  to v2, retained metadata totals `1/1/0/0`, and projected no content
+  credentials.
+- Root-marker activation processed the existing Gary transcript once with one
+  processed, zero blocked, zero retryable, and zero retries.
+- Twenty-two value-safe checks verified digest integrity, output bounds and
+  required sections, protected-value exclusion, raw/screened non-retention,
+  root-only custody, structured logs, and secret-free container environment.
+- A scoped worker restart emitted zero content lifecycle events and retained the
+  processed artifact. Hermes Titus and SecurityTeam remained healthy without
+  restart.
+- Platform-standard PRs 74, 75, and 76 merged through `5112f11`; the canonical
+  Aegis checkout is clean at that revision, mounted WHAT/HOW parity passed, and
+  both OvernightDesk Ops listeners return HTTP 200.
+- Issue 159 received the safe closeout update. It remains open for recording
+  ingestion and an Austin-organized pilot; neither is a prerequisite for the
+  completed transcript-to-Titus path.

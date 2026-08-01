@@ -16,21 +16,24 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** Feature 034 — Titus transcript custody
-**Current critical path:** publish the qualified meeting-worker change, deploy
-it with transcript content disabled, activate the Gary transcript canary,
-prove restart idempotency, and synchronize the platform standard.
+**Current critical path:** Feature 034 is complete. No next feature is selected;
+issue 159 remains open for separately specified recording-content ingestion and
+an Austin-organized pilot when available.
 
 ## Current Delivery Checkpoint — 2026-08-01
 
-- **Feature 034 — implementation qualified; publication and canary pending:**
-  The SecurityTeam block-on-review dependency is merged, deployed, and
-  zero-enqueue-canary verified. The meeting worker now has bounded in-memory
-  transcript VTT retrieval, fixed-origin SecurityTeam screening, stateless
-  Titus analysis, version-2 state migration, protected-output rejection,
-  private derived handoff, aggregate health, and root-marker activation with
-  content-only rollback. Go unit/race/vet/build, 14 Python contracts, shell and
-  leak checks, plus pinned ARM64 hardened-container qualification pass. Raw and
-  screened transcript input receives zero durable retention. Recording
+- **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
+  deployed the non-persisting block-mode dependency. OvernightDesk PR 161
+  merged at `f7a4f3d`; its disabled-first Aegis deployment migrated retained
+  state to v2 with totals `1/1/0/0`, then the root marker activated the existing
+  Gary transcript. Safe lifecycle reports one processed, zero blocked, zero
+  retryable, and zero retries. Twenty-two custody checks proved matching
+  digests, bounded required-section Titus Markdown, protected-value exclusion,
+  raw/screened non-retention, root-only files, allowlisted structured logs, and
+  a secret-free container environment. A scoped restart emitted zero content
+  lifecycle events and retained the processed artifact. Platform-standard PRs
+  74–76 are synchronized on Aegis at `5112f11`; both Ops listeners are healthy.
+  Raw and screened transcript input receives zero durable retention. Recording
   content, channel meetings, public ingress, subscriptions, general
   project-knowledge writes, and an Austin meeting remain outside this slice.
 
