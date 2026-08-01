@@ -15,6 +15,7 @@ exec docker run --rm \
   --user 10004:10004 \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev,size=64m \
+  --tmpfs /tmp/hermes:rw,noexec,nosuid,nodev,size=64m,uid=10004,gid=10004,mode=0700 \
   --network overnightdesk_overnightdesk \
   --cap-drop ALL \
   --security-opt no-new-privileges \

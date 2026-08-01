@@ -80,6 +80,10 @@ class SecurityContractTests(unittest.TestCase):
 
         self.assertIn("image=overnightdesk/hermes-agent:0.19.0-coder", runner)
         self.assertNotIn("TITUS_MEETING_ANALYZER_IMAGE", runner)
+        self.assertIn(
+            "--tmpfs /tmp/hermes:rw,noexec,nosuid,nodev,size=64m,uid=10004,gid=10004,mode=0700",
+            runner,
+        )
         self.assertIn("analyzer_image=overnightdesk/hermes-agent:0.19.0-coder", deploy)
         self.assertIn('docker image inspect "$analyzer_image" >/dev/null', deploy)
         self.assertIn(".Config.Image", deploy)
