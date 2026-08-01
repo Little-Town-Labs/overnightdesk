@@ -70,7 +70,7 @@ or malformed inputs create nothing; no component can exceed its authority.
 
 ## Phase 7 - Publication, production, and durable closeout
 
-- [ ] T039 Commit, push, open the OvernightDesk PR with Spec Kit/Ringer/security/rollback context, pass checks, and merge.
+- [x] T039 Commit, push, open the OvernightDesk PR with Spec Kit/Ringer/security/rollback context, pass checks, and merge.
 - [ ] T040 Deploy analyzer, filer, worker, and poller disabled; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated service continuity.
 - [ ] T041 Enable brief processing, run the Gary canary, prove one draft email, seven-day encrypted custody contract, no-tool analysis, recording stream/discard, and restart idempotency.
 - [ ] T042 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.

@@ -25,7 +25,7 @@ Graph webhook subscriptions are the next separately gated feature.
 
 ## Current Delivery Checkpoint — 2026-08-01
 
-- **Feature 035 — implemented and locally qualified; publication pending:** The approved
+- **Feature 035 — source complete; production deployment pending:** The approved
   workflow turns an organizer-scoped Teams transcript into strict Meeting Brief
   v1 JSON through a separate no-tool/no-memory Hermes analyzer, encrypts raw VTT
   for exactly seven days, and automatically emails a deterministic draft to
