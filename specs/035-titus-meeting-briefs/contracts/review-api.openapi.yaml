@@ -1,0 +1,101 @@
+openapi: 3.1.0
+info:
+  title: Titus Meeting Review API
+  version: 1.0.0
+  description: Private deterministic interface from the clean email poller to the meeting worker.
+servers:
+  - url: http://titus-meeting-processor:8080
+paths:
+  /v1/review-decisions:
+    post:
+      operationId: createReviewDecision
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{64}$'
+          description: Lowercase SHA-256 of the exact UTF-8 request body bytes.
+        - in: header
+          name: X-Review-Claim-Signature
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-f0-9]{64}$'
+          description: HMAC-SHA-256 over the versioned exact request body, verified before parsing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewDecisionInput'
+      responses:
+        '200':
+          description: Existing identical decision returned idempotently.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewDecisionResult' }
+        '201':
+          description: Decision accepted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReviewDecisionResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
+        '500': { $ref: '#/components/responses/Internal' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    ReviewDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, reference, decision, actorFingerprint, messageDigest, receivedAt]
+      properties:
+        schemaVersion: { const: meeting-review/v1 }
+        reference: { type: string, pattern: '^MB-[A-Z2-7]{12}$' }
+        decision: { enum: [approve, hold] }
+        actorFingerprint:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: Versioned HMAC fingerprint of the exact normalized allowed sender; the server derives the actor after verification.
+        messageDigest:
+          type: string
+          pattern: '^[a-f0-9]{64}$'
+          description: SHA-256 of the versioned provider message ID and normalized exact command derivation.
+        receivedAt: { type: string, format: date-time }
+    ReviewDecisionResult:
+      type: object
+      additionalProperties: false
+      required: [schemaVersion, reference, status]
+      properties:
+        schemaVersion: { const: meeting-review-result/v1 }
+        reference: { type: string, pattern: '^MB-[A-Z2-7]{12}$' }
+        status: { enum: [approved, held] }
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code: { type: string, pattern: '^[A-Z_]{3,40}$' }
+            message: { type: string, maxLength: 160 }
+  responses:
+    BadRequest: { description: Malformed input, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unauthorized: { description: Invalid bearer, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Unknown reference, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: A different terminal decision already exists or an idempotency collision is detected, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Unprocessable: { description: Valid shape but invalid lifecycle or skew, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Internal: { description: Safe internal failure, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

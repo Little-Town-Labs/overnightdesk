@@ -8,9 +8,14 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"sync"
 	"time"
 
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/analyzer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/config"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/custody"
+	meetingemail "github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/email"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/filer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/securityteam"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
@@ -35,6 +40,22 @@ type TitusAnalyzer interface {
 	Analyze(context.Context, string, string, []string) (string, error)
 }
 
+type BriefAnalyzer interface {
+	Analyze(context.Context, string, string, string, []string) (analyzer.Validated, error)
+}
+
+type MeetingMailer interface {
+	Send(context.Context, string, string, string) (meetingemail.Delivery, error)
+}
+
+type RecordingVerifier interface {
+	VerifyRecordingContent(context.Context, string, string, string, int64) (graph.RecordingVerification, error)
+}
+
+type MeetingFiler interface {
+	File(context.Context, filer.Request) (filer.Result, error)
+}
+
 type Processor struct {
 	Config      config.Config
 	Store       *state.Store
@@ -42,10 +63,18 @@ type Processor struct {
 	Content     TranscriptContentFetcher
 	Scanner     SecurityScanner
 	Analyzer    TitusAnalyzer
+	Briefs      *state.BriefStore
+	Custody     custody.Manager
+	BriefAgent  BriefAnalyzer
+	Mailer      MeetingMailer
+	Recorder    RecordingVerifier
+	Filer       MeetingFiler
+	Routes      []analyzer.ProjectRoute
 	HealthPath  string
 	HandoffPath string
 	Events      io.Writer
 	Now         func() time.Time
+	LifecycleMu *sync.Mutex
 }
 
 type CycleResult struct {
@@ -136,7 +165,12 @@ func (processor Processor) RunOnce(ctx context.Context) (CycleResult, error) {
 	if err := processor.Store.Commit(document); err != nil {
 		return result, processor.failCycle(cycleID, state.ErrorCode(err), nil, processor.Store.Document())
 	}
-	if processor.Config.ContentEnabled {
+	if processor.Config.MeetingBriefEnabled {
+		if err := processor.processMeetingBriefs(ctx, &document, now, cycleID); err != nil {
+			return result, processor.failCycle(cycleID, err.Error(), nil, processor.Store.Document())
+		}
+		document = processor.Store.Document()
+	} else if processor.Config.ContentEnabled {
 		if processor.Content == nil || processor.Scanner == nil || processor.Analyzer == nil {
 			return result, processor.failCycle(cycleID, "content_config_invalid", nil, document)
 		}
@@ -152,7 +186,11 @@ func (processor Processor) RunOnce(ctx context.Context) (CycleResult, error) {
 	if err := WriteHandoff(processor.HandoffPath, document, now); err != nil {
 		return result, processor.failCycle(cycleID, "handoff_unavailable", nil, document)
 	}
-	if err := WriteHealth(processor.HealthPath, Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Streams: healthStreams, Content: contentHealth(document, processor.Config.ContentEnabled)}); err != nil {
+	briefHealth := state.BriefDocument{Version: state.BriefStateVersion, Records: map[string]state.BriefRecord{}}
+	if processor.Briefs != nil {
+		briefHealth = processor.Briefs.Document()
+	}
+	if err := WriteHealth(processor.HealthPath, Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Streams: healthStreams, Content: contentHealth(document, processor.Config.ContentEnabled), Meeting: meetingHealth(briefHealth, processor.Config.MeetingBriefEnabled)}); err != nil {
 		return result, fmt.Errorf("%w: health_unavailable", ErrCycleFailed)
 	}
 	processor.event(Event{Event: "cycle_complete", CycleID: cycleID, State: "healthy", NewCount: result.NewCount, KnownCount: result.KnownCount, TotalCount: len(document.Artifacts)})
@@ -257,7 +295,11 @@ func (processor Processor) failCycle(cycleID, code string, failed *StreamHealth,
 	if now == nil {
 		now = time.Now
 	}
-	_ = WriteHealth(processor.HealthPath, Health{State: "degraded", Timestamp: now().UTC().Format(time.RFC3339Nano), TokenHealth: tokenHealthFor(code), Streams: processor.degradedStreams(document, code, failed), Content: contentHealth(document, processor.Config.ContentEnabled)})
+	briefHealth := state.BriefDocument{Version: state.BriefStateVersion, Records: map[string]state.BriefRecord{}}
+	if processor.Briefs != nil {
+		briefHealth = processor.Briefs.Document()
+	}
+	_ = WriteHealth(processor.HealthPath, Health{State: "degraded", Timestamp: now().UTC().Format(time.RFC3339Nano), TokenHealth: tokenHealthFor(code), Streams: processor.degradedStreams(document, code, failed), Content: contentHealth(document, processor.Config.ContentEnabled), Meeting: meetingHealth(briefHealth, processor.Config.MeetingBriefEnabled)})
 	retries := 0
 	if failed != nil {
 		retries = failed.RetryCount

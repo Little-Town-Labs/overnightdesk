@@ -20,16 +20,18 @@ class SecurityContractTests(unittest.TestCase):
                     paths.append(path)
         return "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
-    def test_only_exact_transcript_content_route_and_no_recording_content_surface(self):
+    def test_only_exact_transcript_and_recording_content_routes(self):
         content_client = (ROOT / "internal" / "graph" / "content.go").read_text(encoding="utf-8")
+        recording_client = (ROOT / "internal" / "graph" / "recording.go").read_text(encoding="utf-8")
         self.assertIn('"/transcripts/" + url.PathEscape(transcriptID) + "/content"', content_client)
         self.assertNotIn("recordings/", content_client.lower())
+        self.assertIn('"/recordings/" + url.PathEscape(recordingID) + "/content"', recording_client)
         paths = []
         for directory in ("cmd", "internal", "runtime", "scripts"):
             for path in (ROOT / directory).rglob("*"):
                 if (
                     path.is_file()
-                    and path != ROOT / "internal" / "graph" / "content.go"
+                    and path not in (ROOT / "internal" / "graph" / "content.go", ROOT / "internal" / "graph" / "recording.go")
                     and not path.name.endswith("_test.go")
                     and path.name != "qualify.sh"
                     and "testfixture" not in path.parts
@@ -86,6 +88,48 @@ class SecurityContractTests(unittest.TestCase):
             deploy.index(validate),
             deploy.index('docker build --pull -t "$image" "$release_dir"'),
         )
+
+    def test_feature_035_install_and_rollback_preserve_feature_034_marker(self):
+        deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
+        deactivate_feature = deploy.split("deactivate_feature035() {", 1)[1].split("\n}\n\npromote()", 1)[0]
+        install_disabled = deploy.split("install_disabled() {", 1)[1].split("\n}\n\ninitialize()", 1)[0]
+        install_feature = deploy.split("install_feature035_disabled() {", 1)[1].split("\n}\n\ninitialize()", 1)[0]
+        verify_feature = deploy.split("verify_feature035_disabled() {", 1)[1].split("\n}\n\nenable_content()", 1)[0]
+        restore_brief_disabled = deploy.split("restore_brief_disabled() {", 1)[1].split("\n}\n\nenable_brief()", 1)[0]
+        enable_brief = deploy.split("enable_brief() {", 1)[1].split("\n}\n\nverify_brief()", 1)[0]
+        verify_brief = deploy.split("verify_brief() {", 1)[1].split("\n}\n\nretention_sweep()", 1)[0]
+        disable_brief = deploy.split("disable_brief() {", 1)[1].split("\n}\n\nverify_disabled()", 1)[0]
+        self.assertIn('rm -f -- "$brief_marker" "$filing_marker"', deactivate_feature)
+        self.assertNotIn('rm -f -- "$content_marker"', deactivate_feature)
+        self.assertIn("systemctl disable --now titus-meeting-analyzer.service titus-meeting-filer.service", deactivate_feature)
+        self.assertIn("for unit in titus-meeting-analyzer.service titus-meeting-filer.service", deactivate_feature)
+        self.assertIn('test "$(systemctl is-enabled "$unit" 2>/dev/null || true)" != enabled', deactivate_feature)
+        self.assertIn("inactive|failed|unknown", deactivate_feature)
+        self.assertIn("docker ps --filter name=^/hermes-titus-meeting-analyzer$", deactivate_feature)
+        self.assertIn("--filter name=^/titus-meeting-filer$", deactivate_feature)
+        self.assertIn("test -z", deactivate_feature)
+        self.assertIn('(has("MEETING_BRIEF_ENABLED") | not) and (has("MEETING_FILING_ENABLED") | not)', deactivate_feature)
+        self.assertIn('has("MEETING_REVIEW_ENABLED") | not', deactivate_feature)
+        self.assertIn("systemctl restart hermes-email-intake@titus.service", deactivate_feature)
+        self.assertLess(install_disabled.index('"$root/scripts/qualify.sh"'), install_disabled.index("deactivate_feature035"))
+        self.assertLess(install_disabled.index("deactivate_feature035"), install_disabled.index("promote"))
+        self.assertIn("verify_feature035_disabled", install_disabled)
+        self.assertIn('"$root/../meeting-filer/scripts/deploy-aegis.sh" install-disabled', install_feature)
+        self.assertIn('"$root/../meeting-filer/scripts/deploy-aegis.sh" initialize', install_feature)
+        self.assertIn('test -e "$content_marker"; then verify_content; else verify_content_disabled', verify_feature)
+        self.assertIn("titus-meeting-analyzer.service", verify_feature)
+        self.assertIn("titus-meeting-filer.service", verify_feature)
+        self.assertIn("hermes-titus.service", verify_feature)
+        self.assertIn("hermes-email-intake@titus.service", verify_feature)
+        self.assertIn('has("MEETING_REVIEW_ENABLED") | not', verify_feature)
+        self.assertIn("systemctl restart hermes-email-intake@titus.service", enable_brief)
+        self.assertIn('if ! "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker"', enable_brief)
+        self.assertGreaterEqual(enable_brief.count("restore_brief_disabled || true"), 2)
+        self.assertIn('rm -f -- "$brief_marker" "$filing_marker"', restore_brief_disabled)
+        self.assertIn("systemctl restart hermes-email-intake@titus.service", restore_brief_disabled)
+        self.assertIn('.MEETING_REVIEW_ENABLED == "true"', verify_brief)
+        self.assertIn("systemctl restart hermes-email-intake@titus.service", disable_brief)
+        self.assertIn('test -e "$content_marker"; then verify_content; else verify_content_disabled', disable_brief)
 
 
 if __name__ == "__main__":

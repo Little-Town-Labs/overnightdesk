@@ -27,37 +27,46 @@ var routes = map[string]routeDefinition{
 }
 
 type Config struct {
-	AgentMailAPIKey string
-	InboxAddress    string
-	InboxID         string
-	DatabaseURL     string
-	AllowedSenders  map[string]struct{}
-	RouteID         string
-	HermesAPIKey    string
-	HermesBaseURL   string
-	TargetAgent     string
-	Enabled         bool
-	Interval        time.Duration
-	MaxMessages     int
-	MaxCleanClaims  int
-	RunTimeout      time.Duration
+	AgentMailAPIKey            string
+	InboxAddress               string
+	InboxID                    string
+	DatabaseURL                string
+	AllowedSenders             map[string]struct{}
+	RouteID                    string
+	HermesAPIKey               string
+	HermesBaseURL              string
+	TargetAgent                string
+	Enabled                    bool
+	Interval                   time.Duration
+	MaxMessages                int
+	MaxCleanClaims             int
+	RunTimeout                 time.Duration
+	CleanClaimStaleSeconds     int
+	MeetingReviewEnabled       bool
+	MeetingReviewBaseURL       string
+	MeetingReviewBearer        string
+	MeetingReviewSigningSecret string
 }
 
 type rawConfig struct {
-	AgentMailAPIKey string `json:"AGENTMAIL_API_KEY"`
-	InboxAddress    string `json:"AGENTMAIL_EMAIL_ADDRESS"`
-	InboxID         string `json:"AGENTMAIL_INBOX_ID"`
-	DatabaseURL     string `json:"DATABASE_URL"`
-	AllowedSenders  string `json:"EMAIL_ALLOWED_SENDERS"`
-	RouteID         string `json:"EMAIL_ROUTE_ID"`
-	HermesAPIKey    string `json:"HERMES_API_KEY"`
-	HermesBaseURL   string `json:"HERMES_BASE_URL"`
-	TargetAgent     string `json:"HERMES_TARGET_AGENT"`
-	Enabled         string `json:"AGENTMAIL_POLLING_ENABLED"`
-	Interval        string `json:"AGENTMAIL_POLL_INTERVAL_SECONDS"`
-	MaxMessages     string `json:"AGENTMAIL_MAX_MESSAGES_PER_CYCLE"`
-	MaxCleanClaims  string `json:"EMAIL_MAX_CLEAN_CLAIMS_PER_CYCLE"`
-	RunTimeout      string `json:"HERMES_RUN_TIMEOUT_SECONDS"`
+	AgentMailAPIKey            string `json:"AGENTMAIL_API_KEY"`
+	InboxAddress               string `json:"AGENTMAIL_EMAIL_ADDRESS"`
+	InboxID                    string `json:"AGENTMAIL_INBOX_ID"`
+	DatabaseURL                string `json:"DATABASE_URL"`
+	AllowedSenders             string `json:"EMAIL_ALLOWED_SENDERS"`
+	RouteID                    string `json:"EMAIL_ROUTE_ID"`
+	HermesAPIKey               string `json:"HERMES_API_KEY"`
+	HermesBaseURL              string `json:"HERMES_BASE_URL"`
+	TargetAgent                string `json:"HERMES_TARGET_AGENT"`
+	Enabled                    string `json:"AGENTMAIL_POLLING_ENABLED"`
+	Interval                   string `json:"AGENTMAIL_POLL_INTERVAL_SECONDS"`
+	MaxMessages                string `json:"AGENTMAIL_MAX_MESSAGES_PER_CYCLE"`
+	MaxCleanClaims             string `json:"EMAIL_MAX_CLEAN_CLAIMS_PER_CYCLE"`
+	RunTimeout                 string `json:"HERMES_RUN_TIMEOUT_SECONDS"`
+	MeetingReviewEnabled       string `json:"MEETING_REVIEW_ENABLED,omitempty"`
+	MeetingReviewBaseURL       string `json:"MEETING_REVIEW_BASE_URL,omitempty"`
+	MeetingReviewBearer        string `json:"MEETING_REVIEW_BEARER,omitempty"`
+	MeetingReviewSigningSecret string `json:"MEETING_REVIEW_SIGNING_SECRET,omitempty"`
 }
 
 func Load(path string) (Config, error) {
@@ -126,6 +135,23 @@ func (raw rawConfig) validate() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	reviewEnabled := false
+	reviewValues := []string{raw.MeetingReviewBaseURL, raw.MeetingReviewBearer, raw.MeetingReviewSigningSecret}
+	if raw.MeetingReviewEnabled != "" {
+		reviewEnabled, err = parseBool(raw.MeetingReviewEnabled)
+		if err != nil {
+			return Config{}, errors.New("meeting review configuration is invalid")
+		}
+	}
+	if !reviewEnabled {
+		for _, value := range reviewValues {
+			if value != "" {
+				return Config{}, errors.New("disabled meeting review must omit credentials")
+			}
+		}
+	} else if raw.MeetingReviewBaseURL != "http://titus-meeting-processor:8080" || len(raw.MeetingReviewBearer) < 32 || len(raw.MeetingReviewSigningSecret) < 32 || strings.ContainsAny(raw.MeetingReviewBearer+raw.MeetingReviewSigningSecret, "\r\n") {
+		return Config{}, errors.New("meeting review configuration is invalid")
+	}
 	return Config{
 		AgentMailAPIKey: raw.AgentMailAPIKey, InboxAddress: inboxAddress,
 		InboxID: raw.InboxID, DatabaseURL: raw.DatabaseURL,
@@ -134,6 +160,9 @@ func (raw rawConfig) validate() (Config, error) {
 		TargetAgent: raw.TargetAgent, Enabled: enabled,
 		Interval: time.Duration(interval) * time.Second, MaxMessages: maxMessages,
 		MaxCleanClaims: maxClaims, RunTimeout: time.Duration(runTimeout) * time.Second,
+		CleanClaimStaleSeconds: runTimeout + (2 * interval),
+		MeetingReviewEnabled:   reviewEnabled, MeetingReviewBaseURL: raw.MeetingReviewBaseURL,
+		MeetingReviewBearer: raw.MeetingReviewBearer, MeetingReviewSigningSecret: raw.MeetingReviewSigningSecret,
 	}, nil
 }
 

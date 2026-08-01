@@ -1,0 +1,12 @@
+[
+  {"name":"valid","field":"none","value":"","protected":["gary@example.com","austin@example.com"],"valid":true},
+  {"name":"non_nfc","field":"title","value":"Cafe\u0301","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"credential_marker","field":"summary","value":"API_KEY=abcdefgh","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"protected_value","field":"summary","value":"Contact Gary@Example.com","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"graph_origin","field":"summary","value":"Use graph.microsoft.com for this record","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"graph_user_route","field":"summary","value":"Inspect /v1.0/users/example","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"raw_html","field":"summary","value":"<script>unsafe</script>","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"bidi_control","field":"title","value":"safe\u202etxt","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"single_line_control","field":"fact","value":"bad\nline","protected":["gary@example.com","austin@example.com"],"valid":false},
+  {"name":"invalid_vtt_timestamp","field":"actionTimestamp","value":"00:99","protected":["gary@example.com","austin@example.com"],"valid":false}
+]

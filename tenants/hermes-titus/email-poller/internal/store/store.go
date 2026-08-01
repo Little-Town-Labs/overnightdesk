@@ -30,11 +30,13 @@ type CleanEmail struct {
 	ProviderMessageID string
 	ThreadID          string
 	SafeContent       string
+	Sender            string
+	ReceivedAt        time.Time
 }
 
 type Repository interface {
 	LandDirty(context.Context, DirtyEmail) (bool, error)
-	ClaimClean(context.Context, string, string, string, int) ([]CleanEmail, error)
+	ClaimClean(context.Context, string, string, string, int, int) ([]CleanEmail, error)
 	Complete(context.Context, string, string, string, string) (bool, error)
 	Fail(context.Context, string, string, string, string, string) (bool, error)
 }
@@ -110,7 +112,9 @@ WITH candidate AS (
     AND cs.source = 'agentmail'
     AND cs.metadata->>'provider' = 'agentmail'
     AND im.approval_status IN ('approved', 'auto_approved')
-    AND im.agent_zero_status = 'queued'
+    AND (im.agent_zero_status = 'queued'
+      OR (im.agent_zero_status = 'processing'
+        AND im.agent_zero_run_at < NOW() - make_interval(secs => $5::double precision)))
     AND COALESCE(BTRIM(im.safe_content), '') <> ''
     AND COALESCE(cs.metadata->>'provider_message_id', '') <> ''
     AND cs.metadata->>'route_id' = $1
@@ -126,10 +130,14 @@ SET agent_zero_status = 'processing', agent_zero_run_at = NOW(), agent_zero_erro
 FROM candidate c, content_staging cs
 WHERE im.id = c.id AND cs.id = im.staging_id
 RETURNING im.id::text, im.staging_id::text,
-  cs.metadata->>'provider_message_id', COALESCE(cs.metadata->>'thread_id', ''), im.safe_content`
+  cs.metadata->>'provider_message_id', COALESCE(cs.metadata->>'thread_id', ''), im.safe_content,
+  cs.sender, cs.received_at`
 
-func (repository *Postgres) ClaimClean(ctx context.Context, routeID, inboxID, targetAgent string, limit int) ([]CleanEmail, error) {
-	rows, err := repository.pool.Query(ctx, claimCleanSQL, routeID, inboxID, targetAgent, limit)
+func (repository *Postgres) ClaimClean(ctx context.Context, routeID, inboxID, targetAgent string, limit, staleAfterSeconds int) ([]CleanEmail, error) {
+	if staleAfterSeconds < 120 || staleAfterSeconds > 4200 {
+		return nil, errors.New("clean claim recovery bound is invalid")
+	}
+	rows, err := repository.pool.Query(ctx, claimCleanSQL, routeID, inboxID, targetAgent, limit, staleAfterSeconds)
 	if err != nil {
 		return nil, fmt.Errorf("claim clean email: %w", err)
 	}
@@ -137,7 +145,7 @@ func (repository *Postgres) ClaimClean(ctx context.Context, routeID, inboxID, ta
 	emails := make([]CleanEmail, 0, limit)
 	for rows.Next() {
 		var email CleanEmail
-		if err := rows.Scan(&email.ID, &email.StagingID, &email.ProviderMessageID, &email.ThreadID, &email.SafeContent); err != nil {
+		if err := rows.Scan(&email.ID, &email.StagingID, &email.ProviderMessageID, &email.ThreadID, &email.SafeContent, &email.Sender, &email.ReceivedAt); err != nil {
 			return nil, fmt.Errorf("scan clean email: %w", err)
 		}
 		emails = append(emails, email)

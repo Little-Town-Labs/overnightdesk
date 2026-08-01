@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"overnightdesk/titus-email-poller/internal/approval"
 	"overnightdesk/titus-email-poller/internal/config"
 	"overnightdesk/titus-email-poller/internal/state"
 	"overnightdesk/titus-email-poller/internal/store"
@@ -78,6 +80,13 @@ func workerCommand(command string, arguments []string) error {
 		}
 	}
 	poller := worker.New(configuration, stateStore, repository, agentmail, hermes, *healthPath)
+	if configuration.MeetingReviewEnabled {
+		review, err := approval.NewClient(configuration.MeetingReviewBaseURL, configuration.MeetingReviewBearer, configuration.MeetingReviewSigningSecret, &http.Client{Timeout: 15 * time.Second})
+		if err != nil {
+			return fmt.Errorf("configure meeting review: %w", err)
+		}
+		poller.SetReviewClient(review)
+	}
 	if command == "initialize" {
 		if configuration.Enabled {
 			return fmt.Errorf("initialization requires polling disabled")

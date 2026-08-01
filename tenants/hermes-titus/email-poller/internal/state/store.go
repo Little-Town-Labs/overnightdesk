@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const currentVersion = 2
+const currentVersion = 3
 
 type MessageRecord struct {
 	MessageID      string `json:"message_id"`
@@ -29,6 +29,13 @@ type DeliveryRecord struct {
 	RunID             string `json:"run_id"`
 	State             string `json:"state"`
 	ApprovalNotified  bool   `json:"approval_notified,omitempty"`
+	Kind              string `json:"kind,omitempty"`
+	ReviewReference   string `json:"review_reference,omitempty"`
+	ReviewDecision    string `json:"review_decision,omitempty"`
+	ActorFingerprint  string `json:"actor_fingerprint,omitempty"`
+	MessageDigest     string `json:"message_digest,omitempty"`
+	ReceivedAt        string `json:"received_at,omitempty"`
+	Acknowledgement   string `json:"acknowledgement,omitempty"`
 	CreatedAt         string `json:"created_at"`
 	UpdatedAt         string `json:"updated_at"`
 }
@@ -61,7 +68,7 @@ func Open(path string) (*Store, error) {
 	if err := json.Unmarshal(raw, &store.doc); err != nil {
 		return nil, fmt.Errorf("decode state: %w", err)
 	}
-	if store.doc.Version != 1 && store.doc.Version != currentVersion {
+	if store.doc.Version != 1 && store.doc.Version != 2 && store.doc.Version != currentVersion {
 		return nil, errors.New("unsupported state document version")
 	}
 	if store.doc.Messages == nil {
@@ -73,13 +80,25 @@ func Open(path string) (*Store, error) {
 	if store.doc.Metadata == nil {
 		store.doc.Metadata = make(map[string]string)
 	}
-	if store.doc.Version == 1 {
+	if store.doc.Version < currentVersion {
 		store.doc.Version = currentVersion
 		if err := store.persistLocked(); err != nil {
 			return nil, fmt.Errorf("migrate state: %w", err)
 		}
 	}
 	return store, nil
+}
+
+func (store *Store) SetReviewResult(cleanID, status, acknowledgement string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	record, ok := store.doc.Deliveries[cleanID]
+	if !ok || record.Kind != "meeting_review" || (status != "review_accepted" && status != "review_conflict") || acknowledgement == "" {
+		return errors.New("review delivery invalid")
+	}
+	record.State, record.Acknowledgement, record.UpdatedAt = status, acknowledgement, timestamp()
+	store.doc.Deliveries[cleanID] = record
+	return store.persistLocked()
 }
 
 func newDocument() document {
@@ -181,6 +200,13 @@ func (store *Store) Deliveries() []DeliveryRecord {
 	}
 	sort.Slice(records, func(i, j int) bool { return records[i].CreatedAt < records[j].CreatedAt })
 	return records
+}
+
+func (store *Store) Delivery(cleanID string) (DeliveryRecord, bool) {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	record, ok := store.doc.Deliveries[cleanID]
+	return record, ok
 }
 
 func (store *Store) SetMetadata(key, value string) error {

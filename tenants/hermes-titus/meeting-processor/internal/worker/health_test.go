@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/custody"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/testfixture"
 )
 
@@ -32,6 +34,31 @@ func TestWriteEventUsesAllowlistedFields(t *testing.T) {
 	}
 	if err := WriteEvent(&output, Event{Event: "unknown", CycleID: "cycle-2"}); err == nil {
 		t.Fatal("expected unknown event rejection")
+	}
+}
+
+func TestMeetingHealthExposesAndFailsClosedForCustodyBlockers(t *testing.T) {
+	document := state.BriefDocument{Version: state.BriefStateVersion, Records: map[string]state.BriefRecord{
+		"overdue": {Custody: &custody.Record{Status: "delete_retryable", LastErrorCode: "custody_delete_failed"}},
+		"missing": {Custody: &custody.Record{Status: "blocked", LastErrorCode: "custody_key_missing"}},
+	}}
+	meeting := meetingHealth(document, true)
+	if meeting.CustodyRetained != 0 || meeting.CustodyBlocked != 2 || meeting.CustodyOverdue != 1 || meeting.CustodyMissingKey != 1 {
+		t.Fatalf("custody aggregates = %#v", meeting)
+	}
+	now := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "health.json")
+	health := Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Meeting: meeting}
+	if err := WriteHealth(path, health); err == nil {
+		t.Fatal("healthy state accepted overdue or missing-key custody")
+	}
+	health.State = "degraded"
+	if err := WriteHealth(path, health); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil || !strings.Contains(string(raw), `"custody_overdue":1`) || !strings.Contains(string(raw), `"custody_missing_key":1`) {
+		t.Fatalf("missing content-free custody aggregates: %s err=%v", raw, err)
 	}
 }
 

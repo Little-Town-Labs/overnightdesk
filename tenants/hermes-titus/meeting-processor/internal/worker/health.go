@@ -13,20 +13,21 @@ import (
 )
 
 type Event struct {
-	Event           string `json:"event"`
-	CycleID         string `json:"cycle_id"`
-	OrganizerSlot   string `json:"organizer_slot,omitempty"`
-	ArtifactType    string `json:"artifact_type,omitempty"`
-	State           string `json:"state,omitempty"`
-	SafeErrorCode   string `json:"safe_error_code,omitempty"`
-	HTTPStatusClass string `json:"http_status_class,omitempty"`
-	PageCount       int    `json:"page_count,omitempty"`
-	NewCount        int    `json:"new_count,omitempty"`
-	KnownCount      int    `json:"known_count,omitempty"`
-	TotalCount      int    `json:"total_count,omitempty"`
-	RetryCount      int    `json:"retry_count,omitempty"`
-	DurationMS      int64  `json:"duration_ms,omitempty"`
-	CursorPresent   bool   `json:"cursor_present,omitempty"`
+	Event                string `json:"event"`
+	CycleID              string `json:"cycle_id"`
+	OrganizerSlot        string `json:"organizer_slot,omitempty"`
+	ArtifactType         string `json:"artifact_type,omitempty"`
+	State                string `json:"state,omitempty"`
+	SafeErrorCode        string `json:"safe_error_code,omitempty"`
+	HTTPStatusClass      string `json:"http_status_class,omitempty"`
+	PageCount            int    `json:"page_count,omitempty"`
+	NewCount             int    `json:"new_count,omitempty"`
+	KnownCount           int    `json:"known_count,omitempty"`
+	TotalCount           int    `json:"total_count,omitempty"`
+	RetryCount           int    `json:"retry_count,omitempty"`
+	DurationMS           int64  `json:"duration_ms,omitempty"`
+	CursorPresent        bool   `json:"cursor_present,omitempty"`
+	CorrelationReference string `json:"correlation_reference,omitempty"`
 }
 
 type StreamHealth struct {
@@ -50,6 +51,22 @@ type Health struct {
 	TokenHealth    string         `json:"token_health"`
 	Streams        []StreamHealth `json:"streams"`
 	Content        ContentHealth  `json:"content"`
+	Meeting        MeetingHealth  `json:"meeting"`
+}
+
+type MeetingHealth struct {
+	Enabled            bool `json:"enabled"`
+	CustodyRetained    int  `json:"custody_retained"`
+	CustodyDeleted     int  `json:"custody_deleted"`
+	CustodyBlocked     int  `json:"custody_blocked"`
+	CustodyOverdue     int  `json:"custody_overdue"`
+	CustodyMissingKey  int  `json:"custody_missing_key"`
+	PendingReview      int  `json:"pending_review"`
+	Approved           int  `json:"approved"`
+	Held               int  `json:"held"`
+	Filed              int  `json:"filed"`
+	Blocked            int  `json:"blocked"`
+	RecordingsVerified int  `json:"recordings_verified"`
 }
 
 type ContentHealth struct {
@@ -66,6 +83,8 @@ var allowedEvents = map[string]bool{
 	"cycle_start": true, "cycle_complete": true, "cycle_failed": true,
 	"stream_start": true, "stream_complete": true, "stream_failed": true, "retry": true,
 	"content_processed": true, "content_blocked": true, "content_retryable_error": true,
+	"meeting_brief_created": true, "meeting_email_sent": true,
+	"meeting_recording_verified": true, "meeting_filed": true,
 }
 
 func contentHealth(document state.Document, enabled bool) ContentHealth {
@@ -88,8 +107,49 @@ func contentHealth(document state.Document, enabled bool) ContentHealth {
 	return health
 }
 
+func meetingHealth(document state.BriefDocument, enabled bool) MeetingHealth {
+	health := MeetingHealth{Enabled: enabled}
+	if !enabled {
+		return health
+	}
+	for _, record := range document.Records {
+		if record.Custody != nil {
+			switch record.Custody.Status {
+			case "retained":
+				health.CustodyRetained++
+			case "deleted":
+				health.CustodyDeleted++
+			case "blocked", "delete_retryable":
+				health.CustodyBlocked++
+			}
+			if record.Custody.Status == "delete_retryable" || record.Custody.LastErrorCode == "custody_delete_failed" {
+				health.CustodyOverdue++
+			}
+			if record.Custody.LastErrorCode == "custody_key_missing" {
+				health.CustodyMissingKey++
+			}
+		}
+		switch record.ReviewStatus {
+		case "pending_review", "email_pending":
+			health.PendingReview++
+		case "approved", "filing_retryable":
+			health.Approved++
+		case "held":
+			health.Held++
+		case "filed":
+			health.Filed++
+		case "blocked":
+			health.Blocked++
+		}
+		if record.Recording != nil && record.Recording.Status == "verified" {
+			health.RecordingsVerified++
+		}
+	}
+	return health
+}
+
 func WriteEvent(output io.Writer, event Event) error {
-	if !allowedEvents[event.Event] || !cyclePattern.MatchString(event.CycleID) {
+	if !allowedEvents[event.Event] || !cyclePattern.MatchString(event.CycleID) || (event.CorrelationReference != "" && !regexp.MustCompile(`^MB-[A-Z2-7]{12}$`).MatchString(event.CorrelationReference)) {
 		return errors.New("structured event invalid")
 	}
 	encoder := json.NewEncoder(output)
@@ -113,6 +173,12 @@ func WriteHealth(path string, health Health) error {
 	}
 	if health.Content.Pending < 0 || health.Content.Processed < 0 || health.Content.Blocked < 0 || health.Content.RetryableError < 0 {
 		return errors.New("health content invalid")
+	}
+	if health.Meeting.CustodyRetained < 0 || health.Meeting.CustodyDeleted < 0 || health.Meeting.CustodyBlocked < 0 || health.Meeting.CustodyOverdue < 0 || health.Meeting.CustodyMissingKey < 0 || health.Meeting.PendingReview < 0 || health.Meeting.Approved < 0 || health.Meeting.Held < 0 || health.Meeting.Filed < 0 || health.Meeting.Blocked < 0 || health.Meeting.RecordingsVerified < 0 {
+		return errors.New("health meeting invalid")
+	}
+	if health.State == "healthy" && (health.Meeting.CustodyOverdue > 0 || health.Meeting.CustodyMissingKey > 0) {
+		return errors.New("health meeting failed closed")
 	}
 	raw, err := json.Marshal(health)
 	if err != nil {

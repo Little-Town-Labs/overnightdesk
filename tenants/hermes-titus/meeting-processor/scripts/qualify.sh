@@ -5,7 +5,7 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cache=${GOCACHE:-/tmp/titus-meeting-processor-go-cache}
 module_cache=${GOMODCACHE:-/tmp/titus-meeting-processor-go-mod}
 binary=/tmp/titus-meeting-processor-qualify
-image=${TITUS_MEETING_PROCESSOR_QUALIFY_IMAGE:-overnightdesk/titus-meeting-processor:feature-034-qualify}
+image=${TITUS_MEETING_PROCESSOR_QUALIFY_IMAGE:-overnightdesk/titus-meeting-processor:feature-035-qualify}
 container=titus-meeting-processor-qualify
 container_cli=${CONTAINER_CLI:-docker}
 case "$container_cli" in docker|podman) ;; *) printf 'unsupported container CLI\n' >&2; exit 2 ;; esac
@@ -37,10 +37,19 @@ grep -Eq 'no-new-privileges' runtime/run-container.sh
 grep -Eq -- '--pids-limit 128' runtime/run-container.sh
 grep -Eq -- '--cpus 0.5' runtime/run-container.sh
 grep -Eq -- '--memory 256m' runtime/run-container.sh
+grep -Fq -- '--volume titus-meeting-custody-data:/custody' runtime/run-container.sh
+grep -Fq -- '--custody-dir /custody' runtime/run-container.sh
+grep -Fq 'MEETING_ANALYZER_MODEL' runtime/load-analyzer-phase-env.sh
+grep -Fq 'api_server: [no_mcp]' ../config/meeting-analyzer.yaml
+grep -Fq 'memory_enabled: false' ../config/meeting-analyzer.yaml
+grep -Fq 'ExecStart=/opt/titus-meeting-analyzer/bin/run-container.sh' runtime/titus-meeting-analyzer.service
+grep -Fq 'enable-brief' scripts/deploy-aegis.sh
+grep -Fq 'retention-sweep' scripts/deploy-aegis.sh
 ! grep -R -Eq -- '--publish(=|[[:space:]])|-p[[:space:]]+[0-9]' runtime scripts
-! grep -R -Eq --exclude='*_test.go' --exclude=qualify.sh --exclude=content.go --exclude-dir=testfixture '/content([?"'"'"'/[:space:]]|$)|changeNotifications|/subscriptions' cmd internal runtime scripts Dockerfile
+! grep -R -Eq --exclude='*_test.go' --exclude=qualify.sh --exclude=content.go --exclude=recording.go --exclude-dir=testfixture '/content([?"'"'"'/[:space:]]|$)|changeNotifications|/subscriptions' cmd internal runtime scripts Dockerfile
 grep -Fq '"/transcripts/" + url.PathEscape(transcriptID) + "/content"' internal/graph/content.go
 ! grep -Eqi 'recordings/.*/content|/recordings/' internal/graph/content.go
+grep -Fq '"/recordings/" + url.PathEscape(recordingID) + "/content"' internal/graph/recording.go
 ! grep -R -Eq --exclude='*_test.go' --exclude=qualify.sh --exclude-dir=testfixture '(sk-or-v1-|Authorization:[[:space:]]*Bearer[[:space:]]+[A-Za-z0-9_.~-]{16,})' cmd internal runtime scripts Dockerfile
 ! grep -R -Eq --exclude='*_test.go' --exclude=qualify.sh --exclude-dir=testfixture 'TEAMS_(CLIENT_ID|CLIENT_SECRET|TENANT_ID)' cmd internal runtime scripts Dockerfile
 

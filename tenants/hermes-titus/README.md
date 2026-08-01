@@ -5,7 +5,7 @@
 ## Runtime boundary
 
 - Container: `hermes-titus`
-- Image: `overnightdesk/hermes-agent:0.19.0-coder`
+- Image: `overnightdesk/hermes-agent:0.19.1-coder`
 - Volume: `hermes-titus-data`
 - Network: `overnightdesk_overnightdesk`
 - Public ports: none during the initial install
@@ -99,6 +99,11 @@ TTS Teams preparation:
   settings, and one-time qualification input. The root meeting-processor loader
   projects only tenant/client credentials, the organizer allowlist, and fixed
   polling/lookback bounds; it never projects webhook or join values.
+- `/agents/hermes-titus/meetingbriefs`: Feature 035 custody key ring, dedicated
+  OpenRouter analyzer model and
+  bearer, review bearer/signing key, filer bearer, fixed Gary/Austin addresses,
+  and exact project-route definitions. Values are projected only when the
+  corresponding root-owned processing and filing markers exist.
 
 Matrix channel:
 
@@ -255,20 +260,22 @@ The initial container includes Hermes's pinned Teams dependencies but leaves the
 6. Add the reviewed nginx TLS route to the container's internal port 3978.
 7. Restart only Titus and verify `/health`, one authorized message, and one unauthorized denial.
 
-Meeting artifact discovery and transcript custody run in the separate
+Meeting artifact discovery and reviewed brief generation run in the separate
 `meeting-processor/` service. Organizer-scoped Microsoft Graph delta queries
-continue to discover transcript and recording metadata. A separately gated
-content slice can retrieve one transcript WebVTT per cycle into memory, screen
-it through SecurityTeam's non-persisting block mode, and request one stateless
-Titus meeting analysis. Recording content remains unavailable. The worker has
-no webhook, subscription, public route, or Graph agent tool. Its private state
-retains protected provider IDs, opaque cursors, digests, lifecycle metadata,
-and bounded Titus Markdown; raw and screened transcript input is never written
-or placed in a reusable Titus session. See
+discover transcript and recording metadata. Feature 035 encrypts raw WebVTT
+with AES-256-GCM for exactly 168 hours, screens it through SecurityTeam, and
+sends only the safe wrapper to a dedicated Hermes analyzer configured with
+`api_server: [no_mcp]`, no memory, and no persistent state mount. Strict
+Meeting Brief v1 output is emailed exactly once to Gary and Austin. The
+existing email poller intercepts only exact clean `APPROVE <ref>` or `HOLD
+<ref>` replies before Hermes; the first terminal decision wins. Approval alone
+allows the private filer to create a deterministic project/inbox note and
+internal Kanban tasks. Recording MP4 is streamed, bounded, hashed, correlated,
+and discarded without analysis. None of these private services publishes a
+host port. See
 `runbooks/meeting-artifact-discovery.md` for qualification, canaries, failure
-response, content activation, and rollback. Publishing the derived handoff to
-project knowledge or another user-facing destination remains a separate future
-decision.
+response, activation, and rollback. Channel meetings, a separate channel bot,
+and Graph subscription/webhook lifecycle remain a separate feature.
 
 ## Operator commands
 
@@ -293,6 +300,18 @@ tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh enable titus
 tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh enable agent
 tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh status
 tenants/hermes-titus/email-poller/scripts/deploy-aegis.sh rollback all
+
+tenants/hermes-titus/meeting-processor/scripts/qualify.sh
+tenants/hermes-titus/meeting-processor/scripts/deploy-aegis.sh install-feature-035-disabled
+tenants/hermes-titus/meeting-processor/scripts/deploy-aegis.sh verify-feature-035-disabled
+tenants/hermes-titus/meeting-processor/scripts/deploy-aegis.sh enable-brief
+tenants/hermes-titus/meeting-processor/scripts/deploy-aegis.sh disable-brief
+
+tenants/hermes-titus/meeting-filer/scripts/qualify.sh
+tenants/hermes-titus/meeting-filer/scripts/deploy-aegis.sh initialize
+tenants/hermes-titus/meeting-filer/scripts/deploy-aegis.sh enable
+tenants/hermes-titus/meeting-filer/scripts/deploy-aegis.sh verify
+tenants/hermes-titus/meeting-filer/scripts/deploy-aegis.sh rollback
 ```
 
 The Hermes and intake stop/rollback actions preserve all named volumes. Do not

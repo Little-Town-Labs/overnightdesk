@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"os"
@@ -10,7 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/analyzer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/config"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/custody"
+	meetingemail "github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/email"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/testfixture"
@@ -65,6 +69,33 @@ type contentCodeError string
 
 func (err contentCodeError) Error() string    { return string(err) }
 func (err contentCodeError) SafeCode() string { return string(err) }
+
+type fakeBriefAnalyzer struct{ calls int }
+
+func (fake *fakeBriefAnalyzer) Analyze(_ context.Context, _, _, safe string, _ []string) (analyzer.Validated, error) {
+	fake.calls++
+	if safe != "screened wrapper" {
+		return analyzer.Validated{}, errors.New("wrong screened input")
+	}
+	return analyzer.ParseAndValidate([]byte(`{"schemaVersion":"meeting-brief/v1","title":"Test meeting","occurredAt":"2026-08-01T12:00:00Z","participants":["Gary"],"summary":"Discussed internal delivery work.","facts":["The test completed."],"decisions":[],"actionItems":[{"title":"Track the internal follow-up","owner":"gary","dueDate":null,"sourceTimestamp":"00:01.000","confidence":"high"}],"externalCommitments":[],"unresolvedQuestions":[],"proposedFollowUp":"Review the internal note.","projectHint":"OvernightDesk","projectConfidence":"high"}`), nil)
+}
+
+type fakeMeetingMailer struct{ calls int }
+
+func (fake *fakeMeetingMailer) Send(_ context.Context, _, _, rendered string) (meetingemail.Delivery, error) {
+	fake.calls++
+	if !strings.Contains(rendered, "Source-derived summary") {
+		return meetingemail.Delivery{}, errors.New("wrong render")
+	}
+	return meetingemail.Delivery{IdempotencyKey: strings.Repeat("a", 64), ProviderMessageIDDigest: strings.Repeat("b", 64), RecipientSet: "gary+austin", TemplateVersion: meetingemail.TemplateVersion, SentAt: fixedWorkerTime().Format(time.RFC3339Nano), ReadbackVerifiedAt: fixedWorkerTime().Format(time.RFC3339Nano)}, nil
+}
+
+type fakeRecordingVerifier struct{ calls int }
+
+func (fake *fakeRecordingVerifier) VerifyRecordingContent(context.Context, string, string, string, int64) (graph.RecordingVerification, error) {
+	fake.calls++
+	return graph.RecordingVerification{SHA256: strings.Repeat("c", 64), Bytes: 1234, ContentType: "video/mp4"}, nil
+}
 
 func (fetcher *scriptedFetcher) FetchDelta(_ context.Context, organizerID string, kind graph.ArtifactType, _ string) (graph.Round, error) {
 	fetcher.calls++
@@ -263,6 +294,78 @@ func TestRunOnceBlocksUnsafeTranscriptBeforeTitusAndKeepsMetadata(t *testing.T) 
 			t.Fatalf("unsafe status: %#v", artifact)
 		}
 	}
+}
+
+func TestRunOnceCreatesFeature035BriefWithEncryptedCustodyEmailAndRecordingIdempotently(t *testing.T) {
+	dir := t.TempDir()
+	discovery, err := state.Open(filepath.Join(dir, "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer discovery.Close()
+	briefs, err := state.OpenBrief(filepath.Join(dir, "briefs.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer briefs.Close()
+	key := base64.StdEncoding.EncodeToString(bytesOf(7, 32))
+	ring, err := custody.ParseKeyRing(`{"active":"`+key+`"}`, "active")
+	if err != nil {
+		t.Fatal(err)
+	}
+	routes, err := analyzer.ParseRoutesJSON(`[{"canonicalProject":"OvernightDesk","aliases":["OvernightDesk"],"noteDirectory":"10-projects/overnightdesk","kanbanBoard":"overnightdesk"}]`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := &fakeContentFetcher{body: []byte("WEBVTT\nprivate transcript phrase")}
+	briefAgent := &fakeBriefAnalyzer{}
+	mailer := &fakeMeetingMailer{}
+	recorder := &fakeRecordingVerifier{}
+	cfg := workerConfig()
+	cfg.MeetingBriefEnabled = true
+	cfg.MeetingRecordingMaxBytes = graph.MaxRecordingContentBytes
+	processor := Processor{
+		Config: cfg, Store: discovery, Fetcher: &scriptedFetcher{}, Content: content,
+		Scanner: &fakeScanner{safe: "screened wrapper"}, Briefs: briefs,
+		Custody:    custody.Manager{Dir: filepath.Join(dir, "custody"), Ring: ring, Now: fixedWorkerTime},
+		BriefAgent: briefAgent, Mailer: mailer, Recorder: recorder, Routes: routes,
+		HealthPath: filepath.Join(dir, "health.json"), HandoffPath: filepath.Join(dir, "handoff.json"), Now: fixedWorkerTime,
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	if len(doc.Records) != 1 {
+		t.Fatalf("records=%d", len(doc.Records))
+	}
+	for _, record := range doc.Records {
+		if record.ReviewStatus != "pending_review" || record.Email == nil || record.Custody == nil || record.Custody.Status != "retained" || record.Recording == nil || record.Recording.Status != "verified" || record.ProjectRoute == nil {
+			t.Fatalf("incomplete record: %#v", record)
+		}
+		if record.MeetingReference == "" || record.BriefDigest == "" || record.SourceDigest == "" {
+			t.Fatal("missing deterministic identifiers")
+		}
+	}
+	for _, path := range []string{filepath.Join(dir, "state.json"), filepath.Join(dir, "briefs.json"), filepath.Join(dir, "handoff.json"), filepath.Join(dir, "health.json")} {
+		raw, _ := os.ReadFile(path)
+		if strings.Contains(string(raw), "private transcript phrase") || strings.Contains(string(raw), "screened wrapper") {
+			t.Fatalf("plaintext leaked to %s", path)
+		}
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if content.calls != 1 || briefAgent.calls != 1 || mailer.calls != 1 || recorder.calls != 1 {
+		t.Fatalf("replayed side effects: content=%d analyzer=%d mail=%d recording=%d", content.calls, briefAgent.calls, mailer.calls, recorder.calls)
+	}
+}
+
+func bytesOf(value byte, count int) []byte {
+	result := make([]byte, count)
+	for index := range result {
+		result[index] = value
+	}
+	return result
 }
 
 func fixedWorkerTime() time.Time {

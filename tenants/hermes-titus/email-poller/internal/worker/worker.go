@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"overnightdesk/titus-email-poller/internal/approval"
 	"overnightdesk/titus-email-poller/internal/config"
 	"overnightdesk/titus-email-poller/internal/policy"
 	"overnightdesk/titus-email-poller/internal/state"
@@ -29,13 +30,20 @@ type Hermes interface {
 	GetRun(runID string) (transport.HermesRun, error)
 }
 
+type ReviewClient interface {
+	Prepare(approval.Command, string, string, time.Time) (approval.Claim, error)
+	SubmitClaim(context.Context, approval.Claim) (approval.Result, error)
+}
+
 type Worker struct {
-	config     config.Config
-	state      *state.Store
-	repository store.Repository
-	agentmail  AgentMail
-	hermes     Hermes
-	health     string
+	config          config.Config
+	state           *state.Store
+	repository      store.Repository
+	agentmail       AgentMail
+	hermes          Hermes
+	review          ReviewClient
+	health          string
+	afterCleanClaim func() error
 }
 
 type Result struct {
@@ -50,6 +58,8 @@ type Result struct {
 func New(configuration config.Config, stateStore *state.Store, repository store.Repository, agentmail AgentMail, hermes Hermes, healthPath string) *Worker {
 	return &Worker{config: configuration, state: stateStore, repository: repository, agentmail: agentmail, hermes: hermes, health: healthPath}
 }
+
+func (worker *Worker) SetReviewClient(client ReviewClient) { worker.review = client }
 
 func (worker *Worker) Initialize(replayMessageID string) (Result, error) {
 	messages, err := worker.listMessages(1000, 100)
@@ -192,11 +202,21 @@ func (worker *Worker) landMessages(ctx context.Context) (int, error) {
 }
 
 func (worker *Worker) claimClean(ctx context.Context) (int, error) {
-	emails, err := worker.repository.ClaimClean(ctx, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, worker.config.MaxCleanClaims)
+	emails, err := worker.repository.ClaimClean(ctx, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, worker.config.MaxCleanClaims, worker.config.CleanClaimStaleSeconds)
 	if err != nil {
 		return 0, err
 	}
+	if worker.afterCleanClaim != nil {
+		if err := worker.afterCleanClaim(); err != nil {
+			return 0, err
+		}
+	}
 	for _, email := range emails {
+		if _, exists := worker.state.Delivery(email.ID); exists {
+			// A stale database claim may overlap an already durable local
+			// recovery record. recoverDeliveries owns that record.
+			continue
+		}
 		if strings.TrimSpace(email.SafeContent) == "" || len([]rune(email.SafeContent)) > 50_000 {
 			failed, failErr := worker.repository.Fail(ctx, email.ID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, "invalid_clean_content")
 			if failErr != nil || !failed {
@@ -205,6 +225,13 @@ func (worker *Worker) claimClean(ctx context.Context) (int, error) {
 				}
 				return 0, failErr
 			}
+			continue
+		}
+		handled, handleErr := worker.handleReviewCommand(ctx, email)
+		if handleErr != nil {
+			return 0, handleErr
+		}
+		if handled {
 			continue
 		}
 		created, err := worker.state.CreateDelivery(state.DeliveryRecord{
@@ -233,9 +260,69 @@ func (worker *Worker) claimClean(ctx context.Context) (int, error) {
 	return len(emails), nil
 }
 
+func (worker *Worker) handleReviewCommand(ctx context.Context, email store.CleanEmail) (bool, error) {
+	command, reviewLike, exact := approval.ParseCommand(email.SafeContent)
+	if !reviewLike {
+		return false, nil
+	}
+	if !exact {
+		return true, worker.failClean(ctx, email.ID, "invalid_review_command")
+	}
+	normalizedSender, ok := policy.NormalizeAddress(email.Sender)
+	_, allowed := worker.config.AllowedSenders[normalizedSender]
+	if !ok || !allowed {
+		return true, worker.failClean(ctx, email.ID, "review_sender_not_allowed")
+	}
+	if !worker.config.MeetingReviewEnabled || worker.review == nil {
+		return true, worker.failClean(ctx, email.ID, "meeting_review_disabled")
+	}
+	claim, err := worker.review.Prepare(command, normalizedSender, email.ProviderMessageID, email.ReceivedAt)
+	if err != nil {
+		return true, worker.failClean(ctx, email.ID, safeReviewError(err))
+	}
+	delivery := state.DeliveryRecord{CleanID: email.ID, ProviderMessageID: email.ProviderMessageID, ThreadID: email.ThreadID, Kind: "meeting_review", State: "review_submitting", ReviewReference: claim.Reference, ReviewDecision: claim.Decision, ActorFingerprint: claim.ActorFingerprint, MessageDigest: claim.MessageDigest, ReceivedAt: claim.ReceivedAt}
+	created, err := worker.state.CreateDelivery(delivery)
+	if err != nil || !created {
+		if err == nil {
+			err = errors.New("review delivery already exists")
+		}
+		return true, err
+	}
+	_, err = worker.recoverReviewDelivery(ctx, delivery)
+	return true, err
+}
+
+func (worker *Worker) failClean(ctx context.Context, cleanID, code string) error {
+	failed, err := worker.repository.Fail(ctx, cleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, code)
+	if err != nil {
+		return err
+	}
+	if !failed {
+		return errors.New("clean email lost route ownership")
+	}
+	return nil
+}
+
+func safeReviewError(err error) string {
+	switch err.Error() {
+	case "meeting_review_request_invalid", "meeting_review_unavailable", "meeting_review_response_invalid", "meeting_review_conflict", "meeting_review_rejected":
+		return err.Error()
+	default:
+		return "meeting_review_unavailable"
+	}
+}
+
 func (worker *Worker) recoverDeliveries(ctx context.Context) (int, error) {
 	sends := 0
 	for _, delivery := range worker.state.Deliveries() {
+		if delivery.Kind == "meeting_review" {
+			sent, err := worker.recoverReviewDelivery(ctx, delivery)
+			sends += sent
+			if err != nil {
+				return sends, err
+			}
+			continue
+		}
 		if delivery.RunID == "" {
 			failed, err := worker.repository.Fail(ctx, delivery.CleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent, "ambiguous_run_submission")
 			if err != nil || !failed {
@@ -321,6 +408,56 @@ func (worker *Worker) recoverDeliveries(ctx context.Context) (int, error) {
 		}
 	}
 	return sends, nil
+}
+
+func (worker *Worker) recoverReviewDelivery(ctx context.Context, delivery state.DeliveryRecord) (int, error) {
+	if worker.review == nil || !worker.config.MeetingReviewEnabled {
+		return 0, errors.New("meeting_review_disabled")
+	}
+	if delivery.State == "review_submitting" {
+		claim := approval.Claim{Reference: delivery.ReviewReference, Decision: delivery.ReviewDecision, ActorFingerprint: delivery.ActorFingerprint, MessageDigest: delivery.MessageDigest, ReceivedAt: delivery.ReceivedAt}
+		result, err := worker.review.SubmitClaim(ctx, claim)
+		if err != nil {
+			if err.Error() != "meeting_review_conflict" {
+				return 0, err
+			}
+			ack := "Titus did not change " + claim.Reference + " because a terminal decision already exists."
+			if err := worker.state.SetReviewResult(delivery.CleanID, "review_conflict", ack); err != nil {
+				return 0, err
+			}
+			delivery.State, delivery.Acknowledgement = "review_conflict", ack
+		} else {
+			ack := "Titus recorded " + strings.ToUpper(claim.Decision) + " for " + result.Reference + "."
+			if err := worker.state.SetReviewResult(delivery.CleanID, "review_accepted", ack); err != nil {
+				return 0, err
+			}
+			delivery.State, delivery.Acknowledgement = "review_accepted", ack
+			worker.emit("meeting.review", result.Status, map[string]any{"clean_id_hash": digestID(delivery.CleanID), "attempt": 1})
+		}
+	}
+	if delivery.State == "review_accepted" || delivery.State == "review_conflict" {
+		if _, err := worker.agentmail.Reply(delivery.ProviderMessageID, delivery.Acknowledgement, "meeting-review-"+delivery.CleanID); err != nil {
+			return 0, err
+		}
+		if err := worker.state.UpdateDelivery(delivery.CleanID, "review_replied"); err != nil {
+			return 0, err
+		}
+		delivery.State = "review_replied"
+	}
+	if delivery.State != "review_replied" {
+		return 0, errors.New("review delivery state invalid")
+	}
+	completed, err := worker.repository.Complete(ctx, delivery.CleanID, worker.config.RouteID, worker.config.InboxID, worker.config.TargetAgent)
+	if err != nil || !completed {
+		if err == nil {
+			err = errors.New("review completion lost route ownership")
+		}
+		return 0, err
+	}
+	if err := worker.state.RemoveDelivery(delivery.CleanID); err != nil {
+		return 0, err
+	}
+	return 1, nil
 }
 
 func (worker *Worker) listMessages(maximum, maxPages int) ([]transport.Message, error) {
