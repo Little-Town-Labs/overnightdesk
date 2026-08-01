@@ -40,7 +40,7 @@
 - [x] T024 Refresh codebase-memory change impact and verify graph conclusions with targeted source reads.
 - [x] T025 Run the final read-only Ringer multi-axis quality gate; allow at most one remediation round and one Sol delta review. Both allowed attempts stopped on missing installed review-skill reference files before producing a report; the accountable Sol lead completed and documented the final delta review without another automated loop.
 - [x] T026 Confirm `git diff --check`, task-scoped status, and a reproducible clean handoff.
-- [ ] T027 Commit, push, open the OvernightDesk PR, pass checks, merge, and deploy disabled.
-- [ ] T028 Enable transcript content, process the Gary canary, prove raw-content non-retention and restart idempotency, and append `deploys.log`.
-- [ ] T029 Synchronize and merge the platform-standard change, deploy the standard, and verify ops/Titus/meeting-worker continuity.
-- [ ] T030 Update issue 159 with safe evidence and close only the transcript-to-Titus scope; explicitly retain recording-content and Austin-meeting limitations as later decisions.
+- [x] T027 Commit, push, open the OvernightDesk PR, pass checks, merge, and deploy disabled.
+- [x] T028 Enable transcript content, process the Gary canary, prove raw-content non-retention and restart idempotency, and append `deploys.log`.
+- [x] T029 Synchronize and merge the platform-standard change, deploy the standard, and verify ops/Titus/meeting-worker continuity.
+- [x] T030 Update issue 159 with safe evidence and close only the transcript-to-Titus scope; the issue intentionally remains open for recording content and an Austin-organized pilot.
