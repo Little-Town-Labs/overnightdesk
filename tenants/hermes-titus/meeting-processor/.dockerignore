@@ -1,0 +1,6 @@
+.git/
+__pycache__/
+*.py[co]
+*.test
+*.out
+titus-meeting-processor

@@ -1,0 +1,27 @@
+[Unit]
+Description=OvernightDesk Titus meeting artifact discovery
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=titus-meeting-processor
+Group=titus-meeting-processor
+SupplementaryGroups=docker
+ExecStartPre=+/opt/titus-meeting-processor/bin/load-phase-config.sh
+ExecStartPre=+/opt/titus-meeting-processor/bin/prepare-volume.sh
+ExecStart=/opt/titus-meeting-processor/bin/run-container.sh
+ExecStop=+/opt/titus-meeting-processor/bin/stop-container.sh
+Restart=always
+RestartSec=10
+TimeoutStartSec=300
+TimeoutStopSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/run/titus-meeting-processor
+
+[Install]
+WantedBy=multi-user.target
