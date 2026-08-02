@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://overnightdesk.com/schemas/meeting-qa-v1.json",
+  "title": "Titus Meeting QA v1",
+  "oneOf": [
+    { "$ref": "#/$defs/pass" },
+    { "$ref": "#/$defs/blocked" }
+  ],
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["schemaVersion", "status", "meetingReference", "attempt", "sourceDigest", "draftAttempts", "qaReviews"],
+      "properties": {
+        "schemaVersion": { "const": "meeting-qa/v1" },
+        "status": { "enum": ["QA_PASS", "QA_BLOCKED"] },
+        "meetingReference": { "type": "string", "pattern": "^MB-[A-Z2-7]{12}$" },
+        "attempt": { "type": "integer", "minimum": 1, "maximum": 8 },
+        "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "draftAttempts": { "type": "integer", "minimum": 1, "maximum": 2 },
+        "qaReviews": { "type": "integer", "minimum": 1, "maximum": 2 }
+      }
+    },
+    "pass": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schemaVersion", "status", "meetingReference", "attempt", "sourceDigest", "draftAttempts", "qaReviews", "brief"],
+          "properties": {
+            "schemaVersion": { "const": "meeting-qa/v1" },
+            "status": { "const": "QA_PASS" },
+            "meetingReference": { "type": "string", "pattern": "^MB-[A-Z2-7]{12}$" },
+            "attempt": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "draftAttempts": { "type": "integer", "minimum": 1, "maximum": 2 },
+            "qaReviews": { "type": "integer", "minimum": 1, "maximum": 2 },
+            "brief": { "$ref": "meeting-brief.schema.json" }
+          }
+        }
+      ]
+    },
+    "blocked": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schemaVersion", "status", "meetingReference", "attempt", "sourceDigest", "draftAttempts", "qaReviews", "safeReasonCode"],
+          "properties": {
+            "schemaVersion": { "const": "meeting-qa/v1" },
+            "status": { "const": "QA_BLOCKED" },
+            "meetingReference": { "type": "string", "pattern": "^MB-[A-Z2-7]{12}$" },
+            "attempt": { "type": "integer", "minimum": 1, "maximum": 8 },
+            "sourceDigest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "draftAttempts": { "type": "integer", "minimum": 1, "maximum": 2 },
+            "qaReviews": { "type": "integer", "minimum": 1, "maximum": 2 },
+            "safeReasonCode": {
+              "enum": [
+                "faithfulness_failed",
+                "schema_failed",
+                "unsupported_claims",
+                "ownership_or_date_failed",
+                "project_identification_failed",
+                "remediation_exhausted"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  }
+}

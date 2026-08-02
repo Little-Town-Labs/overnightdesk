@@ -72,3 +72,77 @@ links to any ADR, runbook, roadmap, or Spec Kit artifact that remains durable.
 - Because the configured remediation/delta ceiling was reached, the accountable Sol lead did not start another Ringer loop. The exact lead-owned correction now requires both private units to be disabled and in `inactive`, `failed`, or `unknown` state, both canonical private containers to be absent, and active processor/intake projections to omit every Feature 035 authority field before `promote` can run. The focused 12-test security suite, shell parsing, `git diff --check`, and an executable ordering/postcondition audit pass; the accountable final delta verdict is `APPROVE`.
 - Source publication is OvernightDesk PR 163. Its required Vercel and Vercel Preview Comments checks pass, and the authorized merge closes T039 without deploying Feature 035.
 - Production deployment and canaries remain explicitly deferred at the user's request; T040-T046 are not complete.
+
+## Titus Sol/Luna Architecture Correction
+
+- The owner rejected the separate analyzer sidecar and approved Titus-owned
+  interpretation: primary Sol orchestrates, Luna drafts in a background child,
+  and Sol performs the accountable QA before fixed-recipient email eligibility.
+- A fresh worktree `035-titus-sol-luna-meeting-briefs` was created from
+  refreshed `origin/main`; the uncommitted sidecar-correction worktree remains
+  untouched for evidence and recovery.
+- Classification remains `brownfield` / `system` / `production`; Ringer remains
+  read-only and Sol owns every source, runtime, Git, and production mutation.
+- The canonical codebase graph was refreshed at `21fc062` to 12,585 nodes and
+  23,208 edges. It identifies `processOneMeetingTranscript`, the analyzer
+  client, brief-state validation, config projection, and deployment scripts as
+  the correction seams; targeted reads verified each.
+- Official Hermes docs and pinned v0.19.1 source establish the Runs/Sessions
+  integration: detached delegation needs a persisted owning session; the first
+  run may finish before Luna; a running child becomes unknown across restart;
+  session deletion cascades delegate rows; delegation kickoff context logging
+  is bounded to 500 characters.
+- The frozen correction scope is T040-T054. The design gate is T041, mutable
+  implementation is Sol-only T042-T050, executable qualification is T051-T052,
+  and the final read-only quality gate is T053.
+- The first correction design run was interrupted because its generated scout
+  package pointed at canonical `main` instead of this uncommitted worktree. No
+  source or production mutation occurred; it counts as the one task retry.
+- Corrected read-only run
+  `overnightdesk-035-titus-sol-luna-meeting-briefs-readonly-20260802T000324Z-p1032793`
+  passed its report contract and identified required binding gaps. Sol folded
+  them into FR-005 and FR-033 through FR-036: authenticated child lineage plus
+  observed configured Luna route, local meeting/attempt/source correlation,
+  canonical latest-child draft equality, exact create/run ambiguity rules,
+  byte-level kickoff privacy, and fail-closed verified parent/child cleanup.
+  CHK022 remains open until implementation and the final delta review prove
+  those controls.
+- The implemented correction was refreshed into its exact worktree graph at
+  12,834 nodes and 23,888 edges. The graph traces the critical cleanup path
+  from `processOneMeetingTranscript` through `cleanupAnalysis` to authenticated
+  descendant enumeration and bounded API requests; targeted source reads
+  verified every reported seam and rejected one unrelated cross-package `New`
+  edge as an index false positive.
+- Sol's five-axis review found and resolved two Required gaps before the final
+  Ringer gate: cleanup now re-enumerates descendants immediately before parent
+  deletion and verifies every persisted or newly observed child is absent, and
+  pre-run session creation proves the parent inherited `gpt-5.6-sol` with its
+  fixed system prompt and no request-scoped model snapshot. Post-run inspection
+  continues to prove the Sol route while accepting Hermes's normal persisted
+  runtime model snapshot. Feature 035 still sends no model or provider field.
+- Pre-delta local qualification passed Go unit/race/vet/build, 19 Python
+  runtime/release/security contracts, shell/static/leak checks, and the ARM64
+  hardened-container build and inspection (`16c28f702636`).
+- The final Ringer quality-gate run and one transport-rescope retry could not
+  start their read-only Sol worker because the nested ChatGPT transport returned
+  `403 Forbidden`; neither attempt mutated the repository. Per the bounded-loop
+  policy, no further Ringer retry is authorized.
+- The owner-approved direct read-only Sol fallback found one Critical integration
+  defect: post-run inspection rejected Hermes's expected persisted runtime model
+  snapshot and would have stalled every real meeting. A failing real-transition
+  regression test reproduced the defect; the processor now distinguishes the
+  strict pre-run no-override check from normal post-run snapshot persistence.
+  Focused orchestrator/state/worker tests pass.
+- The single permitted Sol delta review confirmed that Critical resolved and
+  found two Required lifecycle gaps: a lost create response could remain in
+  replayable `dispatch_pending`, and an older QA envelope could survive later
+  parent output or delegation. With the review ceiling exhausted, the accountable
+  Sol lead made only those two frozen-scope corrections. Create ambiguity now
+  enters bounded `dispatch_unknown` without another create/run POST, including
+  unavailable readback at the deadline; QA eligibility now requires the terminal
+  non-empty parent assistant result after the final audited delegation. New
+  regression tests plus focused unit/race/vet checks pass. Refreshed full
+  qualification passes Go unit/race/vet/build, 19 Python runtime/release/security
+  contracts, shell/static/leak checks, and the ARM64 hardened-container build and
+  inspection (`54c83b7c6d4d`). With all frozen findings covered by executable
+  regressions, the accountable lead verdict is `APPROVE`.

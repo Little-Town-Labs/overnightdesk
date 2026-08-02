@@ -42,22 +42,22 @@ Feature 035 values to `/agents/hermes-titus/meetingbriefs`:
 
 - `MEETING_RAW_CUSTODY_KEYS_JSON` - active non-secret key ID plus a map of
   base64-encoded 32-byte keys; old referenced keys remain until expiry;
-- `MEETING_ANALYZER_API_KEY` - distinct analyzer bearer;
-- `MEETING_ANALYZER_MODEL` - dedicated OpenRouter route in `provider/model`
-  form; never reuse Titus's `openai-codex` model value;
 - `MEETING_REVIEW_API_TOKEN` - poller-to-worker bearer;
 - `MEETING_REVIEW_SIGNING_SECRET` - distinct HMAC key for sender-bound claims;
 - `MEETING_FILER_API_TOKEN` - worker-to-filer bearer;
 - `MEETING_GARY_EMAIL` and `MEETING_AUSTIN_EMAIL` - fixed exact recipients;
 - `MEETING_PROJECT_ROUTES_JSON` - exact aliases, note directories, and boards;
 
-Reuse the existing SecurityTeam and AgentMail credentials from their current
-Phase paths through exact allowlisted projections. Do not copy values between
-paths or into repository files.
+Reuse the existing SecurityTeam, AgentMail, and private Titus API credentials
+from their current Phase paths through exact allowlisted projections. Titus's
+active primary and delegation configuration selects Sol and Luna; Feature 035
+must not add or project a model, provider key, OAuth identity, or analyzer key.
+Do not copy values between paths or into repository files.
 
 Verify key presence, format, active/referenced key IDs, and equality/inequality
-relationships only. Never show literal values. The two API tokens, analyzer API
-key, custody keys, and review signing secret must all differ.
+relationships only. Never show literal values. The review/filer API tokens,
+custody keys, and review signing secret must all differ. The worker's Titus API
+key is an existing credential, not a new Feature 035 secret.
 
 ## 3. Local security qualification
 
@@ -73,8 +73,23 @@ The harness must prove:
 - strict Meeting Brief schema, unknown-field rejection, array/string caps,
   owner/date/timestamp rules, project exact-match behavior, and protected-value
   rejection;
-- analyzer config resolves only `no_mcp`, has no memory/project/session mounts,
-  rejects redirects, and enforces input/output/time bounds;
+- Titus orchestration persists exact create/run body digests, creates or safely
+  reconciles one deterministic dedicated session, submits at most one Runs API
+  turn per attempt without a model override, and never resubmits an ambiguous
+  dispatch;
+- the audit observes one or two exact single-leaf `delegate_task` calls only,
+  rejects every other parent tool call, discovers the corresponding child
+  sessions by parent lineage, proves their observed route is the configured
+  Luna model, and binds the strict `meeting-qa/v1` meeting/attempt/source plus
+  embedded brief to the latest child's canonical Meeting Brief;
+- Luna's delegated context begins with at least 512 bytes of fixed ASCII safe text
+  before VTT content, and fixtures prove Hermes's 500-character kickoff preview
+  contains no transcript marker for ASCII or multibyte transcript input;
+- restart, deadline, missing-run, QA reject/remediation, cleanup failure, and
+  duplicate-dispatch fixtures fail closed with no early or duplicate email;
+- terminal cleanup enumerates child IDs before parent deletion and requires
+  authenticated `404 session_not_found` for parent and children; cleanup
+  exhaustion is operator-blocked with custody deletion still active;
 - outbound mail uses exactly two recipients, no CC/BCC/attachment, SecurityTeam
   first, idempotency, readback, and no ordinary guarded-email bypass;
 - review parsing accepts only one exact command from an exact allowed sender
@@ -100,8 +115,12 @@ Disabled verification must prove:
 - discovery state remains version 2, legacy bodies are replaced by the exact
   sentinel, the body-free handoff contains no marker, and the prior worker can
   read the disabled migrated state;
-- analyzer and filer have no published ports;
-- analyzer exposes no tools and has no general Titus/project/memory volume;
+- filer has no published port;
+- no analyzer model/API-key Phase values, config, unit, image, or running
+  container are required; the old analyzer unit/container are stopped but
+  retained rollback volume/state is not deleted;
+- main Titus remains healthy on its existing subscription, primary Sol route,
+  and Luna delegation route;
 - filer has the active project-knowledge volume, its private ledger, and only
   the named-board Kanban subtree from Titus storage plus its one bearer;
 - meeting worker has custody volume but not project-knowledge/Hermes-data;
@@ -119,7 +138,7 @@ scripts/deploy-aegis.sh verify-feature-035-disabled
 ```
 
 After local qualification, the unified action removes only the brief and filing
-markers, stops analyzer and filer, and reloads the active processor and Titus
+markers, stops the filer and any retired analyzer unit, and reloads the active processor and Titus
 intake route without Feature 035 credentials before the first remote runtime
 promotion. It preserves the Feature 034 content marker, initializes the filer
 while inactive, creates and verifies the exact `00-inbox/meetings` destination,
@@ -127,8 +146,9 @@ and never deletes state or named volumes.
 
 ## 5. Enable draft generation and run Gary canary
 
-Create only the root-owned brief-processing marker, restart only the analyzer
-and meeting worker, and run one bounded cycle.
+Create only the root-owned brief-processing marker, restart only the meeting
+worker, and run one bounded cycle. Do not restart or reconfigure Titus unless
+the live capability/model verification itself fails.
 
 Safe acceptance evidence:
 
@@ -136,7 +156,10 @@ Safe acceptance evidence:
 - one recipient-set value `gary+austin` and provider readback success;
 - encrypted raw-custody object exists mode 0600 with ciphertext/plaintext
   digests that differ;
-- analyzer tool count zero and no session/memory/project artifacts;
+- one dedicated meeting session, one Luna draft, one Sol QA, zero
+  non-delegation parent tool calls, and an exact `QA_PASS` before email;
+- the dedicated parent and delegated child sessions are deleted and return
+  not-found after terminal QA; only encrypted custody retains raw VTT;
 - recording status `verified` with digest and byte count only;
 - no duplicate model, email, transcript, or recording operation after restart;
 - no raw excerpts or protected identifiers in logs, state views, health,
@@ -204,7 +227,8 @@ scripts/deploy-aegis.sh verify-feature-035-disabled
 ```
 
 1. The filer disable removes filing authority and reloads the worker.
-2. Brief disable removes both Feature 035 markers, stops analyzer and filer,
+2. Brief disable removes both Feature 035 markers, stops the filer and any
+   retired analyzer unit,
    and reloads the worker and Titus intake route without meeting-review values.
 3. Preserve separate Feature 035 state and encrypted custody; run the root-owned
    retention-only sweep until the Feature 035 release is restored.

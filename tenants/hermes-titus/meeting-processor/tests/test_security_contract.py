@@ -74,19 +74,22 @@ class SecurityContractTests(unittest.TestCase):
         self.assertIn("--exclude='*.py[co]'", deploy)
         self.assertNotIn("cp -a /tmp/titus-meeting-processor-deploy/. /opt/titus-meeting-processor/source/", deploy)
 
-    def test_analyzer_uses_the_reviewed_aegis_local_hermes_image(self):
-        runner = (ROOT / "runtime" / "run-analyzer-container.sh").read_text(encoding="utf-8")
+    def test_analyzer_sidecar_is_retired_without_model_override(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
-
-        self.assertIn("image=overnightdesk/hermes-agent:0.19.0-coder", runner)
-        self.assertNotIn("TITUS_MEETING_ANALYZER_IMAGE", runner)
-        self.assertIn(
-            "--tmpfs /tmp/hermes:rw,noexec,nosuid,nodev,size=64m,uid=10004,gid=10004,mode=0700",
-            runner,
-        )
-        self.assertIn("analyzer_image=overnightdesk/hermes-agent:0.19.0-coder", deploy)
-        self.assertIn('docker image inspect "$analyzer_image" >/dev/null', deploy)
-        self.assertIn(".Config.Image", deploy)
+        orchestrator = (ROOT / "internal" / "orchestrator" / "client.go").read_text(encoding="utf-8")
+        for path in [
+            ROOT / "internal" / "analyzer" / "client.go",
+            ROOT / "runtime" / "load-analyzer-phase-env.sh",
+            ROOT / "runtime" / "run-analyzer-container.sh",
+            ROOT / "runtime" / "stop-analyzer-container.sh",
+            ROOT / "runtime" / "titus-meeting-analyzer.service",
+            ROOT.parent / "config" / "meeting-analyzer.yaml",
+        ]:
+            self.assertFalse(path.exists(), path)
+        self.assertNotIn("analyzer_image=", deploy)
+        self.assertNotIn("enable --now titus-meeting-analyzer", deploy)
+        self.assertIn("gpt-5.6-luna", (ROOT / "internal" / "orchestrator" / "plan.go").read_text(encoding="utf-8"))
+        self.assertNotIn("/api/approvals", orchestrator)
 
     def test_deployment_revalidates_root_owned_nonwritable_release_before_build(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
@@ -139,9 +142,13 @@ class SecurityContractTests(unittest.TestCase):
         self.assertIn("systemctl restart hermes-email-intake@titus.service", enable_brief)
         self.assertIn('if ! "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker"', enable_brief)
         self.assertGreaterEqual(enable_brief.count("restore_brief_disabled || true"), 2)
+        self.assertNotIn("enable --now titus-meeting-analyzer", enable_brief)
+        self.assertIn("systemctl is-active --quiet hermes-titus.service", enable_brief)
         self.assertIn('rm -f -- "$brief_marker" "$filing_marker"', restore_brief_disabled)
         self.assertIn("systemctl restart hermes-email-intake@titus.service", restore_brief_disabled)
         self.assertIn('.MEETING_REVIEW_ENABLED == "true"', verify_brief)
+        self.assertIn('delegation.get("model") == "gpt-5.6-luna"', verify_brief)
+        self.assertIn('has("MEETING_ANALYZER_API_KEY") | not', verify_brief)
         self.assertIn("systemctl restart hermes-email-intake@titus.service", disable_brief)
         self.assertIn('test -e "$content_marker"; then verify_content; else verify_content_disabled', disable_brief)
 

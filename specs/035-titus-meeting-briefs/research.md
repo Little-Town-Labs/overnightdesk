@@ -106,29 +106,67 @@ provenance without the body.
   first migration cannot prove it contains no transcript excerpt without
   inspecting sensitive production content.
 
-## Decision: Use a dedicated no-tool Hermes analyzer
+## Decision: Let Titus orchestrate Luna drafting and Sol QA
 
-**Decision**: Run a second private Hermes API container for meeting analysis
-with `platform_toolsets.api_server: [no_mcp]`, a distinct API key, no memory or
-project mounts, no sessions, no delegation, and no published port.
+**Decision**: Use the existing authenticated Titus API. The worker creates a
+deterministic dedicated meeting session and starts a Hermes Run without a
+request-scoped model override. Sol delegates the first draft to the configured
+Luna child, evaluates the returned draft, permits at most one Luna remediation
+and one Sol delta review, and emits an exact `meeting-qa/v1` envelope. The
+worker independently validates the envelope, observed tool calls, and embedded
+Meeting Brief before email becomes eligible.
 
-**Rationale**: The existing main Titus API intentionally retains tools, memory,
-skills, and channel functionality. An additive system prompt saying "do not use
-tools" is instruction, not enforcement. The analyzer keeps the Titus/Hermes
-model and persona boundary while removing authority.
+**Rationale**: This matches the owner's intended Titus responsibility and lets
+Sol use Titus's existing project knowledge while Luna does the long transcript
+work in a background child. The Runs/Sessions surface supports detached result
+delivery and recovery; stateless `/v1/chat/completions` cannot reliably deliver
+a background child result later. Feature 035 adds no model, provider, OAuth, or
+analyzer lifecycle.
 
 **Official sources**:
 
 - Hermes API server behavior: https://hermes-agent.nousresearch.com/docs/user-guide/features/api-server/
-- Hermes toolset reference: https://hermes-agent.nousresearch.com/docs/reference/toolsets-reference
+- Hermes delegation behavior: https://hermes-agent.nousresearch.com/docs/user-guide/features/delegation/
+
+Pinned Hermes v0.19.1 source confirms:
+
+- `POST /v1/runs` binds the supplied `session_id`, returns a pollable `run_id`,
+  and enables a detached delegation wake target;
+- a top-level run may complete after dispatch while the child result returns
+  later through the owning session, so final QA is reconciled from session
+  messages rather than the first run's terminal status;
+- a running child is not resumed after process restart and becomes unknown;
+- deleting a parent session cascade-deletes delegated child session rows;
+- child sessions are discoverable through the authenticated session list with
+  `parent_session_id` and observed model, so the processor can prove lineage
+  and the already-configured Luna route without selecting a model in a request;
+- Hermes constructs a non-empty runtime model snapshot and upserts it into the
+  session when a run starts, so `has_model_config` normally changes from false
+  on the pre-run session to true afterward. Pre-run creation rejects an existing
+  snapshot, while post-run reconciliation verifies the observed Sol route and
+  accepts the inherited runtime snapshot;
+- delegation kickoff logs retain only a bounded 500-character context preview,
+  so the fixed safe prefix is at least 512 bytes before transcript content.
 
 **Rejected**:
 
-- Keep using main Titus with a stronger prompt. Rejected because server-side
-  tools remain available.
-- Patch the upstream Hermes image for a request-scoped tool toggle. Rejected as
-  a broader fork when the supported toolset configuration provides a hard
-  container boundary.
+- Keep the separate analyzer sidecar. Rejected because it bypasses Titus's
+  knowledge and introduces a second model/provider/OAuth lifecycle.
+- Use stateless chat completion. Rejected because detached delegation cannot be
+  reconciled reliably from a stateless response.
+- Run all transcript processing synchronously in primary Sol. Rejected because
+  it occupies the main reasoning turn and misses the requested Luna/Sol split.
+
+**Security boundary**: prompt text does not grant authority. The processor never
+resolves tool approvals for a meeting run, audits the parent session so only one
+or two exact single-leaf `delegate_task` calls are accepted, discovers their
+child sessions by parent lineage, and verifies the observed approved Luna route.
+The latest child result must itself parse as Meeting Brief v1 and have the same
+canonical digest as Sol's `QA_PASS` brief; the envelope's meeting reference,
+attempt, and source digest must equal local state. The fixed ASCII safe context
+prefix prevents raw VTT from entering Hermes's bounded live-log kickoff preview.
+The dedicated parent and enumerated children are deleted and verified after
+terminal QA, while encrypted custody remains for the seven-day contract.
 
 ## Decision: Strict JSON first, deterministic rendering second
 

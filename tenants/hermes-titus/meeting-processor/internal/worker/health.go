@@ -61,6 +61,11 @@ type MeetingHealth struct {
 	CustodyBlocked     int  `json:"custody_blocked"`
 	CustodyOverdue     int  `json:"custody_overdue"`
 	CustodyMissingKey  int  `json:"custody_missing_key"`
+	AnalysisPending    int  `json:"analysis_pending"`
+	LunaRunning        int  `json:"luna_running"`
+	SolQAPending       int  `json:"sol_qa_pending"`
+	CleanupRetryable   int  `json:"cleanup_retryable"`
+	CleanupBlocked     int  `json:"cleanup_blocked"`
 	PendingReview      int  `json:"pending_review"`
 	Approved           int  `json:"approved"`
 	Held               int  `json:"held"`
@@ -83,6 +88,7 @@ var allowedEvents = map[string]bool{
 	"cycle_start": true, "cycle_complete": true, "cycle_failed": true,
 	"stream_start": true, "stream_complete": true, "stream_failed": true, "retry": true,
 	"content_processed": true, "content_blocked": true, "content_retryable_error": true,
+	"meeting_analysis_state": true, "meeting_session_cleanup": true,
 	"meeting_brief_created": true, "meeting_email_sent": true,
 	"meeting_recording_verified": true, "meeting_filed": true,
 }
@@ -130,6 +136,16 @@ func meetingHealth(document state.BriefDocument, enabled bool) MeetingHealth {
 			}
 		}
 		switch record.ReviewStatus {
+		case "analysis_pending":
+			health.AnalysisPending++
+		case "luna_running":
+			health.LunaRunning++
+		case "sol_qa_pending", "qa_remediation":
+			health.SolQAPending++
+		case "cleanup_retryable":
+			health.CleanupRetryable++
+		case "cleanup_blocked":
+			health.CleanupBlocked++
 		case "pending_review", "email_pending":
 			health.PendingReview++
 		case "approved", "filing_retryable":
@@ -174,10 +190,10 @@ func WriteHealth(path string, health Health) error {
 	if health.Content.Pending < 0 || health.Content.Processed < 0 || health.Content.Blocked < 0 || health.Content.RetryableError < 0 {
 		return errors.New("health content invalid")
 	}
-	if health.Meeting.CustodyRetained < 0 || health.Meeting.CustodyDeleted < 0 || health.Meeting.CustodyBlocked < 0 || health.Meeting.CustodyOverdue < 0 || health.Meeting.CustodyMissingKey < 0 || health.Meeting.PendingReview < 0 || health.Meeting.Approved < 0 || health.Meeting.Held < 0 || health.Meeting.Filed < 0 || health.Meeting.Blocked < 0 || health.Meeting.RecordingsVerified < 0 {
+	if health.Meeting.CustodyRetained < 0 || health.Meeting.CustodyDeleted < 0 || health.Meeting.CustodyBlocked < 0 || health.Meeting.CustodyOverdue < 0 || health.Meeting.CustodyMissingKey < 0 || health.Meeting.AnalysisPending < 0 || health.Meeting.LunaRunning < 0 || health.Meeting.SolQAPending < 0 || health.Meeting.CleanupRetryable < 0 || health.Meeting.CleanupBlocked < 0 || health.Meeting.PendingReview < 0 || health.Meeting.Approved < 0 || health.Meeting.Held < 0 || health.Meeting.Filed < 0 || health.Meeting.Blocked < 0 || health.Meeting.RecordingsVerified < 0 {
 		return errors.New("health meeting invalid")
 	}
-	if health.State == "healthy" && (health.Meeting.CustodyOverdue > 0 || health.Meeting.CustodyMissingKey > 0) {
+	if health.State == "healthy" && (health.Meeting.CustodyOverdue > 0 || health.Meeting.CustodyMissingKey > 0 || health.Meeting.CleanupBlocked > 0) {
 		return errors.New("health meeting failed closed")
 	}
 	raw, err := json.Marshal(health)
