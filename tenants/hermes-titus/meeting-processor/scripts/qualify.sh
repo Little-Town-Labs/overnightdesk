@@ -39,11 +39,20 @@ grep -Eq -- '--cpus 0.5' runtime/run-container.sh
 grep -Eq -- '--memory 256m' runtime/run-container.sh
 grep -Fq -- '--volume titus-meeting-custody-data:/custody' runtime/run-container.sh
 grep -Fq -- '--custody-dir /custody' runtime/run-container.sh
-grep -Fq 'MEETING_ANALYZER_MODEL' runtime/load-analyzer-phase-env.sh
-grep -Fq 'api_server: [no_mcp]' ../config/meeting-analyzer.yaml
-grep -Fq 'memory_enabled: false' ../config/meeting-analyzer.yaml
-grep -Fq 'ExecStart=/opt/titus-meeting-analyzer/bin/run-container.sh' runtime/titus-meeting-analyzer.service
+test ! -e internal/analyzer/client.go
+test ! -e internal/analyzer/client_test.go
+test ! -e runtime/load-analyzer-phase-env.sh
+test ! -e runtime/run-analyzer-container.sh
+test ! -e runtime/stop-analyzer-container.sh
+test ! -e runtime/titus-meeting-analyzer.service
+test ! -e ../config/meeting-analyzer.yaml
+grep -Fq '"/v1/runs"' internal/orchestrator/client.go
+grep -Fq '"/api/sessions"' internal/orchestrator/client.go
+grep -Eq 'ApprovedParentModel[[:space:]]*=[[:space:]]*"gpt-5\.6-sol"' internal/orchestrator/plan.go
+grep -Eq 'ApprovedChildModel[[:space:]]*=[[:space:]]*"gpt-5\.6-luna"' internal/orchestrator/plan.go
+! grep -Eq 'MEETING_ANALYZER_(BASE_URL|API_KEY|MODEL):' runtime/load-phase-config.sh
 grep -Fq 'enable-brief' scripts/deploy-aegis.sh
+! grep -Eq 'enable --now titus-meeting-analyzer|/opt/titus-meeting-analyzer/bin|analyzer_image=' scripts/deploy-aegis.sh
 grep -Fq 'retention-sweep' scripts/deploy-aegis.sh
 ! grep -R -Eq -- '--publish(=|[[:space:]])|-p[[:space:]]+[0-9]' runtime scripts
 ! grep -R -Eq --exclude='*_test.go' --exclude=qualify.sh --exclude=content.go --exclude=recording.go --exclude-dir=testfixture '/content([?"'"'"'/[:space:]]|$)|changeNotifications|/subscriptions' cmd internal runtime scripts Dockerfile

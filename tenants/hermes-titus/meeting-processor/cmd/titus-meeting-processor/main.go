@@ -24,6 +24,7 @@ import (
 	meetingemail "github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/email"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/filer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/orchestrator"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/securityteam"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/titus"
@@ -232,10 +233,10 @@ func buildProcessor(paths paths, stderr io.Writer) (*runtimeResources, error) {
 		ring, ringErr := custody.ParseKeyRing(runtimeConfig.MeetingCustodyKeysJSON, runtimeConfig.MeetingCustodyActiveKeyID)
 		routes, routeErr := analyzer.ParseRoutesJSON(runtimeConfig.MeetingProjectRoutesJSON)
 		securityClient, securityErr := securityteam.NewClient(runtimeConfig.SecurityTeamBaseURL, runtimeConfig.SecurityServiceToken, &http.Client{Timeout: 30 * time.Second})
-		analyzerClient, analyzerErr := analyzer.NewClient(runtimeConfig.MeetingAnalyzerBaseURL, runtimeConfig.MeetingAnalyzerAPIKey, &http.Client{Timeout: 180 * time.Second})
+		orchestratorClient, orchestratorErr := orchestrator.NewClient(runtimeConfig.HermesBaseURL, runtimeConfig.HermesAPIKey, &http.Client{Timeout: 30 * time.Second})
 		mailClient, mailErr := meetingemail.NewClient(runtimeConfig.SecurityTeamBaseURL, runtimeConfig.SecurityServiceToken, meetingemail.AgentMailOrigin, runtimeConfig.MeetingAgentMailAPIKey, runtimeConfig.MeetingAgentMailInboxID, [2]string{runtimeConfig.MeetingGaryEmail, runtimeConfig.MeetingAustinEmail}, &http.Client{Timeout: 30 * time.Second})
 		review, reviewErr := approval.NewHandlerWithMutex(briefs, runtimeConfig.MeetingReviewBearer, runtimeConfig.MeetingReviewSigningSecret, runtimeConfig.MeetingGaryEmail, runtimeConfig.MeetingAustinEmail, time.Now, lifecycleMu)
-		if ringErr != nil || routeErr != nil || securityErr != nil || analyzerErr != nil || mailErr != nil || reviewErr != nil {
+		if ringErr != nil || routeErr != nil || securityErr != nil || orchestratorErr != nil || mailErr != nil || reviewErr != nil {
 			resources.close()
 			return nil, errors.New("config_invalid")
 		}
@@ -243,7 +244,7 @@ func buildProcessor(paths paths, stderr io.Writer) (*runtimeResources, error) {
 		processor.Scanner = securityClient
 		processor.Briefs = briefs
 		processor.Custody = custody.Manager{Dir: paths.custodyDir, Ring: ring}
-		processor.BriefAgent = analyzerClient
+		processor.Orchestrator = orchestratorClient
 		processor.Mailer = mailClient
 		processor.Recorder = graphClient
 		processor.Routes = routes

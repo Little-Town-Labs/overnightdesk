@@ -182,15 +182,18 @@ class RuntimeProjectionTests(unittest.TestCase):
         self.assertFalse(output.exists())
 
     def test_brief_and_filing_are_independent_exact_projections(self):
-        result, output = self.run_loader(self.source(), brief=True)
+        result, output = self.run_loader(self.source(), content=True, brief=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         projected = json.loads(output.read_text(encoding="utf-8"))
         self.assertEqual(projected["MEETING_BRIEF_ENABLED"], "true")
         self.assertNotIn("MEETING_FILING_ENABLED", projected)
-        self.assertEqual(projected["MEETING_ANALYZER_BASE_URL"], "http://hermes-titus-meeting-analyzer:8642")
+        self.assertEqual(projected["HERMES_BASE_URL"], "http://hermes-titus:8642")
+        self.assertNotIn("MEETING_ANALYZER_BASE_URL", projected)
+        self.assertNotIn("MEETING_ANALYZER_API_KEY", projected)
+        self.assertNotIn("MEETING_ANALYZER_MODEL", projected)
         self.assertEqual(projected["MEETING_RECORDING_MAX_BYTES"], "2147483648")
 
-        result, output = self.run_loader(self.source(), brief=True, filing=True)
+        result, output = self.run_loader(self.source(), content=True, brief=True, filing=True)
         self.assertEqual(result.returncode, 0, result.stderr)
         projected = json.loads(output.read_text(encoding="utf-8"))
         self.assertEqual(projected["MEETING_FILING_ENABLED"], "true")
@@ -198,6 +201,11 @@ class RuntimeProjectionTests(unittest.TestCase):
 
     def test_filing_marker_requires_brief_marker(self):
         result, output = self.run_loader(self.source(), filing=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(output.exists())
+
+    def test_brief_marker_requires_content_and_existing_titus_credentials(self):
+        result, output = self.run_loader(self.source(), brief=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(output.exists())
 

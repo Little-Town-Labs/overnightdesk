@@ -19,7 +19,7 @@
 **Checkpoint**: State migrates losslessly; VTT ciphertext is private/expiring;
 MP4 is verified without retained bytes; full meeting-processor tests pass.
 
-## Phase 3 - No-tool Hermes analysis and Meeting Brief validation
+## Phase 3 - Original analyzer implementation and Meeting Brief validation
 
 - [x] T011 Write failing schema/parser tests for every field/bound/unknown key, semantic date/VTT time, UTF-8/NFC, control/bidi/raw-HTML rejection, protected values, Markdown escaping/quoted-data rendering, action-status separation, and canonical digest in `meeting-processor/internal/analyzer/`.
 - [x] T012 Implement strict Meeting Brief v1 validation, canonicalization, rendering, and exact project-route matching in `meeting-processor/internal/analyzer/`.
@@ -28,8 +28,9 @@ MP4 is verified without retained bytes; full meeting-processor tests pass.
 - [x] T015 Add the dedicated pinned Hermes analyzer config/runtime with `api_server: [no_mcp]`, distinct bearer, no state mounts, no public port, and executable projection tests in `tenants/hermes-titus/config/` and `meeting-processor/runtime/`.
 - [x] T016 Add one-time Feature 034 processed-artifact reanalysis only when Meeting Brief v1 is absent and prove restart idempotency in `meeting-processor/internal/worker/`.
 
-**Checkpoint**: A fixture produces one strict brief through a zero-tool analyzer;
-invalid model output produces no durable brief or outbound action.
+**Historical checkpoint**: The strict brief validator remains reusable. T013-T015
+implemented the now-superseded sidecar analyzer and are retained as delivery
+history; Phase 7 removes that runtime before production activation.
 
 ## Phase 4 - Fixed internal email and exact review commands
 
@@ -68,23 +69,43 @@ or malformed inputs create nothing; no component can exceed its authority.
 - [x] T037 Run the final read-only Ringer/Sol multi-axis quality gate; allow at most one Luna remediation and one Sol delta review.
 - [x] T038 Confirm `git diff --check`, task-scoped status, generated-artifact exclusion, and reproducible clean handoff.
 
-## Phase 7 - Publication, production, and durable closeout
+## Phase 7 - Titus Sol/Luna architecture correction
 
 - [x] T039 Commit, push, open the OvernightDesk PR with Spec Kit/Ringer/security/rollback context, pass checks, and merge.
-- [ ] T040 Deploy analyzer, filer, worker, and poller disabled; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated service continuity.
-- [ ] T041 Enable brief processing, run the Gary canary, prove one draft email, seven-day encrypted custody contract, no-tool analysis, recording stream/discard, and restart idempotency.
-- [ ] T042 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.
-- [ ] T043 Exercise scoped rollback/restoration, monitor one normal interval, and append safe evidence to suite-root `deploys.log`.
-- [ ] T044 Update, review, merge, deploy, and verify the separate `overnightdesk-platform-standard` change.
-- [ ] T045 Update issue 159 with safe acceptance evidence, open the separate channel-bot/subscription follow-on, and close only the organizer meeting-brief/recording-custody scope.
-- [ ] T046 Update roadmap/feature pointer to the next selected feature and reconcile both repositories to clean `main`.
+- [x] T040 Revise the Feature 035 spec, plan, research, data model, ADR, quickstart, delivery record, and requirement traceability for Titus-owned Sol/Luna processing in `specs/035-titus-meeting-briefs/` and `docs/decisions/004-titus-meeting-brief-review.md`.
+- [x] T041 Run Spec Kit consistency analysis and a production-sensitive read-only Ringer architecture/security review for T042-T049; resolve Critical/Required design findings before implementation.
+- [x] T042 [US1] Write failing strict `meeting-qa/v1` envelope tests for pass/block, exact meeting/attempt/source binding, one remediation, matching observed delegation counts, wrong-child/stale-attempt/draft-digest mismatches, unknown fields, protected values, unsupported tool calls, and embedded Meeting Brief validation in `meeting-processor/internal/analyzer/`.
+- [x] T043 [US1] Implement strict QA-envelope parsing, canonicalization, safe error codes, and reuse of Meeting Brief validation in `meeting-processor/internal/analyzer/`.
+- [x] T044 [US1] Write failing Titus Runs/Sessions client tests for deterministic create/readback conflict, persisted create/run body digests, one run submission under lost responses, session polling, exact single-leaf delegation arguments, bounded child enumeration, child-parent lineage and observed Luna route, latest child-draft binding, restart/unknown reconciliation, cleanup retry/block, verified parent/child `404`, redirect/timeout/oversize/malformed responses, and zero approval resolution in `meeting-processor/internal/orchestrator/`.
+- [x] T045 [US1] Implement the authenticated Titus Runs/Sessions client, fixed ASCII 512-byte Luna context prefix, create/run ambiguity handling, polling/audit/child-binding logic, and verified parent/child session deletion in `meeting-processor/internal/orchestrator/`.
+- [x] T046 [US1] Write failing state/worker tests for `analysis_pending -> luna_running -> sol_qa_pending -> qa_remediation|cleanup_pending -> email_pending|blocked`, one analysis at a time, restart unknown handling, no email before QA pass, no duplicate dispatch/email, and legacy-record compatibility in `meeting-processor/internal/{state,worker}/`.
+- [x] T047 [US1] Implement the durable Sol/Luna analysis state machine and safe events/health in `meeting-processor/internal/{state,worker}/` and wire it in `cmd/titus-meeting-processor/main.go`.
+- [x] T048 Write failing Phase/runtime/deploy tests proving Feature 035 reuses the existing Titus API key, projects no analyzer model/API key, never sends a request model override, and can retire the analyzer unit/container without deleting its retained volume in `meeting-processor/tests/`.
+- [x] T049 Remove analyzer-sidecar configuration, build, unit, and deployment requirements; update disabled-first activation and rollback to use the existing healthy Titus runtime plus the private filer in `meeting-processor/runtime/` and `meeting-processor/scripts/`.
+- [x] T050 Update Titus README/runbook and Feature 035 operator evidence for session lifecycle, shared capacity, unknown attempts, QA block, cleanup failure, and content-free troubleshooting in `tenants/hermes-titus/README.md` and `tenants/hermes-titus/runbooks/meeting-artifact-discovery.md`.
+- [x] T051 Run complete Go unit/race/vet/build, Python runtime/security/release contracts, schema validation, shell syntax, leak scans, ARM64 build, and hardened-container qualification.
+- [x] T052 Refresh canonical codebase-memory impact and verify every changed seam with targeted source reads.
+- [x] T053 Run the final read-only Ringer/Sol quality gate; permit at most one Luna remediation and one Sol delta review.
+- [x] T054 Confirm `git diff --check`, task-scoped status, secret scan, no generated artifacts, and reproducible clean handoff.
+
+## Phase 8 - Correction publication, production, and durable closeout
+
+- [x] T055 Commit, push, open the correction PR with Spec Kit/Ringer/security/rollback context, pass checks, merge, and reconcile local main.
+- [ ] T056 Deploy filer, corrected worker, and poller disabled; retire the analyzer unit/container without deleting retained rollback state; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated Titus continuity.
+- [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one Luna draft, one Sol QA pass or bounded block, one fixed-recipient email only after QA pass, seven-day encrypted custody, verified session deletion, recording stream/discard, and restart idempotency.
+- [ ] T058 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.
+- [ ] T059 Exercise scoped rollback/restoration, monitor one normal interval, and append safe evidence to suite-root `deploys.log`.
+- [ ] T060 Update, review, merge, deploy, and verify the separate `overnightdesk-platform-standard` change.
+- [ ] T061 Update issue 159 with safe acceptance evidence, reference the separate channel-bot/subscription issue, and close only the organizer meeting-brief/recording-custody scope.
+- [ ] T062 Update roadmap/feature pointer to the next selected feature and reconcile both repositories to clean `main`.
 
 ## Dependencies and Ringer Ownership
 
 - T002 depends on T001. T003 depends on T002 and delegates read-only review only.
-- T004-T010, T011-T016, T017-T023, and T024-T032 are sequential vertical
+- T004-T010, T011-T016, T017-T023, T024-T032, and T042-T049 are sequential vertical
   waves; tests in each task must fail before implementation.
-- Production-sensitive tasks T039-T046 are Sol/operator only.
+- T041 is the pre-implementation read-only gate. T053 is the final read-only
+  gate. Production-sensitive mutation T040 and T042-T062 is Sol/operator only.
 - Ringer workers own no mutable paths, commits, Git state, task checkboxes,
   secrets, or production operations. The prepared read-only task may inspect
   `specs/035-titus-meeting-briefs/` and the exact source paths named above.
@@ -97,16 +118,16 @@ or malformed inputs create nothing; no component can exceed its authority.
 |--------------|--------------------------|
 | FR-001, FR-025 | T016 |
 | FR-002, FR-003, FR-032 | T004-T007, T033, T041 |
-| FR-004 | T013-T016 |
-| FR-005 | T013-T015, T035, T040-T041 |
-| FR-006-FR-009 | T011-T016, T035 |
-| FR-010-FR-012 | T017-T018, T041 |
-| FR-013-FR-015, FR-030 | T019-T023, T042 |
-| FR-016-FR-019 | T024-T032, T042 |
-| FR-020-FR-021 | T008-T010, T041 |
-| FR-022, FR-031 | T004-T032, T035, T041-T042 |
-| FR-023 | T010, T033, T035, T040-T043 |
-| FR-024, FR-029 | T006-T007, T023, T032, T040, T043 |
-| FR-026 | T041-T042 |
-| FR-027 | T034, T044-T046 |
-| FR-028 | T006-T007, T035, T040 |
+| FR-004 | T011-T012, T042-T047 |
+| FR-005-FR-006, FR-033-FR-036 | T040-T053, T056-T057 |
+| FR-007-FR-009 | T011-T012, T042-T047, T051 |
+| FR-010-FR-012 | T017-T018, T047, T057 |
+| FR-013-FR-015, FR-030 | T019-T023, T058 |
+| FR-016-FR-019 | T024-T032, T058 |
+| FR-020-FR-021 | T008-T010, T057 |
+| FR-022, FR-031 | T004-T032, T044-T051, T057-T058 |
+| FR-023 | T010, T033, T047, T050-T053, T056-T059 |
+| FR-024, FR-029 | T006-T007, T023, T032, T048-T050, T056, T059 |
+| FR-026 | T057-T058 |
+| FR-027 | T050, T060-T062 |
+| FR-028 | T006-T007, T051, T056 |

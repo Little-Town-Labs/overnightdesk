@@ -24,8 +24,6 @@ func meetingRuntimeJSON() string {
 	key := base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{7}, 32))
 	extra := `,
   "MEETING_BRIEF_ENABLED": "true",
-  "MEETING_ANALYZER_BASE_URL": "http://hermes-titus-meeting-analyzer:8642",
-  "MEETING_ANALYZER_API_KEY": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "MEETING_RAW_CUSTODY_ACTIVE_KEY_ID": "key-2026-08",
   "MEETING_RAW_CUSTODY_KEYS_JSON": "{\"key-2026-08\":\"` + key + `\"}",
   "MEETING_PROJECT_ROUTES_JSON": "[{\"canonicalProject\":\"OvernightDesk\",\"aliases\":[\"overnightdesk\"],\"noteDirectory\":\"10-projects/overnightdesk\",\"kanbanBoard\":\"overnightdesk\"}]",
@@ -129,9 +127,15 @@ func TestLoadMeetingBriefAndFilingGatesAreIndependent(t *testing.T) {
 		t.Fatalf("filing configuration rejected: %#v %v", configuration, err)
 	}
 	credentialWithoutGate := strings.Replace(testfixture.RuntimeContentJSON(), "\n}", `,
-  "MEETING_ANALYZER_API_KEY": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  "MEETING_RAW_CUSTODY_ACTIVE_KEY_ID": "key-2026-08"
 }`, 1)
 	if _, err := Load(writeConfig(t, credentialWithoutGate)); err == nil {
 		t.Fatal("meeting credential accepted without activation gate")
+	}
+	legacyAnalyzer := strings.Replace(meetingRuntimeJSON(), "\n}", `,
+  "MEETING_ANALYZER_API_KEY": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}`, 1)
+	if _, err := Load(writeConfig(t, legacyAnalyzer)); err == nil {
+		t.Fatal("retired analyzer credential accepted")
 	}
 }

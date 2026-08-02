@@ -19,7 +19,8 @@ survive state migration or handoff regeneration.
 
 Feature 035 writes a separate `meeting-brief-state.json` document with version
 1. It is keyed by the existing internal artifact reference and contains brief,
-custody, review, filing, and recording-verification lifecycle only. Provider
+custody, Titus analysis-attempt, review, filing, and recording-verification
+lifecycle only. Provider
 IDs remain solely in the version-2 discovery state and never cross the review
 or filing interfaces. A processed transcript with no Feature 035 record is
 eligible for the one-time Meeting Brief v1 path.
@@ -51,7 +52,9 @@ invalid and blocks activation rather than inventing the original digest.
 The nonce is prepended to ciphertext and authenticated through file format
 versioning. Associated data binds custody version, internal meeting reference,
 artifact kind, key ID, plaintext digest, and creation timestamp. Plaintext and
-screened content are never state fields.
+screened content are never meeting-processor state fields. They exist only in
+memory and in the dedicated Titus parent/delegated-child session until terminal
+QA cleanup; they never enter general Titus memory or project knowledge.
 
 Configuration contains one active key ID and a map of key ID to 32-byte key.
 Rotation adds a new key and makes it active; every old key stays projected until
@@ -75,7 +78,8 @@ The canonical payload is defined by
 | `brief` | object | Strict schema-valid Meeting Brief v1 |
 | `briefDigest` | string | Canonical JSON SHA-256 |
 | `projectRoute` | object/null | Exact immutable route snapshot or unknown |
-| `reviewStatus` | enum | `draft`, `email_pending`, `pending_review`, `approved`, `held`, `filing_retryable`, `filed`, `blocked` |
+| `reviewStatus` | enum | `analysis_pending`, `luna_running`, `sol_qa_pending`, `qa_remediation`, `email_pending`, `pending_review`, `approved`, `held`, `filing_retryable`, `filed`, `blocked` |
+| `analysis` | object/null | Safe Titus session/run correlation and QA lifecycle below |
 | `email` | object/null | Provider-safe delivery metadata |
 | `decision` | object/null | First terminal decision metadata |
 | `filing` | object/null | Idempotent result metadata |
@@ -83,6 +87,73 @@ The canonical payload is defined by
 | `updatedAt` | timestamp | Monotonic UTC RFC3339 |
 | `retryCount` | integer | Bounded `0..8` per stage |
 | `lastErrorCode` | string/null | Allowlisted safe code |
+
+## TitusAnalysisAttempt
+
+The state never stores transcript text, Luna output, Sol reasoning, or full
+session messages. It stores only safe correlation needed to reconcile the
+background workflow.
+
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `version` | integer | Exactly `1` |
+| `attempt` | integer | `1..8` infrastructure attempts |
+| `sessionId` | string | Deterministic `meeting-` plus safe digest-derived suffix and attempt |
+| `runId` | string/null | Hermes `run_` identifier after accepted dispatch |
+| `createBodyDigest` | string | Lowercase SHA-256 of the exact deterministic Sessions create body |
+| `runBodyDigest` | string/null | Lowercase SHA-256 recorded before the sole Runs submission |
+| `childSessionIds` | string array | Zero to two authenticated child IDs whose parent is `sessionId` |
+| `childRouteVerified` | boolean | True only after every child reports the approved Titus Luna model |
+| `childDraftDigest` | string/null | Canonical digest of the latest verified Luna Meeting Brief result |
+| `status` | enum | `dispatch_pending`, `dispatch_unknown`, `luna_running`, `sol_qa_pending`, `qa_remediation`, `qa_passed`, `qa_blocked`, `cleanup_pending`, `cleanup_retryable`, `cleanup_blocked`, `deleted`, `unknown` |
+| `delegationCount` | integer | `0..2`; observed from parent tool calls |
+| `qaReviewCount` | integer | `0..2`; exact validated envelope count |
+| `startedAt` | timestamp | UTC RFC3339 |
+| `lastObservedAt` | timestamp | UTC RFC3339, monotonic |
+| `completedAt` | timestamp/null | Set only for terminal QA |
+| `deletedAt` | timestamp/null | Set only after Sessions API returns not found |
+| `outcomeCode` | string/null | Allowlisted terminal QA-block or session-conflict reason retained through cleanup |
+| `lastErrorCode` | string/null | Allowlisted content-free code |
+
+The exact `meeting-qa/v1` envelope contains `status`, `meetingReference`,
+`attempt`, `sourceDigest`, `draftAttempts`, `qaReviews`, and either a strict
+`brief` for `QA_PASS` or an allowlisted `safeReasonCode` for `QA_BLOCKED`.
+The three correlation values must equal local immutable state. Pass requires
+one or two observed single-child `delegate_task` calls, exact safe arguments,
+matching counts, no other parent tool call, verified child-session lineage and
+Luna route, and an embedded brief whose canonical digest equals the strict
+Meeting Brief parsed from the latest verified child's final assistant result.
+A QA envelope is eligible only when it is the latest non-empty parent assistant
+result and occurs after the final audited delegation.
+A blocked envelope never contains an email-eligible brief.
+
+### Runs and Sessions reconciliation
+
+The processor performs one compare-and-set controlled attempt at a time:
+
+1. Persist the deterministic session ID, exact create-body digest, and
+   `dispatch_pending` before `POST /api/sessions`.
+2. Accept `201`, or accept `409` only when the persisted digest matches and
+   authenticated `GET /api/sessions/{id}` confirms the deterministic ID,
+   title, source, system-prompt presence, configured Sol route, and no model
+   snapshot on the pre-run session. Any conflicting local state is cleanup-only.
+3. Persist the exact run-body digest and `dispatch_unknown` before the attempt's
+   only `POST /v1/runs`. A successful `202` adds `runId`; a lost response never
+   causes a second POST for that attempt.
+   A lost session-create response also enters `dispatch_unknown` immediately;
+   the processor never repeats that attempt's create POST.
+4. Reconcile from authenticated parent messages and bounded child-session list
+   pages. Post-run `has_model_config=true` is expected because Hermes persists
+   its inherited runtime model snapshot when the run starts; reconciliation
+   continues to require the observed parent model to be Sol but does not treat
+   that normal snapshot as a request override. An empty or incomplete session
+   or unavailable readback is polled until the attempt deadline;
+   it is then cleanup-only and retried under the next attempt number.
+5. After terminal QA, enumerate one or two children by exact
+   `parent_session_id`, retain their IDs, delete the parent, and require
+   authenticated `404 session_not_found` for parent and children. Cleanup
+   failures retry without email; exhaustion becomes `cleanup_blocked` and
+   requires operator action while custody deletion continues independently.
 
 ## Brief Content
 
@@ -262,11 +333,30 @@ rules above; prompt-text pattern matching is not treated as a security control.
 transcript processed/no brief
         |
         v
-custody retained -> analyzed -> email_pending -> pending_review
-                                             |          |
-                                             |          +-> held
-                                             v
-                                          approved -> filing_retryable -> filed
+custody retained -> analysis_pending -> luna_running -> sol_qa_pending
+                                                       |          |
+                                                       |          +-> qa_remediation
+                                                       |                    |
+                                                       |                    +-> sol_qa_pending
+                                                       v
+                                                  cleanup_pending
+                                                   |          +-> cleanup_retryable
+                                                   |                    |
+                                                   |                    +-> cleanup_blocked
+                                                   |                         (no email/filing)
+                                                   |
+                                                   +-> blocked (QA_BLOCKED, cleanup verified)
+                                                   v
+                                              email_pending (QA_PASS, cleanup verified)
+                                                   |
+                                                   v
+                                             pending_review
+                                                                  |       |
+                                                                  |       +-> held
+                                                                  v
+                                                              approved -> filing_retryable -> filed
+
+running --(Titus restart/deadline/ambiguity)--> unknown -> cleanup_pending -> analysis_pending
 
 custody retained -> retained --(168h sweep)--> deleted
 
@@ -278,8 +368,8 @@ recording pending -> verified
 Every transition is compare-and-set against the current lifecycle and request
 digest. A prior terminal state is never replaced by a retry result.
 
-Rollback removes both Feature 035 activation markers and stops the analyzer and
-filer. The prior worker reads the still-version-2 discovery state (with legacy
+Rollback removes both Feature 035 activation markers and stops new meeting
+runs plus the filer. The prior worker reads the still-version-2 discovery state (with legacy
 output replaced by its validator-compatible safe sentinel). Feature 035 state
 and ciphertext remain untouched and are read-only until the Feature 035 release
 is restored; a root-owned retention-only sweep remains available so rollback

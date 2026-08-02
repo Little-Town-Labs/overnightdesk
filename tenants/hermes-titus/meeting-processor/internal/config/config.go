@@ -36,8 +36,6 @@ type Config struct {
 	HermesBaseURL              string
 	HermesAPIKey               string
 	MeetingBriefEnabled        bool
-	MeetingAnalyzerBaseURL     string
-	MeetingAnalyzerAPIKey      string
 	MeetingCustodyActiveKeyID  string
 	MeetingCustodyKeysJSON     string
 	MeetingProjectRoutesJSON   string
@@ -69,8 +67,6 @@ type runtimeDocument struct {
 	SecurityMaxBytes           string `json:"SECURITYTEAM_MAX_RESPONSE_BYTES,omitempty"`
 	TitusMaxOutputBytes        string `json:"TITUS_MAX_OUTPUT_BYTES,omitempty"`
 	MeetingBriefEnabled        string `json:"MEETING_BRIEF_ENABLED,omitempty"`
-	MeetingAnalyzerBaseURL     string `json:"MEETING_ANALYZER_BASE_URL,omitempty"`
-	MeetingAnalyzerAPIKey      string `json:"MEETING_ANALYZER_API_KEY,omitempty"`
 	MeetingCustodyActiveKeyID  string `json:"MEETING_RAW_CUSTODY_ACTIVE_KEY_ID,omitempty"`
 	MeetingCustodyKeysJSON     string `json:"MEETING_RAW_CUSTODY_KEYS_JSON,omitempty"`
 	MeetingProjectRoutesJSON   string `json:"MEETING_PROJECT_ROUTES_JSON,omitempty"`
@@ -136,14 +132,14 @@ func Load(path string) (Config, error) {
 		return Config{}, errors.New("runtime content configuration invalid")
 	}
 	meetingEnabled := raw.MeetingBriefEnabled == "true"
-	meetingValues := []string{raw.MeetingAnalyzerBaseURL, raw.MeetingAnalyzerAPIKey, raw.MeetingCustodyActiveKeyID, raw.MeetingCustodyKeysJSON, raw.MeetingProjectRoutesJSON, raw.MeetingAgentMailAPIKey, raw.MeetingAgentMailInboxID, raw.MeetingGaryEmail, raw.MeetingAustinEmail, raw.MeetingReviewBearer, raw.MeetingReviewSigningSecret, raw.MeetingRecordingMaxBytes}
+	meetingValues := []string{raw.MeetingCustodyActiveKeyID, raw.MeetingCustodyKeysJSON, raw.MeetingProjectRoutesJSON, raw.MeetingAgentMailAPIKey, raw.MeetingAgentMailInboxID, raw.MeetingGaryEmail, raw.MeetingAustinEmail, raw.MeetingReviewBearer, raw.MeetingReviewSigningSecret, raw.MeetingRecordingMaxBytes}
 	if raw.MeetingBriefEnabled == "" {
 		for _, value := range meetingValues {
 			if value != "" {
 				return Config{}, errors.New("runtime meeting configuration invalid")
 			}
 		}
-	} else if !meetingEnabled || raw.MeetingAnalyzerBaseURL != "http://hermes-titus-meeting-analyzer:8642" || !validCredential(raw.MeetingAnalyzerAPIKey) || !validCredential(raw.MeetingAgentMailAPIKey) || !validCredential(raw.MeetingReviewBearer) || !validCredential(raw.MeetingReviewSigningSecret) || raw.MeetingAgentMailInboxID == "" || raw.MeetingGaryEmail == "" || raw.MeetingAustinEmail == "" || raw.MeetingRecordingMaxBytes != "2147483648" || raw.MeetingCustodyActiveKeyID == "" || raw.MeetingCustodyKeysJSON == "" || raw.MeetingProjectRoutesJSON == "" {
+	} else if !meetingEnabled || !contentEnabled || !validCredential(raw.MeetingAgentMailAPIKey) || !validCredential(raw.MeetingReviewBearer) || !validCredential(raw.MeetingReviewSigningSecret) || raw.MeetingAgentMailInboxID == "" || raw.MeetingGaryEmail == "" || raw.MeetingAustinEmail == "" || raw.MeetingRecordingMaxBytes != "2147483648" || raw.MeetingCustodyActiveKeyID == "" || raw.MeetingCustodyKeysJSON == "" || raw.MeetingProjectRoutesJSON == "" {
 		return Config{}, errors.New("runtime meeting configuration invalid")
 	}
 	if contentEnabled || meetingEnabled {
@@ -174,7 +170,7 @@ func Load(path string) (Config, error) {
 		InitialLookbackHours: InitialLookbackHours,
 		ContentEnabled:       contentEnabled, SecurityTeamBaseURL: raw.SecurityTeamBaseURL,
 		SecurityServiceToken: raw.SecurityServiceToken, HermesBaseURL: raw.HermesBaseURL, HermesAPIKey: raw.HermesAPIKey,
-		MeetingBriefEnabled: meetingEnabled, MeetingAnalyzerBaseURL: raw.MeetingAnalyzerBaseURL, MeetingAnalyzerAPIKey: raw.MeetingAnalyzerAPIKey,
+		MeetingBriefEnabled:       meetingEnabled,
 		MeetingCustodyActiveKeyID: raw.MeetingCustodyActiveKeyID, MeetingCustodyKeysJSON: raw.MeetingCustodyKeysJSON, MeetingProjectRoutesJSON: raw.MeetingProjectRoutesJSON,
 		MeetingAgentMailAPIKey: raw.MeetingAgentMailAPIKey, MeetingAgentMailInboxID: raw.MeetingAgentMailInboxID, MeetingGaryEmail: raw.MeetingGaryEmail, MeetingAustinEmail: raw.MeetingAustinEmail,
 		MeetingReviewBearer: raw.MeetingReviewBearer, MeetingReviewSigningSecret: raw.MeetingReviewSigningSecret, MeetingRecordingMaxBytes: 2 << 30,

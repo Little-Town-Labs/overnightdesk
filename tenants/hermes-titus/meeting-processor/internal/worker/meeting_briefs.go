@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base32"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"sort"
@@ -16,7 +15,6 @@ import (
 	meetingemail "github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/email"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/filer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
-	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/securityteam"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
 )
 
@@ -25,7 +23,7 @@ func (processor Processor) processMeetingBriefs(ctx context.Context, discovery *
 		processor.LifecycleMu.Lock()
 		defer processor.LifecycleMu.Unlock()
 	}
-	if processor.Briefs == nil || processor.Content == nil || processor.Scanner == nil || processor.BriefAgent == nil || processor.Mailer == nil || processor.Recorder == nil {
+	if processor.Briefs == nil || processor.Content == nil || processor.Scanner == nil || processor.Orchestrator == nil || processor.Mailer == nil || processor.Recorder == nil {
 		return errors.New("meeting_config_invalid")
 	}
 	if err := MigrateLegacyOutputs(processor.Store, processor.Briefs, processor.HandoffPath, now); err != nil {
@@ -34,6 +32,9 @@ func (processor Processor) processMeetingBriefs(ctx context.Context, discovery *
 	*discovery = processor.Store.Document()
 	if err := processor.sweepCustody(now); err != nil {
 		return err
+	}
+	if meetingCleanupBlocked(processor.Briefs.Document()) {
+		return errors.New("orchestrator_cleanup_failed")
 	}
 	if err := processor.processOneMeetingTranscript(ctx, discovery, now, cycleID); err != nil {
 		return err
@@ -50,6 +51,15 @@ func (processor Processor) processMeetingBriefs(ctx context.Context, discovery *
 		}
 	}
 	return nil
+}
+
+func meetingCleanupBlocked(document state.BriefDocument) bool {
+	for _, record := range document.Records {
+		if record.ReviewStatus == "cleanup_blocked" || (record.Analysis != nil && record.Analysis.Status == "cleanup_blocked") {
+			return true
+		}
+	}
+	return false
 }
 
 func (processor Processor) sweepCustody(now time.Time) error {
@@ -97,7 +107,8 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 			continue
 		}
 		record, exists := briefs.Records[key]
-		if record.ReviewStatus != "blocked" && (!exists || record.BriefDigest == "" || record.ReviewStatus == "email_pending") {
+		if record.ReviewStatus != "blocked" && record.ReviewStatus != "cleanup_blocked" &&
+			(!exists || record.BriefDigest == "" || record.ReviewStatus == "email_pending" || record.ReviewStatus == "cleanup_pending" || record.ReviewStatus == "cleanup_retryable") {
 			keys = append(keys, key)
 		}
 	}
@@ -112,65 +123,22 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 	if !exists {
 		record = state.BriefRecord{InternalReference: key, MigrationStatus: "not_applicable", CreatedAt: timestamp, UpdatedAt: timestamp}
 	}
-	if record.BriefDigest == "" {
-		raw, err := processor.transcriptPlaintext(ctx, artifact, &record, now)
-		if err != nil {
-			markBriefFailure(&record, meetingSafeCode(err), timestamp)
-			briefs.Records[key] = record
-			return processor.Briefs.Commit(briefs)
+	if record.Analysis != nil && (record.Analysis.Status == "cleanup_pending" || record.Analysis.Status == "cleanup_retryable") {
+		if err := processor.advanceMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
+			return err
 		}
-		safe, err := processor.Scanner.Scan(ctx, raw, artifact.InternalReference, artifact.OrganizerSlot)
-		for index := range raw {
-			raw[index] = 0
-		}
-		if err != nil {
-			markBriefFailure(&record, securityteam.SafeCode(err), timestamp)
-			briefs.Records[key] = record
-			return processor.Briefs.Commit(briefs)
-		}
-		protected := []string{processor.Config.TenantID, processor.Config.ClientID, artifact.ProviderMeetingID, artifact.ProviderArtifactID, processor.Config.MeetingGaryEmail, processor.Config.MeetingAustinEmail, processor.Config.MeetingAgentMailInboxID}
-		for _, organizer := range processor.Config.Organizers {
-			protected = append(protected, organizer.UserID)
-		}
-		validated, err := processor.BriefAgent.Analyze(ctx, artifact.InternalReference, artifact.ProviderCreatedAt, safe, protected)
-		if err != nil {
-			markBriefFailure(&record, analyzer.SafeCode(err), timestamp)
-			briefs.Records[key] = record
-			return processor.Briefs.Commit(briefs)
-		}
-		reference := meetingReference(key)
-		route := analyzer.MatchRoute(validated.Brief, processor.Routes)
-		record.MeetingReference = reference
-		record.SourceDigest = record.Custody.PlaintextSHA256
-		record.Brief = append(json.RawMessage(nil), validated.Canonical...)
-		record.BriefDigest = validated.Digest
-		record.AnalysisPromptVersion = "meeting-brief-prompt/v1"
-		record.ReviewStatus = "email_pending"
-		record.LastErrorCode = ""
-		if route != nil {
-			record.ProjectRoute = &state.ProjectRoute{CanonicalProject: route.CanonicalProject, NoteDirectory: route.NoteDirectory, KanbanBoard: route.KanbanBoard, ConfigDigest: route.ConfigDigest}
-		}
-		record.UpdatedAt = timestamp
-		briefs.Records[key] = record
-		if err := processor.Briefs.Commit(briefs); err != nil {
-			return errors.New(state.ErrorCode(err))
-		}
-		artifact.ContentStatus = "processed"
-		artifact.TitusOutput = state.LegacySentinel
-		d := sha256.Sum256([]byte(state.LegacySentinel))
-		artifact.TitusOutputDigest = hex.EncodeToString(d[:])
-		artifact.RawContentDigest = record.SourceDigest
-		artifact.SafeContentDigest = digest(safe)
-		artifact.ContentProcessedAt = timestamp
-		artifact.LastContentAttemptAt = timestamp
-		artifact.ContentErrorCode = ""
-		discovery.Artifacts[key] = artifact
-		if err := processor.Store.Commit(*discovery); err != nil {
-			return errors.New(state.ErrorCode(err))
-		}
-		processor.event(Event{Event: "meeting_brief_created", CycleID: cycleID, OrganizerSlot: artifact.OrganizerSlot, ArtifactType: "transcript", State: "email_pending", CorrelationReference: record.MeetingReference})
 		briefs = processor.Briefs.Document()
 		record = briefs.Records[key]
+	}
+	if record.BriefDigest == "" {
+		if err := processor.advanceMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
+			return err
+		}
+		briefs = processor.Briefs.Document()
+		record = briefs.Records[key]
+		if record.BriefDigest == "" {
+			return nil
+		}
 	}
 	if record.ReviewStatus == "email_pending" {
 		var brief analyzer.Brief

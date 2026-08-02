@@ -6,10 +6,12 @@
 metadata references for transcripts and recordings from scheduled,
 non-channel meetings organized by the two approved pilot users. A separate
 host marker can activate Feature 035: encrypted seven-day transcript custody,
-SecurityTeam screening, strict analysis by a dedicated no-tool Hermes runtime,
-fixed Gary/Austin email, exact reply review, and bounded stream/hash/discard
-recording verification. A separate marker activates approved-only filing. The
-service does not expose Microsoft Graph as an agent tool or create a webhook or
+SecurityTeam screening, Titus-owned Sol/Luna analysis through the existing
+private Hermes API, fixed Gary/Austin email, exact reply review, and bounded
+stream/hash/discard recording verification. Primary Sol owns orchestration and
+QA; the configured Luna child produces the bounded draft and may receive one
+remediation. A separate marker activates approved-only filing. The service
+does not expose Microsoft Graph as an agent tool or create a webhook or
 subscription. Channel meetings remain out of scope.
 
 The worker uses `/agents/hermes-titus/teamsmeetings`. Keep `MSGRAPH_*` meeting
@@ -47,14 +49,16 @@ scripts/deploy-aegis.sh verify-feature-035-disabled
 ```
 
 The unified disabled install first runs local qualification. Before promoting
-any remote processor, analyzer, or filer runtime, it removes only the Feature
-035 brief and filing markers, stops analyzer and filer, and reloads the active
-processor and Titus intake route without Feature 035 credentials. It then
+any remote processor or filer runtime, it removes only the Feature 035 brief
+and filing markers, stops the retired analyzer and active filer, and reloads
+the active processor and Titus intake route without Feature 035 credentials. It then
 prepares immutable releases, initializes the inactive filer including the
 exact `00-inbox/meetings` destination, and re-verifies the disabled surface.
-The Feature 034 content marker is unchanged. The shared poller install deploys
+The Feature 034 content marker is unchanged. The analyzer image, unit, model,
+and API key are not installed or projected; any stopped legacy container and
+retained volume stay untouched for rollback cooling-off. The shared poller install deploys
 the reviewed interception code while the absent brief marker keeps that path
-disabled. Final verification proves analyzer and filer are stopped, both
+disabled. Final verification proves the retired analyzer and filer are stopped, both
 Feature 035 projections are absent, metadata discovery retains its prior
 enabled/disabled state, and Titus plus Titus email intake remain active. No
 state or named volume is removed.
@@ -100,16 +104,26 @@ Required value-safe evidence:
 1. The host marker is a root-owned, empty, non-symlink mode-0444 file.
 2. The runtime projection has the fixed private origins and bounded values;
    secrets remain absent from Docker environment metadata and operator output.
-3. Gary's transcript produces one strict Meeting Brief reference and one email
-   read back with recipient set `gary+austin`.
+3. Gary's transcript produces one dedicated parent session, one configured
+   Luna child draft, one Sol QA result, one strict Meeting Brief reference, and
+   one email read back with recipient set `gary+austin`.
 4. Raw WebVTT exists only as mode-0600 AES-256-GCM ciphertext with an expiry
    exactly 168 hours after creation; safe state contains digests, not content.
-5. The analyzer has `api_server: [no_mcp]`, no memory or project mount, and no
-   durable session. Rejected model output creates no brief or email.
-6. Recording content is streamed once as bounded MP4, hashed, and discarded.
+5. Session audit proves the child `parent_session_id`, observed
+   `gpt-5.6-luna` route, fixed leaf delegation arguments, source/draft digests,
+   and exact one-or-two draft/review counts. Feature 035 sends no request model
+   override and never resolves a Hermes tool approval. `QA_BLOCKED`, malformed
+   output, route mismatch, or lineage mismatch creates no brief or email.
+6. Before any email, authenticated readback returns `session_not_found` for
+   the parent and every observed child. Cleanup retry keeps the brief private;
+   exhausted cleanup blocks the workflow and degrades health.
+7. Recording content is streamed once as bounded MP4, hashed, and discarded.
    Only digest, byte count, MIME, and verification time survive.
-7. Restart makes zero duplicate transcript, model, mail, or recording calls.
-   Austin may remain at zero artifacts; that is not a failure.
+8. Restart makes zero duplicate transcript, run, mail, or recording calls. A
+   persisted `dispatch_unknown` attempt is reconciled through authenticated
+   sessions and is never resubmitted. After 20 minutes it is cleaned up and
+   retried within the bounded attempt policy. Austin may remain at zero
+   artifacts; that is not a failure.
 
 After Gary or Austin sends one exact clean `APPROVE <reference>` or `HOLD
 <reference>` reply, verify the first terminal decision wins. Enable filing only
@@ -146,8 +160,12 @@ memory. Inspect only modes, ownership, booleans, safe status, and counts.
 | `transcript_content_invalid` | Keep the artifact blocked; confirm MIME, WebVTT, UTF-8, and size policy without copying content into diagnostics. |
 | `securityteam_unavailable` / `securityteam_response_invalid` | Keep content enabled only if bounded retries are appropriate; verify the private service contract without bypassing screening. |
 | `securityteam_blocked` | Treat as terminal for the pilot. Do not move content to the approval queue or submit it to Titus. |
-| `analyzer_unavailable` / `analyzer_response_invalid` | Preserve encrypted custody and retry later; never create a reusable session. |
-| `analyzer_output_rejected` | Inspect only the safe code; do not persist, email, or publish rejected output. |
+| `orchestrator_unavailable` / `orchestrator_session_unavailable` | Preserve encrypted custody and persisted correlation state. Reconcile the existing session; never submit the same ambiguous run again. |
+| `orchestrator_attempt_unknown` | Allow bounded session discovery until the 20-minute deadline, then clean up the known parent/children before starting the next attempt. |
+| `orchestrator_tool_audit_failed` / `orchestrator_child_mismatch` | Treat the attempt as terminal, retain no accepted brief, delete and verify the meeting sessions, and do not email. |
+| `qa_output_rejected` | Inspect only the safe code; do not persist, email, or publish rejected output. |
+| `faithfulness_failed` / `schema_failed` / `unsupported_claims` / `ownership_or_date_failed` / `project_identification_failed` / `remediation_exhausted` | This is a bounded `QA_BLOCKED` result. Delete and verify sessions, block the artifact, and send no email. |
+| `orchestrator_cleanup_failed` | Keep any candidate brief private and retry deletion only. If cleanup exhausts eight attempts, stop new transitions and repair Hermes session deletion before proceeding. |
 | `custody_key_missing` / `custody_referenced_key_missing` | Stop new meeting transitions, restore the referenced key without displaying it, and rerun retention. |
 | `custody_retention_overdue` | Stop new meeting transitions, repair deletion, and sweep until no object is overdue. |
 | `meeting_email_*` | Preserve deterministic idempotency state; do not bypass SecurityTeam or resend manually. |
@@ -177,9 +195,10 @@ scripts/deploy-aegis.sh verify-feature-035-disabled
 The prior worker remains able to read version-2 discovery state containing the
 exact safe sentinel. Rollback never retracts an already-created note or task.
 
-`disable-brief` stops both private services, removes both Feature 035 markers,
-reloads the meeting processor, restarts Titus email intake without meeting
-review credentials, and preserves Feature 034 metadata/content state. The
+`disable-brief` stops the private filer and any retired analyzer unit, removes
+both Feature 035 markers, reloads the meeting processor, restarts Titus email
+intake without meeting review credentials, and preserves Feature 034
+metadata/content state. It does not stop the shared Titus Hermes runtime. The
 retention-only sweep continues against the retained custody volume.
 
 The earlier content-only controls remain available only for Feature 034 rollback:
@@ -198,12 +217,31 @@ scripts/deploy-aegis.sh rollback
 ```
 
 Whole-worker rollback additionally stops `titus-meeting-processor.service`.
-The coordinated order above already stopped the analyzer and filer and removed
+The coordinated order above already stopped the retired analyzer and filer and removed
 their authority from the worker and intake projections. It retains processor,
 custody, filer, project-knowledge, and Kanban volumes plus immutable releases
 for reconciliation. It does not restart Titus, alter the Teams bot, revoke
 Graph permissions, or delete evidence. Record any authorized production action
 and verification result in the suite deployment ledger.
+
+## Content-free session troubleshooting
+
+Inspect only the aggregate meeting fields in the private health record:
+`analysis_pending`, `luna_running`, `sol_qa_pending`, `cleanup_retryable`, and
+`cleanup_blocked`. These counters contain no transcript, brief, participant,
+session ID, email address, or provider identifier. `qa_remediation` contributes
+to `sol_qa_pending`; it means the one permitted second Luna draft is being
+reviewed. `cleanup_retryable` means only deletion may be retried. Any
+`cleanup_blocked` value makes a healthy record invalid and requires operator
+repair before email or filing can continue.
+
+Titus and meeting analysis share the existing provider subscription and model
+routes. A backlog in `luna_running` or `sol_qa_pending` can therefore reflect
+shared capacity; do not add a feature-specific provider key or model override.
+Confirm the main `hermes-titus` container remains healthy, its primary route is
+Sol, its child route is Luna with `max_spawn_depth: 1`, and the analyzer unit
+and container remain inactive. Never print the Sessions API response, message
+content, IDs, runtime secret files, or custody data while troubleshooting.
 
 ## Deferred channel-meeting gates
 

@@ -308,7 +308,7 @@ func validSafeCode(code string) bool {
 		"provider_response_invalid", "transcript_content_invalid", "securityteam_unavailable",
 		"securityteam_response_invalid", "securityteam_blocked", "titus_unavailable",
 		"titus_response_invalid", "titus_output_rejected", "state_invalid",
-		"handoff_unavailable", "health_unavailable":
+		"handoff_unavailable", "health_unavailable", "meeting_qa_blocked":
 		return true
 	default:
 		return false

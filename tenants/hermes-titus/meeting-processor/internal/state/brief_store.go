@@ -21,7 +21,12 @@ const (
 	MaxBriefStateSize = int64(32 << 20)
 )
 
-var meetingReferencePattern = regexp.MustCompile(`^MB-[A-Z2-7]{12}$`)
+var (
+	meetingReferencePattern  = regexp.MustCompile(`^MB-[A-Z2-7]{12}$`)
+	sessionIdentifierPattern = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,160}$`)
+	runIdentifierPattern     = regexp.MustCompile(`^run_[0-9a-f]{32}$`)
+	safeCodePattern          = regexp.MustCompile(`^[a-z0-9_]{1,80}$`)
+)
 
 type BriefDocument struct {
 	Version int                    `json:"version"`
@@ -38,6 +43,7 @@ type BriefRecord struct {
 	BriefDigest           string                 `json:"brief_digest,omitempty"`
 	AnalysisPromptVersion string                 `json:"analysis_prompt_version,omitempty"`
 	ReviewStatus          string                 `json:"review_status,omitempty"`
+	Analysis              *AnalysisAttempt       `json:"analysis,omitempty"`
 	Custody               *custody.Record        `json:"custody,omitempty"`
 	ProjectRoute          *ProjectRoute          `json:"project_route,omitempty"`
 	Email                 *EmailDelivery         `json:"email,omitempty"`
@@ -48,6 +54,29 @@ type BriefRecord struct {
 	UpdatedAt             string                 `json:"updated_at"`
 	RetryCount            int                    `json:"retry_count,omitempty"`
 	LastErrorCode         string                 `json:"last_error_code,omitempty"`
+}
+
+type AnalysisAttempt struct {
+	Version            int      `json:"version"`
+	Attempt            int      `json:"attempt"`
+	SessionID          string   `json:"session_id"`
+	RunID              string   `json:"run_id,omitempty"`
+	CreateBodyDigest   string   `json:"create_body_digest"`
+	RunBodyDigest      string   `json:"run_body_digest"`
+	ScreenedDigest     string   `json:"screened_digest"`
+	ChildSessionIDs    []string `json:"child_session_ids"`
+	ChildRouteVerified bool     `json:"child_route_verified"`
+	ChildDraftDigest   string   `json:"child_draft_digest,omitempty"`
+	OutcomeCode        string   `json:"outcome_code,omitempty"`
+	Status             string   `json:"status"`
+	DelegationCount    int      `json:"delegation_count"`
+	QAReviewCount      int      `json:"qa_review_count"`
+	CleanupRetryCount  int      `json:"cleanup_retry_count"`
+	StartedAt          string   `json:"started_at"`
+	LastObservedAt     string   `json:"last_observed_at"`
+	CompletedAt        string   `json:"completed_at,omitempty"`
+	DeletedAt          string   `json:"deleted_at,omitempty"`
+	LastErrorCode      string   `json:"last_error_code,omitempty"`
 }
 
 type ProjectRoute struct {
@@ -171,7 +200,7 @@ func validateBriefDocument(doc BriefDocument) error {
 			createdErr != nil || updatedErr != nil || updated.Before(created) ||
 			(record.MeetingReference != "" && !meetingReferencePattern.MatchString(record.MeetingReference)) ||
 			(record.SourceDigest != "" && !digestPattern.MatchString(record.SourceDigest)) ||
-			(record.BriefDigest != "" && !digestPattern.MatchString(record.BriefDigest)) || (record.AnalysisPromptVersion != "" && record.AnalysisPromptVersion != "meeting-brief-prompt/v1") || record.RetryCount < 0 || record.RetryCount > 8 || !validBriefReviewStatus(record.ReviewStatus) {
+			(record.BriefDigest != "" && !digestPattern.MatchString(record.BriefDigest)) || (record.AnalysisPromptVersion != "" && !oneOfBrief(record.AnalysisPromptVersion, "meeting-brief-prompt/v1", "meeting-sol-luna/v1")) || record.RetryCount < 0 || record.RetryCount > 8 || !validBriefReviewStatus(record.ReviewStatus) {
 			return invalidState()
 		}
 		if record.MigrationStatus == "migration_pending" && record.LegacyAnalysisDigest == "" {
@@ -195,12 +224,41 @@ func validateBriefDocument(doc BriefDocument) error {
 		if record.Recording != nil && !validRecording(*record.Recording) {
 			return invalidState()
 		}
+		if record.Analysis != nil && !validAnalysisAttempt(*record.Analysis) {
+			return invalidState()
+		}
 	}
 	return nil
 }
 
 func validBriefReviewStatus(value string) bool {
-	return oneOfBrief(value, "", "draft", "email_pending", "pending_review", "approved", "held", "filing_retryable", "filed", "blocked")
+	return oneOfBrief(value, "", "draft", "analysis_pending", "luna_running", "sol_qa_pending", "qa_remediation", "cleanup_pending", "cleanup_retryable", "cleanup_blocked", "email_pending", "pending_review", "approved", "held", "filing_retryable", "filed", "blocked")
+}
+
+func validAnalysisAttempt(value AnalysisAttempt) bool {
+	startedAt, startedErr := time.Parse(time.RFC3339Nano, value.StartedAt)
+	lastObservedAt, observedErr := time.Parse(time.RFC3339Nano, value.LastObservedAt)
+	if value.Version != 1 || value.Attempt < 1 || value.Attempt > 8 || !sessionIdentifierPattern.MatchString(value.SessionID) ||
+		(value.RunID != "" && !runIdentifierPattern.MatchString(value.RunID)) || !digestPattern.MatchString(value.CreateBodyDigest) ||
+		!digestPattern.MatchString(value.RunBodyDigest) || !digestPattern.MatchString(value.ScreenedDigest) ||
+		(value.ChildDraftDigest != "" && !digestPattern.MatchString(value.ChildDraftDigest)) || (value.OutcomeCode != "" && !safeCodePattern.MatchString(value.OutcomeCode)) || len(value.ChildSessionIDs) > 2 ||
+		value.DelegationCount < 0 || value.DelegationCount > 2 || value.QAReviewCount < 0 || value.QAReviewCount > 2 ||
+		value.CleanupRetryCount < 0 || value.CleanupRetryCount > 8 || startedErr != nil || observedErr != nil || lastObservedAt.Before(startedAt) ||
+		(value.CompletedAt != "" && !validTimestamp(value.CompletedAt)) || (value.DeletedAt != "" && !validTimestamp(value.DeletedAt)) ||
+		!oneOfBrief(value.Status, "dispatch_pending", "dispatch_unknown", "luna_running", "sol_qa_pending", "qa_remediation", "qa_passed", "qa_blocked", "cleanup_pending", "cleanup_retryable", "cleanup_blocked", "deleted", "unknown") {
+		return false
+	}
+	seen := map[string]bool{}
+	for _, child := range value.ChildSessionIDs {
+		if !sessionIdentifierPattern.MatchString(child) || seen[child] {
+			return false
+		}
+		seen[child] = true
+	}
+	if value.ChildRouteVerified && len(value.ChildSessionIDs) == 0 {
+		return false
+	}
+	return true
 }
 
 func oneOfBrief(value string, candidates ...string) bool {
@@ -237,6 +295,11 @@ func (store *BriefStore) Document() BriefDocument {
 		if record.ProjectRoute != nil {
 			value := *record.ProjectRoute
 			record.ProjectRoute = &value
+		}
+		if record.Analysis != nil {
+			value := *record.Analysis
+			value.ChildSessionIDs = append([]string(nil), record.Analysis.ChildSessionIDs...)
+			record.Analysis = &value
 		}
 		if record.Email != nil {
 			value := *record.Email

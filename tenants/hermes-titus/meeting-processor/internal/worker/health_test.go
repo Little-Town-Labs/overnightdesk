@@ -35,6 +35,13 @@ func TestWriteEventUsesAllowlistedFields(t *testing.T) {
 	if err := WriteEvent(&output, Event{Event: "unknown", CycleID: "cycle-2"}); err == nil {
 		t.Fatal("expected unknown event rejection")
 	}
+	var analysisOutput bytes.Buffer
+	if err := WriteEvent(&analysisOutput, Event{Event: "meeting_analysis_state", CycleID: "cycle-3", State: "luna_running", CorrelationReference: "MB-ABCDEFGHIJKL"}); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(analysisOutput.String(), "session_id") || strings.Contains(analysisOutput.String(), "transcript") {
+		t.Fatal("analysis event exposed session or transcript fields")
+	}
 }
 
 func TestMeetingHealthExposesAndFailsClosedForCustodyBlockers(t *testing.T) {
@@ -59,6 +66,35 @@ func TestMeetingHealthExposesAndFailsClosedForCustodyBlockers(t *testing.T) {
 	raw, err := os.ReadFile(path)
 	if err != nil || !strings.Contains(string(raw), `"custody_overdue":1`) || !strings.Contains(string(raw), `"custody_missing_key":1`) {
 		t.Fatalf("missing content-free custody aggregates: %s err=%v", raw, err)
+	}
+}
+
+func TestMeetingHealthExposesContentFreeAnalysisStatesAndFailsClosedForCleanupBlocker(t *testing.T) {
+	document := state.BriefDocument{Version: state.BriefStateVersion, Records: map[string]state.BriefRecord{
+		"pending": {ReviewStatus: "analysis_pending"},
+		"luna":    {ReviewStatus: "luna_running"},
+		"sol":     {ReviewStatus: "sol_qa_pending"},
+		"redo":    {ReviewStatus: "qa_remediation"},
+		"retry":   {ReviewStatus: "cleanup_retryable"},
+		"blocked": {ReviewStatus: "cleanup_blocked"},
+	}}
+	meeting := meetingHealth(document, true)
+	if meeting.AnalysisPending != 1 || meeting.LunaRunning != 1 || meeting.SolQAPending != 2 || meeting.CleanupRetryable != 1 || meeting.CleanupBlocked != 1 {
+		t.Fatalf("analysis aggregates = %#v", meeting)
+	}
+	now := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	path := filepath.Join(t.TempDir(), "health.json")
+	health := Health{State: "healthy", Timestamp: now.Format(time.RFC3339Nano), TokenHealth: "healthy", Meeting: meeting}
+	if err := WriteHealth(path, health); err == nil {
+		t.Fatal("healthy state accepted blocked session cleanup")
+	}
+	health.State = "degraded"
+	if err := WriteHealth(path, health); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil || !strings.Contains(string(raw), `"luna_running":1`) || !strings.Contains(string(raw), `"cleanup_blocked":1`) {
+		t.Fatalf("missing content-free analysis aggregates: %s err=%v", raw, err)
 	}
 }
 

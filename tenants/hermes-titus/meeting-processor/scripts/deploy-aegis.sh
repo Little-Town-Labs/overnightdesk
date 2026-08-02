@@ -7,7 +7,6 @@ ssh_key=${AEGIS_SSH_KEY:-/home/frosted639/.ssh/ssh-key-2026-03-15}
 remote=${AEGIS_SSH_REMOTE:-ubuntu@147.224.183.55}
 ssh_cmd=(ssh -i "$ssh_key" "$remote")
 image=${TITUS_MEETING_PROCESSOR_IMAGE:-overnightdesk/titus-meeting-processor:0.1.0}
-analyzer_image=overnightdesk/hermes-agent:0.19.0-coder
 content_marker=/etc/overnightdesk/titus-meeting-transcript-content.enabled
 brief_marker=/etc/overnightdesk/titus-meeting-briefs.enabled
 filing_marker=/etc/overnightdesk/titus-meeting-filing.enabled
@@ -32,9 +31,6 @@ fi
 getent group titus-meeting-processor >/dev/null || groupadd --system --gid 10003 titus-meeting-processor
 id titus-meeting-processor >/dev/null 2>&1 || useradd --system --uid 10003 --gid 10003 --home-dir /nonexistent --shell /usr/sbin/nologin titus-meeting-processor
 usermod -aG docker titus-meeting-processor
-getent group titus-meeting-analyzer >/dev/null || groupadd --system --gid 10004 titus-meeting-analyzer
-id titus-meeting-analyzer >/dev/null 2>&1 || useradd --system --uid 10004 --gid 10004 --home-dir /nonexistent --shell /usr/sbin/nologin titus-meeting-analyzer
-usermod -aG docker titus-meeting-analyzer
 rm -f -- "$brief_marker" "$filing_marker"
 systemctl disable --now titus-meeting-analyzer.service titus-meeting-filer.service >/dev/null 2>&1 || true
 for unit in titus-meeting-analyzer.service titus-meeting-filer.service; do
@@ -65,7 +61,6 @@ promote() {
     --exclude='.git/' --exclude='__pycache__/' --exclude='*.py[co]' \
     --exclude='*.test' --exclude='*.out' --exclude='/titus-meeting-processor' \
     -e "ssh -i $ssh_key" "$root/" "$remote:/tmp/titus-meeting-processor-deploy/"
-  rsync -az -e "ssh -i $ssh_key" "$root/../config/meeting-analyzer.yaml" "$remote:/tmp/titus-meeting-analyzer.yaml"
   "${ssh_cmd[@]}" sudo install -d -o root -g root -m 0755 \
     /opt/titus-meeting-processor /opt/titus-meeting-processor/releases /opt/titus-meeting-processor/bin
   release_dir=$("${ssh_cmd[@]}" sudo bash -s -- \
@@ -104,14 +99,6 @@ for script in load-phase-config.sh prepare-volume.sh run-container.sh stop-conta
   install -o root -g root -m 0755 "$release_dir/runtime/$script" "$base/bin/$script"
 done
 install -o root -g root -m 0644 "$release_dir/runtime/titus-meeting-processor.service" /etc/systemd/system/titus-meeting-processor.service
-install -d -o root -g root -m 0755 /opt/titus-meeting-analyzer/bin
-install -o root -g root -m 0755 "$release_dir/runtime/load-analyzer-phase-env.sh" /opt/titus-meeting-analyzer/bin/load-phase-env.sh
-install -o root -g root -m 0755 "$release_dir/runtime/run-analyzer-container.sh" /opt/titus-meeting-analyzer/bin/run-container.sh
-install -o root -g root -m 0755 "$release_dir/runtime/stop-analyzer-container.sh" /opt/titus-meeting-analyzer/bin/stop-container.sh
-install -o root -g root -m 0644 "$release_dir/runtime/titus-meeting-analyzer.service" /etc/systemd/system/titus-meeting-analyzer.service
-install -o root -g root -m 0644 /tmp/titus-meeting-analyzer.yaml /opt/titus-meeting-analyzer/config.yaml
-rm -f /tmp/titus-meeting-analyzer.yaml
-
 if test -n "$previous_target" && test "$previous_target" != "$release_dir"; then
   test ! -e "$previous_link.next" && test ! -L "$previous_link.next"
   ln -s "$previous_target" "$previous_link.next"
@@ -313,17 +300,18 @@ restore_brief_disabled() {
 }
 
 enable_brief() {
-  if ! "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" "$analyzer_image" <<'REMOTE'
+  if ! "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" "$content_marker" <<'REMOTE'
 set -euo pipefail
 marker=$1
-analyzer_image=$2
-docker image inspect "$analyzer_image" >/dev/null
+content_marker=$2
+test -f "$content_marker" && test ! -L "$content_marker"
+systemctl is-active --quiet hermes-titus.service
+test "$(systemctl is-active titus-meeting-analyzer.service 2>/dev/null || true)" != active
+test -z "$(docker ps --filter name=^/hermes-titus-meeting-analyzer$ --format '{{.Names}}')"
 test ! -e "$marker" && test ! -L "$marker"
 install -o root -g root -m 0444 /dev/null "$marker.next"
 mv -Tf "$marker.next" "$marker"
-/opt/titus-meeting-analyzer/bin/load-phase-env.sh
 /opt/titus-meeting-processor/bin/load-phase-config.sh
-systemctl enable --now titus-meeting-analyzer.service
 systemctl restart titus-meeting-processor.service
 systemctl restart hermes-email-intake@titus.service
 REMOTE
@@ -339,18 +327,37 @@ REMOTE
 
 verify_brief() {
   verify
-  "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" "$analyzer_image" <<'REMOTE'
+  "${ssh_cmd[@]}" sudo bash -s -- "$brief_marker" <<'REMOTE'
 set -euo pipefail
 marker=$1
-analyzer_image=$2
 test -f "$marker" && test ! -L "$marker" && test "$(stat -c %a "$marker")" = 444
-systemctl is-active --quiet titus-meeting-analyzer.service
+systemctl is-active --quiet hermes-titus.service
+test "$(systemctl is-active titus-meeting-analyzer.service 2>/dev/null || true)" != active
 systemctl is-active --quiet hermes-email-intake@titus.service
-test "$(docker inspect -f '{{.Config.Image}}' hermes-titus-meeting-analyzer)" = "$analyzer_image"
-test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' hermes-titus-meeting-analyzer)" = true
-test -z "$(docker port hermes-titus-meeting-analyzer)"
-! docker inspect -f '{{json .Mounts}}' hermes-titus-meeting-analyzer | grep -Eq '(hermes-titus-data|project-knowledge|sessions)'
-jq -e '.MEETING_BRIEF_ENABLED == "true" and .MEETING_ANALYZER_BASE_URL == "http://hermes-titus-meeting-analyzer:8642"' /run/titus-meeting-processor/runtime.json >/dev/null
+test -z "$(docker ps --filter name=^/hermes-titus-meeting-analyzer$ --format '{{.Names}}')"
+jq -e '
+  .MEETING_BRIEF_ENABLED == "true" and
+  .TRANSCRIPT_CONTENT_ENABLED == "true" and
+  .HERMES_BASE_URL == "http://hermes-titus:8642" and
+  (.HERMES_API_KEY | type == "string" and length >= 32) and
+  (has("MEETING_ANALYZER_BASE_URL") | not) and
+  (has("MEETING_ANALYZER_API_KEY") | not) and
+  (has("MEETING_ANALYZER_MODEL") | not)
+' /run/titus-meeting-processor/runtime.json >/dev/null
+docker exec -i hermes-titus /opt/hermes/.venv/bin/python - <<'PY'
+from pathlib import Path
+import yaml
+
+config = yaml.safe_load(Path("/opt/data/config.yaml").read_text())
+assert (config.get("model") or {}).get("provider") == "openai-codex"
+assert (config.get("model") or {}).get("default") == "gpt-5.6-sol"
+delegation = config.get("delegation") or {}
+assert delegation.get("provider") == "openai-codex"
+assert delegation.get("model") == "gpt-5.6-luna"
+assert delegation.get("reasoning_effort") == "high"
+assert delegation.get("max_spawn_depth") == 1
+assert delegation.get("subagent_auto_approve") is False
+PY
 jq -e '
   .MEETING_REVIEW_ENABLED == "true" and
   .MEETING_REVIEW_BASE_URL == "http://titus-meeting-processor:8080" and
@@ -358,7 +365,7 @@ jq -e '
   (.MEETING_REVIEW_SIGNING_SECRET | type == "string" and length >= 32)
 ' /run/hermes-email-intake/titus/runtime.json >/dev/null
 docker volume inspect titus-meeting-custody-data >/dev/null
-printf 'service=titus-meeting-processor meeting_briefs=enabled analyzer=isolated\n'
+printf 'service=titus-meeting-processor meeting_briefs=enabled analyzer=retired orchestration=titus-sol-luna\n'
 REMOTE
 }
 

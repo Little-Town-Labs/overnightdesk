@@ -16,7 +16,16 @@
 ## Trust and Data Boundaries
 
 - [x] CHK007 Model output is strict JSON and untrusted until deterministic validation.
-- [x] CHK008 Hermes analysis has a hard no-tool/no-memory/no-session runtime boundary.
+- [x] CHK008 Titus owns interpretation in a dedicated session; Luna drafts,
+  Sol QA gates, and deterministic validation plus human approval retain action
+  authority outside model output.
+- [x] CHK008A The processor never resolves meeting-run tool approvals, accepts
+  only one or two exact single-leaf parent `delegate_task` calls, rejects other
+  parent tool calls, verifies child lineage and the observed configured Luna
+  route, binds the final brief to the latest child result, and verifies terminal
+  parent/child session deletion.
+- [x] CHK008B Luna context logging cannot contain raw VTT because a fixed safe
+  prefix exceeds Hermes's bounded kickoff preview.
 - [x] CHK009 Raw transcript is encrypted before durable write and plaintext never enters general state or telemetry.
 - [x] CHK010 Filer authority is separated from Graph, email, and model credentials.
 - [x] CHK011 Project paths and Kanban boards come only from exact operator configuration.
@@ -32,6 +41,9 @@
 - [x] CHK016 Provider retries and ambiguous outcomes have readback/idempotency rules.
 - [x] CHK016A Private API and Kanban idempotency keys have exact committed byte derivations and conflict behavior.
 - [x] CHK016B Semantic string/date/timestamp validation and untrusted quoted-data rendering are deterministic.
+- [x] CHK016C Runs/Sessions restart, unknown-attempt, bounded remediation,
+  strict meeting/attempt/source and latest-child QA binding, create/run
+  ambiguity, cleanup retry/block, and duplicate suppression rules are explicit.
 
 ## Operations
 
@@ -44,7 +56,7 @@
 
 ## Implementation Gate
 
-- [x] CHK022 Read-only Ringer architecture/security review has no unresolved Critical or Required finding.
+- [x] CHK022 Read-only Ringer and direct Sol findings are resolved in implementation; after the bounded review ceiling, lead-owned corrections have executable regression proof and no unresolved Critical or Required finding.
 - [x] CHK023 Every functional requirement maps to at least one executable test or production acceptance step in `tasks.md`.
 - [ ] CHK024 Production Phase configuration is present and verified without exposing values.
 - [ ] CHK025 Final Sol quality gate and production canary pass before issue closeout.

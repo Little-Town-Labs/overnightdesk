@@ -99,11 +99,12 @@ TTS Teams preparation:
   settings, and one-time qualification input. The root meeting-processor loader
   projects only tenant/client credentials, the organizer allowlist, and fixed
   polling/lookback bounds; it never projects webhook or join values.
-- `/agents/hermes-titus/meetingbriefs`: Feature 035 custody key ring, dedicated
-  OpenRouter analyzer model and
-  bearer, review bearer/signing key, filer bearer, fixed Gary/Austin addresses,
-  and exact project-route definitions. Values are projected only when the
-  corresponding root-owned processing and filing markers exist.
+- `/agents/hermes-titus/meetingbriefs`: Feature 035 custody key ring, review
+  bearer/signing key, filer bearer, fixed Gary/Austin addresses, and exact
+  project-route definitions. Legacy analyzer key/model fields may remain in
+  Phase during rollback cooling-off, but the loader ignores them and never
+  projects them. Values are projected only when the corresponding root-owned
+  processing and filing markers exist.
 
 Matrix channel:
 
@@ -263,16 +264,20 @@ The initial container includes Hermes's pinned Teams dependencies but leaves the
 Meeting artifact discovery and reviewed brief generation run in the separate
 `meeting-processor/` service. Organizer-scoped Microsoft Graph delta queries
 discover transcript and recording metadata. Feature 035 encrypts raw WebVTT
-with AES-256-GCM for exactly 168 hours, screens it through SecurityTeam, and
-sends only the safe wrapper to a dedicated Hermes analyzer configured with
-`api_server: [no_mcp]`, no memory, and no persistent state mount. Strict
-Meeting Brief v1 output is emailed exactly once to Gary and Austin. The
-existing email poller intercepts only exact clean `APPROVE <ref>` or `HOLD
-<ref>` replies before Hermes; the first terminal decision wins. Approval alone
-allows the private filer to create a deterministic project/inbox note and
-internal Kanban tasks. Recording MP4 is streamed, bounded, hashed, correlated,
-and discarded without analysis. None of these private services publishes a
-host port. See
+with AES-256-GCM for exactly 168 hours and screens it through SecurityTeam.
+The processor then opens one dedicated session through Titus's existing
+private Hermes API: primary Sol owns the workflow, delegates the bounded draft
+to the configured Luna child, and performs the final QA. One Luna remediation
+is permitted. The processor accepts only a lineage- and digest-bound
+`meeting-qa/v1` result, verifies deletion of the parent and child sessions,
+and only then emails strict Meeting Brief v1 output exactly once to Gary and
+Austin. Feature 035 supplies no model, provider, extra credential, or approval
+resolution. The existing email poller intercepts only exact clean `APPROVE
+<ref>` or `HOLD <ref>` replies before Hermes; the first terminal decision wins.
+Approval alone allows the private filer to create a deterministic
+project/inbox note and internal Kanban tasks. Recording MP4 is streamed,
+bounded, hashed, correlated, and discarded without analysis. None of these
+private services publishes a host port. See
 `runbooks/meeting-artifact-discovery.md` for qualification, canaries, failure
 response, activation, and rollback. Channel meetings, a separate channel bot,
 and Graph subscription/webhook lifecycle remain a separate feature.

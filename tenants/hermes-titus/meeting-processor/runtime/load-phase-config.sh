@@ -68,6 +68,9 @@ if test -e "$filing_marker" || test -L "$filing_marker"; then
   $brief_enabled || die 'filing requires brief processing'
   filing_enabled=true
 fi
+if $brief_enabled && ! $content_enabled; then
+  die 'brief processing requires transcript content'
+fi
 unset PHASE_SERVICE_TOKEN
 
 jq -e 'keys == [
@@ -132,9 +135,11 @@ if $brief_enabled; then
     (.SECURITY_SERVICE_TOKEN | type == "string" and length >= 32)
   ' "$work_dir/core.json" >/dev/null || die 'meeting shared configuration invalid'
   jq -e '
-    keys == ["MEETING_ANALYZER_API_KEY", "MEETING_ANALYZER_MODEL", "MEETING_AUSTIN_EMAIL", "MEETING_FILER_API_TOKEN", "MEETING_GARY_EMAIL", "MEETING_PROJECT_ROUTES_JSON", "MEETING_RAW_CUSTODY_ACTIVE_KEY_ID", "MEETING_RAW_CUSTODY_KEYS_JSON", "MEETING_REVIEW_API_TOKEN", "MEETING_REVIEW_SIGNING_SECRET"] and
+    (keys - ["MEETING_ANALYZER_API_KEY", "MEETING_ANALYZER_MODEL"]) == ["MEETING_AUSTIN_EMAIL", "MEETING_FILER_API_TOKEN", "MEETING_GARY_EMAIL", "MEETING_PROJECT_ROUTES_JSON", "MEETING_RAW_CUSTODY_ACTIVE_KEY_ID", "MEETING_RAW_CUSTODY_KEYS_JSON", "MEETING_REVIEW_API_TOKEN", "MEETING_REVIEW_SIGNING_SECRET"] and
+    ((has("MEETING_ANALYZER_API_KEY") and has("MEETING_ANALYZER_MODEL")) or ((has("MEETING_ANALYZER_API_KEY") or has("MEETING_ANALYZER_MODEL")) | not)) and
     all(.[]; type == "string" and length > 0) and
-    (.MEETING_ANALYZER_API_KEY | length >= 32) and (.MEETING_FILER_API_TOKEN | length >= 32) and
+    ((has("MEETING_ANALYZER_API_KEY") | not) or (.MEETING_ANALYZER_API_KEY | length >= 32)) and
+    (.MEETING_FILER_API_TOKEN | length >= 32) and
     (.MEETING_REVIEW_API_TOKEN | length >= 32) and (.MEETING_REVIEW_SIGNING_SECRET | length >= 32)
   ' "$work_dir/brief.json" >/dev/null || die 'meeting brief configuration invalid'
   jq -s '.[0] * {
@@ -142,8 +147,6 @@ if $brief_enabled; then
     SECURITYTEAM_BASE_URL: "http://overnightdesk-securityteam:4700",
     SECURITY_SERVICE_TOKEN: .[1].SECURITY_SERVICE_TOKEN,
     SECURITYTEAM_MAX_RESPONSE_BYTES: "1250000",
-    MEETING_ANALYZER_BASE_URL: "http://hermes-titus-meeting-analyzer:8642",
-    MEETING_ANALYZER_API_KEY: .[2].MEETING_ANALYZER_API_KEY,
     MEETING_RAW_CUSTODY_ACTIVE_KEY_ID: .[2].MEETING_RAW_CUSTODY_ACTIVE_KEY_ID,
     MEETING_RAW_CUSTODY_KEYS_JSON: .[2].MEETING_RAW_CUSTODY_KEYS_JSON,
     MEETING_PROJECT_ROUTES_JSON: .[2].MEETING_PROJECT_ROUTES_JSON,
