@@ -146,3 +146,6 @@ links to any ADR, runbook, roadmap, or Spec Kit artifact that remains durable.
   contracts, shell/static/leak checks, and the ARM64 hardened-container build and
   inspection (`54c83b7c6d4d`). With all frozen findings covered by executable
   regressions, the accountable lead verdict is `APPROVE`.
+- Correction publication is OvernightDesk PR 169. Its required Vercel and
+  Vercel Preview Comments checks pass; the authorized merge closes T055 without
+  activating or deploying Feature 035.
