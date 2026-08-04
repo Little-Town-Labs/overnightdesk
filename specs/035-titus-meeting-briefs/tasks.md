@@ -91,7 +91,7 @@ or malformed inputs create nothing; no component can exceed its authority.
 ## Phase 8 - Correction publication, production, and durable closeout
 
 - [x] T055 Commit, push, open the correction PR with Spec Kit/Ringer/security/rollback context, pass checks, merge, and reconcile local main.
-- [ ] T056 Deploy filer, corrected worker, and poller disabled; retire the analyzer unit/container without deleting retained rollback state; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated Titus continuity.
+- [x] T056 Deploy filer, corrected worker, and poller disabled; retire the analyzer unit/container without deleting retained rollback state; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated Titus continuity.
 - [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one Luna draft, one Sol QA pass or bounded block, one fixed-recipient email only after QA pass, seven-day encrypted custody, verified session deletion, recording stream/discard, and restart idempotency.
 - [ ] T058 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.
 - [ ] T059 Exercise scoped rollback/restoration, monitor one normal interval, and append safe evidence to suite-root `deploys.log`.

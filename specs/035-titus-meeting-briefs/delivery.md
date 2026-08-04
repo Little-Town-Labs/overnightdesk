@@ -149,3 +149,30 @@ links to any ADR, runbook, roadmap, or Spec Kit artifact that remains durable.
 - Correction publication is OvernightDesk PR 169. Its required Vercel and
   Vercel Preview Comments checks pass; the authorized merge closes T055 without
   activating or deploying Feature 035.
+
+## T056 Production disabled-first deployment
+
+- T056 deployed the merged `f8a924e` release to `aegis-prod` on 2026-08-04.
+  The first local attempt stopped safely because the workstation lacked the
+  `docker` CLI; no production mutation occurred. The approved Podman-backed
+  retry passed local qualification and completed the remote deployment.
+- The corrected meeting processor is enabled and healthy as UID/GID
+  `10003:10003`, read-only rootfs, no published ports, private
+  `overnightdesk_overnightdesk` network, and only processor/custody mounts.
+  Feature 035 brief and filing markers are absent; the Feature 034 content
+  marker remains present and its content projection remains healthy.
+- The meeting filer release is installed but disabled/inactive. Its reviewed
+  runtime retains read-only rootfs, dropped capabilities, no-new-privileges,
+  bounded CPU/memory/PID limits, no ports, and the exact project-knowledge and
+  Hermes Kanban mount contract. The root-owned `00-inbox/meetings` destination
+  exists with UID/GID `10000:10000` and mode `0750`.
+- The shared Titus email-poller runtime is installed and healthy on the private
+  network with no ports; the meeting-review path remains disabled because its
+  Feature 035 projection is absent. Titus, Titus intake, Walter intake,
+  Mitchel intake, SecurityTeam, communication module, Ops, and Nginx remained
+  healthy.
+- The retired analyzer unit and container are absent. The immutable previous
+  processor release and pinned legacy analyzer image remain retained for
+  rollback cooling-off; processor, custody, filer, project-knowledge, Hermes
+  data, and Kanban volumes remain present. No transcript, recording, secret
+  value, or message content was emitted in deployment evidence.
