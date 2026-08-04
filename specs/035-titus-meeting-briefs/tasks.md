@@ -100,8 +100,8 @@ context only.
 - [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one bounded Titus JSON request, strict local validation or fail-closed block, one fixed-recipient email only after validation, seven-day encrypted custody, recording stream/discard, and restart idempotency.
 - [ ] T058 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.
 - [ ] T059 Exercise scoped rollback/restoration, monitor one normal interval, and append safe evidence to suite-root `deploys.log`.
-- [ ] T060 Update, review, merge, deploy, and verify the separate `overnightdesk-platform-standard` change.
-- [ ] T061 Update issue 159 with safe acceptance evidence, reference the separate channel-bot/subscription issue, and close only the organizer meeting-brief/recording-custody scope.
+- [x] T060 Update, review, merge, deploy, and verify the separate `overnightdesk-platform-standard` change. PR 77 merged at `d0650bf`; the canonical Aegis checkout was fast-forwarded and `overnightdesk-ops` restarted and verified healthy.
+- [x] T061 Update issue 159 with safe acceptance evidence, reference the separate channel-bot/subscription issue, and close only the organizer meeting-brief/recording-custody scope. Issue #159 now records the fail-safe canary and remaining gates; channel-bot/webhook work remains in issue #165.
 - [ ] T062 Update roadmap/feature pointer to the next selected feature and reconcile both repositories to clean `main`.
 
 ## Phase 9 - Single-pass Titus simplification
@@ -128,7 +128,7 @@ context only.
 ## Phase 11 - Retained-custody canary correction
 
 - [x] T078 [US1] Add failing retained-custody fixtures for missing and mismatched source digests, then backfill only the missing digest and fail closed on mismatch in `meeting-processor/internal/worker/`.
-- [ ] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence.
+- [x] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence. The 2026-08-04 canary reached Titus but terminally blocked with `titus_output_rejected`; custody was retained, no brief/email was sent, and the post-block restart was idempotent.
 
 ## Dependencies and Ringer Ownership
 
