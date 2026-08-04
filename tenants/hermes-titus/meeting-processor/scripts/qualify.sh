@@ -51,6 +51,8 @@ grep -Fq '"/v1/chat/completions"' internal/titus/client.go
 grep -Fq 'analyzer.ParseAndValidate' internal/titus/client.go
 ! grep -Eq 'MEETING_ANALYZER_(BASE_URL|API_KEY|MODEL):' runtime/load-phase-config.sh
 grep -Fq 'enable-brief' scripts/deploy-aegis.sh
+grep -Fq 'orchestration=single-pass' scripts/deploy-aegis.sh
+! grep -Fq 'orchestration=titus-sol-luna' scripts/deploy-aegis.sh
 ! grep -Eq 'enable --now titus-meeting-analyzer|/opt/titus-meeting-analyzer/bin|analyzer_image=' scripts/deploy-aegis.sh
 grep -Fq 'retention-sweep' scripts/deploy-aegis.sh
 ! grep -R -Eq -- '--publish(=|[[:space:]])|-p[[:space:]]+[0-9]' runtime scripts
