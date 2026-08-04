@@ -227,8 +227,10 @@ func decodeResponseStrict(response *http.Response, target any) error {
 	if err != nil || int64(len(raw)) > MaxResponseBytes || response.StatusCode < 200 || response.StatusCode >= 300 {
 		return safeError{code: "meeting_email_provider_invalid"}
 	}
+	// AgentMail's readback object is provider-owned and includes additional
+	// metadata fields beyond the delivery contract. Decode the fields we verify,
+	// while still rejecting malformed or trailing JSON.
 	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
 	if decoder.Decode(target) != nil {
 		return safeError{code: "meeting_email_provider_invalid"}
 	}

@@ -41,7 +41,8 @@ func TestSendScreensThenSendsExactlyGaryAustinAndReadsBack(t *testing.T) {
 			sent, _ = io.ReadAll(request.Body)
 			return response(http.StatusOK, `{"message_id":"<msg-1@example>","thread_id":"thread-1"}`), nil
 		case request.Method == http.MethodGet:
-			return response(http.StatusOK, string(sent)), nil
+			readback := strings.TrimSuffix(string(sent), "}") + `,"message_id":"<msg-1@example>","thread_id":"thread-1","labels":["sent"],"created_at":"2026-08-04T12:00:00Z","headers":{}}`
+			return response(http.StatusOK, readback), nil
 		default:
 			t.Fatalf("unexpected request %s", request.URL.String())
 			return nil, nil
