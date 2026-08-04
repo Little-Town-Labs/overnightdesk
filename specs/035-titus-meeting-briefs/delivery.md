@@ -98,6 +98,19 @@
   subject, text plus the provider's fixed footer, recipients, and empty
   CC/BCC/attachments are still required.
 
+## P2 review corrections — 2026-08-04
+
+- `meeting_email_rejected` is now terminal for the stored brief. This covers
+  permanent mailer-policy failures, including the 32,768-byte downstream body
+  limit, so an oversized accepted Markdown result cannot remain in an endless
+  `email_pending` retry loop. A focused worker regression proves the record is
+  blocked after one rejection and is not retried on restart.
+- The current roadmap checkpoint now describes the final Markdown release and
+  production evidence rather than the superseded strict-JSON canary. T080-T082
+  are complete. The qualification contract was also aligned to the active
+  Markdown validator; no production activation change was made by this
+  correction.
+
 ## Scope and Safety Gates
 
 - `spec.md` is the scope ceiling, `plan.md` is the architecture boundary, and `tasks.md` is the authorized execution list.

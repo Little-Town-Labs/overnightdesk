@@ -93,6 +93,23 @@ func TestSendFailsClosedBeforeProviderOnSecurityOrLeakFailure(t *testing.T) {
 	}
 }
 
+func TestSendRejectsBodyOverHardLimitBeforeSecurityTeam(t *testing.T) {
+	calls := 0
+	client, err := NewClient(SecurityOrigin, strings.Repeat("s", 32), AgentMailOrigin, strings.Repeat("a", 32), "titus@agentmail.to", [2]string{"gary@example.com", "austin@example.com"}, &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return response(http.StatusOK, `{"allowed":true}`), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Send(context.Background(), "MB-ABCDEFGHIJKL", strings.Repeat("b", 64), strings.Repeat("x", MaxBodyBytes+1)); SafeCode(err) != "meeting_email_rejected" {
+		t.Fatalf("err=%v", err)
+	}
+	if calls != 0 {
+		t.Fatalf("securityteam/provider called %d times for an oversized body", calls)
+	}
+}
+
 func TestNewClientRejectsRecipientOrOriginDrift(t *testing.T) {
 	for _, recipients := range [][2]string{{"Gary <gary@example.com>", "austin@example.com"}, {"gary@example.com", "gary@example.com"}, {"GARY@example.com", "austin@example.com"}} {
 		if _, err := NewClient(SecurityOrigin, strings.Repeat("s", 32), AgentMailOrigin, strings.Repeat("a", 32), "inbox", recipients, &http.Client{}); err == nil {

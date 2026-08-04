@@ -41,13 +41,14 @@ Graph webhook subscriptions are the next separately gated feature (issue #165).
   channel-meeting discovery, and Graph subscription/webhook lifecycle remain a
   separate follow-on.
   Unit, race, vet, build, runtime projection, security-contract, and filer
-  qualification gates pass. PRs 179, 180, and 181 are merged; source `f996136`
-  is deployed disabled-first and the retained-custody correction is live. The
-  2026-08-04 Gary canaries reached Titus but were terminally rejected as
-  `titus_output_rejected`, including after the prompt-aware correction in PR
-  183. One encrypted custody record remains, with zero accepted briefs and zero
-  emails. The brief and filing markers are absent, and post-block restart is
-  idempotent. T057 is complete for the organizer-scoped Markdown MVP; strict
+  qualification gates pass. The final Markdown release is represented by PRs
+  185, 186, 190, and 192; PR 193 records the durable closeout. Its disabled-
+  first Aegis canary produced one accepted brief and one fixed-recipient email,
+  retained one encrypted custody record, and finished with the safe aggregate
+  `pending_review=1`, `briefs=1`, `emails=1`, `custody=1`, `errors=0`. Restart
+  verification emitted zero duplicate analysis, brief, or email events. The
+  brief marker is present; the filing marker is absent and the filer is
+  inactive. T057 is complete for the organizer-scoped Markdown MVP; strict
   structured-JSON routing and filing remain deferred to T058+.
 
 - **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
