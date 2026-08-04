@@ -25,9 +25,9 @@ Graph webhook subscriptions are the next separately gated feature (issue #165).
 
 ## Current Delivery Checkpoint — 2026-08-04
 
-- **Feature 035 — deployed fail-safe; business acceptance pending:** The approved
-  workflow turns an organizer-scoped Teams transcript into strict Meeting Brief
-  v1 JSON through a separate no-tool/no-memory Hermes analyzer, encrypts raw VTT
+- **Feature 035 — deployed fail-safe; business acceptance pending:** The MVP
+  workflow turns an organizer-scoped Teams transcript into a bounded four-section
+  Markdown brief through the existing no-tool/no-memory Hermes path, encrypts raw VTT
   for exactly seven days, and automatically emails a deterministic draft to
   exactly Gary and Austin after outbound SecurityTeam screening. A clean exact
   `APPROVE <reference>` or `HOLD <reference>` reply from either owner is parsed
@@ -48,8 +48,8 @@ Graph webhook subscriptions are the next separately gated feature (issue #165).
   183. One encrypted custody record remains, with zero accepted briefs and zero
   emails. The brief and filing markers are absent, and post-block restart is
   idempotent. This closes the safety/operational gate but not business
-  acceptance; targeted validator/model investigation is required before brief
-  delivery or filing activation.
+  acceptance; the strict structured-JSON validator is deferred, and the bounded
+  Markdown canary must succeed before delivery activation. Filing remains gated.
 
 - **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
   deployed the non-persisting block-mode dependency. OvernightDesk PR 161

@@ -80,15 +80,17 @@ func (err contentCodeError) SafeCode() string { return string(err) }
 type fakeMeetingMailer struct {
 	calls      int
 	references []string
+	bodies     []string
 }
 
 func (fake *fakeMeetingMailer) Send(_ context.Context, reference, _ string, rendered string) (meetingemail.Delivery, error) {
 	fake.calls++
 	fake.references = append(fake.references, reference)
+	fake.bodies = append(fake.bodies, rendered)
 	if !regexp.MustCompile(`^MB-[A-Z2-7]{12}$`).MatchString(reference) {
 		return meetingemail.Delivery{}, errors.New("invalid meeting reference")
 	}
-	if !strings.Contains(rendered, "Source-derived summary") {
+	if !strings.Contains(rendered, "Source-derived summary") && !strings.Contains(rendered, "## Summary") {
 		return meetingemail.Delivery{}, errors.New("wrong render")
 	}
 	return meetingemail.Delivery{IdempotencyKey: strings.Repeat("a", 64), ProviderMessageIDDigest: strings.Repeat("b", 64), RecipientSet: "gary+austin", TemplateVersion: meetingemail.TemplateVersion, SentAt: fixedWorkerTime().Format(time.RFC3339Nano), ReadbackVerifiedAt: fixedWorkerTime().Format(time.RFC3339Nano)}, nil
@@ -305,6 +307,22 @@ func TestMeetingBriefUsesOneBoundedTitusRequestAndIsIdempotent(t *testing.T) {
 	}
 	if fake.calls != 1 || mailer.calls != 1 {
 		t.Fatal("single-pass result was replayed")
+	}
+}
+
+func TestMeetingBriefAcceptsBoundedMarkdownMVP(t *testing.T) {
+	markdown := "## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\nNone.\n\n## Unresolved Questions\nNone."
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, markdown)
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "pending_review" || record.BriefDigest == "" || record.Email == nil || record.BriefMarkdown != markdown || len(record.Brief) != 0 {
+			t.Fatalf("markdown brief was not persisted: %#v", record)
+		}
+	}
+	if fake.calls != 1 || mailer.calls != 1 || len(mailer.bodies) != 1 || mailer.bodies[0] != markdown {
+		t.Fatalf("markdown MVP calls/body mismatch: analyze=%d mail=%d bodies=%q", fake.calls, mailer.calls, mailer.bodies)
 	}
 }
 

@@ -16,6 +16,7 @@ import (
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/filer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/titus"
 )
 
 func (processor Processor) processMeetingBriefs(ctx context.Context, discovery *state.Document, now time.Time, cycleID string) error {
@@ -149,11 +150,24 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 		}
 	}
 	if record.ReviewStatus == "email_pending" {
-		var brief analyzer.Brief
-		if json.Unmarshal(record.Brief, &brief) != nil {
+		body := record.BriefMarkdown
+		if body == "" {
+			body = string(record.Brief)
+			var brief analyzer.Brief
+			if json.Unmarshal(record.Brief, &brief) == nil {
+				body = analyzer.RenderMarkdown(record.MeetingReference, brief)
+			}
+		} else {
+			validated, err := titus.ValidateMeetingBriefMarkdown(body, processor.protectedMeetingValues(artifact))
+			if err != nil {
+				return errors.New("meeting_state_invalid")
+			}
+			body = validated
+		}
+		if body == "" {
 			return errors.New("meeting_state_invalid")
 		}
-		delivery, err := processor.Mailer.Send(ctx, record.MeetingReference, record.BriefDigest, analyzer.RenderMarkdown(record.MeetingReference, brief))
+		delivery, err := processor.Mailer.Send(ctx, record.MeetingReference, record.BriefDigest, body)
 		if err != nil {
 			markBriefFailure(&record, meetingemail.SafeCode(err), timestamp)
 			record.ReviewStatus = "email_pending"
@@ -285,7 +299,7 @@ func (processor Processor) fileOneApproved(ctx context.Context, now time.Time, c
 			continue
 		}
 		var brief analyzer.Brief
-		if json.Unmarshal(record.Brief, &brief) != nil || record.Decision == nil {
+		if record.BriefMarkdown != "" || json.Unmarshal(record.Brief, &brief) != nil || record.Decision == nil {
 			return errors.New("meeting_state_invalid")
 		}
 		var route *filer.ProjectRoute

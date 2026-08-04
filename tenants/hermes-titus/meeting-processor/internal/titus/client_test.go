@@ -37,19 +37,19 @@ func TestMeetingBriefAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 				t.Fatalf("request contains %s", forbidden)
 			}
 		}
-		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "meeting-brief/v1", "schemaVersion", "occurredAt", "RFC 3339 UTC", "sourceTimestamp", "HH:MM:SS.mmm", "participants", "projectConfidence"} {
+		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "Return Markdown only", "Action Items", "Unresolved Questions"} {
 			if !strings.Contains(strings.ToLower(body), strings.ToLower(required)) {
 				t.Fatalf("request missing %s: %s", required, body)
 			}
 		}
-		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefJSON())+`},"finish_reason":"stop"}]}`), nil
+		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefMarkdown())+`},"finish_reason":"stop"}]}`), nil
 	})}
 	client, err := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), httpClient)
 	if err != nil {
 		t.Fatal(err)
 	}
 	output, err := client.Analyze(context.Background(), reference, "screened wrapper", []string{"protected-id"})
-	if err != nil || !strings.Contains(output, `"schemaVersion":"meeting-brief/v1"`) {
+	if err != nil || !strings.Contains(output, "## Summary") {
 		t.Fatalf("output=%q err=%v", output, err)
 	}
 }
@@ -60,7 +60,7 @@ func TestMeetingBriefIdempotencyIncludesSystemPromptDigest(t *testing.T) {
 	var got string
 	client, err := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		got = request.Header.Get("Idempotency-Key")
-		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefJSON())+`},"finish_reason":"stop"}]}`), nil
+		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefMarkdown())+`},"finish_reason":"stop"}]}`), nil
 	})})
 	if err != nil {
 		t.Fatal(err)
@@ -99,13 +99,13 @@ func TestExplicitContractsPreserveMarkdownRollbackAndRejectCrossContractOutput(t
 		t.Fatalf("markdown contract accepted JSON: %v", err)
 	}
 
-	brief, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(briefResponse))
-	if output, err := brief.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); err != nil || !strings.Contains(output, `"schemaVersion":"meeting-brief/v1"`) {
+	brief, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(markdownResponse))
+	if output, err := brief.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); err != nil || !strings.Contains(output, "## Summary") {
 		t.Fatalf("meeting brief output=%q err=%v", output, err)
 	}
-	briefMarkdown, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(markdownResponse))
-	if _, err := briefMarkdown.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); SafeCode(err) != "titus_output_rejected" {
-		t.Fatalf("meeting brief contract accepted Markdown: %v", err)
+	briefJSON, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(briefResponse))
+	if _, err := briefJSON.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); SafeCode(err) != "titus_output_rejected" {
+		t.Fatalf("meeting brief contract accepted JSON: %v", err)
 	}
 }
 
@@ -132,6 +132,10 @@ func TestMarkdownClientPreservesFeature034IdempotencyKey(t *testing.T) {
 
 func validBriefJSON() string {
 	return `{"schemaVersion":"meeting-brief/v1","title":"Test meeting","occurredAt":"2026-08-01T12:00:00Z","participants":["Gary"],"summary":"Discussed internal delivery work.","facts":["The test completed."],"decisions":[],"actionItems":[],"externalCommitments":[],"unresolvedQuestions":[],"proposedFollowUp":"Review the internal note.","projectHint":null,"projectConfidence":"unknown"}`
+}
+
+func validBriefMarkdown() string {
+	return "## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\nNone.\n\n## Unresolved Questions\nNone."
 }
 
 func TestAnalyzeRejectsProtectedAndUnsafeOutput(t *testing.T) {
