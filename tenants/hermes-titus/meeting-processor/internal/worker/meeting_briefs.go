@@ -175,7 +175,16 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 
 func (processor Processor) transcriptPlaintext(ctx context.Context, artifact state.Artifact, record *state.BriefRecord, now time.Time) ([]byte, error) {
 	if record.Custody != nil {
-		return processor.Custody.Decrypt(artifact.InternalReference, *record.Custody)
+		raw, err := processor.Custody.Decrypt(artifact.InternalReference, *record.Custody)
+		if err != nil {
+			return nil, err
+		}
+		if record.SourceDigest == "" {
+			record.SourceDigest = record.Custody.PlaintextSHA256
+		} else if record.SourceDigest != record.Custody.PlaintextSHA256 {
+			return nil, errors.New("meeting_state_invalid")
+		}
+		return raw, nil
 	}
 	organizerID := processor.organizerID(artifact.OrganizerSlot)
 	raw, err := processor.Content.FetchTranscriptContent(ctx, organizerID, artifact.ProviderMeetingID, artifact.ProviderArtifactID)
@@ -333,6 +342,9 @@ func markBriefFailure(record *state.BriefRecord, code, timestamp string) {
 }
 
 func meetingSafeCode(err error) string {
+	if err != nil && err.Error() == "meeting_state_invalid" {
+		return "state_invalid"
+	}
 	code := custody.ErrorCode(err)
 	if code != "custody_unavailable" {
 		return code

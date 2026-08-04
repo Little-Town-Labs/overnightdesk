@@ -125,6 +125,11 @@ context only.
 - [x] T076 Run Spec Kit consistency analysis, refresh codebase-memory impact, prepare and run the production-sensitive read-only Ringer quality gate, and complete focused plus repository qualification.
 - [x] T077 Commit the three independently reviewable fixes, push one correction branch, open one PR closing issues 176-178, pass checks and review, and merge without activating Feature 035 production processing.
 
+## Phase 11 - Retained-custody canary correction
+
+- [x] T078 [US1] Add failing retained-custody fixtures for missing and mismatched source digests, then backfill only the missing digest and fail closed on mismatch in `meeting-processor/internal/worker/`.
+- [ ] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence.
+
 ## Dependencies and Ringer Ownership
 
 - T002 depends on T001. T003 depends on T002 and delegates read-only review only.

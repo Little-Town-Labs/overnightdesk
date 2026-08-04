@@ -189,6 +189,14 @@ analysis can make a record email-eligible. Once a Titus request is dispatched,
 any transport or response ambiguity is terminal for that stored attempt; only
 failures proven to occur before dispatch may remain retryable.
 
+### Retained-custody source-digest repair
+
+The first post-merge Gary canary exposed a retained-state compatibility edge: older
+Feature 035 custody records can contain valid encrypted custody metadata without the
+new record-level `source_digest`. The worker now derives that field from the already
+validated custody record before analysis. A non-empty mismatch is treated as invalid
+state and blocked; it is never repaired by trusting model output or by replaying email.
+
 ## Delivery Strategy
 
 1. Define strict contracts and write failing tests.

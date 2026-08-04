@@ -391,6 +391,102 @@ func TestMeetingBriefPreservesAndBackfillsReferenceOnRestart(t *testing.T) {
 	}
 }
 
+func TestMeetingBriefBackfillsRetainedCustodySourceDigest(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	discovery := processor.Store.Document()
+	var key string
+	var sourceDigest string
+	for candidate, record := range doc.Records {
+		key = candidate
+		sourceDigest = record.Custody.PlaintextSHA256
+		record.SourceDigest = ""
+		record.Brief = nil
+		record.BriefDigest = ""
+		record.Analysis = nil
+		record.Email = nil
+		record.ReviewStatus = "analysis_pending"
+		doc.Records[candidate] = record
+		artifact := discovery.Artifacts[candidate]
+		artifact.ContentStatus = "pending"
+		artifact.RawContentDigest = ""
+		artifact.SafeContentDigest = ""
+		artifact.TitusOutput = ""
+		artifact.TitusOutputDigest = ""
+		artifact.LastContentAttemptAt = ""
+		artifact.ContentProcessedAt = ""
+		artifact.ContentErrorCode = ""
+		artifact.ContentRetryCount = 0
+		discovery.Artifacts[candidate] = artifact
+	}
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := processor.Store.Commit(discovery); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	record := briefs.Document().Records[key]
+	if record.SourceDigest != sourceDigest || record.ReviewStatus != "pending_review" || record.BriefDigest == "" {
+		t.Fatalf("retained custody digest was not backfilled: %#v", record)
+	}
+	if fake.calls != 2 || mailer.calls != 2 {
+		t.Fatalf("unexpected replay counts analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
+func TestMeetingBriefBlocksRetainedCustodySourceDigestMismatch(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	discovery := processor.Store.Document()
+	var key string
+	for candidate, record := range doc.Records {
+		key = candidate
+		record.SourceDigest = strings.Repeat("f", 64)
+		record.Brief = nil
+		record.BriefDigest = ""
+		record.Analysis = nil
+		record.Email = nil
+		record.ReviewStatus = "analysis_pending"
+		doc.Records[candidate] = record
+		artifact := discovery.Artifacts[candidate]
+		artifact.ContentStatus = "pending"
+		artifact.RawContentDigest = ""
+		artifact.SafeContentDigest = ""
+		artifact.TitusOutput = ""
+		artifact.TitusOutputDigest = ""
+		artifact.LastContentAttemptAt = ""
+		artifact.ContentProcessedAt = ""
+		artifact.ContentErrorCode = ""
+		artifact.ContentRetryCount = 0
+		discovery.Artifacts[candidate] = artifact
+	}
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := processor.Store.Commit(discovery); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	record := briefs.Document().Records[key]
+	if record.ReviewStatus != "blocked" || record.LastErrorCode != "state_invalid" || record.BriefDigest != "" || record.Email != nil {
+		t.Fatalf("custody digest mismatch escaped fail-closed handling: %#v", record)
+	}
+	if fake.calls != 1 || mailer.calls != 1 {
+		t.Fatalf("mismatch caused an unsafe replay analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
 func TestMeetingBriefRejectsLegacyModelOutputWithoutEmail(t *testing.T) {
 	processor, briefs, fake, _, mailer := newMeetingProcessor(t, "## Summary\nlegacy")
 	if _, err := processor.RunOnce(context.Background()); err != nil {

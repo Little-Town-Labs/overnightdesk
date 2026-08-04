@@ -156,6 +156,7 @@ safe metadata only, and zero recording bytes after completion.
 - **FR-036**: The local validator MUST be the sole acceptance gate for Titus output; prompt text MUST never be treated as a schema guarantee or authority grant.
 - **FR-042**: Feature 034 content-only processing and Feature 035 meeting-brief processing MUST use explicit, independently testable Titus response contracts. The rollback path MUST continue requesting and accepting the established four-section Markdown output, while the meeting-brief path MUST request and accept only canonical Meeting Brief v1 JSON.
 - **FR-043**: The worker MUST assign the deterministic `MB-` meeting reference before analysis or email eligibility, preserve any valid existing reference on restart, and backfill a missing reference on a retained incomplete record before invoking the fixed-recipient mailer.
+- **FR-044**: When reopening retained encrypted custody, the worker MUST backfill a missing source digest from the custody metadata before analysis, preserve a matching digest, and fail closed with `state_invalid` on a mismatch without model or email replay.
 
 ### Key Entities
 
@@ -180,6 +181,7 @@ safe metadata only, and zero recording bytes after completion.
 - **SC-009**: Restart and timeout fixtures prove direct-request idempotency, malformed-output blocking, no model retry in one attempt, and no duplicate brief email.
 - **SC-010**: Configuration-path tests prove disabled Feature 035 restores the Feature 034 Markdown contract, while enabled Feature 035 selects only the JSON contract.
 - **SC-011**: Worker restart fixtures prove every email-eligible record has one stable valid meeting reference and that ambiguous Titus outcomes become terminal without a repeated request.
+- **SC-012**: A retained-custody restart fixture proves a missing source digest is backfilled before the Titus request, while a mismatched digest blocks without a second Titus or email request.
 
 ## Assumptions
 
