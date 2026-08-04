@@ -148,6 +148,15 @@ func (processor Processor) blockOrRetryAnalysis(discovery *state.Document, key s
 		artifact.ContentStatus = "blocked"
 		artifact.ContentErrorCode = code
 		artifact.ContentRetryCount = record.RetryCount
+		// A reprocessed Feature 034 artifact may still carry the old processed
+		// lifecycle. A terminal meeting-brief failure must reset those fields so
+		// the discovery state remains internally consistent and can be retried
+		// only through the guarded brief reset path.
+		artifact.RawContentDigest = ""
+		artifact.SafeContentDigest = ""
+		artifact.TitusOutput = ""
+		artifact.TitusOutputDigest = ""
+		artifact.ContentProcessedAt = ""
 		artifact.LastContentAttemptAt = timestamp
 		discovery.Artifacts[key] = artifact
 	}
