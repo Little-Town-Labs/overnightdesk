@@ -15,17 +15,15 @@
 
 ## Trust and Data Boundaries
 
-- [x] CHK007 Model output is strict JSON and untrusted until deterministic validation.
-- [x] CHK008 Titus owns interpretation in a dedicated session; Luna drafts,
-  Sol QA gates, and deterministic validation plus human approval retain action
-  authority outside model output.
-- [x] CHK008A The processor never resolves meeting-run tool approvals, accepts
-  only one or two exact single-leaf parent `delegate_task` calls, rejects other
-  parent tool calls, verifies child lineage and the observed configured Luna
-  route, binds the final brief to the latest child result, and verifies terminal
-  parent/child session deletion.
-- [x] CHK008B Luna context logging cannot contain raw VTT because a fixed safe
-  prefix exceeds Hermes's bounded kickoff preview.
+- [x] CHK007 T057 Markdown output is untrusted until deterministic bounded
+  validation; the deferred T058 JSON path requires the strict schema gate.
+- [x] CHK008 Titus owns interpretation through one stateless bounded request;
+  deterministic validation and human approval retain action authority outside
+  model output.
+- [x] CHK008A The superseded Sol/Luna session and delegation controls remain
+  historical delivery evidence only and are not active T057 runtime gates.
+- [x] CHK008B SecurityTeam screening and custody boundaries prevent raw VTT
+  from entering logs, durable brief state, or general Titus memory.
 - [x] CHK009 Raw transcript is encrypted before durable write and plaintext never enters general state or telemetry.
 - [x] CHK010 Filer authority is separated from Graph, email, and model credentials.
 - [x] CHK011 Project paths and Kanban boards come only from exact operator configuration.
@@ -35,15 +33,17 @@
 
 ## Interface Quality
 
-- [x] CHK013 Meeting Brief JSON Schema rejects unknown fields and bounds every collection/string.
+- [x] CHK013 T057 Markdown validation bounds required sections and output while
+  the deferred T058 Meeting Brief JSON Schema rejects unknown fields and
+  bounds every collection/string.
 - [x] CHK014 Review and filer APIs use bearer authentication, idempotency, consistent error shapes, and typed requests/results.
 - [x] CHK015 Lifecycle transitions and terminal conflict behavior are explicit.
 - [x] CHK016 Provider retries and ambiguous outcomes have readback/idempotency rules.
 - [x] CHK016A Private API and Kanban idempotency keys have exact committed byte derivations and conflict behavior.
 - [x] CHK016B Semantic string/date/timestamp validation and untrusted quoted-data rendering are deterministic.
-- [x] CHK016C Runs/Sessions restart, unknown-attempt, bounded remediation,
-  strict meeting/attempt/source and latest-child QA binding, create/run
-  ambiguity, cleanup retry/block, and duplicate suppression rules are explicit.
+- [x] CHK016C Superseded Runs/Sessions restart and QA rules are historical;
+  active T057 restart, single-request ambiguity, custody, recording, and
+  duplicate-suppression rules are explicit.
 
 ## Operations
 

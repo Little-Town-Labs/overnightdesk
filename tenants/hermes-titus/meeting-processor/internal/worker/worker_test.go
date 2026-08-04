@@ -331,8 +331,10 @@ func TestMeetingBriefAcceptsBoundedMarkdownMVP(t *testing.T) {
 }
 
 func TestMeetingBriefTerminallyBlocksPermanentEmailRejection(t *testing.T) {
-	processor, briefs, _, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	markdown := "## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\nNone.\n\n## Unresolved Questions\nNone."
+	processor, briefs, _, _, mailer := newMeetingProcessor(t, markdown)
 	mailer.err = contentCodeError("meeting_email_rejected")
+	recorder := processor.Recorder.(*fakeRecordingVerifier)
 
 	if _, err := processor.RunOnce(context.Background()); err != nil {
 		t.Fatal(err)
@@ -341,13 +343,45 @@ func TestMeetingBriefTerminallyBlocksPermanentEmailRejection(t *testing.T) {
 		if record.ReviewStatus != "blocked" || record.LastErrorCode != "meeting_email_rejected" || record.RetryCount != 1 {
 			t.Fatalf("permanent email rejection was left retryable: %#v", record)
 		}
+		if record.Recording == nil || record.Recording.Status != "verified" {
+			t.Fatalf("recording verification was skipped after permanent email rejection: %#v", record.Recording)
+		}
+	}
+	if recorder.calls != 1 {
+		t.Fatalf("recording verifier calls=%d, want 1", recorder.calls)
 	}
 
-	if _, err := processor.RunOnce(context.Background()); err != nil {
+	stateDir := filepath.Dir(processor.HealthPath)
+	if err := processor.Briefs.Close(); err != nil {
 		t.Fatal(err)
 	}
-	if mailer.calls != 1 {
-		t.Fatalf("terminal email rejection was retried: %d calls", mailer.calls)
+	if err := processor.Store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	restartedStore, err := state.Open(filepath.Join(stateDir, "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	restartedBriefs, err := state.OpenBrief(filepath.Join(stateDir, "briefs.json"))
+	if err != nil {
+		restartedStore.Close()
+		t.Fatal(err)
+	}
+	defer restartedStore.Close()
+	defer restartedBriefs.Close()
+	restarted := processor
+	restarted.Store = restartedStore
+	restarted.Briefs = restartedBriefs
+	if _, err := restarted.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range restartedBriefs.Document().Records {
+		if record.ReviewStatus != "blocked" || record.Recording == nil || record.Recording.Status != "verified" {
+			t.Fatalf("restart changed terminal email or recording state: %#v", record)
+		}
+	}
+	if mailer.calls != 1 || recorder.calls != 1 {
+		t.Fatalf("terminal email rejection or recording verification was replayed after restart: mail=%d recording=%d", mailer.calls, recorder.calls)
 	}
 }
 

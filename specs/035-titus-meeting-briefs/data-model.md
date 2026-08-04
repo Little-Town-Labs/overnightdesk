@@ -68,9 +68,11 @@ invalid and blocks activation rather than inventing the original digest.
 The nonce is prepended to ciphertext and authenticated through file format
 versioning. Associated data binds custody version, internal meeting reference,
 artifact kind, key ID, plaintext digest, and creation timestamp. Plaintext and
-screened content are never meeting-processor state fields. They exist only in
-memory and in the dedicated Titus parent/delegated-child session until terminal
-QA cleanup; they never enter general Titus memory or project knowledge.
+screened content are never meeting-processor state fields. During active T057
+they exist only in process memory for the SecurityTeam/Titus request; the
+parent/delegated-child session language below is historical compatibility
+documentation and is not created by the simplified worker. They never enter
+general Titus memory or project knowledge.
 
 Configuration contains one active key ID and a map of key ID to 32-byte key.
 Rotation adds a new key and makes it active; every old key stays projected until
@@ -81,8 +83,9 @@ analysis, email, review, recording, or filing transition starts.
 
 ## MeetingBrief
 
-The canonical payload is defined by
-`contracts/meeting-brief.schema.json`. State wraps it with lifecycle metadata:
+T057 stores the accepted bounded Markdown MVP in `briefMarkdown`; the
+canonical JSON payload defined by `contracts/meeting-brief.schema.json` is the
+deferred T058+ contract. State wraps either contract with lifecycle metadata:
 
 | Field | Type | Constraints |
 |-------|------|-------------|
@@ -91,8 +94,9 @@ The canonical payload is defined by
 | `sourceDigest` | string | Digest of raw transcript; no source text |
 | `analysisPromptVersion` | string | Fixed release identifier |
 | `legacyAnalysisDigest` | string/null | Verified pre-scrub Feature 034 output digest |
-| `brief` | object | Strict schema-valid Meeting Brief v1 |
-| `briefDigest` | string | Canonical JSON SHA-256 |
+| `brief` | object | Strict schema-valid Meeting Brief v1 when the T058+ JSON contract is active; empty for T057 Markdown |
+| `briefMarkdown` | string | Locally validated four-section Markdown for the active T057 MVP; empty for JSON state |
+| `briefDigest` | string | SHA-256 of the accepted Markdown or canonical JSON result |
 | `projectRoute` | object/null | Exact immutable route snapshot or unknown |
 | `reviewStatus` | enum | `analysis_pending`, `email_pending`, `pending_review`, `approved`, `held`, `filing_retryable`, `filed`, `blocked` (legacy lifecycle values remain readable) |
 | `analysis` | object/null | Safe single-pass attempt metadata; legacy session fields are not written |
@@ -104,13 +108,12 @@ The canonical payload is defined by
 | `retryCount` | integer | Bounded `0..8` per stage |
 | `lastErrorCode` | string/null | Allowlisted safe code |
 
-## TitusAnalysisAttempt (active fields; legacy fields read-only)
+## TitusAnalysisAttempt (historical compatibility; not active T057)
 
 The state never stores transcript text, Luna output, Sol reasoning, or full
-session messages. It stores only the safe metadata needed to restart one
-bounded request. The session/run/delegation fields described in the historical
-compatibility table are retained only so older state can be inspected safely;
-the simplified worker leaves them empty.
+session messages. The fields below are retained so older state can be inspected
+safely; they are not written by active T057. The simplified worker stores only
+bounded attempt metadata needed to restart one direct request.
 
 | Field | Type | Constraints |
 |-------|------|-------------|
@@ -145,7 +148,11 @@ A QA envelope is eligible only when it is the latest non-empty parent assistant
 result and occurs after the final audited delegation.
 A blocked envelope never contains an email-eligible brief.
 
-### Runs and Sessions reconciliation
+### Runs and Sessions reconciliation (historical, superseded)
+
+The following compare-and-set lifecycle documents the superseded session-based
+design and is retained only for compatibility and audit context. Active T057
+uses one direct Titus request and no meeting session, run, or child delegation.
 
 The processor performs one compare-and-set controlled attempt at a time:
 
@@ -324,7 +331,11 @@ the deterministic create-only Markdown and returned for exact caller readback.
 
 ## Deterministic Semantic Validation
 
-JSON Schema format validation is mandatory, not annotation-only. Code also:
+For T058+ JSON state, JSON Schema format validation is mandatory, not
+annotation-only. The active T057 Markdown validator separately enforces the
+required four headings, bounded output, valid UTF-8, protected-value and
+credential-marker exclusion, and no provider identifiers. Both paths also
+apply the following semantic safeguards:
 
 - requires semantic RFC3339/date parsing and VTT timestamp components with
   minutes/seconds `00..59`;

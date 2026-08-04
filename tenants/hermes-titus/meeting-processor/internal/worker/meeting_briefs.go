@@ -256,7 +256,7 @@ func (processor Processor) processOneRecording(ctx context.Context, discovery st
 		if len(candidates) > 1 {
 			for _, transcriptKey := range candidates {
 				record, ok := briefs.Records[transcriptKey]
-				if !ok || record.ReviewStatus == "blocked" {
+				if !ok || recordingVerificationTerminal(record.Recording) {
 					continue
 				}
 				record.Recording = &state.RecordingVerification{Version: 1, Status: "blocked", RetryCount: 8, LastErrorCode: "recording_correlation_ambiguous"}
@@ -268,7 +268,7 @@ func (processor Processor) processOneRecording(ctx context.Context, discovery st
 		}
 		for _, transcriptKey := range candidates {
 			record, ok := briefs.Records[transcriptKey]
-			if !ok || record.ReviewStatus == "blocked" || (record.Recording != nil && (record.Recording.Status == "verified" || record.Recording.Status == "blocked")) {
+			if !ok || recordingVerificationTerminal(record.Recording) {
 				continue
 			}
 			verification, err := processor.Recorder.VerifyRecordingContent(ctx, processor.organizerID(recordingArtifact.OrganizerSlot), recordingArtifact.ProviderMeetingID, recordingArtifact.ProviderArtifactID, processor.Config.MeetingRecordingMaxBytes)
@@ -294,6 +294,10 @@ func (processor Processor) processOneRecording(ctx context.Context, discovery st
 		}
 	}
 	return nil
+}
+
+func recordingVerificationTerminal(recording *state.RecordingVerification) bool {
+	return recording != nil && (recording.Status == "verified" || recording.Status == "blocked")
 }
 
 func (processor Processor) fileOneApproved(ctx context.Context, now time.Time, cycleID string) error {

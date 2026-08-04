@@ -7,14 +7,14 @@
 ## Summary
 
 Extend the existing organizer-scoped meeting worker into a reviewed Meeting
-Brief pipeline. The worker encrypts raw VTT for a seven-day TTL, screens it,
-uses one bounded Titus request followed by local strict Meeting Brief validation,
-sends one SecurityTeam-screened fixed-recipient email, accepts exact
-approve/hold commands from the existing email poller, and invokes a
-deterministic least-privilege filer for create-only project notes and Titus
-Kanban tasks. Recording MP4 is streamed, hashed, correlated, and discarded.
-The earlier nested Sol/Luna session design is retained only as historical
-delivery context; channel bot and webhook discovery remain a later feature.
+Brief pipeline. The active T057 MVP encrypts raw VTT for a seven-day TTL,
+screens it, uses one bounded Titus request followed by local four-section
+Markdown validation, sends one SecurityTeam-screened fixed-recipient email,
+and verifies the associated recording by streaming, hashing, and discarding
+the MP4. Exact approve/hold commands, structured project routing, and the
+least-privilege filer remain the separately gated T058 boundary. The earlier
+nested Sol/Luna session design is retained only as historical delivery
+context; channel bot and webhook discovery remain a later feature.
 
 ## Technical Context
 
@@ -32,7 +32,7 @@ delivery context; channel bot and webhook discovery remain a later feature.
 
 **Performance Goals**: One bounded analysis at a time; constant-memory recording stream; one Titus request under 60 seconds; email/filer calls under 60 seconds; interactive Titus remains available through the private API boundary
 
-**Constraints**: No public ports, no raw plaintext persistence, fixed recipients, strict schema, 168-hour raw TTL, no model authority, no external actions, disabled-first activation
+**Constraints**: No public ports, no raw plaintext persistence, fixed recipients, bounded Markdown validation for active T057, strict JSON reserved for the T058 gate, 168-hour raw TTL, no model authority, no external actions, disabled-first activation
 
 **Scale/Scope**: Two organizer identities, low meeting volume, one brief and recording verification per discovered meeting, bounded action-item counts
 
@@ -110,8 +110,9 @@ private review API <---- clean exact command ---- email-poller
 ```
 
 The meeting worker remains the durable workflow owner. Titus owns
-interpretation through one bounded private request, while the local analyzer
-validator accepts only a schema-valid Meeting Brief. The filer can mutate only
+interpretation through one bounded private request, while the local contract
+validator accepts the active T057 Markdown response; T058 must separately
+qualify the canonical JSON contract before enabling it. The filer can mutate only
 two approved storage surfaces and has no transcript, Graph, email, or model
 credentials. The email poller recognizes exact commands only after its existing
 dirty-to-clean SecurityTeam path.
@@ -178,12 +179,12 @@ tenants/hermes-titus/
 filer service. Do not create a new repository, public API, dashboard surface,
 database, queue, webhook receiver, or channel bot in this slice.
 
-### PR 175 review correction
+### PR 175 review correction (historical JSON target)
 
 The shared HTTP transport remains in `internal/titus`, but its two callers use
-explicit contracts rather than a runtime mode flag: the Feature 034 rollback
-path requests and validates the established four-section Markdown response,
-and Feature 035 requests and validates canonical Meeting Brief v1 JSON. The
+explicit contracts rather than a runtime mode flag. Feature 034 and the active
+T057 Feature 035 MVP request and validate bounded four-section Markdown;
+T058+ is the separately gated path for canonical Meeting Brief v1 JSON. The
 meeting worker assigns or backfills its deterministic `MB-` reference before
 analysis can make a record email-eligible. Once a Titus request is dispatched,
 any transport or response ambiguity is terminal for that stored attempt; only
@@ -203,7 +204,8 @@ state and blocked; it is never repaired by trusting model output or by replaying
 2. Scrub legacy free-form handoff output, add rollback-compatible separate state,
    encrypted custody, and streaming recording verification.
 3. Replace the superseded session state machine with one bounded Titus request,
-   strict local Meeting Brief validation, and direct email eligibility.
+   active T057 Markdown validation, and direct email eligibility; defer strict
+   JSON routing to the T058 gate.
 4. Add fixed-recipient outbound delivery and exact review-command intake.
 5. Add deterministic filing and action-task creation.
 6. Qualify disabled, deploy, canary Gary, enable filing, prove TTL/restart/
@@ -238,9 +240,11 @@ the existing operator health monitor receives one bounded actionable code.
 The current nested Runs/Sessions design is replaced by the already-existing
 private Titus chat client. The meeting worker decrypts custody in memory,
 re-screens the transcript, sends one bounded tool-free request, validates the
-returned Meeting Brief v1 locally, and persists only the canonical brief and
-safe lifecycle fields. The worker never creates a Hermes session and therefore
-has no child, run, lineage, cleanup, or unknown-dispatch state to reconcile.
+returned T057 Markdown brief locally, and persists only the accepted brief
+digest and safe lifecycle fields. The worker never creates a Hermes session
+and therefore has no child, run, lineage, cleanup, or unknown-dispatch state to
+reconcile. T058+ may substitute the canonical JSON validator after its own
+qualification gate.
 
 The request remains isolated from interactive Titus by using the private API
 boundary and a short request timeout; it does not grant the response authority
@@ -250,19 +254,21 @@ fixed-recipient mailer remain separate boundaries.
 
 The implementation removes the `MeetingOrchestrator` dependency from the
 worker and command wiring, reuses `titus.Client` for Meeting Brief analysis,
-and retains the strict `analyzer.ParseAndValidate` gate as the sole acceptance
-contract. Legacy persisted orchestration records remain readable for rollback
-and are not resumed; the next disabled-first deployment may mark the retained
-canary record for the new single-pass attempt.
+and retains local contract validation as the sole acceptance gate. The active
+T057 path validates bounded Markdown; the legacy structured parser remains
+compatibility-only until the T058 JSON gate. Legacy persisted orchestration
+records remain readable for rollback and are not resumed; the next
+disabled-first deployment may mark the retained canary record for the new
+single-pass attempt.
 
 ### Simplified lifecycle
 
 ```text
-custody retained -> SecurityTeam clean -> Titus one-shot -> local JSON validation
-       |                                                       |
-       +----------------------- invalid -----------------------+--> blocked
-                                                               |
-                                                valid brief -> email_pending
+custody retained -> SecurityTeam clean -> Titus one-shot -> local Markdown validation
+       |                                                                  |
+       +------------------------------ invalid ---------------------------+--> blocked
+                                                                          |
+                                                     valid brief -> email_pending
 ```
 
 No model-produced QA envelope, child session, Hermes run, or model retry is

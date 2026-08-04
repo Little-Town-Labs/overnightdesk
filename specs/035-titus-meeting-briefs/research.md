@@ -202,11 +202,15 @@ meeting path.
 - Retry model output until it matches. Rejected because it creates duplicate
   work and hides a contract failure; invalid output blocks safely.
 
-## Decision: Strict JSON first, deterministic rendering second
+## Deferred T058 design: Strict JSON first, deterministic rendering second
 
-**Decision**: Require Meeting Brief v1 JSON with `additionalProperties: false`,
+**Deferred decision**: Require Meeting Brief v1 JSON with `additionalProperties: false`,
 bounded arrays/strings, fixed owner enums, RFC3339 source timestamps, and date-
 only due dates. Render email and Markdown from validated values in code.
+
+This remains the target for T058 structured routing and filing. It is not the
+active T057 production contract; T057 uses the bounded four-section Markdown
+MVP documented in `spec.md` and `delivery.md`.
 
 **Rationale**: Free-form Markdown is difficult to validate and permits model
 text to smuggle paths, recipients, or action claims. A strict schema makes the

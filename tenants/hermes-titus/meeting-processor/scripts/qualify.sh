@@ -49,6 +49,9 @@ test ! -e ../config/meeting-analyzer.yaml
 test ! -d internal/orchestrator
 grep -Fq '"/v1/chat/completions"' internal/titus/client.go
 grep -Fq 'ValidateMeetingBriefMarkdown' internal/titus/client.go
+# T057 enables the bounded Markdown meeting-brief contract; strict JSON is a
+# separately gated T058+ path rather than an implicit qualification assumption.
+grep -Fq 'briefSystemInstruction    = markdownSystemInstruction' internal/titus/client.go
 ! grep -Eq 'MEETING_ANALYZER_(BASE_URL|API_KEY|MODEL):' runtime/load-phase-config.sh
 grep -Fq 'enable-brief' scripts/deploy-aegis.sh
 grep -Fq 'orchestration=single-pass' scripts/deploy-aegis.sh

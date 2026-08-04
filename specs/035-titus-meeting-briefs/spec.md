@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-01
 
-**Status**: Ready for implementation
+**Status**: T057 Markdown MVP deployed; T058 structured-routing deferred
 
 **Input**: Continue issue 159 by turning organizer-scoped Teams transcripts into
 reviewable Titus meeting briefs, retrieving the associated recording safely,
@@ -22,25 +22,29 @@ and filing approved internal results into project knowledge and Titus Kanban.
 
 ### User Story 1 - Receive a private meeting brief (Priority: P1)
 
-After a Gary- or Austin-organized Teams meeting produces a transcript, Titus
-creates a structured draft brief and automatically emails it to exactly Gary
-and Austin. The raw transcript is encrypted at rest for seven days, excluded
-from the email and all general Titus memory, and then deleted automatically.
+After a Gary- or Austin-organized Teams meeting produces a transcript, the
+active T057 MVP has Titus create a bounded four-section Markdown draft and
+automatically emails it to exactly Gary and Austin. The raw transcript is
+encrypted at rest for seven days, excluded from the email and all general
+Titus memory, and then deleted automatically. T058+ may replace the MVP
+contract with a structured Meeting Brief v1 JSON brief after its own
+qualification gate.
 
 **Independent Test**: Process a bounded fixture and the retained Gary meeting,
-then prove one schema-valid brief, one fixed-recipient email, encrypted raw
-custody, no tool/delegation operation, no duplicate work, and deletion after
-the retention clock is advanced beyond seven days.
+then prove one contract-valid T057 Markdown brief, one fixed-recipient email,
+encrypted raw custody, no tool/delegation operation, no duplicate work, and
+deletion after the retention clock is advanced beyond seven days. The T058+
+JSON contract has a separate qualification gate.
 
 **Acceptance Scenarios**:
 
 1. **Given** an eligible transcript without a current brief, **When** the worker runs, **Then** it downloads, screens, encrypts, sends one bounded private Titus request, locally validates the result, and emails exactly one bounded draft brief to Gary and Austin only after validation passes.
-2. **Given** model output containing extra fields, unsafe values, invalid owners, unsupported projects, or an attempt to turn source-derived instruction-like text into executable direction or evidence of a performed action, **When** validation runs, **Then** the draft is rejected and no email, note, or task is created; instruction-like source text that passes every concrete predicate remains inert quoted data under an explicit source-derived label.
+2. **Given** model output that violates the active bounded Markdown contract, contains unsafe values, or attempts to turn source-derived instruction-like text into executable direction or evidence of a performed action, **When** validation runs, **Then** the draft is rejected and no email, note, or task is created; instruction-like source text that passes every concrete predicate remains inert quoted data under an explicit source-derived label. T058+ applies the equivalent strict JSON predicates after its separate gate.
 3. **Given** encrypted raw custody older than seven days, **When** the retention sweep runs, **Then** the ciphertext is deleted while the safe brief, provenance, and audit state remain.
 
 ---
 
-### User Story 2 - Approve or hold the brief by email (Priority: P2)
+### User Story 2 - Approve or hold the brief by email (Priority: P2, T058+)
 
 Gary or Austin can reply with the exact command `APPROVE <reference>` or
 `HOLD <reference>`. The command is accepted only after the existing inbound
@@ -59,7 +63,7 @@ idempotency, first-terminal-command semantics, and zero Hermes-run submission.
 
 ---
 
-### User Story 3 - File approved internal results (Priority: P3)
+### User Story 3 - File approved internal results (Priority: P3, T058+)
 
 Approval creates a permanent internal meeting note and Kanban work without
 allowing model text to select arbitrary paths or boards. Identified projects
@@ -118,15 +122,17 @@ safe metadata only, and zero recording bytes after completion.
 
 ### Functional Requirements
 
-- **FR-001**: The worker MUST create Meeting Brief v1 only for organizer-scoped transcript artifacts discovered by the existing Feature 033 boundary.
+**Contract phase note:** T057 is the active bounded four-section Markdown MVP. Requirements below that describe structured fields, exact routing semantics, or canonical Meeting Brief v1 JSON are T058+ gates; they are not additional T057 acceptance requirements.
+
+- **FR-001**: The worker MUST create an accepted meeting brief only for organizer-scoped transcript artifacts discovered by the existing Feature 033 boundary. T057 stores the bounded Markdown result; T058+ may store the canonical Meeting Brief v1 object.
 - **FR-002**: Raw VTT MUST be encrypted before durable write using authenticated encryption, a Phase-managed versioned 256-bit key ring, a unique nonce, versioned associated data, mode-0600 files, and a dedicated private volume.
 - **FR-003**: Raw transcript ciphertext MUST expire seven days after first successful custody write and MUST be deleted by an idempotent sweep. Plaintext and screened text MUST never be written to meeting-processor state, handoff, telemetry, general Titus memory, project knowledge, notes, or Kanban. Titus receives screened text only during the bounded request.
 - **FR-004**: Transcript input MUST continue through authenticated SecurityTeam block-on-review screening before any model call.
 - **FR-005**: Meeting analysis MUST use one bounded request through the existing private Titus Hermes API and its existing provider credential. The request MUST be stateless, tool-free, and contain no meeting-session, delegation, approval, or filing operation. Feature 035 MUST NOT introduce a separate analyzer service, feature-specific credential, OAuth identity, public port, or model route.
-- **FR-006**: The worker MUST locally validate the complete Titus response as Meeting Brief v1 for transcript faithfulness, decisions, action items, owners and explicit dates, external commitments, project identification, unsupported claims, proposed follow-up, and schema compliance. Invalid or unsafe output MUST become a content-free blocked state and MUST NOT send email or file work.
-- **FR-007**: The validated brief MUST separate facts, decisions, internal action items, external commitments, unresolved questions, and a proposed follow-up; it MUST NOT claim an action occurred.
-- **FR-008**: Action-item owners MUST be exactly `gary`, `austin`, or `unassigned`; due dates MUST be present only when explicit in the transcript.
-- **FR-009**: Project selection MUST use an exact normalized match against an operator-managed allowlist; model text MUST NOT create a project, board, path, owner, or alias.
+- **FR-006**: The worker MUST locally validate the complete Titus response under the active Markdown contract for required sections, UTF-8/NUL safety, bounded content, and protected/provider/credential exclusions. T058+ MUST additionally validate semantic transcript faithfulness and the Meeting Brief v1 structured fields and schema. Invalid or unsafe output MUST become a content-free blocked state and MUST NOT send email or file work.
+- **FR-007 (T058+)**: The validated structured brief MUST separate facts, decisions, internal action items, external commitments, unresolved questions, and a proposed follow-up; it MUST NOT claim an action occurred.
+- **FR-008 (T058+)**: Action-item owners MUST be exactly `gary`, `austin`, or `unassigned`; due dates MUST be present only when explicit in the transcript.
+- **FR-009 (T058+)**: Project selection MUST use an exact normalized match against an operator-managed allowlist; model text MUST NOT create a project, board, path, owner, or alias.
 - **FR-010**: The draft email MUST be sent automatically to exactly the configured Gary and Austin addresses, with no CC/BCC, attachment, raw transcript, recording, provider identifier, or external recipient.
 - **FR-011**: Automatic meeting-brief email MUST use a narrow standing authorization distinct from ordinary Titus sending, MUST pass SecurityTeam outbound screening, MUST use provider idempotency/readback, and MUST fail closed on recipient-policy mismatch.
 - **FR-012**: The email MUST include a stable internal reference and exact instructions for `APPROVE <reference>` and `HOLD <reference>`.
@@ -142,7 +148,7 @@ safe metadata only, and zero recording bytes after completion.
 - **FR-022**: Every provider call, decision, filing operation, and retention sweep MUST be idempotent across retries and restarts.
 - **FR-023**: Feature 035 structured events, health, deployment evidence, and processor/filer/poller logs MUST expose correlation reference, stage, safe status, duration, counts, and allowlisted error codes only; raw text, participant names, email addresses, identifiers, tokens, paths, brief bodies, and model output MUST not enter those surfaces.
 - **FR-024**: Deployment MUST be disabled-first with independent markers for brief processing and approval filing; rollback MUST preserve encrypted custody and safe state while stopping new email and filing.
-- **FR-025**: The Feature 034 Gary artifact MAY be reprocessed exactly once into Meeting Brief v1 when no brief exists; normal completed briefs MUST never be reanalyzed.
+- **FR-025**: The retained Feature 034 Gary artifact MAY be reprocessed exactly once into an accepted result when no brief exists; T057 accepts the bounded Markdown result, while T058+ may accept canonical Meeting Brief v1 JSON. Normal completed briefs MUST never be reanalyzed.
 - **FR-026**: The Gary production canary MUST be sufficient for acceptance while Austin is unavailable.
 - **FR-027**: Channel-meeting discovery, meeting-chat bot behavior, Graph change-notification subscriptions/webhooks, and transcript-triggered client actions MUST remain outside this feature and be recorded as the next separately gated roadmap item.
 - **FR-028**: Before Feature 035 activation, migration MUST replace legacy free-form `TitusOutput` in the version-2 discovery state with the exact fixed safe retirement sentinel and its digest, preserve the verified original digest only in separate Feature 035 provenance, omit output bodies from the new handoff, and prove with crash-boundary fixtures and a production value-safe scan that no legacy output body survives.
@@ -150,17 +156,17 @@ safe metadata only, and zero recording bytes after completion.
 - **FR-030**: A review request MUST NOT accept a caller-selected actor; it MUST carry a versioned HMAC sender fingerprint and claim signature derived by the poller from the exact normalized allowed sender and clean-message decision fields, and the worker MUST derive `gary` or `austin` only after signature and expected-fingerprint verification.
 - **FR-031**: Each private API idempotency header MUST equal lowercase SHA-256 of the exact transmitted request body; a mismatched header or a reused key with different bytes MUST fail with no mutation. Note, triage, action, and commitment keys MUST use the committed versioned length-delimited derivation.
 - **FR-032**: Raw custody MUST include a non-secret key identifier. Rotation MUST retain every referenced old key until its last ciphertext expires. Any overdue ciphertext or missing active/referenced key MUST make health fail closed, stop new meeting transitions, continue deletion sweeps, and emit an actionable content-free operator signal until corrected.
-- **FR-033**: Email eligibility MUST require a locally validated canonical Meeting Brief v1 object bound to the retained meeting reference and source digest. The worker MUST persist only safe attempt/output metadata; it MUST not persist model messages, session IDs, run IDs, child IDs, or QA envelopes.
+- **FR-033**: Email eligibility MUST require a locally validated result bound to the retained meeting reference and source digest. The active T057 MVP result is the bounded four-section Markdown contract; a later T058+ JSON path may use a canonical Meeting Brief v1 object. The worker MUST persist only safe attempt/output metadata; it MUST not persist model messages, session IDs, run IDs, child IDs, or QA envelopes.
 - **FR-034**: A direct Titus attempt MUST be idempotent across worker restart through the existing brief digest and outbound provider idempotency key. A lost or malformed response MUST block the record without a second model request in the same attempt.
 - **FR-035**: The worker MUST not create or delete Hermes meeting sessions, enumerate children, inspect delegation lineage, resolve approvals, or perform model-output retries. Encrypted custody remains subject to its independent seven-day deletion.
 - **FR-036**: The local validator MUST be the sole acceptance gate for Titus output; prompt text MUST never be treated as a schema guarantee or authority grant.
-- **FR-042**: Feature 034 content-only processing and Feature 035 meeting-brief processing MUST use explicit, independently testable Titus response contracts. The rollback path MUST continue requesting and accepting the established four-section Markdown output, while the meeting-brief path MUST request and accept only canonical Meeting Brief v1 JSON.
+- **FR-042**: Feature 034 content-only processing and Feature 035 meeting-brief processing MUST use explicit, independently testable Titus response contracts. The rollback path MUST continue requesting and accepting the established four-section Markdown output. The active T057 meeting-brief path MUST request and accept the bounded four-section Markdown contract; T058+ MUST introduce and qualify the canonical Meeting Brief v1 JSON contract before selecting it in enabled configuration.
 - **FR-043**: The worker MUST assign the deterministic `MB-` meeting reference before analysis or email eligibility, preserve any valid existing reference on restart, and backfill a missing reference on a retained incomplete record before invoking the fixed-recipient mailer.
 - **FR-044**: When reopening retained encrypted custody, the worker MUST backfill a missing source digest from the custody metadata before analysis, preserve a matching digest, and fail closed with `state_invalid` on a mismatch without model or email replay.
 
 ### Key Entities
 
-- **Meeting brief**: Strict, bounded, versioned structured summary derived from one screened transcript.
+- **Meeting brief**: Strict, bounded, locally validated result derived from one screened transcript; the canonical structured summary is a T058+ contract.
 - **Raw custody object**: Encrypted VTT ciphertext plus non-sensitive cryptographic and expiry metadata.
 - **Review decision**: One authenticated terminal approve/hold transition by Gary or Austin.
 - **Project route**: Operator-managed exact alias mapping to an approved project-note path and Kanban board.
@@ -170,16 +176,16 @@ safe metadata only, and zero recording bytes after completion.
 
 ## Success Criteria
 
-- **SC-001**: The Gary canary produces exactly one schema-valid Meeting Brief v1 and one fixed-recipient draft email to Gary and Austin.
-- **SC-002**: Qualification proves one bounded Titus request, one locally validated Meeting Brief v1, no model/tool/approval operation, and no email before local validation.
+- **SC-001**: The T057 Gary canary produces exactly one locally validated bounded four-section Markdown brief and one fixed-recipient draft email to Gary and Austin. T058+ has a separate schema-valid Meeting Brief v1 acceptance gate.
+- **SC-002**: T057 qualification proves one bounded Titus request, one locally validated Markdown brief, no model/tool/approval operation, and no email before local validation. T058+ qualification MUST prove the corresponding JSON contract before activation.
 - **SC-003**: Fixture-marker scans of source, meeting-processor state, component logs, health, handoff, Docker metadata, email, notes, and Kanban find zero raw VTT marker or recording bytes; no meeting session or child session is created.
 - **SC-004**: A seven-day clock-advance test deletes 100% of expired raw-custody ciphertext while retaining safe provenance and approved results.
-- **SC-005**: Exact approve/hold fixtures achieve 100% expected decisions; every sender, body, replay, and conflict negative fixture causes zero filing mutation.
-- **SC-006**: Known-project approval creates exactly one note and N action tasks; unknown-project approval creates exactly one inbox note, one triage card, and N action tasks, with no duplicates after restart.
+- **SC-005**: The T058+ approval gate proves exact approve/hold fixtures achieve 100% expected decisions; every sender, body, replay, and conflict negative fixture causes zero filing mutation.
+- **SC-006**: The T058+ filing gate proves known-project approval creates exactly one note and N action tasks; unknown-project approval creates exactly one inbox note, one triage card, and N action tasks, with no duplicates after restart.
 - **SC-007**: Recording verification retains only a digest, byte count, timestamps, and safe status and performs zero audio/video analysis.
 - **SC-008**: Disabling the feature stops new model, email, decision, and filing work without stopping metadata discovery, Titus chat, Teams chat, Matrix, email intake, or existing Kanban/project knowledge.
 - **SC-009**: Restart and timeout fixtures prove direct-request idempotency, malformed-output blocking, no model retry in one attempt, and no duplicate brief email.
-- **SC-010**: Configuration-path tests prove disabled Feature 035 restores the Feature 034 Markdown contract, while enabled Feature 035 selects only the JSON contract.
+- **SC-010**: Configuration-path tests prove disabled Feature 035 restores the Feature 034 Markdown contract while enabled T057 selects the bounded Markdown meeting-brief contract. A separate T058+ gate MUST prove that enabled JSON configuration selects only the canonical Meeting Brief v1 contract before any JSON activation.
 - **SC-011**: Worker restart fixtures prove every email-eligible record has one stable valid meeting reference and that ambiguous Titus outcomes become terminal without a repeated request.
 - **SC-012**: A retained-custody restart fixture proves a missing source digest is backfilled before the Titus request, while a mismatched digest blocks without a second Titus or email request.
 
@@ -212,15 +218,27 @@ analysis request. The current canary proved that prompt-only child and QA JSON
 contracts are not a reliable production boundary and introduced unnecessary
 session, retry, lineage, and cleanup state.
 
+### T057/T058 response-contract boundary
+
+The active T057 production MVP deliberately uses the proven bounded
+four-section Markdown response (`Summary`, `Decisions`, `Action Items`, and
+`Unresolved Questions`) with local Markdown validation. The worker keeps the
+legacy structured parser only as a compatibility path for retained fixtures
+and state; it is not the enabled T057 contract. T058+ is the separately gated
+structured-routing phase that may make canonical Meeting Brief v1 JSON the
+enabled contract after its model, validator, routing, and filing qualification
+passes.
+
 - **FR-037**: Meeting analysis MUST use one authenticated Titus
   `/v1/chat/completions` request with the existing Titus API credential. The
   request MUST be stateless, tool-free, and bounded; it MUST NOT create a
   persisted meeting session, delegate a child, or invoke the Hermes approval
   endpoint.
-- **FR-038**: The Titus request MUST ask for one Meeting Brief v1 JSON object;
-  local code MUST parse and validate the complete object with the existing
-  strict validator. Prompt wording is advisory; only local validation makes a
-  result eligible for email.
+- **FR-038**: The active T057 Titus request MUST ask for the bounded four-section
+  Markdown contract and local code MUST validate that complete response.
+  Prompt wording is advisory; only local validation makes a result eligible
+  for email. T058+ may replace this request with one Meeting Brief v1 JSON
+  object only after the separate JSON qualification gate passes.
 - **FR-039**: Feature 035 MUST remove the Sol/Luna QA envelope, child-session
   lineage audit, deterministic session IDs, run dispatch state, session
   deletion, and orchestration retry state. A Titus response that fails local
