@@ -187,7 +187,7 @@ func (client *Client) verifyReadback(ctx context.Context, messageID string, expe
 		return safeError{code: "meeting_email_readback_unavailable"}
 	}
 	var got draft
-	if err := decodeResponseStrict(response, &got); err != nil || got.Subject != expected.Subject || got.Text != expected.Text || len(got.To) != 2 || len(got.CC) != 0 || len(got.BCC) != 0 || got.HTML != nil || len(got.Attachments) != 0 {
+	if err := decodeResponseStrict(response, &got); err != nil || got.Subject != expected.Subject || got.Text != expected.Text || len(got.To) != 2 || len(got.CC) != 0 || len(got.BCC) != 0 || len(got.Attachments) != 0 {
 		return safeError{code: "meeting_email_readback_mismatch"}
 	}
 	sort.Strings(got.To)
