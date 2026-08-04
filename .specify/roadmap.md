@@ -16,16 +16,16 @@ the active Spec Kit feature artifacts and the production platform standard.
 
 **Historical numbered features:** 61
 **Active Spec Kit feature:** Feature 035 — Titus meeting briefs
-**Current critical path:** Build the reviewed organizer-meeting workflow:
+**Current critical path:** Complete the reviewed organizer-meeting workflow:
 seven-day encrypted transcript custody, hard no-tool Hermes analysis, fixed
 Gary/Austin draft email, exact approve/hold, deterministic project-note/Kanban
 filing, and stream/discard recording verification. Austin availability is not a
 gate; the completed Gary meeting is the production canary. Channel meetings and
-Graph webhook subscriptions are the next separately gated feature.
+Graph webhook subscriptions are the next separately gated feature (issue #165).
 
-## Current Delivery Checkpoint — 2026-08-01
+## Current Delivery Checkpoint — 2026-08-04
 
-- **Feature 035 — source complete; production deployment pending:** The approved
+- **Feature 035 — deployed fail-safe; business acceptance pending:** The approved
   workflow turns an organizer-scoped Teams transcript into strict Meeting Brief
   v1 JSON through a separate no-tool/no-memory Hermes analyzer, encrypts raw VTT
   for exactly seven days, and automatically emails a deterministic draft to
@@ -41,9 +41,14 @@ Graph webhook subscriptions are the next separately gated feature.
   channel-meeting discovery, and Graph subscription/webhook lifecycle remain a
   separate follow-on.
   Unit, race, vet, build, runtime projection, security-contract, and filer
-  qualification gates pass. The implementation remains undeployed; production
-  preparation and both activation markers are intentionally deferred until a
-  later operator-authorized deployment turn.
+  qualification gates pass. PRs 179, 180, and 181 are merged; source `f996136`
+  is deployed disabled-first and the retained-custody correction is live. The
+  2026-08-04 Gary canary reached Titus but was terminally rejected as
+  `titus_output_rejected`; one encrypted custody record remains, with zero
+  accepted briefs and zero emails. The brief and filing markers are absent,
+  and the post-block restart is idempotent. This closes the safety/operational
+  gate but not business acceptance; a new authorized canary is required before
+  brief delivery or filing activation.
 
 - **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
   deployed the non-persisting block-mode dependency. OvernightDesk PR 161

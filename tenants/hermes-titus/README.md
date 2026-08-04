@@ -265,13 +265,12 @@ Meeting artifact discovery and reviewed brief generation run in the separate
 `meeting-processor/` service. Organizer-scoped Microsoft Graph delta queries
 discover transcript and recording metadata. Feature 035 encrypts raw WebVTT
 with AES-256-GCM for exactly 168 hours and screens it through SecurityTeam.
-The processor then opens one dedicated session through Titus's existing
-private Hermes API: primary Sol owns the workflow, delegates the bounded draft
-to the configured Luna child, and performs the final QA. One Luna remediation
-is permitted. The processor accepts only a lineage- and digest-bound
-`meeting-qa/v1` result, verifies deletion of the parent and child sessions,
-and only then emails strict Meeting Brief v1 output exactly once to Gary and
-Austin. Feature 035 supplies no model, provider, extra credential, or approval
+The processor sends one stateless, no-tools request through Titus's existing
+private Hermes API and accepts only a strict Meeting Brief v1 JSON object. The
+local validator rejects provider identifiers, unsafe fields, malformed output,
+and tool/action content. Only accepted output can be emailed exactly once to
+Gary and Austin; a rejection is terminal and produces no email or filing.
+Feature 035 supplies no model, provider, extra credential, or approval
 resolution. The existing email poller intercepts only exact clean `APPROVE
 <ref>` or `HOLD <ref>` replies before Hermes; the first terminal decision wins.
 Approval alone allows the private filer to create a deterministic

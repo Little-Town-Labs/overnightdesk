@@ -48,6 +48,21 @@
 - The first post-merge Gary canary reached the persisted `dispatching` boundary but degraded with `state_invalid` before email because the retained custody record lacked the new record-level source digest.
 - Brief processing was disabled immediately; filing remained disabled, custody and rollback state were preserved, and processor/Titus/email intake health remained valid.
 - The correction backfills a missing source digest from validated custody metadata and blocks a mismatch with the existing allowlisted `state_invalid` code. Tests prove no duplicate Titus or email request on either path.
+- The correction was deployed from `f996136` disabled-first. The bounded Gary canary found no missing source digest, reached the private Titus endpoint, and was terminally rejected by the strict validator as `titus_output_rejected`. Safe aggregate evidence is one retained blocked record, zero accepted briefs, zero emails, zero missing source digests, and one retained custody record. The brief marker was removed immediately; filing remained disabled.
+- The source-owned `restart-verify` check then passed with both Feature 035 markers absent. A safe post-restart aggregate remained unchanged, proving no replay or duplicate Titus/email request. Processor, Hermes Titus, routed Titus email-intake container, and SecurityTeam remained healthy.
+
+## Final operational closeout — 2026-08-04
+
+- Platform-standard PR 77 merged at `d0650bf` and was fast-forwarded into the
+  canonical Aegis checkout. `overnightdesk-ops` was restarted because the
+  standard's WHAT/HOW/WHY directories are mounted consumers; no other service
+  was restarted for the documentation sync.
+- T056 and T079 are complete. T057 remains pending because the canary did not
+  produce an accepted brief or email; this is a safety block, not business
+  acceptance. T058 filing activation remains gated. T059 still requires a
+  separately authorized normal-interval observation before it can close.
+- The follow-on channel bot, channel-meeting discovery, and Graph webhook or
+  subscription lifecycle remain outside Feature 035 and are tracked separately.
 
 ## Scope and Safety Gates
 
