@@ -25,7 +25,7 @@ Graph webhook subscriptions are the next separately gated feature (issue #165).
 
 ## Current Delivery Checkpoint — 2026-08-04
 
-- **Feature 035 — deployed fail-safe; business acceptance pending:** The MVP
+- **Feature 035 — deployed and canary-accepted; filing gated:** The MVP
   workflow turns an organizer-scoped Teams transcript into a bounded four-section
   Markdown brief through the existing no-tool/no-memory Hermes path, encrypts raw VTT
   for exactly seven days, and automatically emails a deterministic draft to
@@ -47,9 +47,8 @@ Graph webhook subscriptions are the next separately gated feature (issue #165).
   `titus_output_rejected`, including after the prompt-aware correction in PR
   183. One encrypted custody record remains, with zero accepted briefs and zero
   emails. The brief and filing markers are absent, and post-block restart is
-  idempotent. This closes the safety/operational gate but not business
-  acceptance; the strict structured-JSON validator is deferred, and the bounded
-  Markdown canary must succeed before delivery activation. Filing remains gated.
+  idempotent. T057 is complete for the organizer-scoped Markdown MVP; strict
+  structured-JSON routing and filing remain deferred to T058+.
 
 - **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
   deployed the non-persisting block-mode dependency. OvernightDesk PR 161

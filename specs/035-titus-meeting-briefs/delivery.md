@@ -70,12 +70,33 @@
   canonical Aegis checkout. `overnightdesk-ops` was restarted because the
   standard's WHAT/HOW/WHY directories are mounted consumers; no other service
   was restarted for the documentation sync.
-- T056 and T079 are complete. T057 remains pending because the canary did not
-  produce an accepted brief or email; this is a safety block, not business
-  acceptance. T058 filing activation remains gated. T059 still requires a
-  separately authorized normal-interval observation before it can close.
+- T056, T057, and T079 are complete. T057's bounded Markdown canary produced one
+  accepted brief and one fixed-recipient email, retained one encrypted custody
+  record, and passed restart idempotency with zero duplicate analysis or email
+  events. T058 filing activation remains gated. T059 still requires a separately
+  authorized normal-interval observation before it can close.
 - The follow-on channel bot, channel-meeting discovery, and Graph webhook or
   subscription lifecycle remain outside Feature 035 and are tracked separately.
+
+## T057 Markdown MVP closeout — 2026-08-04
+
+- PR 185 (`6662ca8`) replaced the repeatedly rejected strict model-generated
+  JSON canary with the proven bounded four-section Markdown contract. PR 186
+  (`dfcc00e`) repaired the retained Feature 034 processed-lifecycle transition;
+  PR 190 (`abbb7c9`) accepted AgentMail's opaque angle-bracket IDs; PR 192
+  (`7066986`) accepted provider metadata, generated HTML, null empty fields, and
+  the exact `Sent via AgentMail` footer on readback.
+- The final immutable Aegis release was promoted disabled-first. One guarded
+  reset reopened the existing terminal record without changing custody or
+  meeting identity. The canary then completed one Titus Markdown brief and one
+  AgentMail delivery to Gary and Austin only. Safe aggregate is one
+  `pending_review`, one brief, one email, one retained custody record, and zero
+  errors. Filing remains disabled for the T058 structured-routing boundary.
+- A processor restart emitted zero duplicate analysis, brief, or email events;
+  processor, Hermes Titus, SecurityTeam, and routed Titus email intake remained
+  healthy. AgentMail readback compatibility is intentionally narrow: exact
+  subject, text plus the provider's fixed footer, recipients, and empty
+  CC/BCC/attachments are still required.
 
 ## Scope and Safety Gates
 
