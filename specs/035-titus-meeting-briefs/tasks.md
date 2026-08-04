@@ -128,7 +128,7 @@ context only.
 ## Phase 11 - Retained-custody canary correction
 
 - [x] T078 [US1] Add failing retained-custody fixtures for missing and mismatched source digests, then backfill only the missing digest and fail closed on mismatch in `meeting-processor/internal/worker/`.
-- [x] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence. The 2026-08-04 canary reached Titus but terminally blocked with `titus_output_rejected`; custody was retained, no brief/email was sent, and the post-block restart was idempotent.
+- [x] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence. The retained-custody and prompt-aware canaries reached Titus but terminally blocked with `titus_output_rejected`; custody was retained, no brief/email was sent, and both post-block restarts were idempotent.
 
 ## Dependencies and Ringer Ownership
 
