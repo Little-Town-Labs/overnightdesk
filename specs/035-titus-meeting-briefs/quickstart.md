@@ -4,12 +4,14 @@ This is the implementation and production-qualification runbook for Feature
 035. It must be executed in order. Never print Phase values, raw transcript,
 brief bodies, email addresses, provider IDs, or recording bytes as evidence.
 
-The active processing path is intentionally single-pass: SecurityTeam screens
-the retained transcript, Titus receives one bounded private chat-completion
-request, and the worker locally validates one canonical Meeting Brief v1 JSON
-object. No meeting session, child delegation, QA envelope, or session cleanup
-is part of this path. The older Sol/Luna procedure below is retained only as
-historical delivery evidence and is not an activation requirement.
+The active T057 processing path is intentionally single-pass: SecurityTeam
+screens the retained transcript, Titus receives one bounded private
+chat-completion request, and the worker locally validates one bounded
+four-section Markdown brief. No meeting session, child delegation, QA envelope,
+or session cleanup is part of this path. T058+ will have a separate gate for
+canonical Meeting Brief v1 JSON and structured filing. The older Sol/Luna
+procedure below is retained only as historical delivery evidence and is not an
+activation requirement.
 
 ## 1. Local prerequisites
 
@@ -77,9 +79,10 @@ The harness must prove:
   version-2 state, its original digest is retained only in separate Feature 035
   provenance, handoff output bodies are removed, and the prior release can
   still read the discovery document across every simulated crash boundary;
-- strict Meeting Brief schema, unknown-field rejection, array/string caps,
-  owner/date/timestamp rules, project exact-match behavior, and protected-value
-  rejection;
+- T057 Markdown heading/size/protected-value validation and no provider
+  identifiers; T058+ separately covers strict Meeting Brief JSON schema,
+  unknown-field rejection, array/string caps, owner/date/timestamp rules, and
+  project exact-match behavior;
 - one tool-free Titus request is made per attempt, local strict validation is the
   sole model-output acceptance gate, and malformed/legacy/unsafe output blocks
   without email or filing;

@@ -106,6 +106,12 @@ context only.
 
 ## Phase 9 - Single-pass Titus simplification
 
+The Phase 9-11 JSON/session tasks are historical implementation records.
+Their completed checkboxes do not define the active T057 contract: T063, T064,
+T070, T071, and T079 describe superseded JSON/session qualification. T057 is
+the bounded Markdown MVP; canonical JSON is deferred to the separately gated
+T058 path.
+
 - [x] T063 [US1] Write failing Titus client and worker tests for one bounded tool-free JSON request, strict local Meeting Brief validation, invalid-output blocking, custody preservation, and no session/delegation calls in `tenants/hermes-titus/meeting-processor/internal/{titus,worker}/`.
 - [x] T064 [US1] Change `internal/titus/client.go` to request one Meeting Brief v1 JSON object and reject unsafe or non-schema output without legacy Markdown translation.
 - [x] T065 [US1] Replace the `MeetingOrchestrator` state machine with direct single-pass processing in `internal/worker/meeting_briefs.go` and `internal/state/`, preserving restart idempotency and existing custody/email/recording transitions.
@@ -116,7 +122,7 @@ context only.
 
 ## Phase 10 - PR 175 review corrections
 
-- [x] T070 [US1] Write failing client and command-wiring tests proving Feature 034 retains its four-section Markdown contract while Feature 035 uses only canonical Meeting Brief v1 JSON in `meeting-processor/internal/titus/` and `cmd/titus-meeting-processor/`.
+- [x] T070 [historical, superseded] [US1] Write failing client and command-wiring tests proving Feature 034 retains its four-section Markdown contract while the then-planned Feature 035 path used canonical Meeting Brief v1 JSON in `meeting-processor/internal/titus/` and `cmd/titus-meeting-processor/`.
 - [x] T071 [US1] Implement explicit Markdown and Meeting Brief Titus client contracts without a boolean mode or duplicated transport in `meeting-processor/internal/titus/` and wire each configuration path to its exact constructor.
 - [x] T072 [US1] Write failing worker tests proving a deterministic valid meeting reference exists before the real mailer boundary, is preserved on restart, and is backfilled for an incomplete retained record in `meeting-processor/internal/worker/`.
 - [x] T073 [US1] Assign or backfill the deterministic meeting reference before analysis and email eligibility in `meeting-processor/internal/worker/meeting_briefs.go`.
@@ -128,13 +134,23 @@ context only.
 ## Phase 11 - Retained-custody canary correction
 
 - [x] T078 [US1] Add failing retained-custody fixtures for missing and mismatched source digests, then backfill only the missing digest and fail closed on mismatch in `meeting-processor/internal/worker/`.
-- [x] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence. The retained-custody and prompt-aware canaries reached Titus but terminally blocked with `titus_output_rejected`; custody was retained, no brief/email was sent, and both post-block restarts were idempotent.
+- [x] T079 [historical, superseded] Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence. The retained-custody and prompt-aware canaries reached Titus but terminally blocked with `titus_output_rejected`; custody was retained, no brief/email was sent, and both post-block restarts were idempotent. The active T057 release subsequently qualified Markdown.
 
 ## Phase 12 - P2 review corrections
 
 - [x] T080 Add a failing worker regression for permanent `meeting_email_rejected` responses, then terminally block the stored brief instead of restoring `email_pending` and retrying an impossible delivery.
 - [x] T081 Reconcile the current roadmap checkpoint with the final Markdown release PR chain, canary aggregate, marker state, and restart-idempotency evidence.
 - [x] T082 Run focused worker tests, full Go qualification, and documentation consistency checks for the combined P2 correction.
+
+Phases 9-11 above preserve the superseded strict-JSON implementation and
+canary history for traceability. The active T057 Markdown MVP and the deferred
+T058 JSON boundary are governed by Phase 13 and the reconciled spec artifacts.
+
+## Phase 13 - P2 follow-up corrections
+
+- [x] T083 Add a failing worker regression proving recording verification still runs after a terminal `meeting_email_rejected` result and does not replay after restart in `meeting-processor/internal/worker/`.
+- [x] T084 Reconcile the active T057 Markdown MVP and deferred T058 JSON boundary across `spec.md`, `plan.md`, `quickstart.md`, `data-model.md`, `checklists/requirements.md`, `delivery.md`, and the qualification contract.
+- [x] T085 Run focused worker tests, full Go/race/vet/build qualification, documentation consistency checks, and the read-only Sol quality gate for the combined P2 follow-up. Ringer transport was unavailable (HTTP 403); the bounded local Sol delta review and all qualification checks passed.
 
 ## Dependencies and Ringer Ownership
 
@@ -160,7 +176,7 @@ context only.
 | FR-001, FR-025 | T016 |
 | FR-002, FR-003, FR-032 | T004-T007, T033, T041 |
 | FR-004 | T011-T012, T042-T047 |
-| FR-005-FR-006, FR-033-FR-036 | T040-T053, T056-T057 |
+| FR-005-FR-006, FR-033-FR-036 | T040-T053, T056-T057, T084-T085 |
 | FR-007-FR-009 | T011-T012, T042-T047, T051 |
 | FR-010-FR-012 | T017-T018, T047, T057 |
 | FR-013-FR-015, FR-030 | T019-T023, T058 |
@@ -172,7 +188,8 @@ context only.
 | FR-026 | T057-T058 |
 | FR-027 | T050, T060-T062 |
 | FR-028 | T006-T007, T051, T056 |
-| FR-037-FR-041 | T063-T069 |
-| FR-034, FR-042 | T070-T071, T074-T075 |
+| FR-037-FR-041 | T063-T069, T084-T085 |
+| FR-034, FR-042 | T070-T071, T074-T075, T084-T085 |
 | FR-012, FR-022, FR-033, FR-043 | T072-T073 |
-| SC-010-SC-011 | T070-T076 |
+| SC-001-SC-002 | T057, T084-T085 |
+| SC-010-SC-011 | T070-T076, T084-T085 |
