@@ -169,8 +169,16 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 		}
 		delivery, err := processor.Mailer.Send(ctx, record.MeetingReference, record.BriefDigest, body)
 		if err != nil {
-			markBriefFailure(&record, meetingemail.SafeCode(err), timestamp)
-			record.ReviewStatus = "email_pending"
+			code := meetingemail.SafeCode(err)
+			markBriefFailure(&record, code, timestamp)
+			// The mailer rejects a stored body that exceeds its hard limit (or
+			// contains a permanent policy violation). Retrying that same body
+			// cannot succeed, so preserve the evidence as a terminal block.
+			if code == "meeting_email_rejected" {
+				record.ReviewStatus = "blocked"
+			} else {
+				record.ReviewStatus = "email_pending"
+			}
 			briefs.Records[key] = record
 			return processor.Briefs.Commit(briefs)
 		}

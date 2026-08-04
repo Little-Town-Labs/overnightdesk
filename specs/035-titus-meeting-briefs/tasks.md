@@ -130,6 +130,12 @@ context only.
 - [x] T078 [US1] Add failing retained-custody fixtures for missing and mismatched source digests, then backfill only the missing digest and fail closed on mismatch in `meeting-processor/internal/worker/`.
 - [x] T079 Deploy the retained-custody correction disabled-first, rerun the bounded Gary canary, verify one strict JSON brief and fixed-recipient email or a safe terminal block, verify restart idempotency, and reconcile production evidence. The retained-custody and prompt-aware canaries reached Titus but terminally blocked with `titus_output_rejected`; custody was retained, no brief/email was sent, and both post-block restarts were idempotent.
 
+## Phase 12 - P2 review corrections
+
+- [x] T080 Add a failing worker regression for permanent `meeting_email_rejected` responses, then terminally block the stored brief instead of restoring `email_pending` and retrying an impossible delivery.
+- [x] T081 Reconcile the current roadmap checkpoint with the final Markdown release PR chain, canary aggregate, marker state, and restart-idempotency evidence.
+- [x] T082 Run focused worker tests, full Go qualification, and documentation consistency checks for the combined P2 correction.
+
 ## Dependencies and Ringer Ownership
 
 - T002 depends on T001. T003 depends on T002 and delegates read-only review only.

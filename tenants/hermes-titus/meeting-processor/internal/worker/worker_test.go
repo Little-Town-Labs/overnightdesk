@@ -81,6 +81,7 @@ type fakeMeetingMailer struct {
 	calls      int
 	references []string
 	bodies     []string
+	err        error
 }
 
 func (fake *fakeMeetingMailer) Send(_ context.Context, reference, _ string, rendered string) (meetingemail.Delivery, error) {
@@ -92,6 +93,9 @@ func (fake *fakeMeetingMailer) Send(_ context.Context, reference, _ string, rend
 	}
 	if !strings.Contains(rendered, "Source-derived summary") && !strings.Contains(rendered, "## Summary") {
 		return meetingemail.Delivery{}, errors.New("wrong render")
+	}
+	if fake.err != nil {
+		return meetingemail.Delivery{}, fake.err
 	}
 	return meetingemail.Delivery{IdempotencyKey: strings.Repeat("a", 64), ProviderMessageIDDigest: strings.Repeat("b", 64), RecipientSet: "gary+austin", TemplateVersion: meetingemail.TemplateVersion, SentAt: fixedWorkerTime().Format(time.RFC3339Nano), ReadbackVerifiedAt: fixedWorkerTime().Format(time.RFC3339Nano)}, nil
 }
@@ -323,6 +327,27 @@ func TestMeetingBriefAcceptsBoundedMarkdownMVP(t *testing.T) {
 	}
 	if fake.calls != 1 || mailer.calls != 1 || len(mailer.bodies) != 1 || mailer.bodies[0] != markdown {
 		t.Fatalf("markdown MVP calls/body mismatch: analyze=%d mail=%d bodies=%q", fake.calls, mailer.calls, mailer.bodies)
+	}
+}
+
+func TestMeetingBriefTerminallyBlocksPermanentEmailRejection(t *testing.T) {
+	processor, briefs, _, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	mailer.err = contentCodeError("meeting_email_rejected")
+
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "blocked" || record.LastErrorCode != "meeting_email_rejected" || record.RetryCount != 1 {
+			t.Fatalf("permanent email rejection was left retryable: %#v", record)
+		}
+	}
+
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if mailer.calls != 1 {
+		t.Fatalf("terminal email rejection was retried: %d calls", mailer.calls)
 	}
 }
 
