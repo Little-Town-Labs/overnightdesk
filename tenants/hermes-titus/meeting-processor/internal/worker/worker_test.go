@@ -520,6 +520,47 @@ func TestMeetingBriefRejectsLegacyModelOutputWithoutEmail(t *testing.T) {
 	}
 }
 
+func TestMeetingBriefFailureClearsRetiredProcessedLifecycle(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	var key string
+	for candidate, record := range doc.Records {
+		key = candidate
+		record.Brief = nil
+		record.BriefDigest = ""
+		record.BriefMarkdown = ""
+		record.LegacyAnalysisDigest = digest(state.LegacySentinel)
+		record.MigrationStatus = "complete"
+		record.Email = nil
+		record.ReviewStatus = ""
+		record.Analysis = nil
+		record.RetryCount = 0
+		record.LastErrorCode = ""
+		doc.Records[candidate] = record
+	}
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	fake.output = "## Summary\nlegacy"
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	record := briefs.Document().Records[key]
+	if record.ReviewStatus != "blocked" || record.LastErrorCode != "titus_output_rejected" || record.BriefDigest != "" || record.Email != nil {
+		t.Fatalf("reprocessed failure escaped terminal block: %#v", record)
+	}
+	artifact := processor.Store.Document().Artifacts[key]
+	if artifact.ContentStatus != "blocked" || artifact.RawContentDigest != "" || artifact.SafeContentDigest != "" || artifact.TitusOutput != "" || artifact.TitusOutputDigest != "" || artifact.ContentProcessedAt != "" {
+		t.Fatalf("retired processed lifecycle was retained: %#v", artifact)
+	}
+	if fake.calls != 2 || mailer.calls != 1 {
+		t.Fatalf("unexpected side effects analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
 func TestMeetingBriefAcceptsOnlyCanonicalSchema(t *testing.T) {
 	processor, briefs, fake, _, mailer := newMeetingProcessor(t, `{"schemaVersion":"meeting-brief/v1","title":"bad"}`)
 	if _, err := processor.RunOnce(context.Background()); err != nil {
