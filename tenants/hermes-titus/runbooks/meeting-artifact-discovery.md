@@ -160,15 +160,32 @@ memory. Inspect only modes, ownership, booleans, safe status, and counts.
 | `securityteam_unavailable` / `securityteam_response_invalid` | Keep content enabled only if bounded retries are appropriate; verify the private service contract without bypassing screening. |
 | `securityteam_blocked` | Treat as terminal for the pilot. Do not move content to the approval queue or submit it to Titus. |
 | `titus_unavailable` / `titus_response_invalid` | Preserve encrypted custody and retry the bounded provider operation within the attempt limit; never duplicate a successful request. |
-| `titus_output_rejected` | Treat the attempt as terminal, retain no accepted brief, and do not email or file. |
+| `titus_output_rejected` | Treat the attempt as terminal, retain no accepted brief, and do not email or file. A reviewed prompt correction may use the guarded reset command below; never replay or manually edit JSON. |
 | `custody_key_missing` / `custody_referenced_key_missing` | Stop new meeting transitions, restore the referenced key without displaying it, and rerun retention. |
 | `custody_retention_overdue` | Stop new meeting transitions, repair deletion, and sweep until no object is overdue. |
 | `meeting_email_*` | Preserve deterministic idempotency state; do not bypass SecurityTeam or resend manually. |
 | `filer_*` | Keep the approved brief retryable; verify note/task readback before retry. |
 
-Never reset a cursor, remove an artifact record, edit the state JSON, or delete
-the volume to clear an incident. Restore from reviewed evidence or ship a
-versioned migration instead.
+Never reset a cursor, remove an artifact record, manually edit the state JSON,
+or delete the volume to clear an incident. For the one reviewed recovery case,
+an exact `titus_output_rejected` record may be reopened only through the
+versioned binary command below while the worker is stopped:
+
+```bash
+sudo systemctl stop titus-meeting-processor.service
+image=$(sudo docker inspect -f '{{.Config.Image}}' titus-meeting-processor)
+ref=$(sudo jq -r '.records | to_entries[] | select(.value.review_status == "blocked" and .value.last_error_code == "titus_output_rejected") | .key' /var/lib/docker/volumes/titus-meeting-processor-data/_data/meeting-brief-state.json)
+test -n "$ref" && test "$ref" != null
+sudo docker run --rm --network none --read-only --cap-drop=ALL --security-opt no-new-privileges \
+  --user 10003:10003 --volume titus-meeting-processor-data:/data:rw "$image" \
+  reset-brief-record --brief-state /data/meeting-brief-state.json --ref "$ref"
+sudo systemctl start titus-meeting-processor.service
+```
+
+The command refuses any other status/error, preserves custody and meeting
+identity, clears only the analysis-attempt fields, and commits through full
+state validation. Verify the safe aggregate and marker state before enabling
+brief processing again.
 
 ## Disable and rollback
 

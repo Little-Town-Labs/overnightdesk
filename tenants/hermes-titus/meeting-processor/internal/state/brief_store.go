@@ -340,6 +340,27 @@ func (store *BriefStore) Commit(doc BriefDocument) error {
 	return nil
 }
 
+// ResetBlockedBrief reopens only a terminal Titus-output rejection. It keeps
+// custody and meeting identity intact while clearing analysis-attempt state so
+// the worker can make one fresh, prompt-versioned attempt.
+func (store *BriefStore) ResetBlockedBrief(key string, now time.Time) error {
+	if !digestPattern.MatchString(key) || now.IsZero() {
+		return safeError{code: "state_reset_invalid"}
+	}
+	doc := store.Document()
+	record, ok := doc.Records[key]
+	if !ok || record.ReviewStatus != "blocked" || record.LastErrorCode != "titus_output_rejected" || record.Custody == nil || record.SourceDigest == "" || record.BriefDigest != "" || len(record.Brief) != 0 || record.Email != nil || record.Decision != nil || record.Filing != nil || record.ProjectRoute != nil {
+		return safeError{code: "state_reset_not_allowed"}
+	}
+	record.ReviewStatus = ""
+	record.Analysis = nil
+	record.RetryCount = 0
+	record.LastErrorCode = ""
+	record.UpdatedAt = now.UTC().Format(time.RFC3339Nano)
+	doc.Records[key] = record
+	return store.Commit(doc)
+}
+
 func (store *BriefStore) persist(doc BriefDocument) error {
 	raw, err := json.Marshal(doc)
 	if err != nil || int64(len(raw)) > MaxBriefStateSize {

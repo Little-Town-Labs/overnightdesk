@@ -37,7 +37,7 @@ func TestMeetingBriefAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 				t.Fatalf("request contains %s", forbidden)
 			}
 		}
-		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "meeting-brief/v1", "schemaVersion"} {
+		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "meeting-brief/v1", "schemaVersion", "occurredAt", "RFC 3339 UTC", "sourceTimestamp", "HH:MM:SS.mmm", "participants", "projectConfidence"} {
 			if !strings.Contains(strings.ToLower(body), strings.ToLower(required)) {
 				t.Fatalf("request missing %s: %s", required, body)
 			}
@@ -51,6 +51,29 @@ func TestMeetingBriefAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 	output, err := client.Analyze(context.Background(), reference, "screened wrapper", []string{"protected-id"})
 	if err != nil || !strings.Contains(output, `"schemaVersion":"meeting-brief/v1"`) {
 		t.Fatalf("output=%q err=%v", output, err)
+	}
+}
+
+func TestMeetingBriefIdempotencyIncludesSystemPromptDigest(t *testing.T) {
+	reference := strings.Repeat("a", 64)
+	screened := "screened"
+	var got string
+	client, err := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		got = request.Header.Get("Idempotency-Key")
+		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefJSON())+`},"finish_reason":"stop"}]}`), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Analyze(context.Background(), reference, screened, nil); err != nil {
+		t.Fatal(err)
+	}
+	safeDigest := sha256.Sum256([]byte(screened))
+	promptDigest := sha256.Sum256([]byte(briefSystemInstruction))
+	wantInput := "titus-meeting-brief/v1" + "\x00" + hex.EncodeToString(promptDigest[:]) + "\x00" + reference + "\x00" + hex.EncodeToString(safeDigest[:])
+	wantDigest := sha256.Sum256([]byte(wantInput))
+	if want := hex.EncodeToString(wantDigest[:]); got != want {
+		t.Fatalf("prompt-aware idempotency key mismatch: got=%s want=%s", got, want)
 	}
 }
 

@@ -91,11 +91,31 @@ func execute(args []string, stdout, stderr io.Writer) error {
 		return runContentStatus(args[1:], stdout)
 	case "retention-sweep":
 		return runRetentionSweep(args[1:], stdout)
+	case "reset-brief-record":
+		return resetBriefRecord(args[1:])
 	case "init-volume":
 		return initVolume(args[1:])
 	default:
 		return errors.New("command_invalid")
 	}
+}
+
+func resetBriefRecord(args []string) error {
+	flags := flag.NewFlagSet("reset-brief-record", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	path := "/data/meeting-brief-state.json"
+	key := ""
+	flags.StringVar(&path, "brief-state", path, "private meeting brief state")
+	flags.StringVar(&key, "ref", key, "internal SHA-256 record key")
+	if err := flags.Parse(args); err != nil || flags.NArg() != 0 || path == "" || key == "" {
+		return errors.New("arguments_invalid")
+	}
+	store, err := state.OpenBrief(path)
+	if err != nil {
+		return err
+	}
+	defer store.Close()
+	return store.ResetBlockedBrief(key, time.Now().UTC())
 }
 
 func runContentStatus(args []string, stdout io.Writer) error {
