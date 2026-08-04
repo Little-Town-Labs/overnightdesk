@@ -39,7 +39,7 @@ func TestSendScreensThenSendsExactlyGaryAustinAndReadsBack(t *testing.T) {
 				t.Fatal("missing idempotency")
 			}
 			sent, _ = io.ReadAll(request.Body)
-			return response(http.StatusOK, `{"message_id":"msg-1","thread_id":"thread-1"}`), nil
+			return response(http.StatusOK, `{"message_id":"<msg-1@example>","thread_id":"thread-1"}`), nil
 		case request.Method == http.MethodGet:
 			return response(http.StatusOK, string(sent)), nil
 		default:
