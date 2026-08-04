@@ -80,7 +80,10 @@ func TestPreparePinsFeature035BriefAndQAJSONContracts(t *testing.T) {
 		`schemaVersion (exactly "meeting-brief/v1")`,
 		`schemaVersion (exactly "meeting-qa/v1")`,
 		`actionItems MUST contain only title, owner`,
-		`Do not use the legacy keys schema, discussion, actions, followUp`,
+		`Do not use legacy keys schema, discussion, actions, followUp`,
+		`The exact shape is {"schemaVersion":"meeting-brief/v1"`,
+		`subject, purpose, key_points, risks_or_issues`,
+		`The exact envelope shape is {"schemaVersion":"meeting-qa/v1"`,
 		`QA_PASS MUST include brief using the exact child object unchanged`,
 	} {
 		if !strings.Contains(body, required) {
