@@ -123,7 +123,7 @@ context only.
 - [x] T074 [US1] Write failing restart tests proving ambiguous Titus transport or response outcomes become terminal for the stored attempt and perform no email or repeated model request in `meeting-processor/internal/worker/`.
 - [x] T075 [US1] Implement fail-closed post-dispatch ambiguity handling while retaining only provably pre-dispatch retry semantics in `meeting-processor/internal/worker/analysis.go`.
 - [x] T076 Run Spec Kit consistency analysis, refresh codebase-memory impact, prepare and run the production-sensitive read-only Ringer quality gate, and complete focused plus repository qualification.
-- [ ] T077 Commit the three independently reviewable fixes, push one correction branch, open one PR closing issues 176-178, pass checks and review, and merge without activating Feature 035 production processing.
+- [x] T077 Commit the three independently reviewable fixes, push one correction branch, open one PR closing issues 176-178, pass checks and review, and merge without activating Feature 035 production processing.
 
 ## Dependencies and Ringer Ownership
 
