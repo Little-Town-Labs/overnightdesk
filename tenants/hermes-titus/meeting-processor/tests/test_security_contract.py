@@ -90,7 +90,8 @@ class SecurityContractTests(unittest.TestCase):
         self.assertFalse((ROOT / "internal" / "orchestrator").exists())
         titus_client = (ROOT / "internal" / "titus" / "client.go").read_text(encoding="utf-8")
         self.assertIn('"/v1/chat/completions"', titus_client)
-        self.assertIn("analyzer.ParseAndValidate", titus_client)
+        self.assertIn("validateMarkdown", titus_client)
+        self.assertIn("ValidateMeetingBriefMarkdown", titus_client)
 
         main = (ROOT / "cmd" / "titus-meeting-processor" / "main.go").read_text(encoding="utf-8")
         brief_branch = main.index("if runtimeConfig.MeetingBriefEnabled")

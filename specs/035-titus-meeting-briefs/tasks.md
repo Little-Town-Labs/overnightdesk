@@ -97,7 +97,7 @@ context only.
 
 - [x] T055 Commit, push, open the correction PR with Spec Kit/Ringer/security/rollback context, pass checks, merge, and reconcile local main.
 - [x] T056 Deploy filer, corrected worker, and poller disabled; retire the analyzer unit/container without deleting retained rollback state; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated Titus continuity.
-- [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one bounded Titus JSON request, strict local validation or fail-closed block, one fixed-recipient email only after validation, seven-day encrypted custody, recording stream/discard, and restart idempotency.
+- [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one bounded tool-free Titus Markdown request using the proven four-section contract, local validation or fail-closed block, one fixed-recipient email only after validation, seven-day encrypted custody, recording stream/discard, and restart idempotency. Structured JSON routing is deferred to T058+.
 - [ ] T058 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.
 - [ ] T059 Exercise scoped rollback/restoration, monitor one normal interval, and append safe evidence to suite-root `deploys.log`.
 - [x] T060 Update, review, merge, deploy, and verify the separate `overnightdesk-platform-standard` change. PR 77 merged at `d0650bf`; the canonical Aegis checkout was fast-forwarded and `overnightdesk-ops` restarted and verified healthy.

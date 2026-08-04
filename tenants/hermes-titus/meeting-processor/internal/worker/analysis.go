@@ -67,22 +67,41 @@ func (processor Processor) processOneMeetingAnalysis(ctx context.Context, discov
 		// complete the request, so replaying this stored attempt is unsafe.
 		return processor.blockOrRetryAnalysis(discovery, key, artifact, record, code, timestamp, cycleID, false)
 	}
-	validated, validateErr := analyzer.ParseAndValidate([]byte(output), protected)
-	if validateErr != nil {
-		return processor.blockOrRetryAnalysis(discovery, key, artifact, record, "titus_output_rejected", timestamp, cycleID, false)
+	// T057 is intentionally a small Markdown MVP. Keep the legacy structured
+	// parser as a compatibility path for existing fixtures/state, but accept only
+	// the bounded Markdown contract for new Titus meeting-brief output.
+	var briefBytes []byte
+	var briefDigest string
+	if validated, validateErr := analyzer.ParseAndValidate([]byte(output), protected); validateErr == nil {
+		briefBytes = validated.Canonical
+		briefDigest = validated.Digest
+		record.ProjectRoute = nil
+		if route := analyzer.MatchRoute(validated.Brief, processor.Routes); route != nil {
+			record.ProjectRoute = &state.ProjectRoute{CanonicalProject: route.CanonicalProject, NoteDirectory: route.NoteDirectory, KanbanBoard: route.KanbanBoard, ConfigDigest: route.ConfigDigest}
+		}
+	} else {
+		validatedMarkdown, markdownErr := titus.ValidateMeetingBriefMarkdown(output, protected)
+		if markdownErr != nil {
+			return processor.blockOrRetryAnalysis(discovery, key, artifact, record, "titus_output_rejected", timestamp, cycleID, false)
+		}
+		briefBytes = nil
+		briefDigest = digest(validatedMarkdown)
+		record.ProjectRoute = nil
+		record.Brief = nil
+		record.BriefMarkdown = validatedMarkdown
 	}
 
-	record.Brief = append([]byte(nil), validated.Canonical...)
-	record.BriefDigest = validated.Digest
+	if len(briefBytes) != 0 {
+		record.Brief = append([]byte(nil), briefBytes...)
+		record.BriefMarkdown = ""
+	}
+	record.BriefDigest = briefDigest
 	record.Analysis.Status = "completed"
 	record.Analysis.CompletedAt = timestamp
 	record.Analysis.LastObservedAt = timestamp
 	record.Analysis.LastErrorCode = ""
 	record.ReviewStatus = "email_pending"
 	record.LastErrorCode = ""
-	if route := analyzer.MatchRoute(validated.Brief, processor.Routes); route != nil {
-		record.ProjectRoute = &state.ProjectRoute{CanonicalProject: route.CanonicalProject, NoteDirectory: route.NoteDirectory, KanbanBoard: route.KanbanBoard, ConfigDigest: route.ConfigDigest}
-	}
 	artifact.ContentStatus = "processed"
 	artifact.ContentErrorCode = ""
 	artifact.ContentProcessedAt = timestamp

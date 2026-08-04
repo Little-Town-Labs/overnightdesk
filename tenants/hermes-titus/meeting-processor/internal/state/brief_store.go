@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/custody"
 )
@@ -40,6 +41,7 @@ type BriefRecord struct {
 	MeetingReference      string                 `json:"meeting_reference,omitempty"`
 	SourceDigest          string                 `json:"source_digest,omitempty"`
 	Brief                 json.RawMessage        `json:"brief,omitempty"`
+	BriefMarkdown         string                 `json:"brief_markdown,omitempty"`
 	BriefDigest           string                 `json:"brief_digest,omitempty"`
 	AnalysisPromptVersion string                 `json:"analysis_prompt_version,omitempty"`
 	ReviewStatus          string                 `json:"review_status,omitempty"`
@@ -209,6 +211,9 @@ func validateBriefDocument(doc BriefDocument) error {
 		if record.Custody != nil && custody.ValidateRecord(*record.Custody) != nil {
 			return invalidState()
 		}
+		if record.BriefMarkdown != "" && (len(record.BriefMarkdown) > 65_536 || !utf8.ValidString(record.BriefMarkdown) || strings.ContainsRune(record.BriefMarkdown, 0)) {
+			return invalidState()
+		}
 		if record.ProjectRoute != nil && (!boundedSafe(record.ProjectRoute.CanonicalProject, 80) || !boundedSafe(record.ProjectRoute.NoteDirectory, 160) || !boundedSafe(record.ProjectRoute.KanbanBoard, 80) || !digestPattern.MatchString(record.ProjectRoute.ConfigDigest)) {
 			return invalidState()
 		}
@@ -349,7 +354,7 @@ func (store *BriefStore) ResetBlockedBrief(key string, now time.Time) error {
 	}
 	doc := store.Document()
 	record, ok := doc.Records[key]
-	if !ok || record.ReviewStatus != "blocked" || record.LastErrorCode != "titus_output_rejected" || record.Custody == nil || record.SourceDigest == "" || record.BriefDigest != "" || len(record.Brief) != 0 || record.Email != nil || record.Decision != nil || record.Filing != nil || record.ProjectRoute != nil {
+	if !ok || record.ReviewStatus != "blocked" || record.LastErrorCode != "titus_output_rejected" || record.Custody == nil || record.SourceDigest == "" || record.BriefDigest != "" || len(record.Brief) != 0 || record.BriefMarkdown != "" || record.Email != nil || record.Decision != nil || record.Filing != nil || record.ProjectRoute != nil {
 		return safeError{code: "state_reset_not_allowed"}
 	}
 	record.ReviewStatus = ""

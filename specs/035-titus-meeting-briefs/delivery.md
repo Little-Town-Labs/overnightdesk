@@ -52,6 +52,18 @@
 - The source-owned `restart-verify` check then passed with both Feature 035 markers absent. A safe post-restart aggregate remained unchanged, proving no replay or duplicate Titus/email request. Processor, Hermes Titus, routed Titus email-intake container, and SecurityTeam remained healthy.
 - PR 183 (`fd4a32d`) added explicit Meeting Brief format constraints, prompt-aware idempotency, and a guarded reset command. The reset reopened exactly one terminal `titus_output_rejected` record while preserving custody and meeting identity. The fresh prompt-aware canary still failed strict validation; it was disabled immediately with zero briefs and zero emails. A post-canary restart remained idempotent.
 
+## T057 MVP redesign
+
+- T057 now uses the proven Feature 034 bounded Markdown contract for the
+  production canary: one tool-free Titus request, required Summary, Decisions,
+  Action Items, and Unresolved Questions headings, protected-value rejection,
+  encrypted seven-day custody, and the fixed Gary/Austin email. Markdown is
+  stored in a dedicated state field and emailed verbatim after local validation.
+- Strict model-generated JSON, structured project routing, approval-driven
+  filing, and Kanban/action-item extraction remain deferred to T058 and later.
+  Filing stays disabled while the Markdown MVP is active; existing structured
+  JSON state remains readable for rollback compatibility.
+
 ## Final operational closeout — 2026-08-04
 
 - Platform-standard PR 77 merged at `d0650bf` and was fast-forwarded into the

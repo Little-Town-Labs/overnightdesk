@@ -107,14 +107,15 @@ Required value-safe evidence:
 1. The host marker is a root-owned, empty, non-symlink mode-0444 file.
 2. The runtime projection has the fixed private origins and bounded values;
    secrets remain absent from Docker environment metadata and operator output.
-3. Gary's transcript produces one bounded Titus JSON request, one strict local
-   Meeting Brief reference, and one email read back with recipient set
-   `gary+austin`.
+3. Gary's transcript produces one bounded, tool-free Titus Markdown request with
+   the required Summary, Decisions, Action Items, and Unresolved Questions
+   headings, and one email read back verbatim with recipient set `gary+austin`.
 4. Raw WebVTT exists only as mode-0600 AES-256-GCM ciphertext with an expiry
    exactly 168 hours after creation; safe state contains digests, not content.
 5. Feature 035 sends no request model override, invokes no Hermes tool or
-   approval, and stores no model messages or session IDs. Malformed, legacy, or
-   protected output creates no brief or email.
+   approval, and stores no model messages or session IDs. Malformed, legacy,
+   missing-section, or protected output creates no brief or email. Structured
+   JSON project routing and filing remain disabled until T058.
 6. No session cleanup is required; encrypted custody retention remains
    independent and continues for exactly seven days.
 7. Recording content is streamed once as bounded MP4, hashed, and discarded.
