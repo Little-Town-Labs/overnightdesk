@@ -123,6 +123,14 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 	if !exists {
 		record = state.BriefRecord{InternalReference: key, MigrationStatus: "not_applicable", CreatedAt: timestamp, UpdatedAt: timestamp}
 	}
+	if record.MeetingReference == "" {
+		record.MeetingReference = meetingReference(key)
+		record.UpdatedAt = timestamp
+		briefs.Records[key] = record
+		if err := processor.Briefs.Commit(briefs); err != nil {
+			return errors.New(state.ErrorCode(err))
+		}
+	}
 	if record.Analysis != nil && (record.Analysis.Status == "cleanup_pending" || record.Analysis.Status == "cleanup_retryable") {
 		if err := processor.processOneMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
 			return err
