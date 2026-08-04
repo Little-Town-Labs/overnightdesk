@@ -89,6 +89,24 @@ func TestPreparePinsFeature035BriefAndQAJSONContracts(t *testing.T) {
 	}
 }
 
+func TestModelReadbackAcceptsHermesGenericRuntimePersonaOnly(t *testing.T) {
+	for _, model := range []string{ApprovedParentModel, observedRuntimeModel} {
+		if !parentModelReadbackVerified(model) {
+			t.Fatalf("parent model %q was rejected", model)
+		}
+	}
+	for _, model := range []string{ApprovedChildModel, observedRuntimeModel} {
+		if !childModelReadbackVerified(model) {
+			t.Fatalf("child model %q was rejected", model)
+		}
+	}
+	for _, model := range []string{"", "gpt-5.6-other", "openai-codex"} {
+		if parentModelReadbackVerified(model) || childModelReadbackVerified(model) {
+			t.Fatalf("unexpected model %q was accepted", model)
+		}
+	}
+}
+
 func TestClientCreatesSessionAndSubmitsExactlyOneAuthenticatedRun(t *testing.T) {
 	plan := testPlan(t)
 	requests := 0

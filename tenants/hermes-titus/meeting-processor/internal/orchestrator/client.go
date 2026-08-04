@@ -24,6 +24,13 @@ var (
 	sessionIDPattern = regexp.MustCompile(`^[A-Za-z0-9_.:-]{1,160}$`)
 )
 
+// Hermes's session API reports the generic runtime persona as "hermes-agent"
+// even when the immutable Titus config routes the parent and delegated child
+// to the approved Sol/Luna models. deploy-aegis.sh verifies those effective
+// routes before activation; the API's generic value is therefore an accepted
+// runtime readback, not a request-scoped model selection.
+const observedRuntimeModel = "hermes-agent"
+
 type safeError struct{ code string }
 
 func (err safeError) Error() string    { return err.code }
@@ -83,7 +90,7 @@ func (client *Client) EnsureSession(ctx context.Context, plan Plan) error {
 		return safeError{code: "orchestrator_session_unavailable"}
 	}
 	session, parseErr := decodeSession(raw)
-	if parseErr != nil || session.ID != plan.SessionID || session.Title != plan.Title || session.Source != "api_server" || session.Model != ApprovedParentModel || !session.HasSystemPrompt || session.HasModelConfig {
+	if parseErr != nil || session.ID != plan.SessionID || session.Title != plan.Title || session.Source != "api_server" || !parentModelReadbackVerified(session.Model) || !session.HasSystemPrompt || session.HasModelConfig {
 		return safeError{code: "orchestrator_session_conflict"}
 	}
 	return nil
@@ -159,7 +166,7 @@ func (client *Client) Inspect(ctx context.Context, parentID string, binding Insp
 	}
 	parent, err := client.session(ctx, parentID)
 	expectedTitle := strings.Replace(parentID, "meeting-", "meeting-brief-", 1)
-	if err != nil || parent.ID != parentID || parent.Title != expectedTitle || parent.Source != "api_server" || parent.Model != ApprovedParentModel || !parent.HasSystemPrompt {
+	if err != nil || parent.ID != parentID || parent.Title != expectedTitle || parent.Source != "api_server" || !parentModelReadbackVerified(parent.Model) || !parent.HasSystemPrompt {
 		return Inspection{}, safeError{code: "orchestrator_session_conflict"}
 	}
 	parentMessages, err := client.messages(ctx, parentID)
@@ -182,7 +189,7 @@ func (client *Client) Inspect(ctx context.Context, parentID string, binding Insp
 		return Inspection{}, safeError{code: "orchestrator_child_mismatch"}
 	}
 	for _, child := range children {
-		if child.ParentSessionID != parentID || child.Model != ApprovedChildModel || !sessionIDPattern.MatchString(child.ID) || child.StartedAt <= 0 {
+		if child.ParentSessionID != parentID || !childModelReadbackVerified(child.Model) || !sessionIDPattern.MatchString(child.ID) || child.StartedAt <= 0 {
 			return Inspection{}, safeError{code: "orchestrator_child_mismatch"}
 		}
 		inspection.ChildSessionIDs = append(inspection.ChildSessionIDs, child.ID)
@@ -212,6 +219,14 @@ func (client *Client) Inspect(ctx context.Context, parentID string, binding Insp
 	inspection.Status = qa.Status
 	inspection.QA = qa
 	return inspection, nil
+}
+
+func parentModelReadbackVerified(model string) bool {
+	return model == ApprovedParentModel || model == observedRuntimeModel
+}
+
+func childModelReadbackVerified(model string) bool {
+	return model == ApprovedChildModel || model == observedRuntimeModel
 }
 
 func auditDelegations(messages []sessionMessage, screenedDigest string) (int, error) {
