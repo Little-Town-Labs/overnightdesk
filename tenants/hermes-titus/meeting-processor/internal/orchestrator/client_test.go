@@ -69,6 +69,26 @@ func TestPrepareBuildsDeterministicNoModelBodiesAndSafeDelegationPrefix(t *testi
 	}
 }
 
+func TestPreparePinsFeature035BriefAndQAJSONContracts(t *testing.T) {
+	plan := testPlan(t)
+	var request createSessionRequest
+	if err := json.Unmarshal(plan.createBody, &request); err != nil {
+		t.Fatal(err)
+	}
+	body := request.SystemPrompt
+	for _, required := range []string{
+		`schemaVersion (exactly "meeting-brief/v1")`,
+		`schemaVersion (exactly "meeting-qa/v1")`,
+		`actionItems MUST contain only title, owner`,
+		`Do not use the legacy keys schema, discussion, actions, followUp`,
+		`QA_PASS MUST include brief using the exact child object unchanged`,
+	} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("system prompt omitted contract clause %q", required)
+		}
+	}
+}
+
 func TestClientCreatesSessionAndSubmitsExactlyOneAuthenticatedRun(t *testing.T) {
 	plan := testPlan(t)
 	requests := 0
