@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/custody"
 )
 
 func TestBriefStoreOpensLegacyRecordWithoutAnalysisAttempt(t *testing.T) {
@@ -82,5 +85,55 @@ func TestBriefStoreRejectsUnsafeAnalysisCorrelation(t *testing.T) {
 		if err := store.Commit(doc); err == nil {
 			t.Fatalf("fixture %d accepted", index)
 		}
+	}
+}
+
+func TestBriefStoreResetBlockedTitusOutputPreservesCustodyAndIdentity(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "briefs.json")
+	store, err := OpenBrief(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	key := strings.Repeat("a", 64)
+	created := "2026-08-01T12:00:00Z"
+	updated := "2026-08-01T12:01:00Z"
+	doc := store.Document()
+	doc.Records[key] = BriefRecord{
+		InternalReference: key, MigrationStatus: "not_applicable", MeetingReference: "MB-ABCDEFGHIJKL",
+		SourceDigest: strings.Repeat("b", 64), ReviewStatus: "blocked", RetryCount: 1,
+		LastErrorCode: "titus_output_rejected", CreatedAt: created, UpdatedAt: updated,
+		Custody: &custody.Record{Version: 1, ObjectName: strings.Repeat("c", 32) + ".bin", Algorithm: "AES-256-GCM", KeyID: "key-1", PlaintextSHA256: strings.Repeat("d", 64), CiphertextSHA256: strings.Repeat("e", 64), PlaintextBytes: 42, CreatedAt: created, ExpiresAt: "2026-08-08T12:00:00Z", Status: "retained"},
+	}
+	if err := store.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	resetAt := time.Date(2026, time.August, 4, 12, 0, 0, 0, time.UTC)
+	if err := store.ResetBlockedBrief(key, resetAt); err != nil {
+		t.Fatal(err)
+	}
+	record := store.Document().Records[key]
+	if record.ReviewStatus != "" || record.Analysis != nil || record.RetryCount != 0 || record.LastErrorCode != "" {
+		t.Fatalf("reset fields remain: %#v", record)
+	}
+	if record.InternalReference != key || record.MeetingReference != "MB-ABCDEFGHIJKL" || record.SourceDigest != strings.Repeat("b", 64) || record.Custody == nil || record.UpdatedAt != resetAt.Format(time.RFC3339Nano) || record.CreatedAt != created {
+		t.Fatalf("identity/custody changed: %#v", record)
+	}
+}
+
+func TestBriefStoreResetBlockedBriefRejectsWrongTerminalState(t *testing.T) {
+	store, err := OpenBrief(filepath.Join(t.TempDir(), "briefs.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	key := strings.Repeat("a", 64)
+	doc := store.Document()
+	doc.Records[key] = BriefRecord{InternalReference: key, MigrationStatus: "not_applicable", ReviewStatus: "blocked", LastErrorCode: "state_invalid", CreatedAt: "2026-08-01T12:00:00Z", UpdatedAt: "2026-08-01T12:00:00Z"}
+	if err := store.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.ResetBlockedBrief(key, time.Date(2026, time.August, 4, 12, 0, 0, 0, time.UTC)); err == nil {
+		t.Fatal("reset accepted a non-Titus terminal error")
 	}
 }
