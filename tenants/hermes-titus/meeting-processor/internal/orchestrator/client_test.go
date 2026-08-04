@@ -281,6 +281,7 @@ func TestLatestQAContentRequiresTerminalAssistantResultAfterFinalDelegation(t *t
 		{name: "terminal qa", messages: []sessionMessage{{Role: "assistant", ToolCalls: toolCall}, {Role: "assistant", Content: qa}}, want: true},
 		{name: "later assistant prose", messages: []sessionMessage{{Role: "assistant", ToolCalls: toolCall}, {Role: "assistant", Content: qa}, {Role: "assistant", Content: "later result"}}},
 		{name: "later delegation", messages: []sessionMessage{{Role: "assistant", Content: qa}, {Role: "assistant", ToolCalls: toolCall}}},
+		{name: "delegation pending marker", messages: []sessionMessage{{Role: "assistant", ToolCalls: toolCall}, {Role: "assistant", Content: `{"schemaVersion":"meeting-qa/v1","status":"QA_BLOCKED","safeReasonCode":"DELEGATION_PENDING"}`}}, want: false},
 	}
 	for _, fixture := range fixtures {
 		t.Run(fixture.name, func(t *testing.T) {

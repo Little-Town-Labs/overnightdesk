@@ -304,6 +304,13 @@ func latestQAContent(messages []sessionMessage) (string, bool) {
 	}
 	content := strings.TrimSpace(messages[latestContent].Content)
 	if strings.Contains(content, analyzer.QASchemaVersion) {
+		var marker struct {
+			Status         string `json:"status"`
+			SafeReasonCode string `json:"safeReasonCode"`
+		}
+		if json.Unmarshal([]byte(content), &marker) == nil && marker.Status == analyzer.QABlocked && marker.SafeReasonCode == "DELEGATION_PENDING" {
+			return "", false
+		}
 		return content, true
 	}
 	return "", false
