@@ -232,7 +232,7 @@ func buildProcessor(paths paths, stderr io.Writer) (*runtimeResources, error) {
 		ring, ringErr := custody.ParseKeyRing(runtimeConfig.MeetingCustodyKeysJSON, runtimeConfig.MeetingCustodyActiveKeyID)
 		routes, routeErr := analyzer.ParseRoutesJSON(runtimeConfig.MeetingProjectRoutesJSON)
 		securityClient, securityErr := securityteam.NewClient(runtimeConfig.SecurityTeamBaseURL, runtimeConfig.SecurityServiceToken, &http.Client{Timeout: 30 * time.Second})
-		titusClient, titusErr := titus.NewClient(runtimeConfig.HermesBaseURL, runtimeConfig.HermesAPIKey, &http.Client{Timeout: 60 * time.Second})
+		titusClient, titusErr := titus.NewMeetingBriefClient(runtimeConfig.HermesBaseURL, runtimeConfig.HermesAPIKey, &http.Client{Timeout: 60 * time.Second})
 		mailClient, mailErr := meetingemail.NewClient(runtimeConfig.SecurityTeamBaseURL, runtimeConfig.SecurityServiceToken, meetingemail.AgentMailOrigin, runtimeConfig.MeetingAgentMailAPIKey, runtimeConfig.MeetingAgentMailInboxID, [2]string{runtimeConfig.MeetingGaryEmail, runtimeConfig.MeetingAustinEmail}, &http.Client{Timeout: 30 * time.Second})
 		review, reviewErr := approval.NewHandlerWithMutex(briefs, runtimeConfig.MeetingReviewBearer, runtimeConfig.MeetingReviewSigningSecret, runtimeConfig.MeetingGaryEmail, runtimeConfig.MeetingAustinEmail, time.Now, lifecycleMu)
 		if ringErr != nil || routeErr != nil || securityErr != nil || titusErr != nil || mailErr != nil || reviewErr != nil {
@@ -263,7 +263,7 @@ func buildProcessor(paths paths, stderr io.Writer) (*runtimeResources, error) {
 			resources.close()
 			return nil, errors.New("config_invalid")
 		}
-		titusClient, titusErr := titus.NewClient(runtimeConfig.HermesBaseURL, runtimeConfig.HermesAPIKey, &http.Client{Timeout: 180 * time.Second})
+		titusClient, titusErr := titus.NewMarkdownClient(runtimeConfig.HermesBaseURL, runtimeConfig.HermesAPIKey, &http.Client{Timeout: 180 * time.Second})
 		if titusErr != nil {
 			resources.close()
 			return nil, errors.New("config_invalid")

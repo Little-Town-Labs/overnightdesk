@@ -2,7 +2,7 @@
 
 ## Classification
 
-- Project: `overnightdesk-feature-035-simple`
+- Project: `overnightdesk-feature-035-review-fixes`
 - Context: `brownfield`
 - Scale: `system`
 - Risk: `production`
@@ -20,20 +20,28 @@
 ## Codebase Graph
 
 - Policy: `required-before-planning`
-- Project: `home-frosted639-src-overnightdesk-suite-overnightdesk-worktrees-codex-feature-035-simple`
+- Project: `home-frosted639-src-overnightdesk-suite-overnightdesk-worktrees-codex-feature-035-review-fixes`
 - Status: `ready`
 
-- moderate index: 12849 nodes and 25051 edges
-- get_architecture identified the tenants meeting-processor cluster
-- search_code verified titus.Client, the strict analyzer validator, and worker
-  analysis seams; the retired orchestrator package is absent from the active tree
-- targeted source reads verified current runtime wiring before mutation
+- Fresh fast worktree index contains 12771 nodes and 23412 edges for the correction branch; the canonical graph was also refreshed before planning.
+- search_code located both buildProcessor configuration paths and the shared internal/titus NewClient constructor.
+- search_code located processOneMeetingTranscript email eligibility and the deterministic meetingReference helper.
+- search_code located titus_response_invalid retry handling in processOneMeetingAnalysis; targeted source reads verified every seam.
 
 ## Delegated Tasks
 
 | Task | Spec Kit IDs | Mutable | Lane | Owned paths | Verification |
 |---|---|---:|---|---|---|
-| simple-design-review | T068 | no | codex-luna read-only | none | `Produce a report with exact file citations Identify any contradictory active requirement or missing safety check` |
+| review-pr175-corrections | T076 | no | codex-luna read-only | none | `go test ./internal/titus ./internal/worker ./cmd/titus-meeting-processor Report exact file and line evidence for every Critical or Required finding.` |
+
+## Execution Evidence
+
+- Spec Kit consistency analysis found no Critical or High contradiction across the Feature 035 correction requirements, plan, and task graph.
+- The initial read-only Luna review passed and identified two Required reliability regressions: the direct Titus crash window could replay after restart, and the Feature 034 idempotency-key derivation had changed. Sol remediated both once by persisting `dispatching` before the request and restoring the exact legacy Markdown key derivation.
+- Final read-only Sol delta gate `overnightdesk-feature-035-review-fixes-035-titus-meeting-briefs-quality-gate-20260804T105814Z-p2940454` returned `APPROVE` with no Critical, Required, Optional, or Nit findings.
+- Full qualification passed Go unit and race tests, vet, CGO-disabled build, 19 Python runtime/release/security tests, shell and static/leak checks, and ARM64 hardened-image build and inspection.
+- Focused coverage was 84.3 percent for `internal/titus` and 73.6 percent for `internal/worker`; `git diff --check` passed and no dependency manifest changed.
+- This correction is code-only. Feature 035 production processing remains disabled; deployment and canary activation are outside this pull request.
 
 ## Scope and Safety Gates
 
@@ -47,11 +55,3 @@
 The pull request must record this classification, important graph discoveries,
 delegated ownership, verification evidence, risk and rollback information, and
 links to any ADR, runbook, roadmap, or Spec Kit artifact that remains durable.
-
-## Ringer execution result
-
-The read-only manifest linted and dry-ran successfully. The actual Ringer
-execution was attempted once with its automatic retry, but both attempts were
-blocked by the external Codex transport (`403` WebSocket/proxy failure). No
-worker report was produced and no further retries are authorized; Sol retains
-the final review gate.

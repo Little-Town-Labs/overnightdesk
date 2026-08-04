@@ -92,6 +92,15 @@ class SecurityContractTests(unittest.TestCase):
         self.assertIn('"/v1/chat/completions"', titus_client)
         self.assertIn("analyzer.ParseAndValidate", titus_client)
 
+        main = (ROOT / "cmd" / "titus-meeting-processor" / "main.go").read_text(encoding="utf-8")
+        brief_branch = main.index("if runtimeConfig.MeetingBriefEnabled")
+        brief_client = main.index("titus.NewMeetingBriefClient", brief_branch)
+        rollback_branch = main.index("else if runtimeConfig.ContentEnabled", brief_client)
+        rollback_client = main.index("titus.NewMarkdownClient", rollback_branch)
+        self.assertLess(brief_branch, brief_client)
+        self.assertLess(brief_client, rollback_branch)
+        self.assertLess(rollback_branch, rollback_client)
+
     def test_deployment_revalidates_root_owned_nonwritable_release_before_build(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
         promote = 'promote /tmp/titus-meeting-processor-deploy /opt/titus-meeting-processor/releases 0 0'

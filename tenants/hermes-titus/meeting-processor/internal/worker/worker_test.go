@@ -5,8 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -52,13 +55,17 @@ func (scanner *fakeScanner) Scan(_ context.Context, raw []byte, _, _ string) (st
 }
 
 type fakeAnalyzer struct {
-	calls  int
-	output string
-	err    error
+	calls     int
+	output    string
+	err       error
+	onAnalyze func()
 }
 
 func (fake *fakeAnalyzer) Analyze(_ context.Context, _, safe string, protected []string) (string, error) {
 	fake.calls++
+	if fake.onAnalyze != nil {
+		fake.onAnalyze()
+	}
 	if safe != "screened wrapper" || len(protected) < 6 {
 		return "", errors.New("boundary mismatch")
 	}
@@ -70,14 +77,31 @@ type contentCodeError string
 func (err contentCodeError) Error() string    { return string(err) }
 func (err contentCodeError) SafeCode() string { return string(err) }
 
-type fakeMeetingMailer struct{ calls int }
+type fakeMeetingMailer struct {
+	calls      int
+	references []string
+}
 
-func (fake *fakeMeetingMailer) Send(_ context.Context, _, _, rendered string) (meetingemail.Delivery, error) {
+func (fake *fakeMeetingMailer) Send(_ context.Context, reference, _ string, rendered string) (meetingemail.Delivery, error) {
 	fake.calls++
+	fake.references = append(fake.references, reference)
+	if !regexp.MustCompile(`^MB-[A-Z2-7]{12}$`).MatchString(reference) {
+		return meetingemail.Delivery{}, errors.New("invalid meeting reference")
+	}
 	if !strings.Contains(rendered, "Source-derived summary") {
 		return meetingemail.Delivery{}, errors.New("wrong render")
 	}
 	return meetingemail.Delivery{IdempotencyKey: strings.Repeat("a", 64), ProviderMessageIDDigest: strings.Repeat("b", 64), RecipientSet: "gary+austin", TemplateVersion: meetingemail.TemplateVersion, SentAt: fixedWorkerTime().Format(time.RFC3339Nano), ReadbackVerifiedAt: fixedWorkerTime().Format(time.RFC3339Nano)}, nil
+}
+
+type workerRoundTripFunc func(*http.Request) (*http.Response, error)
+
+func (function workerRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
+	return function(request)
+}
+
+func workerHTTPResponse(status int, body string) *http.Response {
+	return &http.Response{StatusCode: status, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}
 }
 
 type fakeRecordingVerifier struct{ calls int }
@@ -284,6 +308,89 @@ func TestMeetingBriefUsesOneBoundedTitusRequestAndIsIdempotent(t *testing.T) {
 	}
 }
 
+func TestMeetingBriefInitializesReferenceBeforeRealMailerValidation(t *testing.T) {
+	processor, briefs, _, _, _ := newMeetingProcessor(t, meetingBriefJSON())
+	var sent []byte
+	httpClient := &http.Client{Transport: workerRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+		switch {
+		case request.URL.String() == meetingemail.SecurityOrigin+"/check-outbound":
+			raw, _ := io.ReadAll(request.Body)
+			var envelope struct {
+				Content string `json:"content"`
+			}
+			_ = json.Unmarshal(raw, &envelope)
+			encoded, _ := json.Marshal(envelope.Content)
+			return workerHTTPResponse(http.StatusOK, `{"allowed":true,"content":`+string(encoded)+`}`), nil
+		case request.Method == http.MethodPost:
+			sent, _ = io.ReadAll(request.Body)
+			return workerHTTPResponse(http.StatusOK, `{"message_id":"msg-1","thread_id":"thread-1"}`), nil
+		case request.Method == http.MethodGet:
+			return workerHTTPResponse(http.StatusOK, string(sent)), nil
+		default:
+			t.Fatalf("unexpected mail request: %s", request.URL.String())
+			return nil, nil
+		}
+	})}
+	mailer, err := meetingemail.NewClient(meetingemail.SecurityOrigin, strings.Repeat("s", 32), meetingemail.AgentMailOrigin, strings.Repeat("a", 32), "titus@agentmail.to", [2]string{"gary@example.com", "austin@example.com"}, httpClient)
+	if err != nil {
+		t.Fatal(err)
+	}
+	processor.Mailer = mailer
+
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "pending_review" || !regexp.MustCompile(`^MB-[A-Z2-7]{12}$`).MatchString(record.MeetingReference) {
+			t.Fatalf("real mailer did not receive initialized reference: %#v", record)
+		}
+	}
+}
+
+func TestMeetingBriefPreservesAndBackfillsReferenceOnRestart(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	var key string
+	for candidate, record := range doc.Records {
+		key = candidate
+		record.MeetingReference = "MB-ABCDEFGHIJKL"
+		record.ReviewStatus = "email_pending"
+		record.Email = nil
+		doc.Records[candidate] = record
+	}
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := mailer.references[len(mailer.references)-1]; got != "MB-ABCDEFGHIJKL" {
+		t.Fatalf("valid reference replaced: %s", got)
+	}
+
+	doc = briefs.Document()
+	record := doc.Records[key]
+	record.MeetingReference = ""
+	record.ReviewStatus = "email_pending"
+	record.Email = nil
+	doc.Records[key] = record
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if got := mailer.references[len(mailer.references)-1]; got != meetingReference(key) {
+		t.Fatalf("missing reference not deterministically backfilled: %s", got)
+	}
+	if fake.calls != 1 {
+		t.Fatalf("restart replayed analysis: %d", fake.calls)
+	}
+}
+
 func TestMeetingBriefRejectsLegacyModelOutputWithoutEmail(t *testing.T) {
 	processor, briefs, fake, _, mailer := newMeetingProcessor(t, "## Summary\nlegacy")
 	if _, err := processor.RunOnce(context.Background()); err != nil {
@@ -311,6 +418,84 @@ func TestMeetingBriefAcceptsOnlyCanonicalSchema(t *testing.T) {
 	}
 	if fake.calls != 1 || mailer.calls != 0 {
 		t.Fatalf("unexpected side effects analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
+func TestMeetingBriefBlocksAmbiguousTitusAttemptWithoutReplay(t *testing.T) {
+	for _, code := range []string{"titus_unavailable", "titus_response_invalid"} {
+		t.Run(code, func(t *testing.T) {
+			processor, briefs, fake, _, mailer := newMeetingProcessor(t, "")
+			fake.err = contentCodeError(code)
+			fake.onAnalyze = func() {
+				for _, record := range briefs.Document().Records {
+					if record.Analysis == nil || record.Analysis.Status != "dispatching" {
+						t.Fatalf("dispatch boundary was not durable before Analyze: %#v", record.Analysis)
+					}
+				}
+			}
+			if _, err := processor.RunOnce(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			for _, record := range briefs.Document().Records {
+				if record.ReviewStatus != "blocked" || record.Analysis == nil || record.Analysis.Status != "blocked" || record.Analysis.Attempt != 1 || record.LastErrorCode != code {
+					t.Fatalf("ambiguous attempt was not terminal: %#v", record)
+				}
+			}
+			if _, err := processor.RunOnce(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if fake.calls != 1 || mailer.calls != 0 {
+				t.Fatalf("ambiguous attempt replayed: analyze=%d mail=%d", fake.calls, mailer.calls)
+			}
+		})
+	}
+}
+
+func TestMeetingBriefBlocksPersistedDispatchingAttemptAfterRestart(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	processor.Scanner = &fakeScanner{err: contentCodeError("securityteam_unavailable")}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	for key, record := range doc.Records {
+		record.ReviewStatus = "analysis_pending"
+		record.Analysis = &state.AnalysisAttempt{
+			Version: 1, Attempt: 1, Status: "dispatching", ScreenedDigest: strings.Repeat("d", 64),
+			ChildSessionIDs: []string{}, StartedAt: fixedWorkerTime().Format(time.RFC3339Nano), LastObservedAt: fixedWorkerTime().Format(time.RFC3339Nano),
+		}
+		doc.Records[key] = record
+	}
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	processor.Scanner = &fakeScanner{safe: "screened wrapper"}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "blocked" || record.Analysis.Status != "blocked" || record.LastErrorCode != "titus_response_invalid" {
+			t.Fatalf("persisted dispatch was not failed closed: %#v", record)
+		}
+	}
+	if fake.calls != 0 || mailer.calls != 0 {
+		t.Fatalf("restart replayed model or email: analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
+func TestMeetingBriefRetriesSecurityFailureProvenBeforeTitusDispatch(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	processor.Scanner = &fakeScanner{err: contentCodeError("securityteam_unavailable")}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "analysis_pending" || record.LastErrorCode != "securityteam_unavailable" || record.RetryCount != 1 {
+			t.Fatalf("pre-dispatch failure did not remain retryable: %#v", record)
+		}
+	}
+	if fake.calls != 0 || mailer.calls != 0 {
+		t.Fatalf("pre-dispatch failure escaped boundary: analyze=%d mail=%d", fake.calls, mailer.calls)
 	}
 }
 

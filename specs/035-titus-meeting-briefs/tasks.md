@@ -114,6 +114,17 @@ context only.
 - [x] T068 Run the Spec Kit consistency analysis, refresh codebase-memory impact, and prepare a read-only production-sensitive Ringer/Sol quality gate for the refactor.
 - [x] T069 Run full focused and repository qualification, then stop at disabled-first readiness; do not activate production until a new bounded canary is explicitly authorized.
 
+## Phase 10 - PR 175 review corrections
+
+- [x] T070 [US1] Write failing client and command-wiring tests proving Feature 034 retains its four-section Markdown contract while Feature 035 uses only canonical Meeting Brief v1 JSON in `meeting-processor/internal/titus/` and `cmd/titus-meeting-processor/`.
+- [x] T071 [US1] Implement explicit Markdown and Meeting Brief Titus client contracts without a boolean mode or duplicated transport in `meeting-processor/internal/titus/` and wire each configuration path to its exact constructor.
+- [x] T072 [US1] Write failing worker tests proving a deterministic valid meeting reference exists before the real mailer boundary, is preserved on restart, and is backfilled for an incomplete retained record in `meeting-processor/internal/worker/`.
+- [x] T073 [US1] Assign or backfill the deterministic meeting reference before analysis and email eligibility in `meeting-processor/internal/worker/meeting_briefs.go`.
+- [x] T074 [US1] Write failing restart tests proving ambiguous Titus transport or response outcomes become terminal for the stored attempt and perform no email or repeated model request in `meeting-processor/internal/worker/`.
+- [x] T075 [US1] Implement fail-closed post-dispatch ambiguity handling while retaining only provably pre-dispatch retry semantics in `meeting-processor/internal/worker/analysis.go`.
+- [x] T076 Run Spec Kit consistency analysis, refresh codebase-memory impact, prepare and run the production-sensitive read-only Ringer quality gate, and complete focused plus repository qualification.
+- [x] T077 Commit the three independently reviewable fixes, push one correction branch, open one PR closing issues 176-178, pass checks and review, and merge without activating Feature 035 production processing.
+
 ## Dependencies and Ringer Ownership
 
 - T002 depends on T001. T003 depends on T002 and delegates read-only review only.
@@ -122,6 +133,9 @@ context only.
 - T041 is the pre-implementation read-only gate. T053 and T068 are final
   read-only gates. Production-sensitive mutation T040 and T042-T069 is
   Sol/operator only.
+- T070-T075 are three test-first correction slices: T071 depends on T070, T073
+  depends on T072, and T075 depends on T074. T076 depends on all three slices;
+  T077 depends on T076. All mutation remains Sol-owned and Ringer is read-only.
 - Ringer workers own no mutable paths, commits, Git state, task checkboxes,
   secrets, or production operations. The prepared read-only task may inspect
   `specs/035-titus-meeting-briefs/` and the exact source paths named above.
@@ -148,3 +162,6 @@ context only.
 | FR-027 | T050, T060-T062 |
 | FR-028 | T006-T007, T051, T056 |
 | FR-037-FR-041 | T063-T069 |
+| FR-034, FR-042 | T070-T071, T074-T075 |
+| FR-012, FR-022, FR-033, FR-043 | T072-T073 |
+| SC-010-SC-011 | T070-T076 |

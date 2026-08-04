@@ -2,6 +2,8 @@ package titus
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
@@ -19,7 +21,7 @@ func response(status int, body string) *http.Response {
 	return &http.Response{StatusCode: status, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}
 }
 
-func TestAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
+func TestMeetingBriefAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 	reference := strings.Repeat("a", 64)
 	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		if request.URL.String() != ServiceOrigin+"/v1/chat/completions" || request.Header.Get("Authorization") != "Bearer "+strings.Repeat("h", 32) {
@@ -42,13 +44,66 @@ func TestAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 		}
 		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefJSON())+`},"finish_reason":"stop"}]}`), nil
 	})}
-	client, err := NewClient(ServiceOrigin, strings.Repeat("h", 32), httpClient)
+	client, err := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), httpClient)
 	if err != nil {
 		t.Fatal(err)
 	}
 	output, err := client.Analyze(context.Background(), reference, "screened wrapper", []string{"protected-id"})
 	if err != nil || !strings.Contains(output, `"schemaVersion":"meeting-brief/v1"`) {
 		t.Fatalf("output=%q err=%v", output, err)
+	}
+}
+
+func TestExplicitContractsPreserveMarkdownRollbackAndRejectCrossContractOutput(t *testing.T) {
+	markdown := "## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\nNone\n\n## Unresolved Questions\nNone"
+	briefResponse := `{"choices":[{"message":{"role":"assistant","content":` + quote(validBriefJSON()) + `},"finish_reason":"stop"}]}`
+	markdownResponse := `{"choices":[{"message":{"role":"assistant","content":` + quote(markdown) + `},"finish_reason":"stop"}]}`
+	newHTTPClient := func(body string) *http.Client {
+		return &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			return response(http.StatusOK, body), nil
+		})}
+	}
+
+	legacy, err := NewMarkdownClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(markdownResponse))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output, err := legacy.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); err != nil || output != markdown {
+		t.Fatalf("markdown rollback output=%q err=%v", output, err)
+	}
+	legacyJSON, _ := NewMarkdownClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(briefResponse))
+	if _, err := legacyJSON.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); SafeCode(err) != "titus_output_rejected" {
+		t.Fatalf("markdown contract accepted JSON: %v", err)
+	}
+
+	brief, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(briefResponse))
+	if output, err := brief.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); err != nil || !strings.Contains(output, `"schemaVersion":"meeting-brief/v1"`) {
+		t.Fatalf("meeting brief output=%q err=%v", output, err)
+	}
+	briefMarkdown, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), newHTTPClient(markdownResponse))
+	if _, err := briefMarkdown.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); SafeCode(err) != "titus_output_rejected" {
+		t.Fatalf("meeting brief contract accepted Markdown: %v", err)
+	}
+}
+
+func TestMarkdownClientPreservesFeature034IdempotencyKey(t *testing.T) {
+	reference := strings.Repeat("a", 64)
+	screened := "screened"
+	var got string
+	client, err := NewMarkdownClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		got = request.Header.Get("Idempotency-Key")
+		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":"## Summary\nDone\n## Decisions\nNone\n## Action Items\nNone\n## Unresolved Questions\nNone"},"finish_reason":"stop"}]}`), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := client.Analyze(context.Background(), reference, screened, nil); err != nil {
+		t.Fatal(err)
+	}
+	safeDigest := sha256.Sum256([]byte(screened))
+	wantDigest := sha256.Sum256([]byte(reference + "\x00" + hex.EncodeToString(safeDigest[:])))
+	if want := hex.EncodeToString(wantDigest[:]); got != want {
+		t.Fatalf("Feature 034 idempotency key changed: got=%s want=%s", got, want)
 	}
 }
 
@@ -67,7 +122,7 @@ func TestAnalyzeRejectsProtectedAndUnsafeOutput(t *testing.T) {
 	}
 	for _, output := range outputs {
 		body := `{"choices":[{"message":{"role":"assistant","content":` + quote(output) + `},"finish_reason":"stop"}]}`
-		client, _ := NewClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return response(http.StatusOK, body), nil })})
+		client, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return response(http.StatusOK, body), nil })})
 		if _, err := client.Analyze(context.Background(), strings.Repeat("a", 64), "screened", []string{protected}); SafeCode(err) != "titus_output_rejected" {
 			t.Fatalf("unsafe output accepted or wrong code: %q err=%v", output, err)
 		}
@@ -82,7 +137,7 @@ func TestAnalyzeRejectsToolOrAmbiguousResponse(t *testing.T) {
 		`not-json`,
 	}
 	for _, body := range bodies {
-		client, _ := NewClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return response(http.StatusOK, body), nil })})
+		client, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return response(http.StatusOK, body), nil })})
 		if _, err := client.Analyze(context.Background(), strings.Repeat("a", 64), "screened", nil); err == nil {
 			t.Fatalf("ambiguous response accepted: %s", body)
 		}
@@ -101,7 +156,7 @@ func TestAnalyzeRejectsRedirectTimeoutAndOversizedOutput(t *testing.T) {
 			return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(strings.Repeat("x", MaxOutputBytes))+`},"finish_reason":"stop"}]}`), nil
 		})}, "titus_output_rejected"},
 	} {
-		client, _ := NewClient(ServiceOrigin, strings.Repeat("h", 32), fixture.client)
+		client, _ := NewMeetingBriefClient(ServiceOrigin, strings.Repeat("h", 32), fixture.client)
 		if _, err := client.Analyze(context.Background(), reference, "screened", nil); SafeCode(err) != fixture.code {
 			t.Fatalf("code=%s err=%v", SafeCode(err), err)
 		}

@@ -21,6 +21,9 @@ func (processor Processor) processOneMeetingAnalysis(ctx context.Context, discov
 
 	// A record left by the retired session workflow is not resumed. The next
 	// single-pass attempt starts from the retained custody object.
+	if record.Analysis != nil && record.Analysis.Status == "dispatching" {
+		return processor.blockOrRetryAnalysis(discovery, key, artifact, record, "titus_response_invalid", timestamp, cycleID, false)
+	}
 	if record.Analysis != nil && record.Analysis.Status != "analysis_pending" {
 		record.Analysis = nil
 	}
@@ -47,18 +50,22 @@ func (processor Processor) processOneMeetingAnalysis(ctx context.Context, discov
 		record.Analysis.ScreenedDigest = digest(screened)
 		record.Analysis.LastObservedAt = timestamp
 	}
+	record.Analysis.Status = "dispatching"
 	record.ReviewStatus = "analysis_pending"
 	record.UpdatedAt = timestamp
 	if err := processor.commitMeetingRecord(key, record); err != nil {
 		return err
 	}
-	processor.analysisEvent(cycleID, artifact, record, "analysis_pending")
+	processor.analysisEvent(cycleID, artifact, record, "dispatching")
 
 	protected := processor.protectedMeetingValues(artifact)
 	output, analyzeErr := processor.Analyzer.Analyze(ctx, artifact.InternalReference, screened, protected)
 	if analyzeErr != nil {
 		code := titus.SafeCode(analyzeErr)
-		return processor.blockOrRetryAnalysis(discovery, key, artifact, record, code, timestamp, cycleID, code == "titus_unavailable" || code == "titus_response_invalid")
+		// Analyze has crossed the Titus HTTP dispatch boundary. Transport errors,
+		// lost bodies, and malformed responses cannot prove that Titus did not
+		// complete the request, so replaying this stored attempt is unsafe.
+		return processor.blockOrRetryAnalysis(discovery, key, artifact, record, code, timestamp, cycleID, false)
 	}
 	validated, validateErr := analyzer.ParseAndValidate([]byte(output), protected)
 	if validateErr != nil {
