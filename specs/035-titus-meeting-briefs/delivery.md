@@ -43,6 +43,12 @@
 - Focused coverage was 84.3 percent for `internal/titus` and 73.6 percent for `internal/worker`; `git diff --check` passed and no dependency manifest changed.
 - This correction is code-only. Feature 035 production processing remains disabled; deployment and canary activation are outside this pull request.
 
+## Retained-custody canary correction
+
+- The first post-merge Gary canary reached the persisted `dispatching` boundary but degraded with `state_invalid` before email because the retained custody record lacked the new record-level source digest.
+- Brief processing was disabled immediately; filing remained disabled, custody and rollback state were preserved, and processor/Titus/email intake health remained valid.
+- The correction backfills a missing source digest from validated custody metadata and blocks a mismatch with the existing allowlisted `state_invalid` code. Tests prove no duplicate Titus or email request on either path.
+
 ## Scope and Safety Gates
 
 - `spec.md` is the scope ceiling, `plan.md` is the architecture boundary, and `tasks.md` is the authorized execution list.
