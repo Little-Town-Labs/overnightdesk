@@ -120,8 +120,8 @@ context only.
 - [x] T071 [US1] Implement explicit Markdown and Meeting Brief Titus client contracts without a boolean mode or duplicated transport in `meeting-processor/internal/titus/` and wire each configuration path to its exact constructor.
 - [x] T072 [US1] Write failing worker tests proving a deterministic valid meeting reference exists before the real mailer boundary, is preserved on restart, and is backfilled for an incomplete retained record in `meeting-processor/internal/worker/`.
 - [x] T073 [US1] Assign or backfill the deterministic meeting reference before analysis and email eligibility in `meeting-processor/internal/worker/meeting_briefs.go`.
-- [ ] T074 [US1] Write failing restart tests proving ambiguous Titus transport or response outcomes become terminal for the stored attempt and perform no email or repeated model request in `meeting-processor/internal/worker/`.
-- [ ] T075 [US1] Implement fail-closed post-dispatch ambiguity handling while retaining only provably pre-dispatch retry semantics in `meeting-processor/internal/worker/analysis.go`.
+- [x] T074 [US1] Write failing restart tests proving ambiguous Titus transport or response outcomes become terminal for the stored attempt and perform no email or repeated model request in `meeting-processor/internal/worker/`.
+- [x] T075 [US1] Implement fail-closed post-dispatch ambiguity handling while retaining only provably pre-dispatch retry semantics in `meeting-processor/internal/worker/analysis.go`.
 - [x] T076 Run Spec Kit consistency analysis, refresh codebase-memory impact, prepare and run the production-sensitive read-only Ringer quality gate, and complete focused plus repository qualification.
 - [ ] T077 Commit the three independently reviewable fixes, push one correction branch, open one PR closing issues 176-178, pass checks and review, and merge without activating Feature 035 production processing.
 

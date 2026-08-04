@@ -55,13 +55,17 @@ func (scanner *fakeScanner) Scan(_ context.Context, raw []byte, _, _ string) (st
 }
 
 type fakeAnalyzer struct {
-	calls  int
-	output string
-	err    error
+	calls     int
+	output    string
+	err       error
+	onAnalyze func()
 }
 
 func (fake *fakeAnalyzer) Analyze(_ context.Context, _, safe string, protected []string) (string, error) {
 	fake.calls++
+	if fake.onAnalyze != nil {
+		fake.onAnalyze()
+	}
 	if safe != "screened wrapper" || len(protected) < 6 {
 		return "", errors.New("boundary mismatch")
 	}
@@ -414,6 +418,84 @@ func TestMeetingBriefAcceptsOnlyCanonicalSchema(t *testing.T) {
 	}
 	if fake.calls != 1 || mailer.calls != 0 {
 		t.Fatalf("unexpected side effects analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
+func TestMeetingBriefBlocksAmbiguousTitusAttemptWithoutReplay(t *testing.T) {
+	for _, code := range []string{"titus_unavailable", "titus_response_invalid"} {
+		t.Run(code, func(t *testing.T) {
+			processor, briefs, fake, _, mailer := newMeetingProcessor(t, "")
+			fake.err = contentCodeError(code)
+			fake.onAnalyze = func() {
+				for _, record := range briefs.Document().Records {
+					if record.Analysis == nil || record.Analysis.Status != "dispatching" {
+						t.Fatalf("dispatch boundary was not durable before Analyze: %#v", record.Analysis)
+					}
+				}
+			}
+			if _, err := processor.RunOnce(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			for _, record := range briefs.Document().Records {
+				if record.ReviewStatus != "blocked" || record.Analysis == nil || record.Analysis.Status != "blocked" || record.Analysis.Attempt != 1 || record.LastErrorCode != code {
+					t.Fatalf("ambiguous attempt was not terminal: %#v", record)
+				}
+			}
+			if _, err := processor.RunOnce(context.Background()); err != nil {
+				t.Fatal(err)
+			}
+			if fake.calls != 1 || mailer.calls != 0 {
+				t.Fatalf("ambiguous attempt replayed: analyze=%d mail=%d", fake.calls, mailer.calls)
+			}
+		})
+	}
+}
+
+func TestMeetingBriefBlocksPersistedDispatchingAttemptAfterRestart(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	processor.Scanner = &fakeScanner{err: contentCodeError("securityteam_unavailable")}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	doc := briefs.Document()
+	for key, record := range doc.Records {
+		record.ReviewStatus = "analysis_pending"
+		record.Analysis = &state.AnalysisAttempt{
+			Version: 1, Attempt: 1, Status: "dispatching", ScreenedDigest: strings.Repeat("d", 64),
+			ChildSessionIDs: []string{}, StartedAt: fixedWorkerTime().Format(time.RFC3339Nano), LastObservedAt: fixedWorkerTime().Format(time.RFC3339Nano),
+		}
+		doc.Records[key] = record
+	}
+	if err := briefs.Commit(doc); err != nil {
+		t.Fatal(err)
+	}
+	processor.Scanner = &fakeScanner{safe: "screened wrapper"}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "blocked" || record.Analysis.Status != "blocked" || record.LastErrorCode != "titus_response_invalid" {
+			t.Fatalf("persisted dispatch was not failed closed: %#v", record)
+		}
+	}
+	if fake.calls != 0 || mailer.calls != 0 {
+		t.Fatalf("restart replayed model or email: analyze=%d mail=%d", fake.calls, mailer.calls)
+	}
+}
+
+func TestMeetingBriefRetriesSecurityFailureProvenBeforeTitusDispatch(t *testing.T) {
+	processor, briefs, fake, _, mailer := newMeetingProcessor(t, meetingBriefJSON())
+	processor.Scanner = &fakeScanner{err: contentCodeError("securityteam_unavailable")}
+	if _, err := processor.RunOnce(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, record := range briefs.Document().Records {
+		if record.ReviewStatus != "analysis_pending" || record.LastErrorCode != "securityteam_unavailable" || record.RetryCount != 1 {
+			t.Fatalf("pre-dispatch failure did not remain retryable: %#v", record)
+		}
+	}
+	if fake.calls != 0 || mailer.calls != 0 {
+		t.Fatalf("pre-dispatch failure escaped boundary: analyze=%d mail=%d", fake.calls, mailer.calls)
 	}
 }
 
