@@ -365,7 +365,7 @@ jq -e '
   (.MEETING_REVIEW_SIGNING_SECRET | type == "string" and length >= 32)
 ' /run/hermes-email-intake/titus/runtime.json >/dev/null
 docker volume inspect titus-meeting-custody-data >/dev/null
-printf 'service=titus-meeting-processor meeting_briefs=enabled analyzer=retired orchestration=titus-sol-luna\n'
+printf 'service=titus-meeting-processor meeting_briefs=enabled analyzer=retired orchestration=single-pass\n'
 REMOTE
 }
 
