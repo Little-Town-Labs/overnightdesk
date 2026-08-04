@@ -238,6 +238,12 @@ func validBriefReviewStatus(value string) bool {
 func validAnalysisAttempt(value AnalysisAttempt) bool {
 	startedAt, startedErr := time.Parse(time.RFC3339Nano, value.StartedAt)
 	lastObservedAt, observedErr := time.Parse(time.RFC3339Nano, value.LastObservedAt)
+	if value.Version == 1 && value.SessionID == "" && value.RunID == "" && value.CreateBodyDigest == "" && value.RunBodyDigest == "" &&
+		value.ChildDraftDigest == "" && len(value.ChildSessionIDs) == 0 && !value.ChildRouteVerified && value.DelegationCount == 0 && value.QAReviewCount == 0 && value.CleanupRetryCount == 0 {
+		return value.Attempt >= 1 && value.Attempt <= 8 && digestPattern.MatchString(value.ScreenedDigest) && startedErr == nil && observedErr == nil &&
+			!lastObservedAt.Before(startedAt) && (value.CompletedAt == "" || validTimestamp(value.CompletedAt)) &&
+			(value.OutcomeCode == "" || safeCodePattern.MatchString(value.OutcomeCode)) && oneOfBrief(value.Status, "analysis_pending", "completed", "blocked")
+	}
 	if value.Version != 1 || value.Attempt < 1 || value.Attempt > 8 || !sessionIdentifierPattern.MatchString(value.SessionID) ||
 		(value.RunID != "" && !runIdentifierPattern.MatchString(value.RunID)) || !digestPattern.MatchString(value.CreateBodyDigest) ||
 		!digestPattern.MatchString(value.RunBodyDigest) || !digestPattern.MatchString(value.ScreenedDigest) ||

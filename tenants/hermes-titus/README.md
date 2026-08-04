@@ -189,12 +189,12 @@ Titus's approved default route is Codex provider `openai-codex`, model
 interactive route has process-level precedence over mutable dashboard or
 restored-session selections.
 
-Hermes sub-agent delegation uses `gpt-5.6-luna` at reasoning effort `high`.
-Delegation is bounded to three concurrent children, one spawn level, 30
-iterations, and a 600-second child timeout. Orchestrator support and inherited
-MCP toolsets remain enabled, but subagent auto-approval remains disabled and
-the existing manual/deny approval policy continues to govern sensitive
-actions.
+The meeting-brief worker uses Titus's existing private API route for one
+bounded, tool-free request and validates the returned Meeting Brief locally.
+It does not create meeting sessions or delegate child agents. Hermes's general
+interactive delegation support remains a separate capability, with subagent
+auto-approval disabled and the existing manual/deny approval policy governing
+sensitive actions.
 
 Codex authentication is a fresh Titus-owned OAuth enrollment in the persistent
 Hermes auth store. It must report active provider `openai-codex` and auth mode

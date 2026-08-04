@@ -35,29 +35,33 @@ func TestAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 				t.Fatalf("request contains %s", forbidden)
 			}
 		}
-		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools"} {
+		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "meeting-brief/v1", "schemaVersion"} {
 			if !strings.Contains(strings.ToLower(body), strings.ToLower(required)) {
 				t.Fatalf("request missing %s: %s", required, body)
 			}
 		}
-		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":"## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\nNone\n\n## Unresolved Questions\nNone"},"finish_reason":"stop"}]}`), nil
+		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(validBriefJSON())+`},"finish_reason":"stop"}]}`), nil
 	})}
 	client, err := NewClient(ServiceOrigin, strings.Repeat("h", 32), httpClient)
 	if err != nil {
 		t.Fatal(err)
 	}
 	output, err := client.Analyze(context.Background(), reference, "screened wrapper", []string{"protected-id"})
-	if err != nil || !strings.Contains(output, "## Summary") {
+	if err != nil || !strings.Contains(output, `"schemaVersion":"meeting-brief/v1"`) {
 		t.Fatalf("output=%q err=%v", output, err)
 	}
+}
+
+func validBriefJSON() string {
+	return `{"schemaVersion":"meeting-brief/v1","title":"Test meeting","occurredAt":"2026-08-01T12:00:00Z","participants":["Gary"],"summary":"Discussed internal delivery work.","facts":["The test completed."],"decisions":[],"actionItems":[],"externalCommitments":[],"unresolvedQuestions":[],"proposedFollowUp":"Review the internal note.","projectHint":null,"projectConfidence":"unknown"}`
 }
 
 func TestAnalyzeRejectsProtectedAndUnsafeOutput(t *testing.T) {
 	protected := "meeting-protected-id"
 	outputs := []string{
-		"## Summary\n" + protected + "\n## Decisions\nNone\n## Action Items\nNone\n## Unresolved Questions\nNone",
-		"## Summary\nhttps://graph.microsoft.com/v1.0/users/x\n## Decisions\nNone\n## Action Items\nNone\n## Unresolved Questions\nNone",
-		"## Summary\nAuthorization: Bearer abc\n## Decisions\nNone\n## Action Items\nNone\n## Unresolved Questions\nNone",
+		`{"schemaVersion":"meeting-brief/v1","title":"` + protected + `","occurredAt":"2026-08-01T12:00:00Z","participants":[],"summary":"Summary","facts":[],"decisions":[],"actionItems":[],"externalCommitments":[],"unresolvedQuestions":[],"proposedFollowUp":"","projectHint":null,"projectConfidence":"unknown"}`,
+		`{"schemaVersion":"meeting-brief/v1","title":"Test","occurredAt":"2026-08-01T12:00:00Z","participants":[],"summary":"https://graph.microsoft.com/v1.0/users/x","facts":[],"decisions":[],"actionItems":[],"externalCommitments":[],"unresolvedQuestions":[],"proposedFollowUp":"","projectHint":null,"projectConfidence":"unknown"}`,
+		`{"schemaVersion":"meeting-brief/v1","title":"Test","occurredAt":"2026-08-01T12:00:00Z","participants":[],"summary":"Authorization: Bearer abc","facts":[],"decisions":[],"actionItems":[],"externalCommitments":[],"unresolvedQuestions":[],"proposedFollowUp":"","projectHint":null,"projectConfidence":"unknown"}`,
 		"plain text",
 		"",
 	}
@@ -94,7 +98,7 @@ func TestAnalyzeRejectsRedirectTimeoutAndOversizedOutput(t *testing.T) {
 		{&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return response(http.StatusFound, ""), nil })}, "titus_unavailable"},
 		{&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, errors.New("timeout with protected detail") })}, "titus_unavailable"},
 		{&http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-			return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote("## Summary\n"+strings.Repeat("x", MaxOutputBytes)+"\n## Decisions\nNone\n## Action Items\nNone\n## Unresolved Questions\nNone")+`},"finish_reason":"stop"}]}`), nil
+			return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":`+quote(strings.Repeat("x", MaxOutputBytes))+`},"finish_reason":"stop"}]}`), nil
 		})}, "titus_output_rejected"},
 	} {
 		client, _ := NewClient(ServiceOrigin, strings.Repeat("h", 32), fixture.client)

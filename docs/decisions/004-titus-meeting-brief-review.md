@@ -25,7 +25,15 @@ The user has granted a narrow standing authorization to send each draft meeting
 brief automatically to exactly Gary and Austin. This does not authorize any
 other automatic Titus email or any external follow-up.
 
-## Decision
+## Current decision: single-pass Titus analysis
+
+Feature 035 now uses one bounded private Titus chat request followed by local
+strict Meeting Brief v1 validation. It does not create meeting sessions,
+delegate children, emit a QA envelope, or perform Hermes session cleanup. The
+existing custody, SecurityTeam, fixed-recipient email, human approval, private
+filer, and recording stream/discard boundaries remain unchanged.
+
+## Decision (historical session design; superseded 2026-08-03)
 
 1. Keep organizer-scoped Graph polling for ordinary Gary/Austin meetings.
 2. Encrypt raw transcript custody for 168 hours, then delete ciphertext
@@ -125,3 +133,15 @@ organizer-scoped workflow.
   authority to model output.
 - The channel bot can evolve independently without reopening the organizer
   meeting-brief trust model.
+
+## Superseding simplification (2026-08-03)
+
+The nested Sol/Luna session decision above is superseded for the basic meeting
+brief path. Feature 035 now uses one bounded stateless Titus request and local
+strict JSON validation. The worker no longer creates meeting sessions,
+delegates children, audits Hermes tool calls, or performs session cleanup. This
+removes the failure-prone model-contract orchestration while preserving the
+important boundaries: encrypted custody, SecurityTeam screening, fixed
+recipient email, deterministic human approval, private filing, and recording
+stream/discard. Future background delegation requires a separate measured
+feature decision.

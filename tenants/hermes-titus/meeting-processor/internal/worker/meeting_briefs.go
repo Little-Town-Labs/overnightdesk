@@ -23,7 +23,7 @@ func (processor Processor) processMeetingBriefs(ctx context.Context, discovery *
 		processor.LifecycleMu.Lock()
 		defer processor.LifecycleMu.Unlock()
 	}
-	if processor.Briefs == nil || processor.Content == nil || processor.Scanner == nil || processor.Orchestrator == nil || processor.Mailer == nil || processor.Recorder == nil {
+	if processor.Briefs == nil || processor.Content == nil || processor.Scanner == nil || processor.Analyzer == nil || processor.Mailer == nil || processor.Recorder == nil {
 		return errors.New("meeting_config_invalid")
 	}
 	if err := MigrateLegacyOutputs(processor.Store, processor.Briefs, processor.HandoffPath, now); err != nil {
@@ -124,14 +124,14 @@ func (processor Processor) processOneMeetingTranscript(ctx context.Context, disc
 		record = state.BriefRecord{InternalReference: key, MigrationStatus: "not_applicable", CreatedAt: timestamp, UpdatedAt: timestamp}
 	}
 	if record.Analysis != nil && (record.Analysis.Status == "cleanup_pending" || record.Analysis.Status == "cleanup_retryable") {
-		if err := processor.advanceMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
+		if err := processor.processOneMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
 			return err
 		}
 		briefs = processor.Briefs.Document()
 		record = briefs.Records[key]
 	}
 	if record.BriefDigest == "" {
-		if err := processor.advanceMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
+		if err := processor.processOneMeetingAnalysis(ctx, discovery, key, artifact, record, now, cycleID); err != nil {
 			return err
 		}
 		briefs = processor.Briefs.Document()
@@ -182,6 +182,7 @@ func (processor Processor) transcriptPlaintext(ctx context.Context, artifact sta
 		return nil, err
 	}
 	record.Custody = &custodyRecord
+	record.SourceDigest = custodyRecord.PlaintextSHA256
 	record.UpdatedAt = now.UTC().Format(time.RFC3339Nano)
 	doc := processor.Briefs.Document()
 	doc.Records[artifact.InternalReference] = *record

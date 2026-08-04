@@ -69,7 +69,12 @@ or malformed inputs create nothing; no component can exceed its authority.
 - [x] T037 Run the final read-only Ringer/Sol multi-axis quality gate; allow at most one Luna remediation and one Sol delta review.
 - [x] T038 Confirm `git diff --check`, task-scoped status, generated-artifact exclusion, and reproducible clean handoff.
 
-## Phase 7 - Titus Sol/Luna architecture correction
+## Phase 7 - Titus Sol/Luna architecture correction (historical, superseded)
+
+The tasks in this phase document the implementation that was deployed but
+failed the Gary canary's model-output contract. Phase 9 supersedes the runtime
+architecture; these completed tasks remain as delivery history and rollback
+context only.
 
 - [x] T039 Commit, push, open the OvernightDesk PR with Spec Kit/Ringer/security/rollback context, pass checks, and merge.
 - [x] T040 Revise the Feature 035 spec, plan, research, data model, ADR, quickstart, delivery record, and requirement traceability for Titus-owned Sol/Luna processing in `specs/035-titus-meeting-briefs/` and `docs/decisions/004-titus-meeting-brief-review.md`.
@@ -92,20 +97,31 @@ or malformed inputs create nothing; no component can exceed its authority.
 
 - [x] T055 Commit, push, open the correction PR with Spec Kit/Ringer/security/rollback context, pass checks, merge, and reconcile local main.
 - [x] T056 Deploy filer, corrected worker, and poller disabled; retire the analyzer unit/container without deleting retained rollback state; verify exact mounts, secrets, networks, hardening, preserved state, and unrelated Titus continuity.
-- [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one Luna draft, one Sol QA pass or bounded block, one fixed-recipient email only after QA pass, seven-day encrypted custody, verified session deletion, recording stream/discard, and restart idempotency.
+- [ ] T057 Enable brief processing, reprocess the retained Gary transcript, prove one bounded Titus JSON request, strict local validation or fail-closed block, one fixed-recipient email only after validation, seven-day encrypted custody, recording stream/discard, and restart idempotency.
 - [ ] T058 Enable filing, process Gary/Austin exact approval or hold, and prove deterministic note/Kanban outcome with no external action.
 - [ ] T059 Exercise scoped rollback/restoration, monitor one normal interval, and append safe evidence to suite-root `deploys.log`.
 - [ ] T060 Update, review, merge, deploy, and verify the separate `overnightdesk-platform-standard` change.
 - [ ] T061 Update issue 159 with safe acceptance evidence, reference the separate channel-bot/subscription issue, and close only the organizer meeting-brief/recording-custody scope.
 - [ ] T062 Update roadmap/feature pointer to the next selected feature and reconcile both repositories to clean `main`.
 
+## Phase 9 - Single-pass Titus simplification
+
+- [x] T063 [US1] Write failing Titus client and worker tests for one bounded tool-free JSON request, strict local Meeting Brief validation, invalid-output blocking, custody preservation, and no session/delegation calls in `tenants/hermes-titus/meeting-processor/internal/{titus,worker}/`.
+- [x] T064 [US1] Change `internal/titus/client.go` to request one Meeting Brief v1 JSON object and reject unsafe or non-schema output without legacy Markdown translation.
+- [x] T065 [US1] Replace the `MeetingOrchestrator` state machine with direct single-pass processing in `internal/worker/meeting_briefs.go` and `internal/state/`, preserving restart idempotency and existing custody/email/recording transitions.
+- [x] T066 [US1] Remove orchestrator construction and runtime dependency from `cmd/titus-meeting-processor/main.go`, `internal/worker/worker.go`, and obsolete orchestrator tests/source after the direct path is green.
+- [x] T067 [US1] Update the Feature 035 spec, ADR, runbook, qualification contracts, and deployment evidence to document the simplified lifecycle and keep brief processing disabled by default.
+- [x] T068 Run the Spec Kit consistency analysis, refresh codebase-memory impact, and prepare a read-only production-sensitive Ringer/Sol quality gate for the refactor.
+- [x] T069 Run full focused and repository qualification, then stop at disabled-first readiness; do not activate production until a new bounded canary is explicitly authorized.
+
 ## Dependencies and Ringer Ownership
 
 - T002 depends on T001. T003 depends on T002 and delegates read-only review only.
 - T004-T010, T011-T016, T017-T023, T024-T032, and T042-T049 are sequential vertical
   waves; tests in each task must fail before implementation.
-- T041 is the pre-implementation read-only gate. T053 is the final read-only
-  gate. Production-sensitive mutation T040 and T042-T062 is Sol/operator only.
+- T041 is the pre-implementation read-only gate. T053 and T068 are final
+  read-only gates. Production-sensitive mutation T040 and T042-T069 is
+  Sol/operator only.
 - Ringer workers own no mutable paths, commits, Git state, task checkboxes,
   secrets, or production operations. The prepared read-only task may inspect
   `specs/035-titus-meeting-briefs/` and the exact source paths named above.
@@ -131,3 +147,4 @@ or malformed inputs create nothing; no component can exceed its authority.
 | FR-026 | T057-T058 |
 | FR-027 | T050, T060-T062 |
 | FR-028 | T006-T007, T051, T056 |
+| FR-037-FR-041 | T063-T069 |

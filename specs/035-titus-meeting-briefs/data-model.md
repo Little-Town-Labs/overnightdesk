@@ -1,5 +1,21 @@
 # Data Model: Titus Meeting Briefs
 
+## Active simplified lifecycle
+
+The active worker uses one bounded Titus request and local validation:
+
+```text
+transcript discovered -> custody retained -> analysis_pending
+  -> completed/email_pending -> pending_review
+  -> approved|held -> filed (approval path only)
+  -> blocked (screening, Titus transport exhaustion, or invalid output)
+```
+
+The active `analysis` object stores only `version`, bounded `attempt`,
+`screenedDigest`, `status`, timestamps, and safe error/outcome codes. Session,
+run, child, delegation, QA, and cleanup fields remain readable for legacy
+state compatibility but are never populated by the simplified path.
+
 ## State Boundaries
 
 Feature 035 does not change the version of the existing discovery document. It
@@ -78,8 +94,8 @@ The canonical payload is defined by
 | `brief` | object | Strict schema-valid Meeting Brief v1 |
 | `briefDigest` | string | Canonical JSON SHA-256 |
 | `projectRoute` | object/null | Exact immutable route snapshot or unknown |
-| `reviewStatus` | enum | `analysis_pending`, `luna_running`, `sol_qa_pending`, `qa_remediation`, `email_pending`, `pending_review`, `approved`, `held`, `filing_retryable`, `filed`, `blocked` |
-| `analysis` | object/null | Safe Titus session/run correlation and QA lifecycle below |
+| `reviewStatus` | enum | `analysis_pending`, `email_pending`, `pending_review`, `approved`, `held`, `filing_retryable`, `filed`, `blocked` (legacy lifecycle values remain readable) |
+| `analysis` | object/null | Safe single-pass attempt metadata; legacy session fields are not written |
 | `email` | object/null | Provider-safe delivery metadata |
 | `decision` | object/null | First terminal decision metadata |
 | `filing` | object/null | Idempotent result metadata |
@@ -88,11 +104,13 @@ The canonical payload is defined by
 | `retryCount` | integer | Bounded `0..8` per stage |
 | `lastErrorCode` | string/null | Allowlisted safe code |
 
-## TitusAnalysisAttempt
+## TitusAnalysisAttempt (active fields; legacy fields read-only)
 
 The state never stores transcript text, Luna output, Sol reasoning, or full
-session messages. It stores only safe correlation needed to reconcile the
-background workflow.
+session messages. It stores only the safe metadata needed to restart one
+bounded request. The session/run/delegation fields described in the historical
+compatibility table are retained only so older state can be inspected safely;
+the simplified worker leaves them empty.
 
 | Field | Type | Constraints |
 |-------|------|-------------|
@@ -327,7 +345,10 @@ Instruction-like phrasing is treated as untrusted quoted data rather than
 executed or reinterpreted. It is rejected only when it violates the concrete
 rules above; prompt-text pattern matching is not treated as a security control.
 
-## State Transitions
+## Historical Sol/Luna state transitions (superseded)
+
+The following diagram documents the retired implementation for rollback
+context only; it is not an active Feature 035 lifecycle.
 
 ```text
 transcript processed/no brief
