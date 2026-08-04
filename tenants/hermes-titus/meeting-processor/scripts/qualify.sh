@@ -46,10 +46,9 @@ test ! -e runtime/run-analyzer-container.sh
 test ! -e runtime/stop-analyzer-container.sh
 test ! -e runtime/titus-meeting-analyzer.service
 test ! -e ../config/meeting-analyzer.yaml
-grep -Fq '"/v1/runs"' internal/orchestrator/client.go
-grep -Fq '"/api/sessions"' internal/orchestrator/client.go
-grep -Eq 'ApprovedParentModel[[:space:]]*=[[:space:]]*"gpt-5\.6-sol"' internal/orchestrator/plan.go
-grep -Eq 'ApprovedChildModel[[:space:]]*=[[:space:]]*"gpt-5\.6-luna"' internal/orchestrator/plan.go
+test ! -d internal/orchestrator
+grep -Fq '"/v1/chat/completions"' internal/titus/client.go
+grep -Fq 'analyzer.ParseAndValidate' internal/titus/client.go
 ! grep -Eq 'MEETING_ANALYZER_(BASE_URL|API_KEY|MODEL):' runtime/load-phase-config.sh
 grep -Fq 'enable-brief' scripts/deploy-aegis.sh
 ! grep -Eq 'enable --now titus-meeting-analyzer|/opt/titus-meeting-analyzer/bin|analyzer_image=' scripts/deploy-aegis.sh

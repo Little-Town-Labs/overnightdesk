@@ -4,6 +4,13 @@ This is the implementation and production-qualification runbook for Feature
 035. It must be executed in order. Never print Phase values, raw transcript,
 brief bodies, email addresses, provider IDs, or recording bytes as evidence.
 
+The active processing path is intentionally single-pass: SecurityTeam screens
+the retained transcript, Titus receives one bounded private chat-completion
+request, and the worker locally validates one canonical Meeting Brief v1 JSON
+object. No meeting session, child delegation, QA envelope, or session cleanup
+is part of this path. The older Sol/Luna procedure below is retained only as
+historical delivery evidence and is not an activation requirement.
+
 ## 1. Local prerequisites
 
 ```bash
@@ -49,9 +56,9 @@ Feature 035 values to `/agents/hermes-titus/meetingbriefs`:
 - `MEETING_PROJECT_ROUTES_JSON` - exact aliases, note directories, and boards;
 
 Reuse the existing SecurityTeam, AgentMail, and private Titus API credentials
-from their current Phase paths through exact allowlisted projections. Titus's
-active primary and delegation configuration selects Sol and Luna; Feature 035
-must not add or project a model, provider key, OAuth identity, or analyzer key.
+from their current Phase paths through exact allowlisted projections. Feature
+035 must not add or project a model, provider key, OAuth identity, or analyzer
+key; Titus's existing private API route supplies the model and project context.
 Do not copy values between paths or into repository files.
 
 Verify key presence, format, active/referenced key IDs, and equality/inequality
@@ -73,23 +80,11 @@ The harness must prove:
 - strict Meeting Brief schema, unknown-field rejection, array/string caps,
   owner/date/timestamp rules, project exact-match behavior, and protected-value
   rejection;
-- Titus orchestration persists exact create/run body digests, creates or safely
-  reconciles one deterministic dedicated session, submits at most one Runs API
-  turn per attempt without a model override, and never resubmits an ambiguous
-  dispatch;
-- the audit observes one or two exact single-leaf `delegate_task` calls only,
-  rejects every other parent tool call, discovers the corresponding child
-  sessions by parent lineage, proves their observed route is the configured
-  Luna model, and binds the strict `meeting-qa/v1` meeting/attempt/source plus
-  embedded brief to the latest child's canonical Meeting Brief;
-- Luna's delegated context begins with at least 512 bytes of fixed ASCII safe text
-  before VTT content, and fixtures prove Hermes's 500-character kickoff preview
-  contains no transcript marker for ASCII or multibyte transcript input;
-- restart, deadline, missing-run, QA reject/remediation, cleanup failure, and
-  duplicate-dispatch fixtures fail closed with no early or duplicate email;
-- terminal cleanup enumerates child IDs before parent deletion and requires
-  authenticated `404 session_not_found` for parent and children; cleanup
-  exhaustion is operator-blocked with custody deletion still active;
+- one tool-free Titus request is made per attempt, local strict validation is the
+  sole model-output acceptance gate, and malformed/legacy/unsafe output blocks
+  without email or filing;
+- restart and provider/transport retry fixtures never duplicate a successful
+  Titus request or email, while each attempt has no session or delegation IDs;
 - outbound mail uses exactly two recipients, no CC/BCC/attachment, SecurityTeam
   first, idempotency, readback, and no ordinary guarded-email bypass;
 - review parsing accepts only one exact command from an exact allowed sender
@@ -156,10 +151,9 @@ Safe acceptance evidence:
 - one recipient-set value `gary+austin` and provider readback success;
 - encrypted raw-custody object exists mode 0600 with ciphertext/plaintext
   digests that differ;
-- one dedicated meeting session, one Luna draft, one Sol QA, zero
-  non-delegation parent tool calls, and an exact `QA_PASS` before email;
-- the dedicated parent and delegated child sessions are deleted and return
-  not-found after terminal QA; only encrypted custody retains raw VTT;
+- one bounded Titus JSON request and one locally validated brief before email;
+- no meeting sessions or child sessions are created; only encrypted custody
+  retains raw VTT;
 - recording status `verified` with digest and byte count only;
 - no duplicate model, email, transcript, or recording operation after restart;
 - no raw excerpts or protected identifiers in logs, state views, health,

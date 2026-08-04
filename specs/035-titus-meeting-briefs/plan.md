@@ -8,19 +8,19 @@
 
 Extend the existing organizer-scoped meeting worker into a reviewed Meeting
 Brief pipeline. The worker encrypts raw VTT for a seven-day TTL, screens it,
-uses a dedicated Titus session in which Sol delegates the first draft to Luna
-and performs bounded QA, sends one
-SecurityTeam-screened fixed-recipient email, accepts exact approve/hold commands
-from the existing email poller, and invokes a deterministic least-privilege
-filer for create-only project notes and Titus Kanban tasks. Recording MP4 is
-streamed, hashed, correlated, and discarded. Channel bot and webhook discovery
-remain a later feature.
+uses one bounded Titus request followed by local strict Meeting Brief validation,
+sends one SecurityTeam-screened fixed-recipient email, accepts exact
+approve/hold commands from the existing email poller, and invokes a
+deterministic least-privilege filer for create-only project notes and Titus
+Kanban tasks. Recording MP4 is streamed, hashed, correlated, and discarded.
+The earlier nested Sol/Luna session design is retained only as historical
+delivery context; channel bot and webhook discovery remain a later feature.
 
 ## Technical Context
 
-**Language/Version**: Go 1.24 for workers/private services; pinned Hermes Agent v0.19 Runs/Sessions/delegation APIs and Kanban CLI
+**Language/Version**: Go 1.24 for workers/private services; existing Hermes Agent v0.19 private chat API and Kanban CLI
 
-**Primary Dependencies**: Existing Graph/SecurityTeam/AgentMail/Hermes HTTP clients, Go standard library cryptography and HTTP, Hermes Runs/Sessions/delegation APIs, and Kanban CLI
+**Primary Dependencies**: Existing Graph/SecurityTeam/AgentMail/Hermes HTTP clients, Go standard library cryptography and HTTP, and Kanban CLI
 
 **Storage**: Existing version-2 discovery JSON retained for rollback, separate Feature 035 version-1 atomic state, new mode-0600 encrypted raw-custody files, existing Markdown project-knowledge volume, existing Hermes Kanban SQLite via supported CLI
 
@@ -30,7 +30,7 @@ remain a later feature.
 
 **Project Type**: Brownfield production background workers plus one private single-purpose filer service
 
-**Performance Goals**: One bounded analysis at a time; constant-memory recording stream; pollable asynchronous analysis with a 20-minute reconciliation deadline; email/filer calls under 60 seconds; interactive Titus remains available while Luna works
+**Performance Goals**: One bounded analysis at a time; constant-memory recording stream; one Titus request under 60 seconds; email/filer calls under 60 seconds; interactive Titus remains available through the private API boundary
 
 **Constraints**: No public ports, no raw plaintext persistence, fixed recipients, strict schema, 168-hour raw TTL, no model authority, no external actions, disabled-first activation
 
@@ -42,17 +42,17 @@ remain a later feature.
 
 - **Untrusted output**: PASS. Transcript, provider responses, model JSON, email
   replies, and project aliases are validated at their boundaries.
-- **No direct model authority**: PASS. Titus and Luna may interpret but their
-  output is untrusted. The worker never resolves meeting-run tool approvals,
-  audits parent tool calls, and only deterministic code can send the fixed
-  internal brief or file a human-approved result.
+- **No direct model authority**: PASS. Titus may interpret but its output is
+  untrusted. The worker never resolves approvals or accepts model-directed
+  actions; only deterministic code can send the fixed internal brief or file a
+  human-approved result.
 - **Human approval for business records**: PASS. Permanent note and Kanban
   mutations require an exact authenticated Gary/Austin approval. Automatic
   internal draft email is a narrow standing authorization captured in ADR-004.
 - **Data boundary**: PASS. Raw transcript uses encrypted private seven-day
-  custody plus one temporary dedicated Titus session for background processing;
-  the session is deleted and verified after terminal QA, never enters general
-  memory, and recording bytes are streamed and discarded.
+  custody and is supplied only as screened in-memory request data; no meeting
+  session or general-memory write is created, and recording bytes are streamed
+  and discarded.
 - **Recoverability**: PASS. Independent activation markers, immutable release
   trees, retained state, scoped restarts, and create-only/idempotent filing.
 - **Test first**: PASS. Each vertical slice begins with failing boundary and
@@ -63,9 +63,9 @@ remain a later feature.
 ### Post-design gate
 
 PASS with no constitution exceptions. The existing Titus runtime owns
-interpretation as requested; a dedicated session, bounded delegation audit,
-strict QA envelope, fixed email policy, and human filing approval preserve the
-business-action boundary. The private filer remains the hard mutation boundary.
+interpretation as requested; local strict validation, fixed email policy, and
+human filing approval preserve the business-action boundary. The private filer
+remains the hard mutation boundary.
 
 ## Codebase Memory Context
 
@@ -77,8 +77,8 @@ business-action boundary. The private filer remains the hard mutation boundary.
   - `meeting-processor/internal/graph/content.go` owns exact bounded VTT retrieval.
   - `meeting-processor/internal/worker/worker.go` owns lifecycle orchestration and currently marks recordings `not_applicable`.
   - `email-poller/internal/worker/worker.go` exposes a deterministic insertion point after `claimClean` and before `SubmitRun`.
-  - `meeting-processor/internal/analyzer/client.go` currently calls the retired analyzer through stateless chat completion.
-  - Pinned Hermes source proves Runs bind a persisted session for detached delegation, run completion is not child completion, and Sessions API history/deletion is the reconciliation seam.
+  - `meeting-processor/internal/titus/client.go` owns the existing bounded private Titus chat-completion client.
+  - `meeting-processor/internal/analyzer/brief.go` owns the strict local Meeting Brief validator and canonical digest.
   - project knowledge and Kanban live on separate volumes already mounted by Titus, so a narrow filer can receive only approved structured data.
 
 ## Architecture
@@ -110,15 +110,26 @@ private review API <---- clean exact command ---- email-poller
 ```
 
 The meeting worker remains the durable workflow owner. Titus owns
-interpretation: Luna drafts in a background child and Sol performs the QA gate
-using Titus's existing knowledge. The worker accepts only an audited,
-schema-valid `QA_PASS` bound to the local meeting/attempt/source and the latest
-verified Luna child draft. It discovers child lineage and the observed existing
-Luna route without selecting a model, never resolves a Hermes tool approval,
-and verifies parent/child not-found reads after terminal QA. The filer can mutate only two
-approved storage surfaces and has no transcript, Graph, email, or model
+interpretation through one bounded private request, while the local analyzer
+validator accepts only a schema-valid Meeting Brief. The filer can mutate only
+two approved storage surfaces and has no transcript, Graph, email, or model
 credentials. The email poller recognizes exact commands only after its existing
 dirty-to-clean SecurityTeam path.
+
+### Current architecture after simplification
+
+The diagram and session details above describe the superseded Phase 7 design.
+The active implementation boundary is:
+
+```text
+Graph transcript -> encrypted custody -> SecurityTeam screening
+       -> one private Titus chat request -> local Meeting Brief validator
+          -> fixed-recipient email -> exact human decision -> private filer
+```
+
+There is no meeting session, child delegation, QA envelope, model retry loop,
+or session cleanup in the active design. The local validator remains the sole
+model-output acceptance gate.
 
 ## Project Structure
 
@@ -136,7 +147,6 @@ specs/035-titus-meeting-briefs/
 └── contracts/
     ├── meeting-brief.schema.json
     ├── meeting-qa.schema.json
-    ├── meeting-qa.schema.json
     ├── review-api.openapi.yaml
     └── filer-api.openapi.yaml
 ```
@@ -148,8 +158,8 @@ tenants/hermes-titus/
 ├── meeting-processor/
 │   ├── cmd/titus-meeting-processor/
 │   └── internal/
-│       ├── analyzer/       # strict brief and QA-envelope validation
-│       ├── orchestrator/   # Titus Runs/Sessions client
+│       ├── analyzer/       # strict Meeting Brief validation
+│       ├── titus/           # bounded private chat client
 │       ├── approval/
 │       ├── custody/
 │       ├── email/
@@ -173,9 +183,8 @@ database, queue, webhook receiver, or channel bot in this slice.
 1. Define strict contracts and write failing tests.
 2. Scrub legacy free-form handoff output, add rollback-compatible separate state,
    encrypted custody, and streaming recording verification.
-3. Replace the analyzer client with the dedicated Titus session state machine,
-   Luna draft, Sol QA, bounded remediation, strict envelope validation, and
-   verified session deletion.
+3. Replace the superseded session state machine with one bounded Titus request,
+   strict local Meeting Brief validation, and direct email eligibility.
 4. Add fixed-recipient outbound delivery and exact review-command intake.
 5. Add deterministic filing and action-task creation.
 6. Qualify disabled, deploy, canary Gary, enable filing, prove TTL/restart/
@@ -187,8 +196,8 @@ database, queue, webhook receiver, or channel bot in this slice.
 2. Did any model, email, decision, or filing operation execute more than once?
 3. Are any encrypted raw objects past the 168-hour retention deadline?
 4. Did recording verification finish without retaining bytes?
-5. Is a meeting analysis awaiting Luna, Sol QA, remediation, cleanup, or
-   operator review, and did any Titus restart make its attempt unknown?
+5. Is a meeting analysis awaiting Titus, email, operator review, or filing, and
+   did any retry leave a duplicate attempt?
 
 Signals are bounded structured events and aggregate health counts; no new
 public metrics endpoint is justified at current volume. Production canaries
@@ -202,5 +211,40 @@ the existing operator health monitor receives one bounded actionable code.
 
 | Added surface | Why Needed | Simpler Alternative Rejected Because |
 |---------------|------------|-------------------------------------|
-| Dedicated Titus meeting session | Lets Titus use existing knowledge while Luna drafts without occupying the interactive conversation | Stateless chat cannot receive detached child completion and a separate analyzer violates the intended Titus ownership/model boundary |
+| Single-pass Titus request | Uses Titus's existing knowledge while keeping the worker and state machine small | Nested delegation adds asynchronous reconciliation and model-contract failure modes that are not needed at current meeting volume |
 | Private deterministic filer | Keeps Graph/model/email credentials away from project-note and Kanban write authority | Mounting both writable volumes into the meeting worker collapses content-ingestion and business-record authority |
+
+## Refactor plan: single-pass Titus analysis
+
+The current nested Runs/Sessions design is replaced by the already-existing
+private Titus chat client. The meeting worker decrypts custody in memory,
+re-screens the transcript, sends one bounded tool-free request, validates the
+returned Meeting Brief v1 locally, and persists only the canonical brief and
+safe lifecycle fields. The worker never creates a Hermes session and therefore
+has no child, run, lineage, cleanup, or unknown-dispatch state to reconcile.
+
+The request remains isolated from interactive Titus by using the private API
+boundary and a short request timeout; it does not grant the response authority
+to email, approve, file, or mutate project state. Invalid output fails closed.
+The existing filer, approval endpoint, custody manager, recording verifier, and
+fixed-recipient mailer remain separate boundaries.
+
+The implementation removes the `MeetingOrchestrator` dependency from the
+worker and command wiring, reuses `titus.Client` for Meeting Brief analysis,
+and retains the strict `analyzer.ParseAndValidate` gate as the sole acceptance
+contract. Legacy persisted orchestration records remain readable for rollback
+and are not resumed; the next disabled-first deployment may mark the retained
+canary record for the new single-pass attempt.
+
+### Simplified lifecycle
+
+```text
+custody retained -> SecurityTeam clean -> Titus one-shot -> local JSON validation
+       |                                                       |
+       +----------------------- invalid -----------------------+--> blocked
+                                                               |
+                                                valid brief -> email_pending
+```
+
+No model-produced QA envelope, child session, Hermes run, or model retry is
+part of this lifecycle.

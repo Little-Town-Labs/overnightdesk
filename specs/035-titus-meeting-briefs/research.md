@@ -106,7 +106,10 @@ provenance without the body.
   first migration cannot prove it contains no transcript excerpt without
   inspecting sensitive production content.
 
-## Decision: Let Titus orchestrate Luna drafting and Sol QA
+## Historical decision: Let Titus orchestrate Luna drafting and Sol QA
+
+This decision was implemented in Phase 7 and is superseded by the single-pass
+decision below after the failed Gary canary.
 
 **Decision**: Use the existing authenticated Titus API. The worker creates a
 deterministic dedicated meeting session and starts a Hermes Run without a
@@ -167,6 +170,37 @@ attempt, and source digest must equal local state. The fixed ASCII safe context
 prefix prevents raw VTT from entering Hermes's bounded live-log kickoff preview.
 The dedicated parent and enumerated children are deleted and verified after
 terminal QA, while encrypted custody remains for the seven-day contract.
+
+## Decision: Use a single-pass Titus brief request
+
+**Decision**: Replace the nested Sol/Luna session workflow with one bounded,
+stateless Titus chat-completion request and a local strict Meeting Brief v1
+validator. Do not create a meeting session, delegate a child, emit a QA
+envelope, or perform session cleanup.
+
+**Rationale**: The Gary canary reached Titus but Luna repeatedly returned a
+legacy shape despite exact prompt templates. The nested design added deterministic
+session IDs, retry identity, child lineage, asynchronous reconciliation, QA
+envelopes, and deletion proofs without making model output reliable. The local
+validator is the real trust boundary and already rejects malformed or unsafe
+briefs. A single request keeps Titus as the interpreter while making the worker
+state and failure behavior understandable.
+
+**Accepted trade-off**: The draft is produced synchronously through Titus's
+private API instead of a background Luna child. The meeting volume is low, the
+request is bounded, and the worker remains isolated from Titus's interactive
+conversation. If future latency or throughput requires delegation, it should be
+introduced as a separately measured feature rather than embedded in the basic
+meeting path.
+
+**Rejected**:
+
+- Keep adding prompt templates or legacy-key bans. Rejected because prompts are
+  advisory and the canary proved they do not enforce a schema.
+- Add a local legacy-to-v1 translator. Rejected because it would guess field
+  semantics and move interpretation authority into brittle compatibility code.
+- Retry model output until it matches. Rejected because it creates duplicate
+  work and hides a contract failure; invalid output blocks safely.
 
 ## Decision: Strict JSON first, deterministic rendering second
 

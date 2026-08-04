@@ -17,7 +17,6 @@ import (
 	meetingemail "github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/email"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/filer"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/graph"
-	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/orchestrator"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/securityteam"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/state"
 	"github.com/Little-Town-Labs/overnightdesk/tenants/hermes-titus/meeting-processor/internal/titus"
@@ -41,13 +40,6 @@ type TitusAnalyzer interface {
 	Analyze(context.Context, string, string, []string) (string, error)
 }
 
-type MeetingOrchestrator interface {
-	EnsureSession(context.Context, orchestrator.Plan) error
-	SubmitRun(context.Context, orchestrator.Plan) (string, error)
-	Inspect(context.Context, string, orchestrator.InspectionBinding, []string) (orchestrator.Inspection, error)
-	Cleanup(context.Context, string, []string) error
-}
-
 type MeetingMailer interface {
 	Send(context.Context, string, string, string) (meetingemail.Delivery, error)
 }
@@ -61,24 +53,23 @@ type MeetingFiler interface {
 }
 
 type Processor struct {
-	Config       config.Config
-	Store        *state.Store
-	Fetcher      DeltaFetcher
-	Content      TranscriptContentFetcher
-	Scanner      SecurityScanner
-	Analyzer     TitusAnalyzer
-	Briefs       *state.BriefStore
-	Custody      custody.Manager
-	Orchestrator MeetingOrchestrator
-	Mailer       MeetingMailer
-	Recorder     RecordingVerifier
-	Filer        MeetingFiler
-	Routes       []analyzer.ProjectRoute
-	HealthPath   string
-	HandoffPath  string
-	Events       io.Writer
-	Now          func() time.Time
-	LifecycleMu  *sync.Mutex
+	Config      config.Config
+	Store       *state.Store
+	Fetcher     DeltaFetcher
+	Content     TranscriptContentFetcher
+	Scanner     SecurityScanner
+	Analyzer    TitusAnalyzer
+	Briefs      *state.BriefStore
+	Custody     custody.Manager
+	Mailer      MeetingMailer
+	Recorder    RecordingVerifier
+	Filer       MeetingFiler
+	Routes      []analyzer.ProjectRoute
+	HealthPath  string
+	HandoffPath string
+	Events      io.Writer
+	Now         func() time.Time
+	LifecycleMu *sync.Mutex
 }
 
 type CycleResult struct {

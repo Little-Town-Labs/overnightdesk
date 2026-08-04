@@ -29,12 +29,12 @@ from the email and all general Titus memory, and then deleted automatically.
 
 **Independent Test**: Process a bounded fixture and the retained Gary meeting,
 then prove one schema-valid brief, one fixed-recipient email, encrypted raw
-custody, no parent tool call except bounded delegation, no duplicate work, and deletion after the retention
-clock is advanced beyond seven days.
+custody, no tool/delegation operation, no duplicate work, and deletion after
+the retention clock is advanced beyond seven days.
 
 **Acceptance Scenarios**:
 
-1. **Given** an eligible transcript without a current brief, **When** the worker runs, **Then** it downloads, screens, encrypts, opens one dedicated Titus meeting session, has Luna draft the brief, has Sol QA it, validates the result, and emails exactly one bounded draft brief to Gary and Austin only after `QA_PASS`.
+1. **Given** an eligible transcript without a current brief, **When** the worker runs, **Then** it downloads, screens, encrypts, sends one bounded private Titus request, locally validates the result, and emails exactly one bounded draft brief to Gary and Austin only after validation passes.
 2. **Given** model output containing extra fields, unsafe values, invalid owners, unsupported projects, or an attempt to turn source-derived instruction-like text into executable direction or evidence of a performed action, **When** validation runs, **Then** the draft is rejected and no email, note, or task is created; instruction-like source text that passes every concrete predicate remains inert quoted data under an explicit source-derived label.
 3. **Given** encrypted raw custody older than seven days, **When** the retention sweep runs, **Then** the ciphertext is deleted while the safe brief, provenance, and audit state remain.
 
@@ -102,11 +102,8 @@ safe metadata only, and zero recording bytes after completion.
 - A transcript has no useful speech, no speaker labels, or conflicting names.
 - Hermes returns valid JSON that contains instruction-like content, unknown keys,
   invalid timestamps, invented due dates, or a project alias not in the map.
-- Sol dispatches Luna but Titus restarts before the child completes, leaving an
-  attempt whose external completion cannot be proven.
-- Luna's first draft fails Sol QA, or the one permitted remediation also fails.
-- The dedicated Titus meeting session completes but cannot be deleted or still
-  appears through the authenticated Sessions API.
+- Titus returns malformed, legacy, unsafe, or schema-invalid output.
+- The bounded Titus request times out or returns an ambiguous response.
 - AgentMail returns an ambiguous timeout, duplicate idempotency response, or
   recipient-policy denial.
 - Gary and Austin send conflicting decisions nearly simultaneously.
@@ -121,10 +118,10 @@ safe metadata only, and zero recording bytes after completion.
 
 - **FR-001**: The worker MUST create Meeting Brief v1 only for organizer-scoped transcript artifacts discovered by the existing Feature 033 boundary.
 - **FR-002**: Raw VTT MUST be encrypted before durable write using authenticated encryption, a Phase-managed versioned 256-bit key ring, a unique nonce, versioned associated data, mode-0600 files, and a dedicated private volume.
-- **FR-003**: Raw transcript ciphertext MUST expire seven days after first successful custody write and MUST be deleted by an idempotent sweep. Plaintext and screened text MUST never be written to meeting-processor state, handoff, telemetry, general Titus memory, project knowledge, notes, or Kanban; the only temporary durable exception is the dedicated Titus parent/delegated-child session required for background processing, which MUST be deleted and verified after terminal QA.
+- **FR-003**: Raw transcript ciphertext MUST expire seven days after first successful custody write and MUST be deleted by an idempotent sweep. Plaintext and screened text MUST never be written to meeting-processor state, handoff, telemetry, general Titus memory, project knowledge, notes, or Kanban. Titus receives screened text only during the bounded request.
 - **FR-004**: Transcript input MUST continue through authenticated SecurityTeam block-on-review screening before any model call.
-- **FR-005**: Meeting analysis MUST run through the existing private Titus Hermes API and its existing provider credentials in a dedicated persisted meeting session. Sol MUST remain the accountable parent and MUST delegate the bounded first draft to the configured Luna child. Before accepting any result, the processor MUST prove through the authenticated Sessions API that the parent inherited the approved Titus Sol route with its fixed system prompt and no per-session model lock, discover the one or two child sessions, prove their `parent_session_id` is the dedicated parent and their observed model is the already-approved Titus Luna route, and fail closed on any mismatch. Feature 035 MUST NOT introduce a separate analyzer service, select a model in any request, add a provider credential, OAuth identity, public port, or feature-specific model route.
-- **FR-006**: Sol MUST QA Luna's draft for transcript faithfulness, decisions, action items, owners and explicit dates, external commitments, project identification, unsupported claims, proposed follow-up, and schema compliance. Sol may request at most one Luna remediation and perform at most one delta QA review; a remaining rejection MUST become `QA_BLOCKED` and MUST NOT send email or file work.
+- **FR-005**: Meeting analysis MUST use one bounded request through the existing private Titus Hermes API and its existing provider credential. The request MUST be stateless, tool-free, and contain no meeting-session, delegation, approval, or filing operation. Feature 035 MUST NOT introduce a separate analyzer service, feature-specific credential, OAuth identity, public port, or model route.
+- **FR-006**: The worker MUST locally validate the complete Titus response as Meeting Brief v1 for transcript faithfulness, decisions, action items, owners and explicit dates, external commitments, project identification, unsupported claims, proposed follow-up, and schema compliance. Invalid or unsafe output MUST become a content-free blocked state and MUST NOT send email or file work.
 - **FR-007**: The validated brief MUST separate facts, decisions, internal action items, external commitments, unresolved questions, and a proposed follow-up; it MUST NOT claim an action occurred.
 - **FR-008**: Action-item owners MUST be exactly `gary`, `austin`, or `unassigned`; due dates MUST be present only when explicit in the transcript.
 - **FR-009**: Project selection MUST use an exact normalized match against an operator-managed allowlist; model text MUST NOT create a project, board, path, owner, or alias.
@@ -141,7 +138,7 @@ safe metadata only, and zero recording bytes after completion.
 - **FR-020**: Recording content MUST use the Graph v1.0 meeting-specific `/recordings/{id}/content` route, no redirects, bounded timeouts, `video/mp4` validation, constant-memory streaming, and a configured hard byte cap.
 - **FR-021**: Recording bytes MUST be discarded after streaming; only digest, byte count, safe lifecycle, and timestamps MAY persist, and no model or media analysis MAY receive them.
 - **FR-022**: Every provider call, decision, filing operation, and retention sweep MUST be idempotent across retries and restarts.
-- **FR-023**: Feature 035 structured events, health, deployment evidence, and processor/filer/poller logs MUST expose correlation reference, stage, safe status, duration, counts, and allowlisted error codes only; raw text, participant names, email addresses, identifiers, tokens, paths, brief bodies, and model output MUST not enter those surfaces. Hermes-owned session/delegation artifacts MAY contain bounded derived model output but MUST contain no raw VTT kickoff preview and remain within the session-retention boundary.
+- **FR-023**: Feature 035 structured events, health, deployment evidence, and processor/filer/poller logs MUST expose correlation reference, stage, safe status, duration, counts, and allowlisted error codes only; raw text, participant names, email addresses, identifiers, tokens, paths, brief bodies, and model output MUST not enter those surfaces.
 - **FR-024**: Deployment MUST be disabled-first with independent markers for brief processing and approval filing; rollback MUST preserve encrypted custody and safe state while stopping new email and filing.
 - **FR-025**: The Feature 034 Gary artifact MAY be reprocessed exactly once into Meeting Brief v1 when no brief exists; normal completed briefs MUST never be reanalyzed.
 - **FR-026**: The Gary production canary MUST be sufficient for acceptance while Austin is unavailable.
@@ -151,10 +148,10 @@ safe metadata only, and zero recording bytes after completion.
 - **FR-030**: A review request MUST NOT accept a caller-selected actor; it MUST carry a versioned HMAC sender fingerprint and claim signature derived by the poller from the exact normalized allowed sender and clean-message decision fields, and the worker MUST derive `gary` or `austin` only after signature and expected-fingerprint verification.
 - **FR-031**: Each private API idempotency header MUST equal lowercase SHA-256 of the exact transmitted request body; a mismatched header or a reused key with different bytes MUST fail with no mutation. Note, triage, action, and commitment keys MUST use the committed versioned length-delimited derivation.
 - **FR-032**: Raw custody MUST include a non-secret key identifier. Rotation MUST retain every referenced old key until its last ciphertext expires. Any overdue ciphertext or missing active/referenced key MUST make health fail closed, stop new meeting transitions, continue deletion sweeps, and emit an actionable content-free operator signal until corrected.
-- **FR-033**: The worker MUST use the authenticated Hermes Runs and Sessions APIs rather than stateless chat completion and persist only deterministic session/run/child correlation plus safe lifecycle metadata. Email eligibility requires an exact bounded `meeting-qa/v1` `QA_PASS` envelope whose meeting reference, infrastructure attempt, and source digest exactly match local state. The processor MUST validate the envelope and embedded Meeting Brief as untrusted output, parse the latest assistant result from the last verified Luna child as Meeting Brief v1, and require its canonical digest to equal the envelope brief's canonical digest.
-- **FR-034**: A meeting session attempt MUST be idempotent across worker restart. The processor MUST durably record the exact create-body digest before session creation and the exact run-body digest plus an ambiguous-dispatch marker before its sole run submission for that attempt. A `409` create response is reusable only when local attempt/body state matches and authenticated readback proves the deterministic ID, title, source, and system-prompt presence. A lost create/run response, a running child that loses Titus, or any response/state ambiguity MUST become unknown/retryable, never an assumed success or a second run submission; the processor MUST poll the deterministic session until the bounded attempt deadline, then delete and retry with the next attempt without duplicate email.
-- **FR-035**: After terminal QA, the worker MUST enumerate and retain the one or two verified child-session IDs, request deletion of the dedicated parent session, and verify authenticated `404 session_not_found` readback for the parent and every child before email eligibility or final block. Cleanup failure MUST enter bounded `cleanup_retryable` and then content-free operator-blocked state with no email or filing; encrypted custody remains subject to its independent seven-day deletion. Luna context MUST begin with a fixed ASCII non-sensitive prefix whose byte length is at least 512 before transcript content, and a fixture against the pinned Hermes 500-character kickoff preview MUST prove no raw transcript marker enters that log, including multibyte input. Luna MUST be instructed not to use tools or reproduce the raw transcript.
-- **FR-036**: Before accepting `QA_PASS`, the processor MUST audit the dedicated parent and child sessions. Exactly one or two single-child `delegate_task` calls are allowed; every call MUST use the fixed Feature 035 goal, `role=leaf`, no batch `tasks`, and context beginning with the exact safe-prefix version. No other parent tool call is allowed. The QA envelope MUST be the latest non-empty parent assistant result and occur after the final audited delegation; its draft/review counts MUST match the observed delegation and QA sequence, and the verified parent Sol and child Luna routes MUST match. Before deletion the processor MUST re-enumerate descendants; afterward it MUST verify `session_not_found` for the parent and every previously persisted or newly discovered child. The processor MUST never call the Hermes approval endpoint or resolve a tool-approval request for this workflow.
+- **FR-033**: Email eligibility MUST require a locally validated canonical Meeting Brief v1 object bound to the retained meeting reference and source digest. The worker MUST persist only safe attempt/output metadata; it MUST not persist model messages, session IDs, run IDs, child IDs, or QA envelopes.
+- **FR-034**: A direct Titus attempt MUST be idempotent across worker restart through the existing brief digest and outbound provider idempotency key. A lost or malformed response MUST block the record without a second model request in the same attempt.
+- **FR-035**: The worker MUST not create or delete Hermes meeting sessions, enumerate children, inspect delegation lineage, resolve approvals, or perform model-output retries. Encrypted custody remains subject to its independent seven-day deletion.
+- **FR-036**: The local validator MUST be the sole acceptance gate for Titus output; prompt text MUST never be treated as a schema guarantee or authority grant.
 
 ### Key Entities
 
@@ -169,14 +166,14 @@ safe metadata only, and zero recording bytes after completion.
 ## Success Criteria
 
 - **SC-001**: The Gary canary produces exactly one schema-valid Meeting Brief v1 and one fixed-recipient draft email to Gary and Austin.
-- **SC-002**: Orchestration qualification proves one dedicated Titus session, one Luna draft, one Sol QA, no separate analyzer/model credential, no non-delegation parent tool call, and no email before an exact validated `QA_PASS`.
-- **SC-003**: Fixture-marker scans of source, meeting-processor state, component logs, health, handoff, Docker metadata, email, notes, Kanban, and Hermes delegation kickoff logs find zero raw VTT marker or recording bytes; after terminal cleanup, authenticated Sessions API reads find no meeting parent or child session.
+- **SC-002**: Qualification proves one bounded Titus request, one locally validated Meeting Brief v1, no model/tool/approval operation, and no email before local validation.
+- **SC-003**: Fixture-marker scans of source, meeting-processor state, component logs, health, handoff, Docker metadata, email, notes, and Kanban find zero raw VTT marker or recording bytes; no meeting session or child session is created.
 - **SC-004**: A seven-day clock-advance test deletes 100% of expired raw-custody ciphertext while retaining safe provenance and approved results.
 - **SC-005**: Exact approve/hold fixtures achieve 100% expected decisions; every sender, body, replay, and conflict negative fixture causes zero filing mutation.
 - **SC-006**: Known-project approval creates exactly one note and N action tasks; unknown-project approval creates exactly one inbox note, one triage card, and N action tasks, with no duplicates after restart.
 - **SC-007**: Recording verification retains only a digest, byte count, timestamps, and safe status and performs zero audio/video analysis.
 - **SC-008**: Disabling the feature stops new model, email, decision, and filing work without stopping metadata discovery, Titus chat, Teams chat, Matrix, email intake, or existing Kanban/project knowledge.
-- **SC-009**: Restart and timeout fixtures prove unknown-attempt recovery, at most one Luna remediation and one Sol delta review, terminal `QA_BLOCKED` behavior, safe matching-session readback, no resubmission after ambiguous dispatch, verified parent/child session deletion, and no duplicate brief email.
+- **SC-009**: Restart and timeout fixtures prove direct-request idempotency, malformed-output blocking, no model retry in one attempt, and no duplicate brief email.
 
 ## Assumptions
 
@@ -196,7 +193,35 @@ safe metadata only, and zero recording bytes after completion.
   v1 and will be replaced by a fixed safe sentinel during disabled-first
   migration; only the verified original digest is retained in Feature 035
   provenance, and the new handoff exposes no output body.
-- Titus's active primary and delegation model configuration remains the runtime
-  source of truth. Feature 035 verifies that the deployed primary resolves to
-  Sol and delegation resolves to Luna but does not pin either model in its own
-  Phase path or request body.
+- Titus's active runtime configuration remains the source of truth. Feature 035
+  uses the existing private Titus API and does not establish a new model,
+  provider, session, or delegation route.
+
+## Architecture simplification (refactor approved 2026-08-03)
+
+The nested Sol/Luna session workflow is superseded by a single bounded Titus
+analysis request. The current canary proved that prompt-only child and QA JSON
+contracts are not a reliable production boundary and introduced unnecessary
+session, retry, lineage, and cleanup state.
+
+- **FR-037**: Meeting analysis MUST use one authenticated Titus
+  `/v1/chat/completions` request with the existing Titus API credential. The
+  request MUST be stateless, tool-free, and bounded; it MUST NOT create a
+  persisted meeting session, delegate a child, or invoke the Hermes approval
+  endpoint.
+- **FR-038**: The Titus request MUST ask for one Meeting Brief v1 JSON object;
+  local code MUST parse and validate the complete object with the existing
+  strict validator. Prompt wording is advisory; only local validation makes a
+  result eligible for email.
+- **FR-039**: Feature 035 MUST remove the Sol/Luna QA envelope, child-session
+  lineage audit, deterministic session IDs, run dispatch state, session
+  deletion, and orchestration retry state. A Titus response that fails local
+  validation MUST become a content-free blocked state with no email or filing.
+- **FR-040**: The worker MUST persist only the bounded attempt status, brief
+  digest, safe error code, and existing custody/recording metadata. A successful
+  brief MUST transition directly to `email_pending`; restart MUST not re-run a
+  record with a stored brief digest or provider idempotency result.
+- **FR-041**: Existing encrypted seven-day custody, SecurityTeam screening,
+  fixed-recipient email, human approval, deterministic filing, recording
+  stream/discard, disabled-first activation, and rollback boundaries remain
+  unchanged.

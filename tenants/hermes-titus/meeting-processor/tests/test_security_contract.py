@@ -74,9 +74,8 @@ class SecurityContractTests(unittest.TestCase):
         self.assertIn("--exclude='*.py[co]'", deploy)
         self.assertNotIn("cp -a /tmp/titus-meeting-processor-deploy/. /opt/titus-meeting-processor/source/", deploy)
 
-    def test_analyzer_sidecar_is_retired_without_model_override(self):
+    def test_nested_orchestrator_is_retired_and_titus_validates_output(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
-        orchestrator = (ROOT / "internal" / "orchestrator" / "client.go").read_text(encoding="utf-8")
         for path in [
             ROOT / "internal" / "analyzer" / "client.go",
             ROOT / "runtime" / "load-analyzer-phase-env.sh",
@@ -88,8 +87,10 @@ class SecurityContractTests(unittest.TestCase):
             self.assertFalse(path.exists(), path)
         self.assertNotIn("analyzer_image=", deploy)
         self.assertNotIn("enable --now titus-meeting-analyzer", deploy)
-        self.assertIn("gpt-5.6-luna", (ROOT / "internal" / "orchestrator" / "plan.go").read_text(encoding="utf-8"))
-        self.assertNotIn("/api/approvals", orchestrator)
+        self.assertFalse((ROOT / "internal" / "orchestrator").exists())
+        titus_client = (ROOT / "internal" / "titus" / "client.go").read_text(encoding="utf-8")
+        self.assertIn('"/v1/chat/completions"', titus_client)
+        self.assertIn("analyzer.ParseAndValidate", titus_client)
 
     def test_deployment_revalidates_root_owned_nonwritable_release_before_build(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
