@@ -50,6 +50,7 @@
 - The correction backfills a missing source digest from validated custody metadata and blocks a mismatch with the existing allowlisted `state_invalid` code. Tests prove no duplicate Titus or email request on either path.
 - The correction was deployed from `f996136` disabled-first. The bounded Gary canary found no missing source digest, reached the private Titus endpoint, and was terminally rejected by the strict validator as `titus_output_rejected`. Safe aggregate evidence is one retained blocked record, zero accepted briefs, zero emails, zero missing source digests, and one retained custody record. The brief marker was removed immediately; filing remained disabled.
 - The source-owned `restart-verify` check then passed with both Feature 035 markers absent. A safe post-restart aggregate remained unchanged, proving no replay or duplicate Titus/email request. Processor, Hermes Titus, routed Titus email-intake container, and SecurityTeam remained healthy.
+- PR 183 (`fd4a32d`) added explicit Meeting Brief format constraints, prompt-aware idempotency, and a guarded reset command. The reset reopened exactly one terminal `titus_output_rejected` record while preserving custody and meeting identity. The fresh prompt-aware canary still failed strict validation; it was disabled immediately with zero briefs and zero emails. A post-canary restart remained idempotent.
 
 ## Final operational closeout — 2026-08-04
 

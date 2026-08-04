@@ -43,12 +43,13 @@ Graph webhook subscriptions are the next separately gated feature (issue #165).
   Unit, race, vet, build, runtime projection, security-contract, and filer
   qualification gates pass. PRs 179, 180, and 181 are merged; source `f996136`
   is deployed disabled-first and the retained-custody correction is live. The
-  2026-08-04 Gary canary reached Titus but was terminally rejected as
-  `titus_output_rejected`; one encrypted custody record remains, with zero
-  accepted briefs and zero emails. The brief and filing markers are absent,
-  and the post-block restart is idempotent. This closes the safety/operational
-  gate but not business acceptance; a new authorized canary is required before
-  brief delivery or filing activation.
+  2026-08-04 Gary canaries reached Titus but were terminally rejected as
+  `titus_output_rejected`, including after the prompt-aware correction in PR
+  183. One encrypted custody record remains, with zero accepted briefs and zero
+  emails. The brief and filing markers are absent, and post-block restart is
+  idempotent. This closes the safety/operational gate but not business
+  acceptance; targeted validator/model investigation is required before brief
+  delivery or filing activation.
 
 - **Feature 034 — complete, deployed, and restart-verified:** SecurityTeam PR 3
   deployed the non-persisting block-mode dependency. OvernightDesk PR 161
