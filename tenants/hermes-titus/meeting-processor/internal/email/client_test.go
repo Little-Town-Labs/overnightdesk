@@ -42,6 +42,7 @@ func TestSendScreensThenSendsExactlyGaryAustinAndReadsBack(t *testing.T) {
 			return response(http.StatusOK, `{"message_id":"<msg-1@example>","thread_id":"thread-1"}`), nil
 		case request.Method == http.MethodGet:
 			readback := strings.TrimSuffix(string(sent), "}") + `,"message_id":"<msg-1@example>","thread_id":"thread-1","labels":["sent"],"created_at":"2026-08-04T12:00:00Z","headers":{}}`
+			readback = strings.Replace(readback, `","html":`, `\n\n--\nSent via AgentMail","html":`, 1)
 			readback = strings.Replace(readback, `"html":null`, `"html":"<p>safe</p>"`, 1)
 			readback = strings.Replace(readback, `"attachments":[]`, `"attachments":null`, 1)
 			readback = strings.Replace(readback, `"cc":[]`, `"cc":null`, 1)
