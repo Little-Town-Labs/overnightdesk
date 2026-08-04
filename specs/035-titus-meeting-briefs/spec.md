@@ -104,6 +104,8 @@ safe metadata only, and zero recording bytes after completion.
   invalid timestamps, invented due dates, or a project alias not in the map.
 - Titus returns malformed, legacy, unsafe, or schema-invalid output.
 - The bounded Titus request times out or returns an ambiguous response.
+- Feature 035 is disabled and the Feature 034 content-only rollback path resumes.
+- A retained or partially initialized brief record has no meeting reference.
 - AgentMail returns an ambiguous timeout, duplicate idempotency response, or
   recipient-policy denial.
 - Gary and Austin send conflicting decisions nearly simultaneously.
@@ -152,6 +154,8 @@ safe metadata only, and zero recording bytes after completion.
 - **FR-034**: A direct Titus attempt MUST be idempotent across worker restart through the existing brief digest and outbound provider idempotency key. A lost or malformed response MUST block the record without a second model request in the same attempt.
 - **FR-035**: The worker MUST not create or delete Hermes meeting sessions, enumerate children, inspect delegation lineage, resolve approvals, or perform model-output retries. Encrypted custody remains subject to its independent seven-day deletion.
 - **FR-036**: The local validator MUST be the sole acceptance gate for Titus output; prompt text MUST never be treated as a schema guarantee or authority grant.
+- **FR-042**: Feature 034 content-only processing and Feature 035 meeting-brief processing MUST use explicit, independently testable Titus response contracts. The rollback path MUST continue requesting and accepting the established four-section Markdown output, while the meeting-brief path MUST request and accept only canonical Meeting Brief v1 JSON.
+- **FR-043**: The worker MUST assign the deterministic `MB-` meeting reference before analysis or email eligibility, preserve any valid existing reference on restart, and backfill a missing reference on a retained incomplete record before invoking the fixed-recipient mailer.
 
 ### Key Entities
 
@@ -174,6 +178,8 @@ safe metadata only, and zero recording bytes after completion.
 - **SC-007**: Recording verification retains only a digest, byte count, timestamps, and safe status and performs zero audio/video analysis.
 - **SC-008**: Disabling the feature stops new model, email, decision, and filing work without stopping metadata discovery, Titus chat, Teams chat, Matrix, email intake, or existing Kanban/project knowledge.
 - **SC-009**: Restart and timeout fixtures prove direct-request idempotency, malformed-output blocking, no model retry in one attempt, and no duplicate brief email.
+- **SC-010**: Configuration-path tests prove disabled Feature 035 restores the Feature 034 Markdown contract, while enabled Feature 035 selects only the JSON contract.
+- **SC-011**: Worker restart fixtures prove every email-eligible record has one stable valid meeting reference and that ambiguous Titus outcomes become terminal without a repeated request.
 
 ## Assumptions
 

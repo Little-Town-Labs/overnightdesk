@@ -178,6 +178,17 @@ tenants/hermes-titus/
 filer service. Do not create a new repository, public API, dashboard surface,
 database, queue, webhook receiver, or channel bot in this slice.
 
+### PR 175 review correction
+
+The shared HTTP transport remains in `internal/titus`, but its two callers use
+explicit contracts rather than a runtime mode flag: the Feature 034 rollback
+path requests and validates the established four-section Markdown response,
+and Feature 035 requests and validates canonical Meeting Brief v1 JSON. The
+meeting worker assigns or backfills its deterministic `MB-` reference before
+analysis can make a record email-eligible. Once a Titus request is dispatched,
+any transport or response ambiguity is terminal for that stored attempt; only
+failures proven to occur before dispatch may remain retryable.
+
 ## Delivery Strategy
 
 1. Define strict contracts and write failing tests.
