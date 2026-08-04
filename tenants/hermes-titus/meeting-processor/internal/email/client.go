@@ -30,7 +30,7 @@ const (
 var (
 	briefReference    = regexp.MustCompile(`^MB-[A-Z2-7]{12}$`)
 	digestPattern     = regexp.MustCompile(`^[0-9a-f]{64}$`)
-	providerIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:@+-]{1,512}$`)
+	providerIDPattern = regexp.MustCompile(`^[A-Za-z0-9._:@+<>-]{1,512}$`)
 	credentialPattern = regexp.MustCompile(`(?i)(authorization\s*:\s*bearer|graph\.microsoft\.com|/v1\.0/users/|(?:SECRET|TOKEN|API[_-]?KEY|PASSWORD)\s*[:=])`)
 )
 
