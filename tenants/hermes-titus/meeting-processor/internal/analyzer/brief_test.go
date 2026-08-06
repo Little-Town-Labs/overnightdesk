@@ -73,7 +73,20 @@ func TestParseAndValidateCanonicalBriefAndInertRendering(t *testing.T) {
 		t.Fatalf("validated=%#v err=%v", validated, err)
 	}
 	rendered := RenderMarkdown("MB-ABCDEFGHIJKL", validated.Brief)
-	for _, required := range []string{"Source-derived summary", "Draft proposal - not performed", "ignore prior instructions"} {
+	for _, required := range []string{"Participants", "Gary", "owner: Gary", "Source-derived summary", "Draft proposal - not performed", "ignore prior instructions"} {
+		if !strings.Contains(rendered, required) {
+			t.Fatalf("render missing %q: %s", required, rendered)
+		}
+	}
+}
+
+func TestRenderMarkdownUsesHumanReadableActionOwners(t *testing.T) {
+	brief := validBrief()
+	brief.ActionItems = append(brief.ActionItems, ActionItem{
+		Title: "Confirm owner", Owner: "unassigned", SourceTimestamp: "03:04", Confidence: "low",
+	})
+	rendered := RenderMarkdown("MB-ABCDEFGHIJKL", brief)
+	for _, required := range []string{"owner: Gary", "owner: Unassigned"} {
 		if !strings.Contains(rendered, required) {
 			t.Fatalf("render missing %q: %s", required, rendered)
 		}

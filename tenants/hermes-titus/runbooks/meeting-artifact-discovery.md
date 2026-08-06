@@ -108,8 +108,11 @@ Required value-safe evidence:
 2. The runtime projection has the fixed private origins and bounded values;
    secrets remain absent from Docker environment metadata and operator output.
 3. Gary's transcript produces one bounded, tool-free Titus Markdown request with
-   the required Summary, Decisions, Action Items, and Unresolved Questions
-   headings, and one email read back verbatim with recipient set `gary+austin`.
+   the required Participants, Summary, Decisions, Action Items, and Unresolved
+   Questions headings. The brief lists identifiable participants and labels
+   each action item with Gary, Austin, or Unassigned based only on explicit
+   transcript attribution. One email is read back verbatim with recipient set
+   `gary+austin`.
 4. Raw WebVTT exists only as mode-0600 AES-256-GCM ciphertext with an expiry
    exactly 168 hours after creation; safe state contains digests, not content.
 5. Feature 035 sends no request model override, invokes no Hermes tool or
