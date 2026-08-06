@@ -37,7 +37,7 @@ func TestMeetingBriefAnalyzeUsesStatelessNoToolRequest(t *testing.T) {
 				t.Fatalf("request contains %s", forbidden)
 			}
 		}
-		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "Return Markdown only", "Action Items", "Unresolved Questions"} {
+		for _, required := range []string{`"model":"hermes-agent"`, `"stream":false`, "screened wrapper", "do not call tools", "Return Markdown only", "Participants", "Action Items", "owner label: Gary, Austin, or Unassigned", "Unresolved Questions"} {
 			if !strings.Contains(strings.ToLower(body), strings.ToLower(required)) {
 				t.Fatalf("request missing %s: %s", required, body)
 			}
@@ -78,7 +78,7 @@ func TestMeetingBriefIdempotencyIncludesSystemPromptDigest(t *testing.T) {
 }
 
 func TestExplicitContractsPreserveMarkdownRollbackAndRejectCrossContractOutput(t *testing.T) {
-	markdown := "## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\nNone\n\n## Unresolved Questions\nNone"
+	markdown := "## Participants\n- Gary\n\n## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\n- None\n\n## Unresolved Questions\nNone"
 	briefResponse := `{"choices":[{"message":{"role":"assistant","content":` + quote(validBriefJSON()) + `},"finish_reason":"stop"}]}`
 	markdownResponse := `{"choices":[{"message":{"role":"assistant","content":` + quote(markdown) + `},"finish_reason":"stop"}]}`
 	newHTTPClient := func(body string) *http.Client {
@@ -115,7 +115,7 @@ func TestMarkdownClientPreservesFeature034IdempotencyKey(t *testing.T) {
 	var got string
 	client, err := NewMarkdownClient(ServiceOrigin, strings.Repeat("h", 32), &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		got = request.Header.Get("Idempotency-Key")
-		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":"## Summary\nDone\n## Decisions\nNone\n## Action Items\nNone\n## Unresolved Questions\nNone"},"finish_reason":"stop"}]}`), nil
+		return response(http.StatusOK, `{"choices":[{"message":{"role":"assistant","content":"## Participants\n- Gary\n## Summary\nDone\n## Decisions\nNone\n## Action Items\n- None\n## Unresolved Questions\nNone"},"finish_reason":"stop"}]}`), nil
 	})})
 	if err != nil {
 		t.Fatal(err)
@@ -135,7 +135,34 @@ func validBriefJSON() string {
 }
 
 func validBriefMarkdown() string {
-	return "## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\nNone.\n\n## Unresolved Questions\nNone."
+	return "## Participants\n- Gary\n\n## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\n- None.\n\n## Unresolved Questions\nNone."
+}
+
+func TestMeetingBriefMarkdownRequiresParticipantsAndActionOwnerLabels(t *testing.T) {
+	valid := "## Participants\n- Gary\n- Austin\n\n## Summary\nDone.\n\n## Decisions\nNone.\n\n## Action Items\n- Prepare the draft — owner: Gary; due: not stated; source: 00:01; confidence: high\n\n## Unresolved Questions\nNone."
+	if _, err := ValidateMeetingBriefMarkdown(valid, nil); err != nil {
+		t.Fatalf("valid attributed brief rejected: %v", err)
+	}
+
+	missingParticipants := strings.Replace(valid, "## Participants\n- Gary\n- Austin\n\n", "", 1)
+	if _, err := ValidateMeetingBriefMarkdown(missingParticipants, nil); SafeCode(err) != "titus_output_rejected" {
+		t.Fatalf("brief without participants accepted: %v", err)
+	}
+
+	missingOwner := strings.Replace(valid, "owner: Gary", "owner omitted", 1)
+	if _, err := ValidateMeetingBriefMarkdown(missingOwner, nil); SafeCode(err) != "titus_output_rejected" {
+		t.Fatalf("action without owner accepted: %v", err)
+	}
+
+	unknownOwner := strings.Replace(valid, "owner: Gary", "owner: Client", 1)
+	if _, err := ValidateMeetingBriefMarkdown(unknownOwner, nil); SafeCode(err) != "titus_output_rejected" {
+		t.Fatalf("unknown owner accepted: %v", err)
+	}
+
+	unassigned := strings.Replace(valid, "owner: Gary", "owner: Unassigned", 1)
+	if _, err := ValidateMeetingBriefMarkdown(unassigned, nil); err != nil {
+		t.Fatalf("unassigned action rejected: %v", err)
+	}
 }
 
 func TestAnalyzeRejectsProtectedAndUnsafeOutput(t *testing.T) {

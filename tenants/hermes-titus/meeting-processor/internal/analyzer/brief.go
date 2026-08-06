@@ -255,7 +255,7 @@ func RenderMarkdown(reference string, brief Brief) string {
 			if item.DueDate != nil {
 				due = *item.DueDate
 			}
-			fmt.Fprintf(&output, "- %s — owner: %s; due: %s; source: %s; confidence: %s\n", escapeMarkdown(item.Title), item.Owner, due, item.SourceTimestamp, item.Confidence)
+			fmt.Fprintf(&output, "- %s — owner: %s; due: %s; source: %s; confidence: %s\n", escapeMarkdown(item.Title), displayOwner(item.Owner), due, item.SourceTimestamp, item.Confidence)
 		}
 		output.WriteString("\n")
 	}
@@ -280,6 +280,19 @@ func RenderMarkdown(reference string, brief Brief) string {
 		output.WriteString(escapeMarkdown(brief.ProposedFollowUp) + "\n")
 	}
 	return output.String()
+}
+
+func displayOwner(owner string) string {
+	switch owner {
+	case "gary":
+		return "Gary"
+	case "austin":
+		return "Austin"
+	case "unassigned":
+		return "Unassigned"
+	default:
+		return owner
+	}
 }
 
 func writeList(output *strings.Builder, heading string, values []string) {

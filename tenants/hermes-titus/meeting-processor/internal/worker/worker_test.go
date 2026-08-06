@@ -222,7 +222,7 @@ func TestRunOnceProcessesOneTranscriptWithoutPersistingInputAndIsIdempotent(t *t
 	defer store.Close()
 	content := &fakeContentFetcher{body: []byte("WEBVTT\nprivate transcript phrase")}
 	scanner := &fakeScanner{safe: "screened wrapper"}
-	fake := &fakeAnalyzer{output: "## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\nNone\n\n## Unresolved Questions\nNone"}
+	fake := &fakeAnalyzer{output: "## Participants\n- Gary\n\n## Summary\nDone\n\n## Decisions\nNone\n\n## Action Items\n- None\n\n## Unresolved Questions\nNone"}
 	cfg := workerConfig()
 	cfg.ContentEnabled = true
 	processor := Processor{Config: cfg, Store: store, Fetcher: &scriptedFetcher{}, Content: content, Scanner: scanner, Analyzer: fake, HealthPath: filepath.Join(dir, "health.json"), HandoffPath: filepath.Join(dir, "handoff.json"), Now: fixedWorkerTime}
@@ -315,7 +315,7 @@ func TestMeetingBriefUsesOneBoundedTitusRequestAndIsIdempotent(t *testing.T) {
 }
 
 func TestMeetingBriefAcceptsBoundedMarkdownMVP(t *testing.T) {
-	markdown := "## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\nNone.\n\n## Unresolved Questions\nNone."
+	markdown := "## Participants\n- Gary\n\n## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\n- None.\n\n## Unresolved Questions\nNone."
 	processor, briefs, fake, _, mailer := newMeetingProcessor(t, markdown)
 	if _, err := processor.RunOnce(context.Background()); err != nil {
 		t.Fatal(err)
@@ -331,7 +331,7 @@ func TestMeetingBriefAcceptsBoundedMarkdownMVP(t *testing.T) {
 }
 
 func TestMeetingBriefTerminallyBlocksPermanentEmailRejection(t *testing.T) {
-	markdown := "## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\nNone.\n\n## Unresolved Questions\nNone."
+	markdown := "## Participants\n- Gary\n\n## Summary\nDiscussed internal delivery work.\n\n## Decisions\nNone.\n\n## Action Items\n- None.\n\n## Unresolved Questions\nNone."
 	processor, briefs, _, _, mailer := newMeetingProcessor(t, markdown)
 	mailer.err = contentCodeError("meeting_email_rejected")
 	recorder := processor.Recorder.(*fakeRecordingVerifier)

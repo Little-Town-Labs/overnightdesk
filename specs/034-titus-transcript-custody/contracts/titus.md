@@ -17,7 +17,11 @@ The fixed system message requires:
 - do not call tools, access memory, delegate, read/write files, use networks,
   or perform external actions;
 - return Markdown only;
-- include `Summary`, `Decisions`, `Action Items`, and `Unresolved Questions`;
+- include `Participants`, `Summary`, `Decisions`, `Action Items`, and
+  `Unresolved Questions`;
+- list every identifiable participant, or explicitly say `Not identified`;
+- attribute each action item to Gary, Austin, or `Unassigned` only when the
+  transcript explicitly supports that owner; do not infer ownership;
 - do not reproduce long verbatim passages or provider identifiers.
 
 Success is one non-empty assistant textual choice no larger than 65,536 bytes.
