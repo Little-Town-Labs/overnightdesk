@@ -94,6 +94,15 @@ rollback.
 TTS Teams preparation:
 
 - `/agents/hermes-titus/teams`: `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, `TEAMS_TENANT_ID`, `TEAMS_ALLOWED_USERS`, `TEAMS_ALLOWED_USER_EMAILS`, `TEAMS_ALLOW_ALL_USERS`, `TEAMS_PORT`, `TEAMS_HOME_CHANNEL`, `TEAMS_HOME_CHANNEL_NAME`, `TEAMS_DELIVERY_MODE`, `TEAMS_TEAM_ID`, `TEAMS_CHANNEL_ID`
+
+The initial Teams interaction is intentionally mention-only and limited to one
+approved `TTS-Internal` channel. Gary and Austin are independently allowlisted;
+ordinary non-mentioned messages, other channels, passive reading, all-message
+RSC delivery, attachments, and meeting artifacts are excluded. Explicit memory
+and action requests continue through Titus's existing boundaries. The
+repo-owned `titus-teams-routing` Hermes plugin enforces the exact Team/channel
+and provider-mention checks before Hermes reasoning.
+
 - `/agents/hermes-titus/teamsmeetings`: the separate `MSGRAPH_*` meeting
   application identity, strict two-organizer allowlist, disabled webhook
   settings, and one-time qualification input. The root meeting-processor loader
@@ -258,7 +267,7 @@ The initial container includes Hermes's pinned Teams dependencies but leaves the
 3. Put the emitted client ID, one-time client secret, and tenant ID into the matching Phase records.
 4. Resolve the approved users' Entra object IDs and set `TEAMS_ALLOWED_USERS`.
 5. Keep `TEAMS_ALLOW_ALL_USERS=false`.
-6. Add the reviewed nginx TLS route to the container's internal port 3978.
+6. Enable the route-only nginx configuration for `https://titus-dashboard.overnightdesk.com/api/messages` to the container's internal port 3978; the dashboard route remains independent.
 7. Restart only Titus and verify `/health`, one authorized message, and one unauthorized denial.
 
 Meeting artifact discovery and reviewed brief generation run in the separate

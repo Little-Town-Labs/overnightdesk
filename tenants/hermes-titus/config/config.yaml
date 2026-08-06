@@ -3,6 +3,10 @@ model:
   provider: openai-codex
   base_url: "https://chatgpt.com/backend-api/codex"
 
+plugins:
+  enabled:
+    - platforms/titus_teams
+
 agent:
   reasoning_effort: medium
 
@@ -105,5 +109,6 @@ platforms:
     extra:
       port: 3978
       allow_all_users: false
+      require_mention: true
 
 _config_version: 33

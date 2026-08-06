@@ -1,0 +1,35 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.21/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.21",
+  "version": "1.0.0",
+  "id": "__TEAMS_APP_ID__",
+  "packageName": "com.overnightdesk.titus",
+  "developer": {
+    "name": "OvernightDesk",
+    "websiteUrl": "https://www.overnightdesk.com",
+    "privacyUrl": "https://www.overnightdesk.com/privacy",
+    "termsOfUseUrl": "https://www.overnightdesk.com/terms"
+  },
+  "name": {
+    "short": "Titus",
+    "full": "Titus for Timeless Technology Solutions"
+  },
+  "description": {
+    "short": "Titus responds to authorized @Titus requests in TTS-Internal.",
+    "full": "Titus is restricted to authorized operators and explicit @Titus interaction in the approved TTS-Internal channel. Ordinary channel messages are ignored."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "bots": [
+    {
+      "botId": "__TEAMS_CLIENT_ID__",
+      "scopes": ["team"],
+      "supportsFiles": false,
+      "isNotificationOnly": false
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": ["__TEAMS_PUBLIC_HOSTNAME__"]
+}

@@ -48,6 +48,11 @@ runtime_files=(
   "$tenant_root/config/config.yaml"
   "$tenant_root/config/tdai-gateway.yaml"
   "$tenant_root/config/SOUL.md"
+  "$tenant_root/teams/manifest.template.json"
+  "$tenant_root/plugins/platforms/titus_teams/plugin.yaml"
+  "$tenant_root/plugins/platforms/titus_teams/__init__.py"
+  "$tenant_root/plugins/platforms/titus_teams/adapter.py"
+  "$tenant_root/plugins/platforms/titus_teams/policy.py"
   "$tenant_root/scripts/deploy-aegis.sh"
   "$tenant_root/README.md"
   "$tenant_root/skills/agentmail-email/SKILL.md"
@@ -57,6 +62,14 @@ runtime_files=(
   "$tenant_root/skills/linear-technical-delivery/SKILL.md"
   "$tenant_root/skills/linear-technical-delivery/agents/openai.yaml"
   "$tenant_root/runbooks/linear-technical-delivery.md"
+  "$tenant_root/runbooks/teams-internal-channel.md"
+  "$tenant_root/skills/titus-teams-channel/SKILL.md"
+  "$repo_root/infra/nginx/titus-teams.conf"
+  "$repo_root/infra/nginx/titus-teams-http.conf"
+  "$repo_root/infra/nginx/titus-hermes.conf"
+  "$repo_root/infra/nginx/patch-titus-teams-route.py"
+  "$repo_root/infra/nginx/titus-teams.conf"
+  "$repo_root/infra/nginx/titus-teams-http.conf"
   "$tenant_root/mcp-servers/guarded-agentmail/guarded_email.py"
   "$tenant_root/mcp-servers/guarded-agentmail/service.py"
   "$tenant_root/mcp-servers/guarded-agentmail/server.py"
@@ -120,7 +133,9 @@ PYTHONDONTWRITEBYTECODE=1 python - \
   "$tenant_root/mcp-servers/guarded-agentmail/service.py" \
   "$tenant_root/mcp-servers/guarded-agentmail/server.py" \
   "$tenant_root/runtime/apply-email-mode.py" \
-  "$tenant_root/runtime/verify-mcp-registry.py" <<'PY'
+  "$tenant_root/runtime/verify-mcp-registry.py" \
+  "$tenant_root/plugins/platforms/titus_teams/adapter.py" \
+  "$tenant_root/plugins/platforms/titus_teams/policy.py" <<'PY'
 from pathlib import Path
 import ast
 import sys
@@ -154,6 +169,8 @@ require_pattern 'perplexity/pplx-embed-v1-4b' "$tenant_root/runtime/load-phase-e
 require_pattern 'NOT_CONFIGURED' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TEAMS_ALLOW_ALL_USERS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TEAMS_ALLOWED_USERS' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'TEAMS_TEAM_ID' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'TEAMS_CHANNEL_ID' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'MATRIX_ACCESS_TOKEN' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'MATRIX_RECOVERY_KEY' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'MATRIX_DEVICE_ID' "$tenant_root/runtime/load-phase-env.sh"
@@ -326,6 +343,18 @@ if (
 PY
 require_pattern 'platforms:' "$tenant_root/config/config.yaml"
 require_pattern 'teams:' "$tenant_root/config/config.yaml"
+require_pattern 'platforms/titus_teams' "$tenant_root/config/config.yaml"
+require_pattern 'require_mention: true' "$tenant_root/config/config.yaml"
+require_pattern "extra\['require_mention'\] = True" \
+  "$tenant_root/runtime/start-with-secrets.sh"
+require_pattern 'titus-teams-routing' "$tenant_root/plugins/platforms/titus_teams/plugin.yaml"
+require_pattern 'TTS-Internal' "$tenant_root/teams/manifest.template.json"
+require_pattern 'TTS-Internal' "$tenant_root/skills/titus-teams-channel/SKILL.md"
+require_pattern 'TTS-Internal' "$tenant_root/runbooks/teams-internal-channel.md"
+reject_pattern 'ChannelMessage\.Read\.Group|ChatMessage\.Read\.Chat' \
+  "$tenant_root/teams/manifest.template.json"
+reject_pattern 'ChannelMessage\.Read\.Group|ChatMessage\.Read\.Chat' \
+  "$tenant_root/config/config.yaml"
 require_pattern 'matrix:' "$tenant_root/config/config.yaml"
 require_pattern 'enabled: false' "$tenant_root/config/config.yaml"
 require_pattern 'busy_input_mode: queue' "$tenant_root/config/config.yaml"
@@ -377,6 +406,10 @@ require_pattern 'provider: self-hosted' "$tenant_root/config/config.yaml"
 require_pattern 'issuer: "https://www\.overnightdesk\.com/api/auth"' "$tenant_root/config/config.yaml"
 require_pattern 'client_id: "__TITUS_DASHBOARD_OIDC_CLIENT_ID__"' "$tenant_root/config/config.yaml"
 require_pattern 'scopes: "openid profile email"' "$tenant_root/config/config.yaml"
+require_pattern 'location = /api/messages' "$repo_root/infra/nginx/titus-hermes.conf"
+require_pattern 'proxy_pass http://hermes-titus:3978' "$repo_root/infra/nginx/titus-hermes.conf"
+require_pattern 'location = /api/messages' "$repo_root/infra/nginx/titus-teams.conf"
+require_pattern 'location /.well-known/acme-challenge/' "$repo_root/infra/nginx/titus-teams-http.conf"
 require_pattern 'os\.replace\(temporary, path\)' "$tenant_root/runtime/start-with-secrets.sh"
 require_pattern "self_hosted\\['client_id'\\] = os\\.environ\\['TITUS_DASHBOARD_OIDC_CLIENT_ID'\\]" "$tenant_root/runtime/start-with-secrets.sh"
 require_pattern 'dashboard-oidc-client-id' "$tenant_root/runtime/load-phase-env.sh"
