@@ -10,7 +10,7 @@ ssh_cmd=(ssh -i "$ssh_key" "$remote")
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-}
 
 usage() {
-  printf 'usage: %s {preflight|prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {preflight|prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|verify-teams-route|enable-teams-route|disable-teams-route|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
   exit 2
 }
 
@@ -85,6 +85,9 @@ prepare() {
   rsync -az -e "ssh -i $ssh_key" \
     "$repo_root/infra/nginx/titus-hermes.conf" \
     "$repo_root/infra/nginx/titus-hermes-http.conf" \
+    "$repo_root/infra/nginx/titus-teams.conf" \
+    "$repo_root/infra/nginx/titus-teams-http.conf" \
+    "$repo_root/infra/nginx/patch-titus-teams-route.py" \
     "$remote:/tmp/hermes-titus-deploy/"
   "${ssh_cmd[@]}" '
     set -eu
@@ -196,6 +199,125 @@ require_route_confirmation() {
     printf 'TITUS_DASHBOARD_ROUTE_CONFIRM must equal ENABLE_TITUS_DASHBOARD_ROUTE\n' >&2
     exit 1
   }
+}
+
+require_teams_route_confirmation() {
+  test "${TITUS_TEAMS_ROUTE_CONFIRM:-}" = ENABLE_TITUS_TEAMS_ROUTE || {
+    printf 'TITUS_TEAMS_ROUTE_CONFIRM must equal ENABLE_TITUS_TEAMS_ROUTE\n' >&2
+    exit 1
+  }
+}
+
+verify_teams_runtime() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    sudo systemctl is-active --quiet hermes-titus.service
+    for i in $(seq 1 60); do
+      state=$(sudo docker inspect -f "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" hermes-titus 2>/dev/null || true)
+      test "$state" = healthy && break
+      test "$i" -lt 60 || { sudo docker logs --tail 80 hermes-titus 2>&1; exit 1; }
+      sleep 2
+    done
+    test -z "$(sudo docker port hermes-titus)"
+    sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
+    sudo docker volume inspect hermes-titus-data >/dev/null
+    echo "hermes_titus=healthy_private"
+  '
+}
+
+enable_teams_route() {
+  require_teams_route_confirmation
+  verify_teams_runtime
+  "${ssh_cmd[@]}" '
+    set -eu
+    conf_dir=/opt/overnightdesk/nginx/conf.d
+    source=/opt/hermes-titus/source
+    test -f "$source/titus-teams.conf"
+    test -f "$source/titus-teams-http.conf"
+    test -f "$source/patch-titus-teams-route.py"
+    sudo install -d -o root -g root -m 0755 /opt/hermes-titus/disabled
+    if sudo test -f "$conf_dir/titus-dashboard.conf"; then
+      grep -Fq "location = /auth-verify {" "$conf_dir/titus-dashboard.conf"
+      grep -Fq "auth_request /auth-verify;" "$conf_dir/titus-dashboard.conf"
+      ! grep -Fq "location = /api/messages" "$conf_dir/titus-dashboard.conf"
+      stamp=$(date -u +%Y%m%dT%H%M%SZ)
+      backup="/opt/hermes-titus/disabled/titus-dashboard.conf.$stamp.pre-teams"
+      sudo cp -p "$conf_dir/titus-dashboard.conf" "$backup"
+      candidate=$(sudo mktemp /tmp/titus-dashboard.conf.XXXXXX)
+      sudo python3 "$source/patch-titus-teams-route.py" \
+        "$conf_dir/titus-dashboard.conf" "$candidate"
+      sudo install -o root -g root -m 0644 "$candidate" "$conf_dir/titus-dashboard.conf"
+      sudo rm -f "$candidate"
+      if ! sudo docker exec overnightdesk-nginx nginx -t; then
+        sudo install -o root -g root -m 0644 "$backup" "$conf_dir/titus-dashboard.conf"
+        sudo docker exec overnightdesk-nginx nginx -t
+        exit 1
+      fi
+      printf '%s\n' "$backup" | sudo tee /opt/hermes-titus/teams-route-dashboard-backup >/dev/null
+      sudo chmod 0400 /opt/hermes-titus/teams-route-dashboard-backup
+    else
+      if ! sudo test -f /opt/overnightdesk/certbot/conf/live/titus-dashboard.overnightdesk.com/fullchain.pem; then
+        sudo install -o root -g root -m 0644 "$source/titus-teams-http.conf" "$conf_dir/titus-teams-http.conf"
+        sudo docker exec overnightdesk-nginx nginx -t
+        sudo docker exec overnightdesk-nginx nginx -s reload
+        cd /opt/overnightdesk
+        sudo docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+          -d titus-dashboard.overnightdesk.com --non-interactive --agree-tos
+        sudo rm -f "$conf_dir/titus-teams-http.conf"
+      fi
+      sudo install -o root -g root -m 0644 "$source/titus-teams.conf" "$conf_dir/titus-teams.conf"
+    fi
+    sudo docker exec overnightdesk-nginx nginx -t
+    sudo docker exec overnightdesk-nginx nginx -s reload
+    echo "titus_teams_route=enabled"
+  '
+  verify_teams_route
+}
+
+disable_teams_route() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    conf_dir=/opt/overnightdesk/nginx/conf.d
+    disabled=/opt/hermes-titus/disabled
+    sudo install -d -o root -g root -m 0750 "$disabled"
+    if sudo test -f /opt/hermes-titus/teams-route-dashboard-backup; then
+      backup=$(sudo cat /opt/hermes-titus/teams-route-dashboard-backup)
+      case "$backup" in
+        /opt/hermes-titus/disabled/titus-dashboard.conf.*.pre-teams) ;;
+        *) echo "invalid Teams dashboard backup path" >&2; exit 1 ;;
+      esac
+      sudo test -f "$backup"
+      stamp=$(date -u +%Y%m%dT%H%M%SZ)
+      sudo mv "$conf_dir/titus-dashboard.conf" "$disabled/titus-dashboard.conf.$stamp.teams-active.disabled"
+      sudo install -o root -g root -m 0644 "$backup" "$conf_dir/titus-dashboard.conf"
+      sudo rm -f /opt/hermes-titus/teams-route-dashboard-backup
+    else
+      for conf in titus-teams.conf titus-teams-http.conf; do
+        if sudo test -f "$conf_dir/$conf"; then
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          sudo mv "$conf_dir/$conf" "$disabled/$conf.$stamp.disabled"
+        fi
+      done
+    fi
+    sudo docker exec overnightdesk-nginx nginx -t
+    sudo docker exec overnightdesk-nginx nginx -s reload
+    echo "titus_teams_route=disabled"
+  '
+}
+
+verify_teams_route() {
+  "${ssh_cmd[@]}" '
+    set -eu
+    code=$(curl -ksS -o /dev/null -w "%{http_code}" -X POST \
+      -H "Content-Type: application/json" --data "{}" \
+      https://titus-dashboard.overnightdesk.com/api/messages)
+    case "$code" in
+      400|401|405) ;;
+      *) echo "unexpected Teams webhook probe status=$code" >&2; exit 1 ;;
+    esac
+    test "$(sudo test -f /opt/hermes-titus/teams-route-dashboard-backup && echo dashboard || sudo test -f /opt/overnightdesk/nginx/conf.d/titus-teams.conf && echo standalone || echo absent)" != absent
+    echo "titus_teams_route=reachable status=$code"
+  '
 }
 
 enable_route() {
@@ -553,6 +675,9 @@ case "$action" in
   verify) verify ;;
   verify-private) verify_private ;;
   verify-restart-persistence) verify_restart_persistence ;;
+  verify-teams-route) verify_teams_route ;;
+  enable-teams-route) enable_teams_route ;;
+  disable-teams-route) disable_teams_route ;;
   enable-route) enable_route ;;
   disable-route) disable_route ;;
   status) status ;;

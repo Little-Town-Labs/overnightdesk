@@ -157,7 +157,9 @@ mv "$work_dir/api-merged.json" "$work_dir/merged.json"
 
 teams_state=pending
 teams_ready=true
-for key in TEAMS_CLIENT_ID TEAMS_CLIENT_SECRET TEAMS_TENANT_ID TEAMS_ALLOWED_USERS; do
+for key in \
+  TEAMS_CLIENT_ID TEAMS_CLIENT_SECRET TEAMS_TENANT_ID \
+  TEAMS_ALLOWED_USERS TEAMS_TEAM_ID TEAMS_CHANNEL_ID; do
   if ! jq -e --arg key "$key" '
     has($key) and (.[$key] | type == "string") and
     (.[$key] | length > 0) and

@@ -127,6 +127,7 @@ teams['enabled'] = os.environ.get('TITUS_TEAMS_STATE') == 'ready'
 extra = teams.setdefault('extra', {})
 extra['port'] = int(os.environ.get('TEAMS_PORT', '3978'))
 extra['allow_all_users'] = False
+extra['require_mention'] = True
 dashboard = config.setdefault('dashboard', {})
 dashboard['public_url'] = 'https://titus-dashboard.overnightdesk.com'
 oauth = dashboard.setdefault('oauth', {})

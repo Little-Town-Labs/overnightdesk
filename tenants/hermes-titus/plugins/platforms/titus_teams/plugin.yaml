@@ -1,0 +1,8 @@
+name: titus-teams-routing
+label: Titus Teams routing
+kind: platform
+version: 0.1.0
+description: >
+  Narrow Titus Teams routing override for one exact channel and explicit
+  provider mentions.
+author: OvernightDesk

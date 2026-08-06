@@ -82,5 +82,5 @@ not as a replacement for Spec Kit artifacts.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/035-titus-meeting-briefs/plan.md`
+`specs/036-titus-teams-internal-mvp/plan.md`
 <!-- SPECKIT END -->
