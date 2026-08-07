@@ -26,23 +26,27 @@ general dashboard or Kanban authority.
 
 ## Release identity
 
-- Official release: Hermes Agent v0.19.0 / v2026.7.20
+- Official release: Hermes Agent v0.20.0 / v2026.8.3
 - OCI index:
-  `nousresearch/hermes-agent@sha256:c1731f7ffd49c37f2b4b6cd01873d4256ba6f06217dfca2cc41cede55815ea82`
+  `nousresearch/hermes-agent@sha256:16788311e2fa3035456bdc1bafb8ec2b1777db64ebf020af9bb7eb73c3712c9e`
 - Linux ARM64 child:
-  `sha256:4586e3f2375e42e70a13282a19dfe16d4145b22da92a3c46b7aa1643c74a0ec1`
-- Derived tag: `overnightdesk/hermes-agent:0.19.0-coder`
+  `sha256:153a021a0c59f28c1c230b201c8b819403da2a01969b9ffd939f1a429b7af2cd`
+- Derived tag: `overnightdesk/hermes-agent:0.20.0-coder`
 
-## Aegis build
+## Local candidate build
 
-Copy the exact merged directory to `/opt/overnightdesk/hermes-coder`, verify
-the Dockerfile hash against the merged source, then build:
+Build on the development host or an approved local CI runner. Aegis is an
+artifact-consumer and staging/production host, not a release build host. From
+the repository root, verify the Dockerfile hash against the reviewed source,
+then build:
 
 ```bash
-docker build \
+sudo docker buildx build \
+  --platform linux/arm64 \
   --pull=false \
-  --tag overnightdesk/hermes-agent:0.19.0-coder \
-  /opt/overnightdesk/hermes-coder
+  --tag overnightdesk/hermes-agent:0.20.0-coder \
+  --load \
+  infra/hermes-coder
 ```
 
 `--pull=false` is intentional: release intake pulls the immutable base first,

@@ -5,15 +5,15 @@ shape; additional keys are rejected unless explicitly added to the schema.
 
 ```yaml
 schema_version: 1
-candidate_id: hermes-0.19.0-2026-07-20
+candidate_id: hermes-0.20.0-coder-2026-08-07
 upstream:
-  tag: v2026.7.20
-  version: 0.19.0
-  source_commit: 3ef6bbd201263d354fd83ec55b3c306ded2eb72a
+  tag: v2026.8.3
+  version: 0.20.0
+  source_commit: 7de39e700d2c329e15d32eb0b96e2f7cdd9fbdb2
   oci_index: nousresearch/hermes-agent@sha256:<digest>
   arm64_child: sha256:<digest>
 derived:
-  reference: overnightdesk/hermes-agent:0.19.0-coder
+  reference: overnightdesk/hermes-agent:0.20.0-coder
   architecture: linux/arm64
 policy:
   approvals_mode: manual
