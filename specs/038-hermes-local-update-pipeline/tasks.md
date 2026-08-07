@@ -8,7 +8,7 @@ production credentials, and production mutation remain out of scope.
 ## Phase 1: Setup
 
 - [x] T001 Create the shared local harness layout under `infra/hermes-upgrade/`.
-- [x] T002 Add the baseline immutable candidate manifest at `releases/hermes/0.19.0.yaml`.
+- [x] T002 Add the historical baseline manifest at `releases/hermes/0.19.0.yaml` and record the accepted pinned local candidate at `releases/hermes/0.19.0-local-2026-08-07.yaml` for current qualification.
 - [x] T003 [P] Add Walter, Titus, and Mitchel qualification profile manifests.
 - [x] T004 [P] Add the deterministic local stub catalog and boundary documentation.
 
