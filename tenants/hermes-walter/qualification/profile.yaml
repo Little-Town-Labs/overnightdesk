@@ -1,0 +1,27 @@
+schema_version: 1
+agent: walter
+source: tenants/hermes-walter
+state:
+  mode: synthetic
+required_paths:
+  - README.md
+  - SOUL.md
+  - qualification/qualify.sh
+required_stubs:
+  - health
+  - inference
+  - github_guardian
+  - guardian_intake
+allowed_operations:
+  - health.read
+  - github.read
+  - guardian.task_intake.validate
+denied_operations:
+  - github.mutate
+  - production.deploy
+  - outbound.send
+production_markers:
+  - /run/phase
+  - aegis-prod
+  - api.telegram.org
+  - discord.com/api

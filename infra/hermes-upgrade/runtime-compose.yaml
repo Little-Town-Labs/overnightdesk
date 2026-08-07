@@ -1,0 +1,110 @@
+services:
+  stubs:
+    build:
+      context: ./stubs
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    healthcheck:
+      test:
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health').read()
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    networks:
+      hermes_internal:
+        aliases:
+          - hermes-stub-health
+          - hermes-stub-inference
+          - hermes-stub-github-guardian
+          - hermes-stub-guardian-intake
+          - hermes-stub-mcp
+          - hermes-stub-teams
+          - hermes-stub-matrix
+          - hermes-stub-agentmail
+          - hermes-stub-control-tower
+          - hermes-stub-memory
+          - hermes-stub-dashboard-oidc
+          - hermes-stub-trevor-db
+          - hermes-stub-agiled
+          - hermes-stub-browser
+
+  walter:
+    image: ${HERMES_CANDIDATE_IMAGE:?HERMES_CANDIDATE_IMAGE is required}
+    pull_policy: never
+    entrypoint: [/opt/hermes/.venv/bin/python]
+    command: [/qualification/runtime_probe.py]
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    environment:
+      HERMES_LOCAL_QUALIFICATION: "1"
+      HERMES_DELIVERY_MODE: disabled
+      HERMES_APPROVALS_MODE: manual
+      HERMES_APPROVALS_CRON_MODE: deny
+    volumes:
+      - ${HERMES_SYNTHETIC_STATE:?HERMES_SYNTHETIC_STATE is required}/walter:/opt/data:rw
+      - ./runtime_probe.py:/qualification/runtime_probe.py:ro
+    networks: [hermes_internal]
+    depends_on:
+      stubs:
+        condition: service_healthy
+
+  titus:
+    image: ${HERMES_CANDIDATE_IMAGE:?HERMES_CANDIDATE_IMAGE is required}
+    pull_policy: never
+    entrypoint: [/opt/hermes/.venv/bin/python]
+    command: [/qualification/runtime_probe.py]
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    environment:
+      HERMES_LOCAL_QUALIFICATION: "1"
+      HERMES_DELIVERY_MODE: disabled
+      HERMES_APPROVALS_MODE: manual
+      HERMES_APPROVALS_CRON_MODE: deny
+    volumes:
+      - ${HERMES_SYNTHETIC_STATE:?HERMES_SYNTHETIC_STATE is required}/titus:/opt/data:rw
+      - ./runtime_probe.py:/qualification/runtime_probe.py:ro
+    networks: [hermes_internal]
+    depends_on:
+      stubs:
+        condition: service_healthy
+
+  mitchel:
+    image: ${HERMES_CANDIDATE_IMAGE:?HERMES_CANDIDATE_IMAGE is required}
+    pull_policy: never
+    entrypoint: [/opt/hermes/.venv/bin/python]
+    command: [/qualification/runtime_probe.py]
+    restart: "no"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    environment:
+      HERMES_LOCAL_QUALIFICATION: "1"
+      HERMES_DELIVERY_MODE: disabled
+      HERMES_APPROVALS_MODE: manual
+      HERMES_APPROVALS_CRON_MODE: deny
+    volumes:
+      - ${HERMES_SYNTHETIC_STATE:?HERMES_SYNTHETIC_STATE is required}/mitchel:/opt/data:rw
+      - ./runtime_probe.py:/qualification/runtime_probe.py:ro
+    networks: [hermes_internal]
+    depends_on:
+      stubs:
+        condition: service_healthy
+
+networks:
+  hermes_internal:
+    internal: true

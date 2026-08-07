@@ -1,0 +1,32 @@
+schema_version: 1
+agent: mitchel
+source: tenants/hermes-mitchel
+state:
+  mode: synthetic
+required_paths:
+  - README.md
+  - mcp-servers/trevor-db/package.json
+  - skills
+  - runbooks
+  - qualification/qualify.sh
+required_stubs:
+  - health
+  - inference
+  - trevor_db
+  - agiled
+  - browser
+allowed_operations:
+  - health.read
+  - trevor.read
+  - browser.fixture.read
+  - prospect.draft
+denied_operations:
+  - prospect.outbound.send
+  - agiled.mutate
+  - production.deploy
+production_markers:
+  - /run/phase
+  - aegis-prod
+  - api.agiled.app
+  - api.telegram.org
+  - discord.com/api
