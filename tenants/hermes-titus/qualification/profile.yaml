@@ -1,0 +1,38 @@
+schema_version: 1
+agent: titus
+source: tenants/hermes-titus
+state:
+  mode: synthetic
+required_paths:
+  - README.md
+  - config/config.yaml
+  - runtime/start-all.sh
+  - runtime/start-all.loopback.sh
+  - scripts/qualify.sh
+  - qualification/qualify.sh
+required_stubs:
+  - health
+  - inference
+  - mcp
+  - teams
+  - matrix
+  - agentmail
+  - control_tower
+  - memory
+  - dashboard_oidc
+allowed_operations:
+  - health.read
+  - mcp.registry.verify
+  - dashboard.auth.verify
+  - channel.route.evaluate
+denied_operations:
+  - teams.send
+  - matrix.send
+  - agentmail.send
+  - production.deploy
+production_markers:
+  - /run/phase
+  - aegis-prod
+  - graph.microsoft.com
+  - mcp.agentmail.to
+  - matrix.org

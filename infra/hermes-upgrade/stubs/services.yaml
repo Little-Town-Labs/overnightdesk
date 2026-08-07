@@ -1,0 +1,46 @@
+schema_version: 1
+mode: deterministic
+delivery: disabled
+services:
+  - name: health
+    protocol: http
+    endpoint: http://hermes-stub-health:8080
+  - name: inference
+    protocol: http
+    endpoint: http://hermes-stub-inference:8080
+  - name: github_guardian
+    protocol: http
+    endpoint: http://hermes-stub-github-guardian:8080
+  - name: guardian_intake
+    protocol: http
+    endpoint: http://hermes-stub-guardian-intake:8080
+  - name: mcp
+    protocol: mcp
+    endpoint: http://hermes-stub-mcp:8080
+  - name: teams
+    protocol: http
+    endpoint: http://hermes-stub-teams:8080
+  - name: matrix
+    protocol: http
+    endpoint: http://hermes-stub-matrix:8080
+  - name: agentmail
+    protocol: http
+    endpoint: http://hermes-stub-agentmail:8080
+  - name: control_tower
+    protocol: http
+    endpoint: http://hermes-stub-control-tower:8080
+  - name: memory
+    protocol: http
+    endpoint: http://hermes-stub-memory:8080
+  - name: dashboard_oidc
+    protocol: http
+    endpoint: http://hermes-stub-dashboard-oidc:8080
+  - name: trevor_db
+    protocol: http
+    endpoint: http://hermes-stub-trevor-db:8080
+  - name: agiled
+    protocol: http
+    endpoint: http://hermes-stub-agiled:8080
+  - name: browser
+    protocol: http
+    endpoint: http://hermes-stub-browser:8080
