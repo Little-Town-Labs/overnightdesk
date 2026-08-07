@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[3]
-CANDIDATE = ROOT / "releases/hermes/0.19.0.yaml"
+CANDIDATE = ROOT / "releases/hermes/0.19.0-local-2026-08-07.yaml"
 
 
 def docker_candidate_available() -> bool:
