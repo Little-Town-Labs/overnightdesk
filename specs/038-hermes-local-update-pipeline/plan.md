@@ -127,7 +127,8 @@ infra/hermes-upgrade/
     └── test_runtime_mode.py
 
 releases/hermes/
-└── 0.19.0.yaml                       # accepted baseline candidate manifest
+├── 0.19.0.yaml                       # historical baseline candidate manifest
+└── 0.19.0-local-2026-08-07.yaml      # accepted pinned local candidate
 
 tenants/hermes-walter/qualification/profile.yaml
 tenants/hermes-titus/qualification/profile.yaml
@@ -147,8 +148,10 @@ because it requires a locally materialized candidate image.
 
 ## Verification Strategy
 
-- Run source qualification with the accepted baseline manifest and assert one
-  result for each agent.
+- Run source qualification with the accepted pinned local candidate manifest
+  (`releases/hermes/0.19.0-local-2026-08-07.yaml`) and assert one result for
+  each agent. Retain `releases/hermes/0.19.0.yaml` as historical provenance,
+  not as the current runtime qualification input.
 - Run negative tests for missing digests, unsafe endpoints, production-looking
   credentials, missing stubs, failed profile gates, report redaction, and
   cleanup failure.
