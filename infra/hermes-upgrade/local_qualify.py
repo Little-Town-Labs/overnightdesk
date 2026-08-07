@@ -42,7 +42,9 @@ def unsafe_environment_values(environment: dict[str, str]) -> list[dict[str, str
     return findings
 
 
-def _runtime_smoke(image: str, expected_image_id: str) -> tuple[str, str]:
+def _runtime_smoke(
+    image: str, expected_image_id: str, synthetic_state: Path
+) -> tuple[str, str]:
     docker = shutil.which("docker")
     if not docker:
         return "not_run", "docker_unavailable"
@@ -67,6 +69,8 @@ def _runtime_smoke(image: str, expected_image_id: str) -> tuple[str, str]:
         "ALL",
         "--security-opt",
         "no-new-privileges:true",
+        "--volume",
+        f"{synthetic_state}:/opt/data:rw",
         "--entrypoint",
         "/opt/hermes/.venv/bin/hermes",
         image,
@@ -251,7 +255,9 @@ def run(root: Path, candidate_path: Path, mode: str, report_path: Path | None = 
                     ]
                 else:
                     status, reason = _runtime_smoke(
-                        candidate["derived"]["reference"], candidate["derived"]["image_id"]
+                        candidate["derived"]["reference"],
+                        candidate["derived"]["image_id"],
+                        state_root,
                     )
                     add_gate(report, "runtime_smoke", status, reason)
                     if status == "passed":
