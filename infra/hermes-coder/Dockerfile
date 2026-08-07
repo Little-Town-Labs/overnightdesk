@@ -1,6 +1,6 @@
-# overnightdesk/hermes-agent:0.19.0-coder
+# overnightdesk/hermes-agent:0.20.0-coder
 # Thin derived image: immutable upstream Hermes + approved platform worker tooling.
-FROM nousresearch/hermes-agent@sha256:c1731f7ffd49c37f2b4b6cd01873d4256ba6f06217dfca2cc41cede55815ea82
+FROM nousresearch/hermes-agent@sha256:16788311e2fa3035456bdc1bafb8ec2b1777db64ebf020af9bb7eb73c3712c9e
 
 USER root
 

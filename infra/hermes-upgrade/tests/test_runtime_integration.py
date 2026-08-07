@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[3]
-CANDIDATE = ROOT / "releases/hermes/0.19.0-local-2026-08-07.yaml"
+CANDIDATE = ROOT / "releases/hermes/0.20.0-local-2026-08-07.yaml"
 
 
 def docker_candidate_available() -> bool:
@@ -20,7 +20,7 @@ def docker_candidate_available() -> bool:
     )
     if compose.returncode != 0:
         return False
-    image = "overnightdesk/hermes-agent:0.19.0-coder"
+    image = "overnightdesk/hermes-agent:0.20.0-coder"
     inspected = subprocess.run(
         [docker, "image", "inspect", image], capture_output=True, check=False
     )

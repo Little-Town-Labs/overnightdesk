@@ -8,7 +8,7 @@ production credentials, and production mutation remain out of scope.
 ## Phase 1: Setup
 
 - [x] T001 Create the shared local harness layout under `infra/hermes-upgrade/`.
-- [x] T002 Add the historical baseline manifest at `releases/hermes/0.19.0.yaml` and record the accepted pinned local candidate at `releases/hermes/0.19.0-local-2026-08-07.yaml` for current qualification.
+- [x] T002 Add the historical baseline manifests at `releases/hermes/0.19.0.yaml` and `releases/hermes/0.19.0-local-2026-08-07.yaml`, then record the accepted pinned `0.20.0` local candidate at `releases/hermes/0.20.0-local-2026-08-07.yaml` for current qualification.
 - [x] T003 [P] Add Walter, Titus, and Mitchel qualification profile manifests.
 - [x] T004 [P] Add the deterministic local stub catalog and boundary documentation.
 
@@ -68,8 +68,8 @@ and the handoff remains blocked until all required runtime gates pass.
 
 - [x] T026 [P] Record the local-first architecture decision in `docs/decisions/005-hermes-local-first-qualification.md`.
 - [x] T027 [P] Add the local operator quickstart and negative-check documentation.
-- [ ] T028 Run affected existing Hermes/Titus/Mitchel checks without changing production behavior.
-- [ ] T029 Run the full repository quality review, including `git diff --check`, report schema checks, and bounded security review.
+- [x] T028 Run affected existing Hermes/Titus/Mitchel checks without changing production behavior.
+- [x] T029 Run the full repository quality review, including `git diff --check`, report schema checks, and bounded security review.
 
 ## Dependencies and execution order
 

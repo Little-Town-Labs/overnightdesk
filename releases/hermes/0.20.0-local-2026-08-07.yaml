@@ -1,0 +1,19 @@
+schema_version: 1
+candidate_id: hermes-0.20.0-coder-2026-08-07
+upstream:
+  tag: v2026.8.3
+  version: 0.20.0
+  source_commit: 7de39e700d2c329e15d32eb0b96e2f7cdd9fbdb2
+  oci_index: nousresearch/hermes-agent@sha256:16788311e2fa3035456bdc1bafb8ec2b1777db64ebf020af9bb7eb73c3712c9e
+  arm64_child: sha256:153a021a0c59f28c1c230b201c8b819403da2a01969b9ffd939f1a429b7af2cd
+derived:
+  reference: overnightdesk/hermes-agent:0.20.0-coder
+  architecture: linux/arm64
+  image_id: sha256:3633de9efda759325a6d3a0757dcae476a71526b539e6d435abf1aa2f7d9c2e3
+policy:
+  approvals_mode: manual
+  cron_mode: deny
+agents:
+  - walter
+  - titus
+  - mitchel
