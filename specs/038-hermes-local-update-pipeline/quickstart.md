@@ -9,7 +9,7 @@ From the repository root:
 
 ```bash
 infra/hermes-upgrade/local-qualify.sh \
-  --candidate releases/hermes/0.19.0.yaml \
+  --candidate releases/hermes/0.19.0-local-2026-08-07.yaml \
   --mode source
 ```
 
@@ -29,7 +29,7 @@ When Docker is available and the candidate image is materialized locally:
 
 ```bash
 infra/hermes-upgrade/local-qualify.sh \
-  --candidate releases/hermes/0.19.0.yaml \
+  --candidate releases/hermes/0.19.0-local-2026-08-07.yaml \
   --mode runtime
 ```
 
