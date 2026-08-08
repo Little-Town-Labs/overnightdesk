@@ -18,6 +18,8 @@ def test_github_phase_namespace_and_key_contract_are_exact() -> None:
     source = LOADER.read_text(encoding="utf-8")
 
     assert "/agents/github" in source
+    assert 'github_env_group=${TITUS_GITHUB_ENV_GROUP:-hermes-titus}' in source
+    assert 'install -o root -g "$github_env_group" -m 0440' in source
     for key in (
         "GITHUB_APP_ID",
         "GITHUB_APP_CLIENT_ID",

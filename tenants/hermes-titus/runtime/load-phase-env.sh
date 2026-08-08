@@ -10,6 +10,7 @@ phase_env=${TITUS_PHASE_ENVIRONMENT:-production}
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-/opt/hermes-titus/secrets/dashboard-oidc-client-id}
 github_key_file=${TITUS_GITHUB_PRIVATE_KEY_FILE:-/run/hermes-titus/github-app-private-key}
 github_env_file=${TITUS_GITHUB_ENV_FILE:-/run/hermes-titus/github-app.env}
+github_env_group=${TITUS_GITHUB_ENV_GROUP:-hermes-titus}
 phase_timeout=${TITUS_PHASE_TIMEOUT_SECONDS:-30}
 
 die() {
@@ -341,6 +342,6 @@ fi
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
 install -o root -g 10000 -m 0440 "$work_dir/github-key" "$github_key_file"
-install -o root -g 10000 -m 0440 "$work_dir/github.env" "$github_env_file"
+install -o root -g "$github_env_group" -m 0440 "$work_dir/github.env" "$github_env_file"
 printf 'hermes-titus phase load: core=ready teams=%s matrix=%s telegram=%s github=%s memory_embedding=%s linear=%s\n' \
   "$teams_state" "$matrix_state" "$telegram_state" "$github_state" "$memory_state" "$linear_state"
