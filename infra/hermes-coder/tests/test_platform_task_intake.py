@@ -363,6 +363,35 @@ class PublicIngressTests(unittest.TestCase):
         )
         self.assertIn('find "$work_dir" -type f -delete', success_block)
 
+    def test_deployment_consumes_the_pinned_020_candidate(self):
+        script = (
+            ROOT / "deploy-walter-intake.sh"
+        ).read_text(encoding="utf-8")
+        manifest = (
+            ROOT.parent.parent
+            / "releases/hermes/0.20.0-local-2026-08-07.yaml"
+        ).read_text(encoding="utf-8")
+        candidate_image = "overnightdesk/hermes-agent:0.20.0-coder"
+        candidate_image_id = (
+            "sha256:3633de9efda759325a6d3a0757dcae476a71526b539e6d435abf1aa2f7d9c2e3"
+        )
+        self.assertIn(
+            f"candidate_image={candidate_image}",
+            script,
+        )
+        self.assertIn("candidate_version=0.20.0", script)
+        self.assertIn("candidate_architecture=arm64", script)
+        self.assertIn(f"candidate_image_id={candidate_image_id}", script)
+        self.assertIn(f"reference: {candidate_image}", manifest)
+        self.assertIn(f"image_id: {candidate_image_id}", manifest)
+        self.assertIn("docker image inspect --format '{{.Id}}'", script)
+        self.assertIn("docker image inspect --format '{{.Architecture}}'", script)
+        self.assertIn("candidate image identity mismatch", script)
+        self.assertIn("candidate image architecture mismatch", script)
+        self.assertIn("candidate Hermes version mismatch", script)
+        self.assertNotIn("docker build --pull=false", script)
+        self.assertNotIn("0.19.0-coder-intake-candidate", script)
+
 
 if __name__ == "__main__":
     unittest.main()

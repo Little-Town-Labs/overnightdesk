@@ -7,7 +7,10 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 runtime=hermes-walter
 volume=hermes-agent-data
 network=overnightdesk_overnightdesk
-candidate_image=overnightdesk/hermes-agent:0.19.0-coder-intake-candidate
+candidate_image=overnightdesk/hermes-agent:0.20.0-coder
+candidate_version=0.20.0
+candidate_architecture=arm64
+candidate_image_id=sha256:3633de9efda759325a6d3a0757dcae476a71526b539e6d435abf1aa2f7d9c2e3
 phase_bin=${PHASE_BIN:-/usr/bin/phase}
 phase_env=${WALTER_PHASE_ENV_FILE:-/home/ubuntu/.config/overnightdesk-production-guardian/phase.env}
 phase_app=${WALTER_PHASE_APP:-overnightdesk}
@@ -39,6 +42,23 @@ container_exists() {
 mounted_volume() {
   docker inspect -f \
     '{{range .Mounts}}{{if eq .Destination "/opt/data"}}{{.Name}}{{end}}{{end}}' "$1"
+}
+
+verify_candidate_image() {
+  local image_id image_architecture version_output
+  image_id=$(docker image inspect --format '{{.Id}}' "$candidate_image" 2>/dev/null) ||
+    fail "qualified Walter candidate image is unavailable"
+  test "$image_id" = "$candidate_image_id" ||
+    fail "candidate image identity mismatch"
+  image_architecture=$(docker image inspect --format '{{.Architecture}}' "$candidate_image")
+  test "$image_architecture" = "$candidate_architecture" ||
+    fail "candidate image architecture mismatch"
+  version_output=$(docker run --rm \
+    --entrypoint /opt/hermes/.venv/bin/hermes \
+    "$candidate_image" --version) ||
+    fail "candidate Hermes version check failed"
+  grep -Fq "$candidate_version" <<<"$version_output" ||
+    fail "candidate Hermes version mismatch"
 }
 
 preflight() {
@@ -78,7 +98,7 @@ preflight() {
 
 prepare() {
   preflight
-  docker build --pull=false --tag "$candidate_image" "$repo_root/infra/hermes-coder"
+  verify_candidate_image
   docker run --rm --entrypoint /opt/hermes/.venv/bin/python "$candidate_image" \
     -c 'import hermes_cli; print("candidate_import=pass")'
   docker run --rm \
@@ -215,8 +235,7 @@ activate() {
   test "$approval" = "--approve-walter-restart" ||
     fail "activate requires --approve-walter-restart"
   preflight
-  docker image inspect "$candidate_image" >/dev/null ||
-    fail "qualified candidate image is unavailable"
+  verify_candidate_image
 
   local work_dir phase_json current_env runtime_env rollback_container
   local user workdir entrypoint restart memory nano_cpus cpus

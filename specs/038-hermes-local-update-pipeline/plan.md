@@ -108,6 +108,13 @@ candidate cannot be promoted on source checks alone.
 6. **One report contract**: local output is structured JSON with stable event
    names, a correlation ID, bounded labels, and redacted details.
 
+7. **Walter intake consumes the qualified artifact**: the Aegis intake helper
+   uses the exact locally qualified `0.20.0-coder` image from the candidate
+   manifest and verifies its immutable image ID and embedded Hermes version
+   before any Walter stop, profile migration, or container replacement. It
+   does not rebuild the shared Dockerfile on Aegis; a missing or mismatched
+   artifact fails closed while the current Walter runtime remains untouched.
+
 ## Project Structure
 
 ```text

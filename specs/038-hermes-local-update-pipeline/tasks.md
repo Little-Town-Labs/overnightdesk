@@ -85,3 +85,14 @@ and the handoff remains blocked until all required runtime gates pass.
 Runtime mode now qualifies the exact candidate image through the isolated
 Compose probe when Docker and the candidate image are available. Without those
 local prerequisites it reports `not_run` and remains promotion-blocked.
+
+## Review remediation — Walter intake candidate alignment
+
+- [x] T030 Make `infra/hermes-coder/deploy-walter-intake.sh` consume the exact
+  pinned `0.20.0-coder` artifact instead of rebuilding a shared Dockerfile
+  under a stale `0.19.0` intake tag.
+- [x] T031 Verify the candidate image ID and embedded Hermes version before
+  any Walter stop, profile migration, or container replacement, with a source
+  contract covering manifest/helper drift.
+- [x] T032 Update the Walter image documentation to describe the local
+  qualification and Aegis artifact-consumption boundary.
