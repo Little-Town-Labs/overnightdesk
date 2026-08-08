@@ -41,7 +41,15 @@ class TitusTeamsAdapter(HermesTeamsAdapter):
         team_id, channel_id = activity_scope(activity)
         sender = getattr(activity, "from_", None)
         sender_id = getattr(sender, "aad_object_id", None) or getattr(sender, "id", "")
-        bot_id = self._app.id if self._app else None
+        recipient = getattr(activity, "recipient", None)
+        bot_ids = tuple(
+            bot_id
+            for bot_id in (
+                self._app.id if self._app else None,
+                getattr(recipient, "id", None),
+            )
+            if bot_id
+        )
         decision = evaluate_message(
             self._titus_policy,
             team_id=team_id,
@@ -49,12 +57,12 @@ class TitusTeamsAdapter(HermesTeamsAdapter):
             sender_id=str(sender_id),
             text=str(getattr(activity, "text", "") or ""),
             entities=getattr(activity, "entities", None),
-            bot_id=bot_id,
+            bot_id=bot_ids,
         )
         if not decision.accepted:
-            logger.info("teams_message_rejected", extra={"reason": decision.reason})
+            logger.info("teams_message_rejected reason=%s", decision.reason)
             return
-        logger.info("teams_message_accepted", extra={"reason": decision.reason})
+        logger.info("teams_message_accepted reason=%s", decision.reason)
         await super()._on_message(ctx)
 
     async def _on_card_action(self, ctx: Any) -> Any:

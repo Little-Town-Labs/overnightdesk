@@ -74,6 +74,33 @@ def test_mention_entity_must_target_titus() -> None:
     assert decision.accepted is True
 
 
+def test_channel_scoped_bot_identity_is_accepted_for_titus_teams() -> None:
+    decision = evaluate_message(
+        policy(),
+        team_id=TEAM_ID,
+        channel_id=CHANNEL_ID,
+        sender_id=AUTHORIZED_USERS[0],
+        text="<at>Titus Teams</at> summarize this discussion",
+        entities=[mention_entity(bot_id="28:channel-scoped-bot-id", name="Titus Teams")],
+        bot_id=(BOT_ID, "28:channel-scoped-bot-id"),
+    )
+
+    assert decision.accepted is True
+
+
+def test_titus_teams_provider_markup_is_accepted_without_entity_id() -> None:
+    decision = evaluate_message(
+        policy(),
+        team_id=TEAM_ID,
+        channel_id=CHANNEL_ID,
+        sender_id=AUTHORIZED_USERS[0],
+        text="<at>@Titus Teams</at> summarize this discussion",
+        bot_id=BOT_ID,
+    )
+
+    assert decision.accepted is True
+
+
 @pytest.mark.parametrize(
     ("team_id", "channel_id", "sender_id", "expected_reason"),
     [

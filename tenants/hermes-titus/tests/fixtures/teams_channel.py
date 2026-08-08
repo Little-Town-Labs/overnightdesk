@@ -14,8 +14,8 @@ def ordinary_text() -> str:
     return "The project review is Friday."
 
 
-def mention_entity() -> dict:
+def mention_entity(*, bot_id: str = BOT_ID, name: str = "Titus") -> dict:
     return {
         "type": "mention",
-        "mentioned": {"id": BOT_ID, "name": "Titus"},
+        "mentioned": {"id": bot_id, "name": name},
     }

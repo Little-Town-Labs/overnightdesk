@@ -7,7 +7,11 @@ import re
 from typing import Any, Iterable, Mapping
 
 
-_TITUS_MENTION_RE = re.compile(r"<at>\s*Titus\s*</at>", re.IGNORECASE)
+_TITUS_MENTION_RE = re.compile(
+    r"<at>\s*@?\s*Titus(?:\s+Teams)?\s*</at>",
+    re.IGNORECASE,
+)
+_TITUS_MENTION_NAMES = frozenset({"titus", "titus teams"})
 
 
 @dataclass(frozen=True)
@@ -74,7 +78,7 @@ def evaluate_message(
     sender_id: str,
     text: str = "",
     entities: Iterable[Any] | None = None,
-    bot_id: str | None = None,
+    bot_id: str | Iterable[str] | None = None,
 ) -> RoutingDecision:
     """Evaluate one Teams activity before it enters Hermes reasoning."""
 
@@ -115,10 +119,11 @@ def has_titus_mention(
     text: str,
     *,
     entities: Iterable[Any] | None = None,
-    bot_id: str | None = None,
+    bot_id: str | Iterable[str] | None = None,
 ) -> bool:
     """Return true only for a Teams provider mention addressed to Titus."""
 
+    bot_ids = _normalized_bot_ids(bot_id)
     for entity in entities or ():
         data = _as_mapping(entity)
         if str(data.get("type") or "").casefold() != "mention":
@@ -126,9 +131,9 @@ def has_titus_mention(
         mentioned = _as_mapping(data.get("mentioned"))
         mentioned_id = str(mentioned.get("id") or "")
         mentioned_name = str(mentioned.get("name") or "")
-        if bot_id and mentioned_id == bot_id:
+        if mentioned_id.casefold() in bot_ids:
             return True
-        if mentioned_name.casefold() == "titus":
+        if mentioned_name.casefold() in _TITUS_MENTION_NAMES:
             return True
 
     return bool(_TITUS_MENTION_RE.search(text or ""))
@@ -163,3 +168,12 @@ def _safe_identifier(value: str) -> bool:
     if not value or value == "*":
         return False
     return not any(character.isspace() or ord(character) < 32 for character in value)
+
+
+def _normalized_bot_ids(value: str | Iterable[str] | None) -> frozenset[str]:
+    """Normalize the app GUID and channel-scoped Bot Framework recipient IDs."""
+
+    if value is None:
+        return frozenset()
+    values = (value,) if isinstance(value, str) else value
+    return frozenset(str(item).strip().casefold() for item in values if str(item).strip())
