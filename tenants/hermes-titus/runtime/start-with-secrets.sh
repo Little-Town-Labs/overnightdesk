@@ -86,6 +86,27 @@ export MATRIX_TOOLS_ALLOW_CROSS_ROOM=false
 export MATRIX_TOOLS_ALLOW_CROSS_ROOM_DESTRUCTIVE=false
 export MATRIX_MAX_MEDIA_BYTES=10485760
 
+export TELEGRAM_ALLOW_ALL_USERS=false
+case "${TITUS_TELEGRAM_STATE:-disabled}" in
+  disabled)
+    unset TELEGRAM_BOT_TOKEN TELEGRAM_ALLOWED_USERS
+    ;;
+  ready)
+    test -n "${TELEGRAM_BOT_TOKEN:-}" || {
+      printf 'hermes-titus: Telegram bot token unavailable\n' >&2
+      exit 1
+    }
+    test -n "${TELEGRAM_ALLOWED_USERS:-}" || {
+      printf 'hermes-titus: Telegram allowed user unavailable\n' >&2
+      exit 1
+    }
+    ;;
+  *)
+    printf 'hermes-titus: Telegram state is invalid\n' >&2
+    exit 1
+    ;;
+esac
+
 install -d -m 0700 /opt/data/.cache /opt/data/logs/memory_tencentdb /opt/data/memory-tencentdb/data
 test -x /opt/data/bin/hermes-email-run-approval || {
   printf 'hermes-titus: email run approval helper unavailable\n' >&2
@@ -128,6 +149,19 @@ extra = teams.setdefault('extra', {})
 extra['port'] = int(os.environ.get('TEAMS_PORT', '3978'))
 extra['allow_all_users'] = False
 extra['require_mention'] = True
+telegram = config.setdefault('platforms', {}).setdefault('telegram', {})
+telegram['enabled'] = os.environ.get('TITUS_TELEGRAM_STATE') == 'ready'
+telegram_extra = telegram.setdefault('extra', {})
+telegram_extra['allow_from'] = (
+    [os.environ['TELEGRAM_ALLOWED_USERS']]
+    if telegram['enabled']
+    else []
+)
+telegram_extra['group_allow_from'] = []
+telegram_extra['require_mention'] = False
+telegram_extra['guest_mode'] = False
+telegram_extra['observe_unmentioned_group_messages'] = False
+telegram_extra['disable_link_previews'] = True
 dashboard = config.setdefault('dashboard', {})
 dashboard['public_url'] = 'https://titus-dashboard.overnightdesk.com'
 oauth = dashboard.setdefault('oauth', {})

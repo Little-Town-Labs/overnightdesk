@@ -96,8 +96,18 @@ platform_toolsets:
   cli: [hermes-cli]
   teams: [hermes-teams]
   matrix: [hermes-cli]
+  telegram: [hermes-cli]
 
 platforms:
+  telegram:
+    enabled: false
+    extra:
+      allow_from: []
+      group_allow_from: []
+      require_mention: false
+      guest_mode: false
+      observe_unmentioned_group_messages: false
+      disable_link_previews: true
   matrix:
     enabled: false
     extra:
