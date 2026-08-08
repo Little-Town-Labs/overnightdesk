@@ -53,7 +53,8 @@ runtime_files=(
   "$tenant_root/plugins/platforms/titus_teams/__init__.py"
   "$tenant_root/plugins/platforms/titus_teams/adapter.py"
   "$tenant_root/plugins/platforms/titus_teams/policy.py"
-  "$tenant_root/scripts/deploy-aegis.sh"
+  "$tenant_root/scripts/deploy-aegis.sh" \
+  "$tenant_root/scripts/verify-github-repository-manager.sh"
   "$tenant_root/README.md"
   "$tenant_root/skills/agentmail-email/SKILL.md"
   "$tenant_root/skills/titus-project-knowledge/SKILL.md"
@@ -93,7 +94,8 @@ bash -n \
   "$tenant_root/runtime/start-with-secrets.sh" \
   "$tenant_root/runtime/control-tower-session.sh" \
   "$tenant_root/runtime/email-run-approval.sh" \
-  "$tenant_root/scripts/deploy-aegis.sh"
+  "$tenant_root/scripts/deploy-aegis.sh" \
+  "$tenant_root/scripts/verify-github-repository-manager.sh"
 
 for retired in \
   "$tenant_root/obsidian-sync" \
@@ -184,12 +186,13 @@ require_pattern '/agents/hermes-titus/telegram' "$tenant_root/runtime/load-phase
 require_pattern '/agents/github' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'GITHUB_APP_PRIVATE_KEY_PATH' "$tenant_root/runtime/start-with-secrets.sh"
 require_pattern '/run/secrets/hermes-titus-github-app-private-key' "$tenant_root/runtime/run-container.sh"
-require_pattern 'GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH' "$tenant_root/runtime/start-with-secrets.sh"
-require_pattern '/run/secrets/hermes-titus-github-repository-manager-app-private-key' "$tenant_root/runtime/run-container.sh"
 require_pattern 'GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TITUS_GITHUB_REPOSITORY_MANAGER_STATE' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'github-repository-manager.env' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern '/access_tokens' "$tenant_root/scripts/verify-github-repository-manager.sh"
+require_pattern '/installation/repositories' "$tenant_root/scripts/verify-github-repository-manager.sh"
 require_pattern 'github-app.env' "$tenant_root/runtime/load-phase-env.sh"
-require_pattern -- '--env-file' "$tenant_root/runtime/run-container.sh"
+require_pattern '--env-file' "$tenant_root/runtime/run-container.sh"
 require_pattern 'TELEGRAM_ALLOWED_USERS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TELEGRAM_BOT_TOKEN' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TITUS_TELEGRAM_STATE' "$tenant_root/runtime/load-phase-env.sh"

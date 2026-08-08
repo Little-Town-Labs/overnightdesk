@@ -11,6 +11,7 @@ oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-/opt/hermes-titus/secrets/d
 github_key_file=${TITUS_GITHUB_PRIVATE_KEY_FILE:-/run/hermes-titus/github-app-private-key}
 github_manager_key_file=${TITUS_GITHUB_REPOSITORY_MANAGER_PRIVATE_KEY_FILE:-/run/hermes-titus/github-repository-manager-app-private-key}
 github_env_file=${TITUS_GITHUB_ENV_FILE:-/run/hermes-titus/github-app.env}
+github_manager_env_file=${TITUS_GITHUB_REPOSITORY_MANAGER_ENV_FILE:-/run/hermes-titus/github-repository-manager.env}
 github_env_group=${TITUS_GITHUB_ENV_GROUP:-hermes-titus}
 phase_timeout=${TITUS_PHASE_TIMEOUT_SECONDS:-30}
 
@@ -262,7 +263,7 @@ fi
 github_state=disabled
 github_key_path=/run/secrets/hermes-titus-github-app-private-key
 github_manager_state=disabled
-github_manager_key_path=/run/secrets/hermes-titus-github-repository-manager-app-private-key
+github_manager_key_path=$github_manager_key_file
 : >"$work_dir/github-key"
 : >"$work_dir/github-manager-key"
 if ! jq -e 'length == 0' "$work_dir/github.json" >/dev/null; then
@@ -349,8 +350,6 @@ if ! jq -e 'length == 0' "$work_dir/github.json" >/dev/null; then
           GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH: $key_path
         }' \
         "$work_dir/github.json" >"$work_dir/github-manager-public.json"
-      jq -s '.[0] * .[1]' "$work_dir/final.json" "$work_dir/github-manager-public.json" >"$work_dir/github-manager-final.json"
-      mv "$work_dir/github-manager-final.json" "$work_dir/final.json"
       github_manager_state=ready
     elif jq -e '
       has("GITHUB_REPOSITORY_MANAGER_APP_ID") or
@@ -404,7 +403,6 @@ fi
   printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
   printf 'TITUS_TELEGRAM_STATE=%q\n' "$telegram_state"
   printf 'TITUS_GITHUB_STATE=%q\n' "$github_state"
-  printf 'TITUS_GITHUB_REPOSITORY_MANAGER_STATE=%q\n' "$github_manager_state"
   printf 'TITUS_MEMORY_EMBEDDING_STATE=%q\n' "$memory_state"
   printf 'TITUS_LINEAR_STATE=%q\n' "$linear_state"
   printf 'TITUS_DASHBOARD_OIDC_CLIENT_ID=%q\n' "$oidc_client_id"
@@ -415,16 +413,20 @@ fi
   if test "$github_state" = ready; then
     jq -r 'to_entries[] | "\(.key)=\(.value)"' "$work_dir/github-public.json"
   fi
+} >"$work_dir/github.env"
+
+{
   printf 'TITUS_GITHUB_REPOSITORY_MANAGER_STATE=%s\n' "$github_manager_state"
   if test "$github_manager_state" = ready; then
     jq -r 'to_entries[] | "\(.key)=\(.value)"' "$work_dir/github-manager-public.json"
   fi
-} >"$work_dir/github.env"
+} >"$work_dir/github-manager.env"
 
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
 install -o root -g 10000 -m 0440 "$work_dir/github-key" "$github_key_file"
-install -o root -g 10000 -m 0440 "$work_dir/github-manager-key" "$github_manager_key_file"
+install -o root -g root -m 0400 "$work_dir/github-manager-key" "$github_manager_key_file"
 install -o root -g "$github_env_group" -m 0440 "$work_dir/github.env" "$github_env_file"
+install -o root -g root -m 0400 "$work_dir/github-manager.env" "$github_manager_env_file"
 printf 'hermes-titus phase load: core=ready teams=%s matrix=%s telegram=%s github=%s github_repository_manager=%s memory_embedding=%s linear=%s\n' \
   "$teams_state" "$matrix_state" "$telegram_state" "$github_state" "$github_manager_state" "$memory_state" "$linear_state"
