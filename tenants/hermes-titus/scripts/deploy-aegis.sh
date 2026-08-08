@@ -389,9 +389,11 @@ verify() {
     sudo docker inspect -f "{{json .HostConfig.CapDrop}}" hermes-titus | grep -q ALL
     sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" hermes-titus | grep -q no-new-privileges
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
-    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY|LINEAR_API_KEY|GITHUB_APP_PRIVATE_KEY=|GITHUB_TOKEN=|GH_TOKEN=)"
+    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY|LINEAR_API_KEY|GITHUB_APP_PRIVATE_KEY=|GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=|GITHUB_TOKEN=|GH_TOKEN=)"
     sudo docker inspect -f "{{range .Mounts}}{{println .Destination}}{{end}}" hermes-titus |
       grep -Fq "/run/secrets/hermes-titus-github-app-private-key"
+    sudo docker inspect -f "{{range .Mounts}}{{println .Destination}}{{end}}" hermes-titus |
+      grep -Fq "/run/secrets/hermes-titus-github-repository-manager-app-private-key"
     sudo docker volume inspect hermes-titus-data >/dev/null
     sudo docker volume inspect titus-project-knowledge-data >/dev/null
     sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination .RW}}{{end}}" hermes-titus |
@@ -538,6 +540,48 @@ else:
     ):
         assert key not in os.environ, f"GitHub value present while {github_state}: {key}"
 print("github_state=" + github_state)
+
+github_repository_manager_state = os.environ.get(
+    "TITUS_GITHUB_REPOSITORY_MANAGER_STATE", "disabled"
+)
+assert github_repository_manager_state in {"disabled", "invalid", "ready"}, \
+    "unexpected GitHub repository manager state"
+if github_repository_manager_state == "ready":
+    for key in (
+        "GITHUB_REPOSITORY_MANAGER_APP_ID",
+        "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID",
+        "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID",
+        "GITHUB_REPOSITORY_MANAGER_ORGANIZATION",
+        "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES",
+        "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH",
+    ):
+        assert os.environ.get(key), \
+            f"missing GitHub repository manager value: {key}"
+    assert os.environ["GITHUB_REPOSITORY_MANAGER_ORGANIZATION"] == \
+        "timeless-technology-solutions"
+    assert os.environ["GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH"] == \
+        "/run/secrets/hermes-titus-github-repository-manager-app-private-key"
+    manager_key_file = Path(
+        os.environ["GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH"]
+    )
+    assert manager_key_file.is_file() and not manager_key_file.is_symlink(), \
+        "GitHub repository manager key file unavailable"
+    assert manager_key_file.stat().st_mode & 0o777 == 0o440, \
+        "unexpected GitHub repository manager key mode"
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY" not in os.environ, \
+        "GitHub repository manager key entered process environment"
+else:
+    for key in (
+        "GITHUB_REPOSITORY_MANAGER_APP_ID",
+        "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID",
+        "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID",
+        "GITHUB_REPOSITORY_MANAGER_ORGANIZATION",
+        "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES",
+        "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH",
+    ):
+        assert key not in os.environ, \
+            f"GitHub repository manager value present while {github_repository_manager_state}: {key}"
+print("github_repository_manager_state=" + github_repository_manager_state)
 
 auth_file = Path("/opt/data/auth.json")
 assert auth_file.is_file() and not auth_file.is_symlink(), "Titus auth file unavailable"

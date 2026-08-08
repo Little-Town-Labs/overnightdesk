@@ -32,6 +32,16 @@ def test_github_phase_namespace_and_key_contract_are_exact() -> None:
         assert key in source
     assert "GITHUB_APP_PRIVATE_KEY_PATH" in source
     assert "TITUS_GITHUB_PRIVATE_KEY_FILE" in source
+    for key in (
+        "GITHUB_REPOSITORY_MANAGER_APP_ID",
+        "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID",
+        "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID",
+        "GITHUB_REPOSITORY_MANAGER_ORGANIZATION",
+        "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES",
+        "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY",
+    ):
+        assert key in source
+    assert "TITUS_GITHUB_REPOSITORY_MANAGER_STATE" in source
 
 
 def test_private_key_uses_dedicated_read_only_mount_not_process_environment() -> None:
@@ -41,11 +51,16 @@ def test_private_key_uses_dedicated_read_only_mount_not_process_environment() ->
 
     assert "/run/secrets/hermes-titus-github-app-private-key" in startup
     assert "/run/secrets/hermes-titus-github-app-private-key" in launcher
+    assert "/run/secrets/hermes-titus-github-repository-manager-app-private-key" in startup
+    assert "/run/secrets/hermes-titus-github-repository-manager-app-private-key" in launcher
     assert "github-app.env" in launcher
     assert "--env-file" in launcher
     assert "GITHUB_APP_PRIVATE_KEY" in startup
     assert "must not be injected as an environment value" in startup
     assert "GITHUB_APP_PRIVATE_KEY=" in deploy
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=" in deploy
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH" in startup
+    assert "github-repository-manager-app-private-key" in launcher
     assert "github_auth.auth_method() == \"github-app\"" in deploy
     assert "github_provider=github-app" in deploy
     assert 'github_organization = os.environ["GITHUB_ORGANIZATION"]' in deploy

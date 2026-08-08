@@ -6,9 +6,9 @@
 
 **Status**: Implemented pending review
 
-**Input**: Titus needs the organization-owned GitHub App stored in Phase to be
-available inside the Titus runtime without exposing its private key or granting
-authority beyond the separately approved Control Tower capability.
+**Input**: Titus needs the organization-owned GitHub Apps stored in Phase to be
+available inside the Titus runtime without exposing either private key or
+granting authority beyond the separately approved Control Tower capability.
 
 ## User Scenarios & Testing
 
@@ -27,9 +27,9 @@ private-key value appears in the runtime environment or output.
 
 **Acceptance Scenarios**:
 
-1. **Given** the exact `/agents/github` profile is valid, **When** Titus loads
-   Phase, **Then** its App metadata is available and the native GitHub App
-   adapter can read a dedicated protected key path.
+1. **Given** the exact `/agents/github` profiles are valid, **When** Titus loads
+   Phase, **Then** each App's metadata is available and each adapter can read
+   its own dedicated protected key path.
 2. **Given** the profile is absent, malformed, or contains unknown keys,
    **When** Titus loads Phase, **Then** GitHub is disabled or invalid without
    stopping Titus or removing sibling channel availability.
@@ -69,8 +69,8 @@ unchanged.
 
 **Acceptance Scenarios**:
 
-1. **Given** GitHub metadata and a private key are present, **When** Titus
-   starts, **Then** the key is available only through the dedicated read-only
+1. **Given** GitHub metadata and private keys are present, **When** Titus
+   starts, **Then** each key is available only through its dedicated read-only
    mount and no GitHub mutation capability is added.
 2. **Given** the GitHub profile is revoked or disabled, **When** Titus starts,
    **Then** only the GitHub integration is disabled and other Titus surfaces
@@ -93,13 +93,13 @@ unchanged.
 ### Functional Requirements
 
 - **FR-001**: Titus MUST read the exact Phase namespace `/agents/github`.
-- **FR-002**: Titus MUST accept exactly the six approved GitHub App keys and
-  reject unknown or malformed profiles without stopping sibling Titus
-  channels.
-- **FR-003**: Titus MUST keep the GitHub private key out of the process
+- **FR-002**: Titus MUST accept exactly the six approved primary GitHub App
+  keys and, when present, exactly the six approved repository-manager App keys;
+  unknown or malformed profiles MUST not stop sibling Titus channels.
+- **FR-003**: Titus MUST keep both GitHub private keys out of the process
   environment, Docker configuration, logs, source control, and agent output.
-- **FR-004**: Titus MUST expose the non-secret App metadata and repository
-  allowlist to the native GitHub App integration only when the profile is valid.
+- **FR-004**: Titus MUST expose each valid App's non-secret metadata and
+  repository allowlist only when its corresponding profile is valid.
 - **FR-005**: Deployment verification MUST validate provider authentication and
   installation coverage for every configured repository before reporting GitHub
   ready.
@@ -110,10 +110,10 @@ unchanged.
 
 ### Key Entities
 
-- **GitHub App profile**: Phase-backed identity, installation, organization,
-  repository allowlist, and private key for Titus.
-- **Protected key mount**: Runtime-only file boundary that provides the private
-  key to the native adapter without putting it in environment variables.
+- **GitHub App profiles**: Phase-backed identities, installations,
+  organizations, repository allowlists, and private keys for Titus.
+- **Protected key mounts**: Runtime-only file boundaries that provide each
+  private key to its adapter without putting it in environment variables.
 - **GitHub readiness state**: Disabled, invalid, or ready state reported by
   Titus's projection and verifier.
 
@@ -121,8 +121,8 @@ unchanged.
 
 ### Measurable Outcomes
 
-- **SC-001**: A valid synthetic profile projects all five non-key values and a
-  protected key path with zero private-key values in captured output.
+- **SC-001**: Valid synthetic profiles project all ten non-key values and two
+  protected key paths with zero private-key values in captured output.
 - **SC-002**: Every malformed-profile test leaves the shared Titus startup
   path successful and projects zero GitHub credentials.
 - **SC-003**: A ready verification checks provider authentication and 100% of
@@ -132,7 +132,8 @@ unchanged.
 
 ## Assumptions
 
-- The Phase namespace `/agents/github` and its six key names are owner-approved.
+- The Phase namespace `/agents/github` and its twelve key names are
+  owner-approved.
 - The pinned Hermes image already contains native GitHub App support that reads
   a private key path and exchanges it for a short-lived installation token.
 - GitHub write authority, if ever needed, requires a separate explicit

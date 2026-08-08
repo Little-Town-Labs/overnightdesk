@@ -11,6 +11,15 @@ contains exactly these records:
 - `GITHUB_ALLOWED_REPOSITORIES`
 - `GITHUB_APP_PRIVATE_KEY`
 
+The same Phase path may also contain the separate repository-manager App:
+
+- `GITHUB_REPOSITORY_MANAGER_APP_ID`
+- `GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID`
+- `GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID`
+- `GITHUB_REPOSITORY_MANAGER_ORGANIZATION`
+- `GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES`
+- `GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY`
+
 The loader accepts only the organization `timeless-technology-solutions`, a
 numeric App and installation ID, a repository-slug allowlist, and a PEM private
 key. The key is never placed in Titus's environment or Docker configuration.
@@ -20,6 +29,10 @@ GitHub App adapter reads that path and obtains a short-lived installation token.
 The non-secret App metadata is also supplied through a dedicated Docker env
 file so fresh `docker exec` diagnostics see the same App identity as Titus's
 gateway. The private key is intentionally absent from that env file.
+The repository-manager metadata follows the same rule. Its private key is
+available only at the separate protected mount
+`/run/secrets/hermes-titus-github-repository-manager-app-private-key` and is
+never injected as `GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY`.
 
 `TITUS_GITHUB_STATE=ready` means the profile passed shape validation. Titus's
 deployment verifier additionally obtains a provider token, confirms the

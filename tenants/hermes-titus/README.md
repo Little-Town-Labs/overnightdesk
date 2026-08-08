@@ -103,6 +103,12 @@ not grant Titus Control Tower authority: the active `read-hermes-monitoring`
 profile remains read-only and does not authorize GitHub mutations. See
 `runbooks/github-app-integration.md`.
 
+The separate repository-manager App uses the same Phase namespace for its
+`GITHUB_REPOSITORY_MANAGER_*` metadata and allowlist. Its private key is
+written only to `/run/secrets/hermes-titus-github-repository-manager-app-private-key`;
+`GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY` is never an environment value or
+Docker configuration value.
+
 TTS Teams preparation:
 
 - `/agents/hermes-titus/teams`: `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, `TEAMS_TENANT_ID`, `TEAMS_ALLOWED_USERS`, `TEAMS_ALLOWED_USER_EMAILS`, `TEAMS_ALLOW_ALL_USERS`, `TEAMS_PORT`, `TEAMS_HOME_CHANNEL`, `TEAMS_HOME_CHANNEL_NAME`, `TEAMS_DELIVERY_MODE`, `TEAMS_TEAM_ID`, `TEAMS_CHANNEL_ID`
