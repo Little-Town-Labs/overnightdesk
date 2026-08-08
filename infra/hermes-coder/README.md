@@ -56,6 +56,14 @@ embedded Hermes version, `gh --version`, image ID, and base pin before staging.
 Follow the complete protocol in
 `overnightdesk-platform-standard/docs/runbooks/hermes-agent-update-protocol.md`.
 
+The Walter intake helper consumes the exact locally qualified image
+`overnightdesk/hermes-agent:0.20.0-coder` identified by
+`releases/hermes/0.20.0-local-2026-08-07.yaml`. It does not build an image on
+Aegis. Before activation, the helper verifies the image ID
+`sha256:3633de9efda759325a6d3a0757dcae476a71526b539e6d435abf1aa2f7d9c2e3`
+and the embedded Hermes version. A missing or mismatched artifact fails before
+Walter is stopped; the helper also requires the manifest's Linux ARM64 target.
+
 For the Production Guardian intake adapter, use the rollback-safe deployment
 helper from the merged repository:
 
