@@ -317,6 +317,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
     oidc_file = tmp_path / "dashboard-oidc"
     oidc_file.write_text("T" * 24)
     github_key_file = tmp_path / "github-app-private-key"
+    github_env_file = runtime_dir / "github-app.env"
     output = runtime_dir / "runtime.env"
     env = {
         **os.environ,
@@ -328,6 +329,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "TITUS_RUNTIME_ENV": str(output),
         "TITUS_DASHBOARD_OIDC_CLIENT_FILE": str(oidc_file),
         "TITUS_GITHUB_PRIVATE_KEY_FILE": str(github_key_file),
+        "TITUS_GITHUB_ENV_FILE": str(github_env_file),
         "TITUS_PHASE_TIMEOUT_SECONDS": "1",
     }
     return env, output
@@ -365,7 +367,9 @@ def test_phase_loader_projects_github_app_metadata_and_protected_key_file(
     assert result.returncode == 0, result.stderr
     runtime = output.read_text()
     key_file = tmp_path / "github-app-private-key"
+    github_env_file = output.parent / "github-app.env"
     key_text = key_file.read_text()
+    github_env = github_env_file.read_text()
     assert "TITUS_GITHUB_STATE=ready" in runtime
     assert "GITHUB_APP_ID='4526379'" in runtime
     assert "GITHUB_APP_CLIENT_ID='Iv23testclient'" in runtime
@@ -376,6 +380,14 @@ def test_phase_loader_projects_github_app_metadata_and_protected_key_file(
     assert "GITHUB_APP_PRIVATE_KEY=" not in runtime
     assert "test-private-key" not in runtime
     assert "test-private-key" in key_text
+    assert "GITHUB_APP_ID=4526379\n" in github_env
+    assert "GITHUB_APP_CLIENT_ID=Iv23testclient\n" in github_env
+    assert "GITHUB_APP_INSTALLATION_ID=152179609\n" in github_env
+    assert "GITHUB_ORGANIZATION=timeless-technology-solutions\n" in github_env
+    assert "GITHUB_ALLOWED_REPOSITORIES=client-project-template,tts-core\n" in github_env
+    assert "GITHUB_APP_PRIVATE_KEY_PATH=/run/secrets/hermes-titus-github-app-private-key\n" in github_env
+    assert "GITHUB_APP_PRIVATE_KEY=" not in github_env
+    assert "test-private-key" not in github_env
     assert "github=ready" in result.stdout
 
 
