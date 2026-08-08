@@ -285,6 +285,30 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
                     "GITHUB_ORGANIZATION": "timeless-technology-solutions",
                 }))
                 raise SystemExit(0)
+            if scenario == "ready_with_manager":
+                print(json.dumps({
+                    "GITHUB_APP_CLIENT_ID": "Iv23testclient",
+                    "GITHUB_APP_ID": "4526379",
+                    "GITHUB_APP_INSTALLATION_ID": "152179609",
+                    "GITHUB_APP_PRIVATE_KEY": (
+                        "-----BEGIN PRIVATE KEY-----\\n"
+                        "test-private-key\\n"
+                        "-----END PRIVATE KEY-----\\n"
+                    ),
+                    "GITHUB_ALLOWED_REPOSITORIES": "client-project-template,tts-core",
+                    "GITHUB_ORGANIZATION": "timeless-technology-solutions",
+                    "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID": "Iv23managertest",
+                    "GITHUB_REPOSITORY_MANAGER_APP_ID": "4537060",
+                    "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID": "152179486",
+                    "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY": (
+                        "-----BEGIN PRIVATE KEY-----\\n"
+                        "test-manager-private-key\\n"
+                        "-----END PRIVATE KEY-----\\n"
+                    ),
+                    "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES": "client-project-template,tts-core",
+                    "GITHUB_REPOSITORY_MANAGER_ORGANIZATION": "timeless-technology-solutions",
+                }))
+                raise SystemExit(0)
             if scenario == "unknown_key":
                 print(json.dumps({
                     "GITHUB_APP_ID": "4526379",
@@ -317,6 +341,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
     oidc_file = tmp_path / "dashboard-oidc"
     oidc_file.write_text("T" * 24)
     github_key_file = tmp_path / "github-app-private-key"
+    manager_key_file = tmp_path / "github-repository-manager-app-private-key"
     github_env_file = runtime_dir / "github-app.env"
     output = runtime_dir / "runtime.env"
     env = {
@@ -329,6 +354,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "TITUS_RUNTIME_ENV": str(output),
         "TITUS_DASHBOARD_OIDC_CLIENT_FILE": str(oidc_file),
         "TITUS_GITHUB_PRIVATE_KEY_FILE": str(github_key_file),
+        "TITUS_GITHUB_REPOSITORY_MANAGER_PRIVATE_KEY_FILE": str(manager_key_file),
         "TITUS_GITHUB_ENV_FILE": str(github_env_file),
         "TITUS_PHASE_TIMEOUT_SECONDS": "1",
     }
@@ -389,6 +415,43 @@ def test_phase_loader_projects_github_app_metadata_and_protected_key_file(
     assert "GITHUB_APP_PRIVATE_KEY=" not in github_env
     assert "test-private-key" not in github_env
     assert "github=ready" in result.stdout
+
+
+def test_phase_loader_projects_manager_metadata_without_injecting_private_key(
+    tmp_path: Path,
+) -> None:
+    result, output = run_phase_loader(
+        tmp_path, "absent", github_scenario="ready_with_manager"
+    )
+
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    manager_key_file = tmp_path / "github-repository-manager-app-private-key"
+    github_env = (output.parent / "github-app.env").read_text()
+    assert "TITUS_GITHUB_REPOSITORY_MANAGER_STATE=ready" in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_ID='4537060'" in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID='Iv23managertest'" in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID='152179486'" in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_ORGANIZATION='timeless-technology-solutions'" in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES='client-project-template,tts-core'" in runtime
+    assert (
+        "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH="
+        "'/run/secrets/hermes-titus-github-repository-manager-app-private-key'"
+    ) in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=" not in runtime
+    assert "test-manager-private-key" not in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_ID=4537060\n" in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID=Iv23managertest\n" in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID=152179486\n" in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_ORGANIZATION=timeless-technology-solutions\n" in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES=client-project-template,tts-core\n" in github_env
+    assert (
+        "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH="
+        "/run/secrets/hermes-titus-github-repository-manager-app-private-key\n"
+    ) in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=" not in github_env
+    assert "test-manager-private-key" not in github_env
+    assert "test-manager-private-key" in manager_key_file.read_text()
 
 
 @pytest.mark.parametrize(

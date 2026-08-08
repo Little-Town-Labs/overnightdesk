@@ -1,6 +1,6 @@
 # Data Model: Titus GitHub App Integration
 
-## Phase GitHub App profile
+## Phase GitHub App profiles
 
 | Field | Required | Meaning |
 |---|---:|---|
@@ -11,8 +11,17 @@
 | `GITHUB_ALLOWED_REPOSITORIES` | yes | Comma-separated repository slugs |
 | `GITHUB_APP_PRIVATE_KEY` | yes | PEM private key retained only in Phase and the protected runtime file |
 
+The same Phase path may contain a separate repository-manager profile with the
+parallel `GITHUB_REPOSITORY_MANAGER_*` fields. Its five metadata fields are
+projected to Titus only when all six manager fields validate; its private key
+is retained only in a second protected runtime file and is never an
+environment value.
+
 ## Derived runtime state
 
 - `TITUS_GITHUB_STATE`: `disabled`, `invalid`, or `ready`.
 - `GITHUB_APP_PRIVATE_KEY_PATH`: fixed container path present only when ready.
+- `TITUS_GITHUB_REPOSITORY_MANAGER_STATE`: `disabled`, `invalid`, or `ready`.
+- `GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH`: fixed container path
+  present only when the manager profile is ready.
 - The private-key contents are never a runtime environment field.

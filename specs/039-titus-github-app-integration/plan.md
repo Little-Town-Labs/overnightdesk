@@ -4,11 +4,11 @@
 
 ## Summary
 
-Project the owner-approved `/agents/github` Phase profile into Titus using the
+Project the owner-approved `/agents/github` Phase profiles into Titus using the
 existing host-to-container secret boundary. Keep non-secret App metadata in the
-runtime environment, write the private key to a dedicated mode-0440 host file,
-mount it read-only, validate the startup state, and add a read-only GitHub App
-provider/installation coverage gate to the Titus verifier.
+runtime environment, write each private key to its own dedicated mode-0440 host
+file, mount both read-only, validate the startup state, and add a read-only
+GitHub App provider/installation coverage gate to the Titus verifier.
 
 ## Technical Context
 
@@ -46,12 +46,13 @@ authorized.
 ## Architecture and Data Flow
 
 1. Host loader exports `/agents/github` with the Phase CLI.
-2. Loader validates the exact six-key shape and non-secret values.
-3. Loader writes only the private key to `/run/hermes-titus/github-app-private-key`
-   with root ownership and group-readable mode for UID/GID 10000.
-4. Titus receives the metadata through the existing runtime env mount and the
-   key through a second read-only mount.
-5. Hermes `GitHubAuth` exchanges the key for a short-lived installation token.
+2. Loader validates the primary six-key profile and, when present, the exact
+   six-key repository-manager profile.
+3. Loader writes only each private key to its own protected host file, with root
+   ownership and group-readable mode for UID/GID 10000.
+4. Titus receives metadata through the existing runtime env mount and each key
+   through a separate read-only mount.
+5. Hermes `GitHubAuth` exchanges the primary key for a short-lived installation token.
 6. `deploy-aegis.sh verify` reads installation repository metadata and checks
    the configured allowlist, without mutation.
 
