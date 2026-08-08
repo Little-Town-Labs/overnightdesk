@@ -86,10 +86,22 @@ decisions. Done requires target-environment verification, not merge alone.
 
 Linear's native GitHub integration may surface approved pull-request and commit
 evidence. GitHub Issues synchronization remains unconfigured, and Titus has no
-GitHub credential. This release adds no webhook, bridge, database copy, cache,
+Linear-to-GitHub synchronization credential. This release adds no webhook, bridge, database copy, cache,
 event ledger, or mutation wrapper. See
 `runbooks/linear-technical-delivery.md` for setup, canary, revocation, and
 rollback.
+
+Titus's separate organization-owned GitHub App integration uses the Phase
+namespace `/agents/github`. The loader projects the non-secret App metadata and
+writes `GITHUB_APP_PRIVATE_KEY` only to a protected read-only key-file mount;
+the private key never enters Titus's process environment or Docker
+configuration. Hermes's native GitHub App support obtains short-lived
+installation tokens from that file. The integration is repository-scoped by
+`GITHUB_ALLOWED_REPOSITORIES`, and the deployment verifier checks the provider
+and installation coverage without printing credentials. GitHub credentials do
+not grant Titus Control Tower authority: the active `read-hermes-monitoring`
+profile remains read-only and does not authorize GitHub mutations. See
+`runbooks/github-app-integration.md`.
 
 TTS Teams preparation:
 

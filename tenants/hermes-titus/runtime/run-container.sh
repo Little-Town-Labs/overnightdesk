@@ -30,5 +30,6 @@ exec docker run --rm \
   --volume hermes-titus-data:/opt/data \
   --volume titus-project-knowledge-data:/opt/data/project-briefs \
   --volume /run/hermes-titus/runtime.env:/run/secrets/hermes-titus-runtime:ro \
+  --volume /run/hermes-titus/github-app-private-key:/run/secrets/hermes-titus-github-app-private-key:ro \
   --entrypoint /usr/bin/bash \
   "$image" /opt/data/bin/start-with-secrets.sh

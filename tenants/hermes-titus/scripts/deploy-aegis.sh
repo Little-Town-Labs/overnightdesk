@@ -389,7 +389,9 @@ verify() {
     sudo docker inspect -f "{{json .HostConfig.CapDrop}}" hermes-titus | grep -q ALL
     sudo docker inspect -f "{{json .HostConfig.SecurityOpt}}" hermes-titus | grep -q no-new-privileges
     sudo docker inspect -f "{{json .NetworkSettings.Networks}}" hermes-titus | grep -q overnightdesk_overnightdesk
-    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY|LINEAR_API_KEY)"
+    ! sudo docker inspect -f "{{json .Config.Env}}" hermes-titus | grep -Eq "(OPENROUTER_API_KEY|AGENTMAIL_API_KEY|SECURITY_SERVICE_TOKEN|CONTROL_TOWER_TOKEN|TEAMS_CLIENT_SECRET|MATRIX_ACCESS_TOKEN|MATRIX_RECOVERY_KEY|LINEAR_API_KEY|GITHUB_APP_PRIVATE_KEY=|GITHUB_TOKEN=|GH_TOKEN=)"
+    sudo docker inspect -f "{{range .Mounts}}{{println .Destination}}{{end}}" hermes-titus |
+      grep -Fq "/run/secrets/hermes-titus-github-app-private-key"
     sudo docker volume inspect hermes-titus-data >/dev/null
     sudo docker volume inspect titus-project-knowledge-data >/dev/null
     sudo docker inspect -f "{{range .Mounts}}{{println .Name .Destination .RW}}{{end}}" hermes-titus |
@@ -473,6 +475,69 @@ else:
     assert "LINEAR_API_KEY" not in os.environ, "Linear key present while disabled"
     assert "headers" not in linear, "Linear authorization present while disabled"
 print("linear_state=" + linear_state)
+
+github_state = os.environ.get("TITUS_GITHUB_STATE", "disabled")
+assert github_state in {"disabled", "invalid", "ready"}, "unexpected GitHub state"
+if github_state == "ready":
+    for key in (
+        "GITHUB_APP_ID",
+        "GITHUB_APP_CLIENT_ID",
+        "GITHUB_APP_INSTALLATION_ID",
+        "GITHUB_ORGANIZATION",
+        "GITHUB_ALLOWED_REPOSITORIES",
+        "GITHUB_APP_PRIVATE_KEY_PATH",
+    ):
+        assert os.environ.get(key), f"missing GitHub App value: {key}"
+    assert os.environ["GITHUB_ORGANIZATION"] == "timeless-technology-solutions"
+    assert os.environ["GITHUB_APP_PRIVATE_KEY_PATH"] == \
+        "/run/secrets/hermes-titus-github-app-private-key"
+    key_file = Path(os.environ["GITHUB_APP_PRIVATE_KEY_PATH"])
+    assert key_file.is_file() and not key_file.is_symlink(), "GitHub App key file unavailable"
+    assert key_file.stat().st_mode & 0o777 == 0o440, "unexpected GitHub App key mode"
+    assert "GITHUB_APP_PRIVATE_KEY" not in os.environ, "GitHub App key entered process environment"
+    from tools.skills_hub import GitHubAuth
+
+    github_auth = GitHubAuth()
+    github_headers = github_auth.get_headers()
+    assert github_auth.auth_method() == "github-app", "GitHub App provider is not active"
+
+    def github_get(url):
+        request = urllib.request.Request(url, headers=github_headers)
+        with urllib.request.urlopen(request, timeout=10) as response:
+            return json.loads(response.read())
+
+    installation = github_get("https://api.github.com/installation/repositories")
+    installed_repositories = {
+        str(repo.get("full_name", "")).lower()
+        for repo in installation.get("repositories", [])
+    }
+    allowed_repositories = [
+        name.strip()
+        for name in os.environ["GITHUB_ALLOWED_REPOSITORIES"].split(",")
+    ]
+    assert allowed_repositories and all(allowed_repositories), "GitHub repository allowlist is empty"
+    expected_repositories = {
+        f"{os.environ['GITHUB_ORGANIZATION']}/{name}".lower()
+        for name in allowed_repositories
+    }
+    assert expected_repositories <= installed_repositories, \
+        "GitHub App installation does not cover the Titus allowlist"
+    print("github_provider=github-app")
+    print("github_organization=" + os.environ["GITHUB_ORGANIZATION"])
+    print("github_allowed_repository_count=" + str(len(expected_repositories)))
+    print("github_installation_repository_count=" + str(len(installed_repositories)))
+else:
+    for key in (
+        "GITHUB_APP_ID",
+        "GITHUB_APP_CLIENT_ID",
+        "GITHUB_APP_INSTALLATION_ID",
+        "GITHUB_ORGANIZATION",
+        "GITHUB_ALLOWED_REPOSITORIES",
+        "GITHUB_APP_PRIVATE_KEY_PATH",
+    ):
+        assert key not in os.environ, f"GitHub value present while {github_state}: {key}"
+print("github_state=" + github_state)
+
 auth_file = Path("/opt/data/auth.json")
 assert auth_file.is_file() and not auth_file.is_symlink(), "Titus auth file unavailable"
 auth_stat = auth_file.stat()
