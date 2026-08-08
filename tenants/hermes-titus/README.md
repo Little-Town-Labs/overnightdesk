@@ -95,11 +95,12 @@ TTS Teams preparation:
 
 - `/agents/hermes-titus/teams`: `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, `TEAMS_TENANT_ID`, `TEAMS_ALLOWED_USERS`, `TEAMS_ALLOWED_USER_EMAILS`, `TEAMS_ALLOW_ALL_USERS`, `TEAMS_PORT`, `TEAMS_HOME_CHANNEL`, `TEAMS_HOME_CHANNEL_NAME`, `TEAMS_DELIVERY_MODE`, `TEAMS_TEAM_ID`, `TEAMS_CHANNEL_ID`
 
-The initial Teams interaction is intentionally mention-only and limited to one
-approved `TTS-Internal` channel. Gary and Austin are independently allowlisted;
-ordinary non-mentioned messages, other channels, passive reading, all-message
-RSC delivery, attachments, and meeting artifacts are excluded. Explicit memory
-and action requests continue through Titus's existing boundaries. The
+The Teams interaction is active as a mention-only MVP limited to one approved
+`TTS-Internal` channel. Gary and Austin are independently allowlisted; ordinary
+non-mentioned messages, other channels, passive reading, all-message RSC
+delivery, attachments, and meeting artifacts are excluded. The public Bot
+Framework endpoint is `/api/messages` on the Titus dashboard hostname. Explicit
+memory and action requests continue through Titus's existing boundaries. The
 repo-owned `titus-teams-routing` Hermes plugin enforces the exact Team/channel
 and provider-mention checks before Hermes reasoning.
 

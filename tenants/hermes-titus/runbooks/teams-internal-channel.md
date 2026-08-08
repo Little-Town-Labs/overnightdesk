@@ -1,7 +1,8 @@
 # Titus TTS-Internal channel MVP
 
-This runbook covers the first Teams interaction slice. It is disabled-first and
-does not authorize a production activation by itself.
+This runbook covers the active first Teams interaction slice. It records the
+production boundary and verification evidence; it does not authorize a new
+activation or widen the scope by itself.
 
 ## Boundary
 
@@ -14,6 +15,8 @@ does not authorize a production activation by itself.
   artifact processing are out of scope.
 - The conversational `TEAMS_*` identity remains separate from the meeting
   processor's `MSGRAPH_*` identity.
+- The Bot Framework endpoint is `https://titus-dashboard.overnightdesk.com/api/messages`;
+  the Titus container publishes no host port.
 
 ## Qualification matrix
 
@@ -49,6 +52,7 @@ content appear in logs.
 
 ## Rollback
 
-Keep the Teams platform disabled, restore the prior source/configuration, and
-restart only through the reviewed Aegis workflow. Do not delete Phase values,
-Teams app registrations, or Titus data volumes as part of rollback.
+Disable the Teams route or remove the active Teams configuration through the
+reviewed Aegis workflow, then restart only `hermes-titus.service`. Do not delete
+Phase values, Teams app registrations, or Titus data volumes as part of
+rollback. Standalone Titus, Matrix, and meeting discovery must remain healthy.
