@@ -104,6 +104,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "control-tower": {"CONTROL_TOWER_TOKEN": "test-control-value"},
         "teams": {},
         "matrix": {"MATRIX_ENABLED": "false"},
+        "telegram": {},
         "memory": {
             "MEMORY_TENCENTDB_EMBEDDING_BASE_URL": "https://openrouter.ai/api/v1",
             "MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS": "1536",
@@ -226,11 +227,50 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
             print("phase test failure", file=sys.stderr)
             raise SystemExit(1)
 
+        if path == "/agents/hermes-titus/telegram":
+            scenario = os.environ.get("PHASE_TEST_TELEGRAM_SCENARIO", "disabled")
+            if scenario == "disabled":
+                print("{}")
+                raise SystemExit(0)
+            if scenario == "ready":
+                print(json.dumps({
+                    "TELEGRAM_ALLOWED_USERS": "123456789",
+                    "TELEGRAM_BOT_TOKEN": "123456789:AbCdEf_0123456789",
+                }))
+                raise SystemExit(0)
+            if scenario == "wildcard":
+                print(json.dumps({
+                    "TELEGRAM_ALLOWED_USERS": "*",
+                    "TELEGRAM_BOT_TOKEN": "123456789:AbCdEf_0123456789",
+                }))
+                raise SystemExit(0)
+            if scenario == "multi_user":
+                print(json.dumps({
+                    "TELEGRAM_ALLOWED_USERS": "123456789,987654321",
+                    "TELEGRAM_BOT_TOKEN": "123456789:AbCdEf_0123456789",
+                }))
+                raise SystemExit(0)
+            if scenario == "unknown_key":
+                print(json.dumps({
+                    "TELEGRAM_ALLOWED_USERS": "123456789",
+                    "TELEGRAM_BOT_TOKEN": "123456789:AbCdEf_0123456789",
+                    "TELEGRAM_GROUP_ALLOWED_CHATS": "-1001234567890",
+                }))
+                raise SystemExit(0)
+            if scenario == "provider_error":
+                raise SystemExit(1)
+            if scenario == "malformed_json":
+                print("[")
+                raise SystemExit(0)
+            print("telegram test failure", file=sys.stderr)
+            raise SystemExit(1)
+
         names = {
             "/agents/hermes-titus/runtime": "core",
             "/agents/hermes-titus/overnightdesk": "control-tower",
             "/agents/hermes-titus/teams": "teams",
             "/agents/hermes-titus/matrix": "matrix",
+            "/agents/hermes-titus/telegram": "telegram",
             "/agents/hermes-titus/memory": "memory",
             "/agents/hermes-email-intake/titus": "email-intake",
         }
@@ -262,11 +302,13 @@ def run_phase_loader(
     scenario: str,
     *,
     prior: str | None = None,
+    telegram_scenario: str = "disabled",
 ) -> tuple[subprocess.CompletedProcess[str], Path]:
     env, output = phase_loader_fixture(tmp_path)
     if prior is not None:
         output.write_text(prior)
     env["PHASE_TEST_SCENARIO"] = scenario
+    env["PHASE_TEST_TELEGRAM_SCENARIO"] = telegram_scenario
     result = subprocess.run(
         ["bash", str(LOAD_PHASE_ENV)],
         check=False,
@@ -275,6 +317,57 @@ def run_phase_loader(
         env=env,
     )
     return result, output
+
+
+@pytest.mark.parametrize(
+    "telegram_scenario", ["disabled", "provider_error", "malformed_json"]
+)
+def test_phase_loader_keeps_telegram_disabled_without_a_valid_profile(
+    tmp_path: Path,
+    telegram_scenario: str,
+) -> None:
+    result, output = run_phase_loader(tmp_path, "absent", telegram_scenario=telegram_scenario)
+
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    assert "TITUS_TELEGRAM_STATE=disabled" in runtime
+    assert "TELEGRAM_BOT_TOKEN=" not in runtime
+    assert "telegram=disabled" in result.stdout
+
+
+def test_phase_loader_projects_one_user_telegram_profile_without_logging_token(
+    tmp_path: Path,
+) -> None:
+    result, output = run_phase_loader(tmp_path, "absent", telegram_scenario="ready")
+
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    assert "TITUS_TELEGRAM_STATE=ready" in runtime
+    assert "TELEGRAM_ALLOWED_USERS='123456789'" in runtime
+    assert "123456789:AbCdEf_0123456789" in runtime
+    assert "123456789:AbCdEf_0123456789" not in result.stdout
+    assert "123456789:AbCdEf_0123456789" not in result.stderr
+
+
+@pytest.mark.parametrize("telegram_scenario", ["wildcard", "multi_user", "unknown_key"])
+def test_phase_loader_disables_broad_or_unknown_telegram_profiles(
+    tmp_path: Path,
+    telegram_scenario: str,
+) -> None:
+    prior = "PRIOR_RUNTIME_ENVIRONMENT=preserved\n"
+    result, output = run_phase_loader(
+        tmp_path,
+        "absent",
+        prior=prior,
+        telegram_scenario=telegram_scenario,
+    )
+
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    assert "TITUS_TELEGRAM_STATE=invalid" in runtime
+    assert "TELEGRAM_BOT_TOKEN=" not in runtime
+    assert "telegram=invalid" in result.stdout
+    assert "PRIOR_RUNTIME_ENVIRONMENT" not in runtime
 
 
 @pytest.mark.parametrize("scenario", ["absent", "disabled"])

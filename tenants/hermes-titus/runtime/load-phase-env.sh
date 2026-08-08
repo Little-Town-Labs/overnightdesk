@@ -75,10 +75,26 @@ fetch_optional_path() {
     die "invalid Phase export for optional path $path"
 }
 
+fetch_optional_disabled_path() {
+  local path=$1
+  local target=$2
+  if ! timeout "$phase_timeout" "$phase_bin" secrets export \
+    --app "$phase_app" \
+    --env "$phase_env" \
+    --path "$path" \
+    --format json >"$target"; then
+    printf '{}\n' >"$target"
+    return
+  fi
+  jq -e 'type == "object"' "$target" >/dev/null 2>&1 ||
+    printf '{}\n' >"$target"
+}
+
 fetch_path /agents/hermes-titus/runtime "$work_dir/core.json"
 fetch_path /agents/hermes-titus/overnightdesk "$work_dir/control-tower.json"
 fetch_path /agents/hermes-titus/teams "$work_dir/teams.json"
 fetch_path /agents/hermes-titus/matrix "$work_dir/matrix.json"
+fetch_optional_disabled_path /agents/hermes-titus/telegram "$work_dir/telegram.json"
 fetch_path /agents/hermes-titus/memory "$work_dir/memory.json"
 fetch_path /agents/hermes-email-intake/titus "$work_dir/email-intake.json"
 fetch_optional_path \
@@ -107,6 +123,12 @@ jq -e '
     "MATRIX_USER_ID"
   ] | length) == 0
 ' "$work_dir/matrix.json" >/dev/null || die 'unexpected key in Titus Matrix Phase path'
+telegram_keys_valid=true
+if ! jq -e '
+  (keys - ["TELEGRAM_ALLOWED_USERS", "TELEGRAM_BOT_TOKEN"] | length) == 0
+' "$work_dir/telegram.json" >/dev/null; then
+  telegram_keys_valid=false
+fi
 jq -e '
   keys == [
     "MEMORY_TENCENTDB_EMBEDDING_BASE_URL",
@@ -213,6 +235,25 @@ case "$matrix_enabled" in
     ;;
 esac
 
+telegram_state=disabled
+if jq -e 'length == 0' "$work_dir/telegram.json" >/dev/null; then
+  :
+elif test "$telegram_keys_valid" = true && jq -e '
+  keys == ["TELEGRAM_ALLOWED_USERS", "TELEGRAM_BOT_TOKEN"] and
+  (.TELEGRAM_ALLOWED_USERS | type == "string") and
+  (.TELEGRAM_ALLOWED_USERS | test("^[0-9]+$")) and
+  (.TELEGRAM_BOT_TOKEN | type == "string") and
+  (.TELEGRAM_BOT_TOKEN | length >= 20 and length <= 128) and
+  (.TELEGRAM_BOT_TOKEN | test("^[0-9]+:[A-Za-z0-9_-]+$") )
+' "$work_dir/telegram.json" >/dev/null; then
+  jq -s '.[0] * .[1]' \
+    "$work_dir/final.json" "$work_dir/telegram.json" >"$work_dir/telegram-final.json"
+  mv "$work_dir/telegram-final.json" "$work_dir/final.json"
+  telegram_state=ready
+else
+  telegram_state=invalid
+fi
+
 linear_state=disabled
 if jq -e 'length == 0' "$work_dir/linear.json" >/dev/null; then
   :
@@ -247,6 +288,7 @@ fi
   jq -r 'to_entries[] | "\(.key)=\(.value | @sh)"' "$work_dir/final.json"
   printf 'TITUS_TEAMS_STATE=%q\n' "$teams_state"
   printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
+  printf 'TITUS_TELEGRAM_STATE=%q\n' "$telegram_state"
   printf 'TITUS_MEMORY_EMBEDDING_STATE=%q\n' "$memory_state"
   printf 'TITUS_LINEAR_STATE=%q\n' "$linear_state"
   printf 'TITUS_DASHBOARD_OIDC_CLIENT_ID=%q\n' "$oidc_client_id"
@@ -254,5 +296,5 @@ fi
 
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
-printf 'hermes-titus phase load: core=ready teams=%s matrix=%s memory_embedding=%s linear=%s\n' \
-  "$teams_state" "$matrix_state" "$memory_state" "$linear_state"
+printf 'hermes-titus phase load: core=ready teams=%s matrix=%s telegram=%s memory_embedding=%s linear=%s\n' \
+  "$teams_state" "$matrix_state" "$telegram_state" "$memory_state" "$linear_state"

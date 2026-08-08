@@ -567,6 +567,52 @@ if matrix_state == "ready":
     print("matrix_identity=@hermes-titus:matrix.org")
     print("matrix_room=joined_encrypted")
 print("matrix_state=" + matrix_state)
+telegram_state = os.environ.get("TITUS_TELEGRAM_STATE", "disabled")
+assert telegram_state in {"disabled", "invalid", "failed", "ready"}, \
+    "unexpected Telegram state"
+telegram = (config.get("platforms") or {}).get("telegram") or {}
+telegram_extra = telegram.get("extra") or {}
+assert bool(telegram.get("enabled")) == (telegram_state == "ready"), \
+    "unexpected Telegram enable state"
+assert telegram_extra.get("group_allow_from") == [], \
+    "Telegram group sender allowlist must remain empty"
+assert telegram_extra.get("require_mention") is False, \
+    "Telegram mention policy must remain disabled for private DMs"
+if telegram_state == "ready":
+    assert os.environ.get("TELEGRAM_BOT_TOKEN"), \
+        "Telegram bot token unavailable"
+    assert telegram_extra.get("allow_from") == [os.environ["TELEGRAM_ALLOWED_USERS"]], \
+        "unexpected Telegram user allowlist"
+    try:
+        bot = get(
+            "https://api.telegram.org/bot" +
+            os.environ["TELEGRAM_BOT_TOKEN"] + "/getMe"
+        )
+    except Exception:
+        raise AssertionError("Telegram Bot API identity check failed") from None
+    assert isinstance(bot, dict) and bot.get("ok") is True, \
+        "Telegram Bot API identity check failed"
+    bot_result = bot.get("result")
+    assert isinstance(bot_result, dict), \
+        "Telegram Bot API identity check failed"
+    assert isinstance(bot_result.get("id"), int) and bot_result.get("is_bot") is True, \
+        "Telegram Bot API identity is invalid"
+    status = get("http://127.0.0.1:9119/api/status")
+    platform = (status.get("gateway_platforms") or {}).get("telegram") or {}
+    assert status.get("gateway_state") == "running" and status.get("gateway_running") is True, \
+        "Hermes gateway is not running"
+    assert platform.get("state") == "connected", \
+        "Telegram adapter is not connected"
+    assert platform.get("error_code") is None and platform.get("error_message") is None, \
+        "Telegram adapter reports an error"
+    print("telegram_provider=reachable")
+    print("telegram_adapter_state=connected")
+else:
+    assert "TELEGRAM_BOT_TOKEN" not in os.environ, \
+        "Telegram bot token present while disabled"
+    assert telegram_extra.get("allow_from") == [], \
+        "Telegram allowlist present while disabled"
+print("telegram_state=" + telegram_state)
 PY
       test -f /opt/data/skills/agentmail-email/SKILL.md
       test -f /opt/data/skills/control-tower-hermes/SKILL.md

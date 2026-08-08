@@ -1,6 +1,6 @@
 # Hermes Titus
 
-`hermes-titus` is the OvernightDesk operations and support agent for Control Tower, the TTS Microsoft Teams workspace, and Titus's AgentMail inbox. Its tenant source, skills, runtime contract, and production lifecycle files live here.
+`hermes-titus` is the OvernightDesk operations and support agent for Control Tower, the TTS Microsoft Teams workspace, Telegram, and Titus's AgentMail inbox. Its tenant source, skills, runtime contract, and production lifecycle files live here.
 
 ## Runtime boundary
 
@@ -126,6 +126,23 @@ room `!LuLWlULPVgtogXtKbP:matrix.org`. Phase paths are case-sensitive; all eight
 records must remain under the lowercase `matrix` path. The access token and
 recovery key are secret values and must never be printed, logged, committed, or
 placed in Docker configuration.
+
+Telegram channel:
+
+- `/agents/hermes-titus/telegram`: exactly `TELEGRAM_BOT_TOKEN` and
+  `TELEGRAM_ALLOWED_USERS`
+
+Telegram is an additive native Hermes channel for Gary's private direct
+messages. The source default is disabled; readiness requires the exact
+Phase-backed bot token and one numeric user ID. The adapter uses outbound
+polling, an explicit `allow_from` for Gary, and an empty group sender allowlist.
+Malformed or unavailable optional Telegram data disables only Telegram and does
+not stop Titus's shared runtime or sibling channels. Ready-state verification
+also checks the redacted Bot API identity and Hermes adapter connection state.
+Groups, supergroups, forum topics, channel posts, additional users, wildcard
+access, webhooks, and public Telegram ingress are excluded. The existing Matrix
+channel and its Element client remain unchanged by this feature. See
+`runbooks/telegram-dm-channel.md` for redacted qualification and rollback.
 
 Routed email intake:
 
