@@ -44,7 +44,7 @@ test "${#oidc_client_id}" -ge 20 && test "${#oidc_client_id}" -le 128 || \
 printf '%s' "$oidc_client_id" | grep -Eq '^[A-Za-z0-9_-]+$' || \
   die 'Titus dashboard OIDC client ID format is invalid'
 
-install -d -o root -g 10000 -m 0750 "$runtime_dir"
+install -d -o root -g "$github_env_group" -m 0750 "$runtime_dir"
 work_dir=$(mktemp -d "$runtime_dir/.load.XXXXXX")
 trap 'rm -rf "$work_dir"' EXIT
 chmod 0700 "$work_dir"
