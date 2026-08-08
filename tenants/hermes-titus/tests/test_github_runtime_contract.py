@@ -38,6 +38,8 @@ def test_private_key_uses_dedicated_read_only_mount_not_process_environment() ->
 
     assert "/run/secrets/hermes-titus-github-app-private-key" in startup
     assert "/run/secrets/hermes-titus-github-app-private-key" in launcher
+    assert "github-app.env" in launcher
+    assert "--env-file" in launcher
     assert "GITHUB_APP_PRIVATE_KEY" in startup
     assert "must not be injected as an environment value" in startup
     assert "GITHUB_APP_PRIVATE_KEY=" in deploy

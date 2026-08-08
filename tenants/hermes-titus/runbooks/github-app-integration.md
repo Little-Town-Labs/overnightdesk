@@ -17,6 +17,9 @@ key. The key is never placed in Titus's environment or Docker configuration.
 The Aegis host writes it to a root-owned, mode-0440 file and mounts that file
 read-only at `/run/secrets/hermes-titus-github-app-private-key`. Hermes's native
 GitHub App adapter reads that path and obtains a short-lived installation token.
+The non-secret App metadata is also supplied through a dedicated Docker env
+file so fresh `docker exec` diagnostics see the same App identity as Titus's
+gateway. The private key is intentionally absent from that env file.
 
 `TITUS_GITHUB_STATE=ready` means the profile passed shape validation. Titus's
 deployment verifier additionally obtains a provider token, confirms the

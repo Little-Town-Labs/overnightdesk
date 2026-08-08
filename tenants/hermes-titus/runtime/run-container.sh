@@ -3,6 +3,12 @@ set -euo pipefail
 
 name=hermes-titus
 image=${TITUS_IMAGE:-overnightdesk/hermes-agent:0.19.0-coder}
+github_env_file=${TITUS_GITHUB_ENV_FILE:-/run/hermes-titus/github-app.env}
+
+test -r "$github_env_file" || {
+  printf '%s is unavailable\n' "$github_env_file" >&2
+  exit 1
+}
 
 if docker container inspect "$name" >/dev/null 2>&1; then
   running=$(docker inspect -f '{{.State.Running}}' "$name")
@@ -31,5 +37,6 @@ exec docker run --rm \
   --volume titus-project-knowledge-data:/opt/data/project-briefs \
   --volume /run/hermes-titus/runtime.env:/run/secrets/hermes-titus-runtime:ro \
   --volume /run/hermes-titus/github-app-private-key:/run/secrets/hermes-titus-github-app-private-key:ro \
+  --env-file "$github_env_file" \
   --entrypoint /usr/bin/bash \
   "$image" /opt/data/bin/start-with-secrets.sh
