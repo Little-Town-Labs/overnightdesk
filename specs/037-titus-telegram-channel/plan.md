@@ -69,9 +69,10 @@ The integration uses the native Telegram plugin already present in the pinned
 image. The repository owns the boundary around it:
 
 1. `runtime/load-phase-env.sh` fetches `/agents/hermes-titus/telegram`, rejects
-   unknown keys and invalid values, validates one numeric Gary ID and token
-   shape, and emits only redacted readiness metadata plus the required runtime
-   values when ready.
+   unknown keys and invalid values into a disabled/invalid channel state,
+   validates one numeric Gary ID and token shape, and emits only redacted
+   readiness metadata plus the required runtime values when ready. Invalid
+   optional data never aborts Titus startup.
 2. `runtime/start-with-secrets.sh` enables the native Telegram platform only
    for the ready state, pins private-DM-only adapter settings, and leaves
    Matrix/Teams configuration untouched.
@@ -80,7 +81,9 @@ image. The repository owns the boundary around it:
    group senders cannot inherit the global DM allowlist.
 4. `tests/` proves the Phase contract and static security boundary without
    storing or printing real values.
-5. The runbook and quickstart define disabled-first deployment, canary, health,
+5. Deployment verification checks the redacted Telegram Bot API identity and
+   Hermes gateway platform state before reporting Telegram ready.
+6. The runbook and quickstart define disabled-first deployment, canary, health,
    and rollback evidence.
 
 ## Project Structure

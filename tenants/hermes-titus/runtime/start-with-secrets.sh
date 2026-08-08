@@ -88,7 +88,7 @@ export MATRIX_MAX_MEDIA_BYTES=10485760
 
 export TELEGRAM_ALLOW_ALL_USERS=false
 case "${TITUS_TELEGRAM_STATE:-disabled}" in
-  disabled)
+  disabled|invalid|failed)
     unset TELEGRAM_BOT_TOKEN TELEGRAM_ALLOWED_USERS
     ;;
   ready)

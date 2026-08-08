@@ -46,7 +46,9 @@ An inbound update may create a Titus turn only when:
 4. the event is not bot-authored or otherwise rejected by the native adapter.
 
 No group, supergroup, forum, channel, unauthorized sender, wildcard policy, or
-invalid Phase profile may create a turn.
+invalid Phase profile may create a turn. Invalid optional Telegram data is
+projected as a disabled/invalid channel state and must not stop Titus's shared
+service or sibling channels.
 
 ## Secret and evidence boundary
 

@@ -12,7 +12,8 @@ channels, or webhook ingress.
 - Chat scope: private direct messages only
 - Transport: outbound polling
 - Group sender policy: explicit empty `group_allow_from`
-- Activation: readiness-gated and disabled when the profile is absent/invalid
+- Activation: readiness-gated; absent/invalid profiles disable Telegram without
+  stopping Titus or sibling channels
 
 The bot token is never printed, logged, committed, placed in command
 arguments, or copied into this runbook. User IDs and message bodies are not
@@ -46,14 +47,15 @@ values or pipe the full export into logs.
 
 1. Run the local checks and inspect the source diff.
 2. Deploy the source through the normal Titus procedure while Telegram is
-   absent/invalid or otherwise not ready.
+   absent/invalid or otherwise not ready; Titus must remain healthy with only
+   Telegram disabled.
 3. Restart only `hermes-titus.service` and verify Titus, Matrix, memory, and
    AgentMail remain healthy.
 4. Verify no Telegram webhook URL, listener, host port, or token appears in
    Docker inspection or logs.
 5. Confirm the Phase profile has exactly the two expected keys without values.
-6. With the profile ready, restart only Titus and verify metadata-only
-   connected/polling evidence.
+6. With the profile ready, restart only Titus and verify the redacted bot
+   identity, Hermes gateway `telegram=connected` state, and polling evidence.
 
 ## Gary canary
 

@@ -28,7 +28,7 @@ any Telegram interaction.
 
 - [x] T005 [P] Add failing tests for exact Telegram Phase keys, one numeric Gary ID, token-shape validation, disabled readiness, and secret-free evidence in `tenants/hermes-titus/tests/test_telegram_runtime_contract.py`.
 - [x] T006 [P] Add redacted Telegram fixtures for valid, invalid, wildcard, multi-user, group, private, unauthorized, and provider-failure cases in `tenants/hermes-titus/tests/fixtures/telegram_channel.py`.
-- [x] T007 Extend `tenants/hermes-titus/runtime/load-phase-env.sh` to fetch `/agents/hermes-titus/telegram`, reject unknown or invalid values, project the profile only when ready, and emit `TITUS_TELEGRAM_STATE` without printing secrets.
+- [x] T007 Extend `tenants/hermes-titus/runtime/load-phase-env.sh` to fetch `/agents/hermes-titus/telegram`, reject unknown or invalid values into a disabled/invalid channel state without stopping Titus, project the profile only when ready, and emit `TITUS_TELEGRAM_STATE` without printing secrets.
 - [x] T008 Add disabled-by-default native Telegram configuration and explicit no-group/no-webhook policy in `tenants/hermes-titus/config/config.yaml`.
 - [x] T009 Gate Telegram enablement in `tenants/hermes-titus/runtime/start-with-secrets.sh` on the strict readiness state while preserving Matrix, Teams, email, memory, and approval configuration.
 
@@ -91,7 +91,7 @@ Titus/Matrix/AgentMail/memory health.
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Add failing tests for no webhook/public port, native plugin presence, disabled state, rollback state, replay/restart duplicate suppression, and unchanged Matrix/Teams/email settings in `tenants/hermes-titus/tests/test_telegram_runtime_contract.py`.
+- [x] T018 [P] [US3] Add failing tests for no webhook/public port, native plugin presence, disabled/invalid state, redacted provider identity and connected adapter/polling health, rollback state, replay/restart duplicate suppression, and unchanged Matrix/Teams/email settings in `tenants/hermes-titus/tests/test_telegram_runtime_contract.py`.
 
 ### Implementation for User Story 3
 

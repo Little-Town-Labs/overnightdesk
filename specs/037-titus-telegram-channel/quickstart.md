@@ -13,7 +13,8 @@ git diff --check
 
 Expected result: all Telegram contract tests pass; the source template is
 disabled; no webhook, public port, group allowlist, wildcard, or token literal
-is present.
+is present. An absent, malformed, or invalid optional Telegram profile must
+leave Titus and its sibling channels startable with Telegram disabled.
 
 Final local verification used:
 
@@ -23,7 +24,10 @@ PYTHONPATH=tenants/hermes-titus/tests:tenants/hermes-titus/mcp-servers/guarded-a
   tenants/hermes-titus/mcp-servers/guarded-agentmail/tests -q
 ```
 
-Result: `171 passed`, with one pre-existing pydantic warning.
+Telegram-focused runtime projection and contract checks pass. The full current
+Titus test invocation reports `173 passed, 1 failed`; the single failure is a
+pre-existing Teams telemetry assertion on current `main`, unrelated to this
+feature. Qualification remains green.
 
 ## Read-only Phase preflight
 
@@ -45,7 +49,8 @@ Expected keys are exactly `TELEGRAM_ALLOWED_USERS` and
 
 1. Deploy the source using the existing Titus deployment procedure.
 2. Restart only `hermes-titus.service` while Telegram is not ready.
-3. Verify Titus, memory, Matrix, and AgentMail remain healthy.
+3. Verify Titus, memory, Matrix, Teams, and AgentMail remain healthy; invalid
+   Telegram data must not fail the shared service preflight.
 4. Verify no public Telegram webhook port exists and Docker inspection contains
    no token value.
 
@@ -53,8 +58,9 @@ Expected keys are exactly `TELEGRAM_ALLOWED_USERS` and
 
 1. Confirm the Phase profile still has exactly the two expected keys without
    printing values.
-2. Start Titus with the profile available and wait for redacted Telegram
-   `connected`/polling evidence.
+2. Start Titus with the profile available and wait for redacted Telegram bot
+   identity plus Hermes `gateway_platforms.telegram.state=connected` polling
+   evidence.
 3. Gary sends one harmless private DM and verifies one response in the same
    chat within 30 seconds under normal health.
 4. Verify a non-private test update and an unauthorized sender create no Titus

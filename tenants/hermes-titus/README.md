@@ -136,6 +136,9 @@ Telegram is an additive native Hermes channel for Gary's private direct
 messages. The source default is disabled; readiness requires the exact
 Phase-backed bot token and one numeric user ID. The adapter uses outbound
 polling, an explicit `allow_from` for Gary, and an empty group sender allowlist.
+Malformed or unavailable optional Telegram data disables only Telegram and does
+not stop Titus's shared runtime or sibling channels. Ready-state verification
+also checks the redacted Bot API identity and Hermes adapter connection state.
 Groups, supergroups, forum topics, channel posts, additional users, wildcard
 access, webhooks, and public Telegram ingress are excluded. The existing Matrix
 channel and its Element client remain unchanged by this feature. See

@@ -259,6 +259,9 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
                 raise SystemExit(0)
             if scenario == "provider_error":
                 raise SystemExit(1)
+            if scenario == "malformed_json":
+                print("[")
+                raise SystemExit(0)
             print("telegram test failure", file=sys.stderr)
             raise SystemExit(1)
 
@@ -316,7 +319,9 @@ def run_phase_loader(
     return result, output
 
 
-@pytest.mark.parametrize("telegram_scenario", ["disabled", "provider_error"])
+@pytest.mark.parametrize(
+    "telegram_scenario", ["disabled", "provider_error", "malformed_json"]
+)
 def test_phase_loader_keeps_telegram_disabled_without_a_valid_profile(
     tmp_path: Path,
     telegram_scenario: str,
@@ -345,7 +350,7 @@ def test_phase_loader_projects_one_user_telegram_profile_without_logging_token(
 
 
 @pytest.mark.parametrize("telegram_scenario", ["wildcard", "multi_user", "unknown_key"])
-def test_phase_loader_rejects_broad_or_unknown_telegram_profiles(
+def test_phase_loader_disables_broad_or_unknown_telegram_profiles(
     tmp_path: Path,
     telegram_scenario: str,
 ) -> None:
@@ -357,8 +362,12 @@ def test_phase_loader_rejects_broad_or_unknown_telegram_profiles(
         telegram_scenario=telegram_scenario,
     )
 
-    assert result.returncode != 0
-    assert output.read_text() == prior
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    assert "TITUS_TELEGRAM_STATE=invalid" in runtime
+    assert "TELEGRAM_BOT_TOKEN=" not in runtime
+    assert "telegram=invalid" in result.stdout
+    assert "PRIOR_RUNTIME_ENVIRONMENT" not in runtime
 
 
 @pytest.mark.parametrize("scenario", ["absent", "disabled"])

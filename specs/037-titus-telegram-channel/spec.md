@@ -58,7 +58,7 @@ the approved DM reaches Titus.
    before Titus processing regardless of sender.
 3. **Given** the Phase record is missing, malformed, wildcarded, or contains
    more than one allowed user, **When** Titus starts, **Then** Telegram remains
-   unavailable and the runtime fails closed.
+   unavailable while Titus, Matrix, Teams, email, and memory remain healthy.
 
 ### User Story 3 - Operate and recover the channel safely (Priority: P2)
 
@@ -78,10 +78,12 @@ healthy.
 
 1. **Given** Telegram is disabled or its Phase record is invalid, **When** the
    Titus service starts, **Then** no Telegram polling or webhook listener is
-   active and no token is projected into runtime configuration.
+   active, no token is projected into runtime configuration, and the shared
+   Titus service remains healthy.
 2. **Given** Telegram is enabled with the exact Phase contract, **When** Titus
    starts, **Then** it uses outbound polling, exposes no new public ingress, and
-   reports only metadata-only readiness evidence.
+   reports ready only after a redacted Bot API identity check and connected
+   Hermes Telegram adapter state are observed.
 3. **Given** Telegram must be rolled back, **When** the operator disables it and
    restarts Titus, **Then** Telegram stops accepting new messages while Titus's
    existing data, Matrix channel, Teams preparation, email intake, and memory
@@ -114,7 +116,8 @@ healthy.
 - **FR-003**: Titus MUST reject group, supergroup, forum, channel, bot-authored,
   and senderless Telegram updates before agent processing.
 - **FR-004**: Telegram access MUST remain disabled unless the exact Phase record
-  is present, valid, and explicitly eligible for activation by the runtime.
+  is present, valid, and explicitly eligible for activation by the runtime;
+  invalid optional Telegram data MUST NOT stop the shared Titus service.
 - **FR-005**: The Telegram Phase contract MUST accept only the bot token and
   one-user allowlist fields, reject unknown keys, reject wildcard access, and
   reject more than one user.
@@ -125,8 +128,8 @@ healthy.
 - **FR-008**: Telegram MUST NOT change the existing Matrix channel, Teams
   preparation, AgentMail intake, meeting processing, or memory data boundary.
 - **FR-009**: Disabled, invalid, unauthorized, unsupported-chat, and provider
-  failure outcomes MUST fail closed without broadening access or exposing
-  sensitive values.
+  failure outcomes MUST fail closed without broadening access, stopping
+  unrelated Titus channels, or exposing sensitive values.
 - **FR-010**: Runtime and qualification evidence MUST report only bounded
   metadata such as enabled/disabled, configured policy count, connection state,
   and failure category; it MUST exclude tokens, message bodies, and protected
@@ -155,13 +158,17 @@ healthy.
   non-private Telegram chats produce zero Titus agent turns, tool calls, memory
   writes, or visible responses.
 - **SC-003**: In qualification, invalid or disabled Telegram configuration
-  produces zero Telegram polling activity and no secret projection.
+  produces zero Telegram polling activity, no secret projection, and no
+  sibling-channel outage.
 - **SC-004**: At least 95% of valid Gary test messages receive a response or safe
   refusal within 30 seconds under normal Telegram and Titus service health.
 - **SC-005**: A disabled-first deployment and rollback preserve healthy Matrix,
   email, memory, and Titus runtime behavior with zero new public ports.
 - **SC-006**: Source scans, runtime inspection, health output, and sampled logs
   contain zero Telegram bot tokens or private message bodies.
+- **SC-007**: Ready-state deployment verification succeeds only when the
+  Telegram Bot API returns a valid bot identity and Hermes reports the Telegram
+  adapter as connected through its gateway platform health state.
 
 ## Assumptions
 

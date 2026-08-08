@@ -92,10 +92,16 @@ def test_startup_gates_telegram_on_readiness_without_webhook_or_public_port() ->
     assert "group_allow_from" in source
     assert "TELEGRAM_WEBHOOK_URL" not in source
     assert "TELEGRAM_WEBHOOK_SECRET" not in source
+    assert "disabled|invalid|failed" in source
     assert "3978" not in source.split("telegram", 1)[-1]
     assert "telegram_state=" in deploy
     assert "group_allow_from" in deploy
     assert "TELEGRAM_ALLOWED_USERS" in deploy
+    assert 'invalid", "failed", "ready' in deploy
+    assert "api.telegram.org/bot" in deploy
+    assert "gateway_platforms" in deploy
+    assert "telegram_provider=reachable" in deploy
+    assert "telegram_adapter_state=connected" in deploy
 
 
 def test_documentation_preserves_secret_free_gary_only_boundary() -> None:

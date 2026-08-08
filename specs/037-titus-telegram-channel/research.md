@@ -69,9 +69,11 @@ or stateful change with its own rollback and approval requirements.
 
 ## Final qualification evidence
 
-- The supported Titus test invocation passed with `171 passed` and one
-  pre-existing pydantic warning.
-- `tenants/hermes-titus/scripts/qualify.sh` passed with `140 passed` and the
+- The Telegram-focused runtime projection and contract checks pass.
+- The full current Titus test invocation reports `173 passed, 1 failed`; the
+  failure is a pre-existing Teams telemetry assertion on current `main`, not
+  part of this feature.
+- `tenants/hermes-titus/scripts/qualify.sh` passed with `141 passed` and the
   same warning.
 - Aegis post-deploy verification reported `telegram_state=ready`, exactly one
   configured Telegram user, an empty group sender allowlist, healthy Titus,

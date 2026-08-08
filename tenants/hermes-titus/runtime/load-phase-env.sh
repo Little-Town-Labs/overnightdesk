@@ -86,8 +86,8 @@ fetch_optional_disabled_path() {
     printf '{}\n' >"$target"
     return
   fi
-  jq -e 'type == "object"' "$target" >/dev/null ||
-    die "invalid Phase export for optional path $path"
+  jq -e 'type == "object"' "$target" >/dev/null 2>&1 ||
+    printf '{}\n' >"$target"
 }
 
 fetch_path /agents/hermes-titus/runtime "$work_dir/core.json"
@@ -123,9 +123,12 @@ jq -e '
     "MATRIX_USER_ID"
   ] | length) == 0
 ' "$work_dir/matrix.json" >/dev/null || die 'unexpected key in Titus Matrix Phase path'
-jq -e '
+telegram_keys_valid=true
+if ! jq -e '
   (keys - ["TELEGRAM_ALLOWED_USERS", "TELEGRAM_BOT_TOKEN"] | length) == 0
-' "$work_dir/telegram.json" >/dev/null || die 'unexpected key in Titus Telegram Phase path'
+' "$work_dir/telegram.json" >/dev/null; then
+  telegram_keys_valid=false
+fi
 jq -e '
   keys == [
     "MEMORY_TENCENTDB_EMBEDDING_BASE_URL",
@@ -235,7 +238,7 @@ esac
 telegram_state=disabled
 if jq -e 'length == 0' "$work_dir/telegram.json" >/dev/null; then
   :
-elif jq -e '
+elif test "$telegram_keys_valid" = true && jq -e '
   keys == ["TELEGRAM_ALLOWED_USERS", "TELEGRAM_BOT_TOKEN"] and
   (.TELEGRAM_ALLOWED_USERS | type == "string") and
   (.TELEGRAM_ALLOWED_USERS | test("^[0-9]+$")) and
@@ -248,7 +251,7 @@ elif jq -e '
   mv "$work_dir/telegram-final.json" "$work_dir/final.json"
   telegram_state=ready
 else
-  die 'Titus Telegram profile is invalid'
+  telegram_state=invalid
 fi
 
 linear_state=disabled
