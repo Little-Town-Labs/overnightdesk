@@ -12,16 +12,16 @@
 | `GITHUB_APP_PRIVATE_KEY` | yes | PEM private key retained only in Phase and the protected runtime file |
 
 The same Phase path may contain a separate repository-manager profile with the
-parallel `GITHUB_REPOSITORY_MANAGER_*` fields. Its five metadata fields are
-projected to Titus only when all six manager fields validate; its private key
-is retained only in a second protected runtime file and is never an
-environment value.
+parallel `GITHUB_REPOSITORY_MANAGER_*` fields. Its five metadata fields and
+private key are retained only in root-owned host files for the host-only
+verification helper; none are projected to Titus's general runtime.
 
 ## Derived runtime state
 
 - `TITUS_GITHUB_STATE`: `disabled`, `invalid`, or `ready`.
 - `GITHUB_APP_PRIVATE_KEY_PATH`: fixed container path present only when ready.
-- `TITUS_GITHUB_REPOSITORY_MANAGER_STATE`: `disabled`, `invalid`, or `ready`.
-- `GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH`: fixed container path
-  present only when the manager profile is ready.
+- `TITUS_GITHUB_REPOSITORY_MANAGER_STATE`: `disabled`, `invalid`, or `ready`
+  in the host-only manager env file.
+- `GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH`: fixed host path present
+  only in the host-only manager env file when the profile is ready.
 - The private-key contents are never a runtime environment field.

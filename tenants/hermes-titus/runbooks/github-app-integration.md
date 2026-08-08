@@ -29,16 +29,24 @@ GitHub App adapter reads that path and obtains a short-lived installation token.
 The non-secret App metadata is also supplied through a dedicated Docker env
 file so fresh `docker exec` diagnostics see the same App identity as Titus's
 gateway. The private key is intentionally absent from that env file.
-The repository-manager metadata follows the same rule. Its private key is
-available only at the separate protected mount
-`/run/secrets/hermes-titus-github-repository-manager-app-private-key` and is
-never injected as `GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY`.
+The repository-manager profile follows a stricter host-only boundary. Its
+metadata is written to the root-owned mode-0400
+`/run/hermes-titus/github-repository-manager.env`, and its private key is
+written to the root-owned mode-0400
+`/run/hermes-titus/github-repository-manager-app-private-key`. Neither file is
+mounted into Titus, and no manager value is projected into the agent
+container. The host-only `verify-github-repository-manager.sh` helper signs a
+short-lived App JWT, exchanges it for the configured installation token,
+verifies the App identity, and checks the installation repository allowlist. It
+performs no repository mutation and is not an agent capability.
 
 `TITUS_GITHUB_STATE=ready` means the profile passed shape validation. Titus's
 deployment verifier additionally obtains a provider token, confirms the
 GitHub-App provider is active, and checks that the installation covers every
 repository in `GITHUB_ALLOWED_REPOSITORIES`. Its output contains only the
-provider, organization, and repository counts.
+provider, organization, and repository counts. A configured manager profile is
+reported ready only after the host-only verifier completes the equivalent
+identity, token-exchange, and allowlist checks.
 
 Credential presence is not authority. The active Titus Control Tower profile
 must still be checked before any GitHub operation. The monitoring-only profile

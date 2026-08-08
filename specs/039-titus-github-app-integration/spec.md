@@ -70,8 +70,9 @@ unchanged.
 **Acceptance Scenarios**:
 
 1. **Given** GitHub metadata and private keys are present, **When** Titus
-   starts, **Then** each key is available only through its dedicated read-only
-   mount and no GitHub mutation capability is added.
+   starts, **Then** only the primary key is available through its dedicated
+   read-only mount; the repository-manager profile remains host-only and no
+   GitHub mutation capability is added.
 2. **Given** the GitHub profile is revoked or disabled, **When** Titus starts,
    **Then** only the GitHub integration is disabled and other Titus surfaces
    remain available.
@@ -98,8 +99,10 @@ unchanged.
   unknown or malformed profiles MUST not stop sibling Titus channels.
 - **FR-003**: Titus MUST keep both GitHub private keys out of the process
   environment, Docker configuration, logs, source control, and agent output.
-- **FR-004**: Titus MUST expose each valid App's non-secret metadata and
-  repository allowlist only when its corresponding profile is valid.
+- **FR-004**: Titus MUST expose only the valid primary App's non-secret
+  metadata and repository allowlist to the general runtime. The valid
+  repository-manager profile MUST remain in root-only host files for the
+  host-only verifier.
 - **FR-005**: Deployment verification MUST validate provider authentication and
   installation coverage for every configured repository before reporting GitHub
   ready.
@@ -112,8 +115,9 @@ unchanged.
 
 - **GitHub App profiles**: Phase-backed identities, installations,
   organizations, repository allowlists, and private keys for Titus.
-- **Protected key mounts**: Runtime-only file boundaries that provide each
-  private key to its adapter without putting it in environment variables.
+- **Protected key files**: Host-only or runtime-only file boundaries that keep
+  private keys out of environment variables; only the primary key is mounted
+  into Titus.
 - **GitHub readiness state**: Disabled, invalid, or ready state reported by
   Titus's projection and verifier.
 
@@ -121,8 +125,9 @@ unchanged.
 
 ### Measurable Outcomes
 
-- **SC-001**: Valid synthetic profiles project all ten non-key values and two
-  protected key paths with zero private-key values in captured output.
+- **SC-001**: Valid synthetic profiles project the primary non-key values into
+  Titus and retain manager metadata/key material only in root-only host files,
+  with zero private-key values in captured output.
 - **SC-002**: Every malformed-profile test leaves the shared Titus startup
   path successful and projects zero GitHub credentials.
 - **SC-003**: A ready verification checks provider authentication and 100% of

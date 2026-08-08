@@ -147,46 +147,10 @@ case "${TITUS_GITHUB_STATE:-disabled}" in
 esac
 
 case "${TITUS_GITHUB_REPOSITORY_MANAGER_STATE:-disabled}" in
-  disabled|invalid|failed)
-    unset GITHUB_REPOSITORY_MANAGER_APP_ID GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID \
-      GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID \
-      GITHUB_REPOSITORY_MANAGER_ORGANIZATION \
-      GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES \
-      GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH
-    test -z "${GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY:-}" || {
-      printf 'hermes-titus: GitHub repository manager private key must not be injected as an environment value\n' >&2
-      exit 1
-    }
-    unset GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY
-    ;;
+  disabled|invalid|failed) ;;
   ready)
-    for key in \
-      GITHUB_REPOSITORY_MANAGER_APP_ID \
-      GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID \
-      GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID \
-      GITHUB_REPOSITORY_MANAGER_ORGANIZATION \
-      GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES \
-      GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH; do
-      value=${!key:-}
-      test -n "$value" && test "$value" != NOT_CONFIGURED || {
-        printf 'hermes-titus: required GitHub repository manager value unavailable: %s\n' "$key" >&2
-        exit 1
-      }
-    done
-    test "$GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH" = \
-      /run/secrets/hermes-titus-github-repository-manager-app-private-key || {
-      printf 'hermes-titus: GitHub repository manager private key path is not the protected mount\n' >&2
-      exit 1
-    }
-    test -f "$GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH" && \
-      test ! -L "$GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH" || {
-      printf 'hermes-titus: GitHub repository manager private key file unavailable\n' >&2
-      exit 1
-    }
-    test -z "${GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY:-}" || {
-      printf 'hermes-titus: GitHub repository manager private key must not be injected as an environment value\n' >&2
-      exit 1
-    }
+    printf 'hermes-titus: repository manager credentials are host-only\n' >&2
+    exit 1
     ;;
   *)
     printf 'hermes-titus: GitHub repository manager state is invalid\n' >&2

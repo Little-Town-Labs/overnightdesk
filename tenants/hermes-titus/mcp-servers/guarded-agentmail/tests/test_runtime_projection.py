@@ -343,6 +343,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
     github_key_file = tmp_path / "github-app-private-key"
     manager_key_file = tmp_path / "github-repository-manager-app-private-key"
     github_env_file = runtime_dir / "github-app.env"
+    manager_env_file = runtime_dir / "github-repository-manager.env"
     output = runtime_dir / "runtime.env"
     env = {
         **os.environ,
@@ -356,6 +357,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "TITUS_GITHUB_PRIVATE_KEY_FILE": str(github_key_file),
         "TITUS_GITHUB_REPOSITORY_MANAGER_PRIVATE_KEY_FILE": str(manager_key_file),
         "TITUS_GITHUB_ENV_FILE": str(github_env_file),
+        "TITUS_GITHUB_REPOSITORY_MANAGER_ENV_FILE": str(manager_env_file),
         "TITUS_PHASE_TIMEOUT_SECONDS": "1",
     }
     return env, output
@@ -428,30 +430,34 @@ def test_phase_loader_projects_manager_metadata_without_injecting_private_key(
     runtime = output.read_text()
     manager_key_file = tmp_path / "github-repository-manager-app-private-key"
     github_env = (output.parent / "github-app.env").read_text()
-    assert "TITUS_GITHUB_REPOSITORY_MANAGER_STATE=ready" in runtime
-    assert "GITHUB_REPOSITORY_MANAGER_APP_ID='4537060'" in runtime
-    assert "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID='Iv23managertest'" in runtime
-    assert "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID='152179486'" in runtime
-    assert "GITHUB_REPOSITORY_MANAGER_ORGANIZATION='timeless-technology-solutions'" in runtime
-    assert "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES='client-project-template,tts-core'" in runtime
-    assert (
-        "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH="
-        "'/run/secrets/hermes-titus-github-repository-manager-app-private-key'"
-    ) in runtime
+    manager_env = (output.parent / "github-repository-manager.env").read_text()
+    assert "GITHUB_REPOSITORY_MANAGER_APP_ID=" not in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID=" not in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID=" not in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_ORGANIZATION=" not in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES=" not in runtime
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH=" not in runtime
     assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=" not in runtime
     assert "test-manager-private-key" not in runtime
-    assert "GITHUB_REPOSITORY_MANAGER_APP_ID=4537060\n" in github_env
-    assert "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID=Iv23managertest\n" in github_env
-    assert "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID=152179486\n" in github_env
-    assert "GITHUB_REPOSITORY_MANAGER_ORGANIZATION=timeless-technology-solutions\n" in github_env
-    assert "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES=client-project-template,tts-core\n" in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_ID=" not in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_ID=4537060\n" in manager_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_CLIENT_ID=Iv23managertest\n" in manager_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_INSTALLATION_ID=152179486\n" in manager_env
+    assert "GITHUB_REPOSITORY_MANAGER_ORGANIZATION=timeless-technology-solutions\n" in manager_env
+    assert "GITHUB_REPOSITORY_MANAGER_ALLOWED_REPOSITORIES=client-project-template,tts-core\n" in manager_env
     assert (
         "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY_PATH="
-        "/run/secrets/hermes-titus-github-repository-manager-app-private-key\n"
-    ) in github_env
+        + str(manager_key_file)
+        + "\n"
+    ) in manager_env
+    assert "TITUS_GITHUB_REPOSITORY_MANAGER_STATE=ready\n" in manager_env
     assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=" not in github_env
+    assert "GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY=" not in manager_env
     assert "test-manager-private-key" not in github_env
+    assert "test-manager-private-key" not in manager_env
     assert "test-manager-private-key" in manager_key_file.read_text()
+    assert manager_key_file.stat().st_mode & 0o777 == 0o400
+    assert (output.parent / "github-repository-manager.env").stat().st_mode & 0o777 == 0o400
 
 
 @pytest.mark.parametrize(

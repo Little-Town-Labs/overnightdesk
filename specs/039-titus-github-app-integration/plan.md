@@ -4,11 +4,12 @@
 
 ## Summary
 
-Project the owner-approved `/agents/github` Phase profiles into Titus using the
-existing host-to-container secret boundary. Keep non-secret App metadata in the
-runtime environment, write each private key to its own dedicated mode-0440 host
-file, mount both read-only, validate the startup state, and add a read-only
-GitHub App provider/installation coverage gate to the Titus verifier.
+Project the owner-approved primary `/agents/github` Phase profile into Titus
+using the existing host-to-container secret boundary. Keep the optional
+repository-manager profile entirely host-only: retain its metadata and private
+key in root-only files, use a host-only read-only verifier for identity,
+installation-token, and allowlist checks, and expose no manager credential or
+metadata to the general agent container.
 
 ## Technical Context
 
@@ -48,13 +49,14 @@ authorized.
 1. Host loader exports `/agents/github` with the Phase CLI.
 2. Loader validates the primary six-key profile and, when present, the exact
    six-key repository-manager profile.
-3. Loader writes only each private key to its own protected host file, with root
-   ownership and group-readable mode for UID/GID 10000.
-4. Titus receives metadata through the existing runtime env mount and each key
-   through a separate read-only mount.
+3. Loader writes the primary key to its protected runtime file and retains the
+   manager key plus metadata in root-only host files.
+4. Titus receives only the primary metadata and key through the existing
+   runtime env/key mounts; the manager profile remains host-only.
 5. Hermes `GitHubAuth` exchanges the primary key for a short-lived installation token.
-6. `deploy-aegis.sh verify` reads installation repository metadata and checks
-   the configured allowlist, without mutation.
+6. `deploy-aegis.sh verify` uses the primary native adapter and the host-only
+   manager verifier to read installation repository metadata and check both
+   configured allowlists, without mutation.
 
 ## Source Structure
 

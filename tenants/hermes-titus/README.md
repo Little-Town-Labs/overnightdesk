@@ -105,9 +105,13 @@ profile remains read-only and does not authorize GitHub mutations. See
 
 The separate repository-manager App uses the same Phase namespace for its
 `GITHUB_REPOSITORY_MANAGER_*` metadata and allowlist. Its private key is
-written only to `/run/secrets/hermes-titus-github-repository-manager-app-private-key`;
-`GITHUB_REPOSITORY_MANAGER_APP_PRIVATE_KEY` is never an environment value or
-Docker configuration value.
+written only to the root-owned host file
+`/run/hermes-titus/github-repository-manager-app-private-key`. Its metadata is
+kept in the root-owned host file
+`/run/hermes-titus/github-repository-manager.env`; neither file is projected
+into Titus's environment or Docker container. The host-only verifier checks the
+manager App identity, installation token, and configured allowlist. No manager
+write helper or Control Tower mutation authority is exposed to Titus.
 
 TTS Teams preparation:
 
