@@ -516,8 +516,9 @@ if github_state == "ready":
         for name in os.environ["GITHUB_ALLOWED_REPOSITORIES"].split(",")
     ]
     assert allowed_repositories and all(allowed_repositories), "GitHub repository allowlist is empty"
+    github_organization = os.environ["GITHUB_ORGANIZATION"]
     expected_repositories = {
-        f"{os.environ['GITHUB_ORGANIZATION']}/{name}".lower()
+        f"{github_organization}/{name}".lower()
         for name in allowed_repositories
     }
     assert expected_repositories <= installed_repositories, \

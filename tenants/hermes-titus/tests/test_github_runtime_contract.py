@@ -43,6 +43,8 @@ def test_private_key_uses_dedicated_read_only_mount_not_process_environment() ->
     assert "GITHUB_APP_PRIVATE_KEY=" in deploy
     assert "github_auth.auth_method() == \"github-app\"" in deploy
     assert "github_provider=github-app" in deploy
+    assert 'github_organization = os.environ["GITHUB_ORGANIZATION"]' in deploy
+    assert 'f"{GITHUB_ORGANIZATION}/' not in deploy
 
 
 def test_documentation_preserves_credential_and_capability_boundaries() -> None:
