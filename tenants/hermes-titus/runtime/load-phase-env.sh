@@ -8,6 +8,7 @@ output_file=${TITUS_RUNTIME_ENV:-/run/hermes-titus/runtime.env}
 phase_app=${TITUS_PHASE_APP:-timeless-tech-solutions}
 phase_env=${TITUS_PHASE_ENVIRONMENT:-production}
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-/opt/hermes-titus/secrets/dashboard-oidc-client-id}
+github_key_file=${TITUS_GITHUB_PRIVATE_KEY_FILE:-/run/hermes-titus/github-app-private-key}
 phase_timeout=${TITUS_PHASE_TIMEOUT_SECONDS:-30}
 
 die() {
@@ -95,6 +96,7 @@ fetch_path /agents/hermes-titus/overnightdesk "$work_dir/control-tower.json"
 fetch_path /agents/hermes-titus/teams "$work_dir/teams.json"
 fetch_path /agents/hermes-titus/matrix "$work_dir/matrix.json"
 fetch_optional_disabled_path /agents/hermes-titus/telegram "$work_dir/telegram.json"
+fetch_optional_disabled_path /agents/github "$work_dir/github.json"
 fetch_path /agents/hermes-titus/memory "$work_dir/memory.json"
 fetch_path /agents/hermes-email-intake/titus "$work_dir/email-intake.json"
 fetch_optional_path \
@@ -254,6 +256,39 @@ else
   telegram_state=invalid
 fi
 
+github_state=disabled
+github_key_path=/run/secrets/hermes-titus-github-app-private-key
+: >"$work_dir/github-key"
+if jq -e 'length == 0' "$work_dir/github.json" >/dev/null; then
+  :
+elif jq -e '
+  keys == [
+    "GITHUB_ALLOWED_REPOSITORIES",
+    "GITHUB_APP_CLIENT_ID",
+    "GITHUB_APP_ID",
+    "GITHUB_APP_INSTALLATION_ID",
+    "GITHUB_APP_PRIVATE_KEY",
+    "GITHUB_ORGANIZATION"
+  ] and
+  (.GITHUB_APP_ID | type == "string" and test("^[0-9]{1,20}$")) and
+  (.GITHUB_APP_CLIENT_ID | type == "string" and length >= 10 and length <= 128 and test("^[A-Za-z0-9_-]+$")) and
+  (.GITHUB_APP_INSTALLATION_ID | type == "string" and test("^[0-9]{1,20}$")) and
+  .GITHUB_ORGANIZATION == "timeless-technology-solutions" and
+  (.GITHUB_ALLOWED_REPOSITORIES | type == "string" and test("^[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*$")) and
+  (.GITHUB_APP_PRIVATE_KEY | type == "string" and test("^-----BEGIN (RSA )?PRIVATE KEY-----\\n[\\s\\S]+\\n-----END (RSA )?PRIVATE KEY-----\\n?$"))
+' "$work_dir/github.json" >/dev/null; then
+  jq -er '.GITHUB_APP_PRIVATE_KEY' "$work_dir/github.json" >"$work_dir/github-key"
+  chmod 0400 "$work_dir/github-key"
+  jq --arg key_path "$github_key_path" \
+    'del(.GITHUB_APP_PRIVATE_KEY) + {GITHUB_APP_PRIVATE_KEY_PATH: $key_path}' \
+    "$work_dir/github.json" >"$work_dir/github-public.json"
+  jq -s '.[0] * .[1]' "$work_dir/final.json" "$work_dir/github-public.json" >"$work_dir/github-final.json"
+  mv "$work_dir/github-final.json" "$work_dir/final.json"
+  github_state=ready
+else
+  github_state=invalid
+fi
+
 linear_state=disabled
 if jq -e 'length == 0' "$work_dir/linear.json" >/dev/null; then
   :
@@ -289,6 +324,7 @@ fi
   printf 'TITUS_TEAMS_STATE=%q\n' "$teams_state"
   printf 'TITUS_MATRIX_STATE=%q\n' "$matrix_state"
   printf 'TITUS_TELEGRAM_STATE=%q\n' "$telegram_state"
+  printf 'TITUS_GITHUB_STATE=%q\n' "$github_state"
   printf 'TITUS_MEMORY_EMBEDDING_STATE=%q\n' "$memory_state"
   printf 'TITUS_LINEAR_STATE=%q\n' "$linear_state"
   printf 'TITUS_DASHBOARD_OIDC_CLIENT_ID=%q\n' "$oidc_client_id"
@@ -296,5 +332,6 @@ fi
 
 unset PHASE_SERVICE_TOKEN
 install -o root -g 10000 -m 0440 "$work_dir/runtime.env" "$output_file"
-printf 'hermes-titus phase load: core=ready teams=%s matrix=%s telegram=%s memory_embedding=%s linear=%s\n' \
-  "$teams_state" "$matrix_state" "$telegram_state" "$memory_state" "$linear_state"
+install -o root -g 10000 -m 0440 "$work_dir/github-key" "$github_key_file"
+printf 'hermes-titus phase load: core=ready teams=%s matrix=%s telegram=%s github=%s memory_embedding=%s linear=%s\n' \
+  "$teams_state" "$matrix_state" "$telegram_state" "$github_state" "$memory_state" "$linear_state"

@@ -105,6 +105,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "teams": {},
         "matrix": {"MATRIX_ENABLED": "false"},
         "telegram": {},
+        "github": {},
         "memory": {
             "MEMORY_TENCENTDB_EMBEDDING_BASE_URL": "https://openrouter.ai/api/v1",
             "MEMORY_TENCENTDB_EMBEDDING_DIMENSIONS": "1536",
@@ -265,12 +266,45 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
             print("telegram test failure", file=sys.stderr)
             raise SystemExit(1)
 
+        if path == "/agents/github":
+            scenario = os.environ.get("PHASE_TEST_GITHUB_SCENARIO", "disabled")
+            if scenario in {"absent", "disabled"}:
+                print("{}")
+                raise SystemExit(0)
+            if scenario == "ready":
+                print(json.dumps({
+                    "GITHUB_APP_CLIENT_ID": "Iv23testclient",
+                    "GITHUB_APP_ID": "4526379",
+                    "GITHUB_APP_INSTALLATION_ID": "152179609",
+                    "GITHUB_APP_PRIVATE_KEY": (
+                        "-----BEGIN PRIVATE KEY-----\\n"
+                        "test-private-key\\n"
+                        "-----END PRIVATE KEY-----\\n"
+                    ),
+                    "GITHUB_ALLOWED_REPOSITORIES": "client-project-template,tts-core",
+                    "GITHUB_ORGANIZATION": "timeless-technology-solutions",
+                }))
+                raise SystemExit(0)
+            if scenario == "unknown_key":
+                print(json.dumps({
+                    "GITHUB_APP_ID": "4526379",
+                    "GITHUB_APP_PRIVATE_KEY": "invalid",
+                    "GITHUB_UNKNOWN": "must-not-project",
+                }))
+                raise SystemExit(0)
+            if scenario == "malformed_json":
+                print("[")
+                raise SystemExit(0)
+            print("github test failure", file=sys.stderr)
+            raise SystemExit(1)
+
         names = {
             "/agents/hermes-titus/runtime": "core",
             "/agents/hermes-titus/overnightdesk": "control-tower",
             "/agents/hermes-titus/teams": "teams",
             "/agents/hermes-titus/matrix": "matrix",
             "/agents/hermes-titus/telegram": "telegram",
+            "/agents/github": "github",
             "/agents/hermes-titus/memory": "memory",
             "/agents/hermes-email-intake/titus": "email-intake",
         }
@@ -282,6 +316,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
     token_file.write_text("t" * 32)
     oidc_file = tmp_path / "dashboard-oidc"
     oidc_file.write_text("T" * 24)
+    github_key_file = tmp_path / "github-app-private-key"
     output = runtime_dir / "runtime.env"
     env = {
         **os.environ,
@@ -292,6 +327,7 @@ def phase_loader_fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "TITUS_RUNTIME_DIR": str(runtime_dir),
         "TITUS_RUNTIME_ENV": str(output),
         "TITUS_DASHBOARD_OIDC_CLIENT_FILE": str(oidc_file),
+        "TITUS_GITHUB_PRIVATE_KEY_FILE": str(github_key_file),
         "TITUS_PHASE_TIMEOUT_SECONDS": "1",
     }
     return env, output
@@ -303,12 +339,14 @@ def run_phase_loader(
     *,
     prior: str | None = None,
     telegram_scenario: str = "disabled",
+    github_scenario: str = "disabled",
 ) -> tuple[subprocess.CompletedProcess[str], Path]:
     env, output = phase_loader_fixture(tmp_path)
     if prior is not None:
         output.write_text(prior)
     env["PHASE_TEST_SCENARIO"] = scenario
     env["PHASE_TEST_TELEGRAM_SCENARIO"] = telegram_scenario
+    env["PHASE_TEST_GITHUB_SCENARIO"] = github_scenario
     result = subprocess.run(
         ["bash", str(LOAD_PHASE_ENV)],
         check=False,
@@ -317,6 +355,48 @@ def run_phase_loader(
         env=env,
     )
     return result, output
+
+
+def test_phase_loader_projects_github_app_metadata_and_protected_key_file(
+    tmp_path: Path,
+) -> None:
+    result, output = run_phase_loader(tmp_path, "absent", github_scenario="ready")
+
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    key_file = tmp_path / "github-app-private-key"
+    key_text = key_file.read_text()
+    assert "TITUS_GITHUB_STATE=ready" in runtime
+    assert "GITHUB_APP_ID='4526379'" in runtime
+    assert "GITHUB_APP_CLIENT_ID='Iv23testclient'" in runtime
+    assert "GITHUB_APP_INSTALLATION_ID='152179609'" in runtime
+    assert "GITHUB_ORGANIZATION='timeless-technology-solutions'" in runtime
+    assert "GITHUB_ALLOWED_REPOSITORIES='client-project-template,tts-core'" in runtime
+    assert "GITHUB_APP_PRIVATE_KEY_PATH='/run/secrets/hermes-titus-github-app-private-key'" in runtime
+    assert "GITHUB_APP_PRIVATE_KEY=" not in runtime
+    assert "test-private-key" not in runtime
+    assert "test-private-key" in key_text
+    assert "github=ready" in result.stdout
+
+
+@pytest.mark.parametrize(
+    ("github_scenario", "expected_state"),
+    [("unknown_key", "invalid"), ("malformed_json", "disabled")],
+)
+def test_phase_loader_disables_malformed_github_profile_without_stopping_titus(
+    tmp_path: Path,
+    github_scenario: str,
+    expected_state: str,
+) -> None:
+    result, output = run_phase_loader(tmp_path, "absent", github_scenario=github_scenario)
+
+    assert result.returncode == 0, result.stderr
+    runtime = output.read_text()
+    assert f"TITUS_GITHUB_STATE={expected_state}" in runtime
+    assert "GITHUB_APP_ID=" not in runtime
+    assert "GITHUB_APP_PRIVATE_KEY_PATH=" not in runtime
+    assert (tmp_path / "github-app-private-key").read_text() == ""
+    assert f"github={expected_state}" in result.stdout
 
 
 @pytest.mark.parametrize(

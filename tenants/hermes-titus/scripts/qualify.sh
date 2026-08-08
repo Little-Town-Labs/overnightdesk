@@ -62,6 +62,8 @@ runtime_files=(
   "$tenant_root/skills/linear-technical-delivery/SKILL.md"
   "$tenant_root/skills/linear-technical-delivery/agents/openai.yaml"
   "$tenant_root/runbooks/linear-technical-delivery.md"
+  "$tenant_root/runbooks/github-app-integration.md"
+  "$tenant_root/tests/test_github_runtime_contract.py"
   "$tenant_root/runbooks/teams-internal-channel.md"
   "$tenant_root/skills/titus-teams-channel/SKILL.md"
   "$repo_root/infra/nginx/titus-teams.conf"
@@ -127,8 +129,9 @@ reject_pattern 'sidecar|remote synchronization|Obsidian Sync' \
 
 PYTHONDONTWRITEBYTECODE=1 \
 PYTHONPATH="$tenant_root/mcp-servers/guarded-agentmail" \
-  python -m pytest -q "$tenant_root/mcp-servers/guarded-agentmail/tests"
-PYTHONDONTWRITEBYTECODE=1 python - \
+  python3 -m pytest -q "$tenant_root/mcp-servers/guarded-agentmail/tests" \
+    "$tenant_root/tests/test_github_runtime_contract.py"
+PYTHONDONTWRITEBYTECODE=1 python3 - \
   "$tenant_root/mcp-servers/guarded-agentmail/guarded_email.py" \
   "$tenant_root/mcp-servers/guarded-agentmail/service.py" \
   "$tenant_root/mcp-servers/guarded-agentmail/server.py" \
@@ -178,6 +181,9 @@ require_pattern 'MATRIX_ALLOWED_USERS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'MATRIX_ALLOWED_ROOMS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TITUS_MATRIX_STATE' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern '/agents/hermes-titus/telegram' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern '/agents/github' "$tenant_root/runtime/load-phase-env.sh"
+require_pattern 'GITHUB_APP_PRIVATE_KEY_PATH' "$tenant_root/runtime/start-with-secrets.sh"
+require_pattern '/run/secrets/hermes-titus-github-app-private-key' "$tenant_root/runtime/run-container.sh"
 require_pattern 'TELEGRAM_ALLOWED_USERS' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TELEGRAM_BOT_TOKEN' "$tenant_root/runtime/load-phase-env.sh"
 require_pattern 'TITUS_TELEGRAM_STATE' "$tenant_root/runtime/load-phase-env.sh"

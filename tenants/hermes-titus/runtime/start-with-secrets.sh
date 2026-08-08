@@ -107,6 +107,45 @@ case "${TITUS_TELEGRAM_STATE:-disabled}" in
     ;;
 esac
 
+case "${TITUS_GITHUB_STATE:-disabled}" in
+  disabled|invalid|failed)
+    unset GITHUB_APP_ID GITHUB_APP_CLIENT_ID GITHUB_APP_INSTALLATION_ID \
+      GITHUB_ORGANIZATION GITHUB_ALLOWED_REPOSITORIES GITHUB_APP_PRIVATE_KEY_PATH
+    test -z "${GITHUB_APP_PRIVATE_KEY:-}" || {
+      printf 'hermes-titus: GitHub private key must not be injected as an environment value\n' >&2
+      exit 1
+    }
+    unset GITHUB_APP_PRIVATE_KEY
+    ;;
+  ready)
+    for key in \
+      GITHUB_APP_ID GITHUB_APP_CLIENT_ID GITHUB_APP_INSTALLATION_ID \
+      GITHUB_ORGANIZATION GITHUB_ALLOWED_REPOSITORIES GITHUB_APP_PRIVATE_KEY_PATH; do
+      value=${!key:-}
+      test -n "$value" && test "$value" != NOT_CONFIGURED || {
+        printf 'hermes-titus: required GitHub App value unavailable: %s\n' "$key" >&2
+        exit 1
+      }
+    done
+    test "$GITHUB_APP_PRIVATE_KEY_PATH" = /run/secrets/hermes-titus-github-app-private-key || {
+      printf 'hermes-titus: GitHub private key path is not the protected mount\n' >&2
+      exit 1
+    }
+    test -f "$GITHUB_APP_PRIVATE_KEY_PATH" && test ! -L "$GITHUB_APP_PRIVATE_KEY_PATH" || {
+      printf 'hermes-titus: GitHub private key file unavailable\n' >&2
+      exit 1
+    }
+    test -z "${GITHUB_APP_PRIVATE_KEY:-}" || {
+      printf 'hermes-titus: GitHub private key must not be injected as an environment value\n' >&2
+      exit 1
+    }
+    ;;
+  *)
+    printf 'hermes-titus: GitHub state is invalid\n' >&2
+    exit 1
+    ;;
+esac
+
 install -d -m 0700 /opt/data/.cache /opt/data/logs/memory_tencentdb /opt/data/memory-tencentdb/data
 test -x /opt/data/bin/hermes-email-run-approval || {
   printf 'hermes-titus: email run approval helper unavailable\n' >&2
