@@ -23,14 +23,14 @@
 - Project: `overnightdesk`
 - Status: `ready`
 
-- Canonical graph traced billing.isAdmin to requireAdmin and its fleet, metrics, and security-scan callers.
-- Targeted source reads confirmed billing.ts imports subscription state while require-admin.ts needs only normalized ADMIN_EMAILS identity policy.
+- Targeted auth-route reads confirmed POST currently dispatches direct email signup to Better Auth.
+- Targeted page and dashboard reads confirmed legacy acquisition, billing, wizard, provisioning, restart, and self-delete surfaces remain for the intended RED contracts.
 
 ## Delegated Tasks
 
 | Task | Spec Kit IDs | Mutable | Lane | Owned paths | Verification |
 |---|---|---:|---|---|---|
-| t003-t004-authorization-review | T003, T004 | no | codex-luna read-only | none | `npx tsc --noEmit`; `git diff --check` |
+| t005-t007-limited-frontend-contract-review | T005, T006, T007 | no | codex-luna read-only | none | `npx tsc --noEmit --incremental false`; `git diff --check` |
 
 ## Scope and Safety Gates
 

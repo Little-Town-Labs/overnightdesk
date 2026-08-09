@@ -57,13 +57,13 @@ retired UI/API route returns 404 with zero external or database mutation.
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Write and run failing server-boundary tests proving direct `POST /api/auth/sign-up/email` returns exact 404 with zero identity creation while sign-in and password recovery remain available in `src/lib/__tests__/auth-registration-retirement.test.ts` — FR-001, FR-003, SC-001, SC-002
-- [ ] T006 [P] [US1] Write and run failing root-entry and retired-page 404 tests in `src/app/__tests__/limited-frontend-routes.test.tsx` — FR-002, FR-003, FR-017, SC-001
-- [ ] T007 [P] [US1] Write and run failing dashboard regression tests proving selected-agent/chat capabilities remain while plan, billing, wizard, provisioning, restart, and self-delete controls are absent in `src/app/(protected)/dashboard/__tests__/limited-frontend.test.tsx` — FR-001, FR-004, FR-005, SC-002
+- [X] T005 [P] [US1] Write and run failing server-boundary tests proving direct `POST /api/auth/sign-up/email` returns exact 404 with zero identity creation while sign-in and password recovery remain available in `src/lib/__tests__/auth-registration-retirement.test.ts` — FR-001, FR-003, SC-001, SC-002
+- [X] T006 [P] [US1] Write and run failing root-entry and retired-page 404 tests in `src/app/__tests__/limited-frontend-routes.test.tsx` — FR-002, FR-003, FR-017, SC-001
+- [X] T007 [P] [US1] Write and run failing dashboard regression tests proving selected-agent/chat capabilities remain while plan, billing, wizard, provisioning, restart, and self-delete controls are absent in `src/app/(protected)/dashboard/__tests__/limited-frontend.test.tsx` — FR-001, FR-004, FR-005, SC-002
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Disable Better Auth email signup, intercept direct email-registration requests with exact 404 in `src/app/api/auth/[...all]/route.ts`, retain sign-in/reset/session/OIDC dispatch, migrate admin checks, and remove signup/verification public-route allowances in `src/lib/auth.ts` and `src/lib/middleware-utils.ts` until T005 passes — FR-001, FR-003, SC-001, SC-002
+- [ ] T008 [US1] Disable Better Auth email signup, intercept direct email-registration requests with exact 404 in `src/app/api/auth/[...all]/route.ts`, retain sign-in/reset/session/OIDC dispatch, migrate admin checks, and add an explicit retired-path 404 before authentication in `middleware.ts` and `src/lib/middleware-utils.ts` until T005-T006 pass — FR-001, FR-003, FR-017, SC-001, SC-002
 - [ ] T009 [US1] Remove the signup and verification pages and their sign-in link/test imports in `src/app/(auth)/sign-up/page.tsx`, `src/app/(auth)/verify-email/page.tsx`, `src/app/(auth)/sign-in/page.tsx`, and `src/lib/__tests__/auth-form-autocomplete.test.tsx` — FR-001, FR-002, SC-002
 - [ ] T010 [P] [US1] Replace customer marketing at the root with the minimal sign-in/dashboard entry and delete pricing/checkout pages in `src/app/page.tsx`, `src/app/pricing/page.tsx`, `src/app/pricing/pricing-card.tsx`, and `src/app/checkout/success/page.tsx` until T006 passes — FR-002, FR-003, SC-001
 - [ ] T011 [US1] Remove subscription gating from `src/app/(protected)/layout.tsx` and `src/lib/require-pro-or-admin.ts`, then replace Pro-or-admin checks with the existing admin rule in `src/app/api/engine/security/queue/route.ts`, `src/app/api/engine/security/queue/[id]/route.ts`, `src/app/api/engine/security/queue/[id]/resolve/route.ts`, and `src/app/api/engine/security/status/route.ts` — FR-004, FR-015, SC-003
