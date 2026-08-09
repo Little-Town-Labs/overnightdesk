@@ -25,6 +25,7 @@ const RETIRED_ROUTES = new Set([
   "/api/stripe/portal",
   "/api/stripe/webhook",
   "/api/account/delete",
+  "/api/subscription",
 ]);
 
 export function isRetiredRoute(pathname: string): boolean {

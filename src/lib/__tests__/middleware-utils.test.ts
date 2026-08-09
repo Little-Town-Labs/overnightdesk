@@ -113,6 +113,8 @@ describe("isRetiredRoute", () => {
     "/api/stripe/portal",
     "/api/stripe/webhook",
     "/api/stripe/webhook/",
+    "/api/subscription",
+    "/api/subscription/",
   ])("identifies retired path %s", (pathname) => {
     expect(isRetiredRoute(pathname)).toBe(true);
   });

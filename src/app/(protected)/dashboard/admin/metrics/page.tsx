@@ -18,7 +18,6 @@ export default async function AdminMetricsPage() {
       </div>
 
         <MetricsCards
-          activeSubscribers={metrics.activeSubscribers}
           runningInstances={metrics.runningInstances}
           avgDailyClaudeCalls={metrics.avgDailyClaudeCalls}
           atRiskTenants={metrics.atRiskTenants}
