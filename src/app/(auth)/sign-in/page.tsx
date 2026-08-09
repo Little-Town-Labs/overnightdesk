@@ -98,12 +98,6 @@ export default function SignInPage() {
             Forgot your password?
           </Link>
         </p>
-        <p className="text-zinc-400">
-          Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="text-blue-400 hover:text-blue-300">
-            Create one
-          </Link>
-        </p>
       </div>
     </div>
   );

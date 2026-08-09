@@ -7,7 +7,6 @@ jest.mock("@/lib/auth-client", () => ({
     requestPasswordReset: jest.fn(),
     resetPassword: jest.fn(),
     signIn: { email: jest.fn() },
-    signUp: { email: jest.fn() },
   },
 }));
 jest.mock("next/navigation", () => ({
@@ -22,7 +21,6 @@ jest.mock("next/link", () => ({
 
 import ResetPasswordPage from "@/app/(auth)/reset-password/page";
 import SignInPage from "@/app/(auth)/sign-in/page";
-import SignUpPage from "@/app/(auth)/sign-up/page";
 
 describe("authentication form autocomplete contracts", () => {
   afterEach(() => {
@@ -38,12 +36,14 @@ describe("authentication form autocomplete contracts", () => {
     expect(markup).toContain('autoComplete="current-password"');
   });
 
-  it("identifies account-creation credentials as new values", () => {
-    const markup = renderToStaticMarkup(<SignUpPage />);
+  it("offers password recovery without an account-creation link", () => {
+    const markup = renderToStaticMarkup(<SignInPage />);
+    const actionableHrefs = Array.from(
+      markup.matchAll(/<a[^>]*href="([^"]+)"/g),
+      (match) => match[1],
+    );
 
-    expect(markup).toContain('autoComplete="name"');
-    expect(markup).toContain('autoComplete="email"');
-    expect(markup).toContain('autoComplete="new-password"');
+    expect(actionableHrefs).toEqual(["/reset-password"]);
   });
 
   it("identifies reset-request and replacement credentials", () => {
