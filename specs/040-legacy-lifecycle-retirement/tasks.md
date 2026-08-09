@@ -24,8 +24,8 @@ database, Vercel, Aegis, provider, and secret mutations remain separate gates.
 **Purpose**: Freeze the exact retirement and preservation inventory before any
 source deletion.
 
-- [ ] T001 Re-verify the frontend, engine, and platform-standard caller inventory with the canonical code graph and targeted source reads, then record exact retained and retired paths in `specs/040-legacy-lifecycle-retirement/research.md` — FR-008, FR-011, SC-005
-- [ ] T002 [P] Add a source/config qualification script that distinguishes customer-lifecycle matches from legitimate business words and unrelated bridge wizards in `scripts/qualify-legacy-customer-lifecycle-retirement.sh`, then run it once and confirm it fails against the current legacy source — FR-002, FR-018, SC-009
+- [X] T001 Re-verify the frontend, engine, and platform-standard caller inventory with the canonical code graph and targeted source reads, then record exact retained and retired paths in `specs/040-legacy-lifecycle-retirement/research.md` — FR-008, FR-011, SC-005
+- [X] T002 [P] Add a source/config qualification script that distinguishes customer-lifecycle matches from legitimate business words and unrelated bridge wizards in `scripts/qualify-legacy-customer-lifecycle-retirement.sh`, then run it once and confirm it fails against the current legacy source — FR-002, FR-018, SC-009
 
 **Checkpoint**: Exact consumers, non-goals, and cross-repository ownership are
 documented; the qualification scan fails for known legacy artifacts.
@@ -95,11 +95,11 @@ chat/dashboard reads still work.
 ### Tests for User Story 2
 
 - [ ] T022 [P] [US2] Extend managed-variable handler/client regression coverage for exact authorization, value-free responses, idempotency, and no legacy fallback in `src/app/api/settings/agent-variables/__tests__/route.test.ts` and `src/lib/__tests__/provisioner.test.ts`, then confirm the new narrow-surface assertion fails — FR-008, FR-009, FR-010, SC-005, SC-006
-- [ ] T023 [P] [US2] Add read-only session and Mitchel-summary preservation tests that reject mutation-capable inputs in `src/app/api/engine/__tests__/sessions.test.ts` and `src/lib/mitchel-prospecting/__tests__/trevor-summary-client.test.ts` — FR-008, FR-011, SC-005
+- [ ] T023 [P] [US2] Add a regression test proving the unsupported sessions adapter is absent and a Mitchel-summary preservation test that rejects mutation-capable inputs in `src/lib/__tests__/provisioner.test.ts` and `src/lib/mitchel-prospecting/__tests__/trevor-summary-client.test.ts` — FR-008, FR-011, SC-005
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Narrow `src/lib/provisioner.ts` to `replaceManagedVariable` plus proven `getSessions` and `getMitchelProspectingSummary` reads; remove provision, write-secrets, configure-dashboard-auth, restart, and deprovision types/methods until T022-T023 pass — FR-008, FR-009, FR-010, SC-005, SC-006
+- [ ] T024 [US2] Remove the unsupported `src/app/api/engine/sessions/route.ts` adapter and narrow `src/lib/provisioner.ts` to `replaceManagedVariable` plus the proven `getMitchelProspectingSummary` read; remove provision, write-secrets, configure-dashboard-auth, restart, deprovision, and get-sessions types/methods until T022-T023 pass — FR-008, FR-009, FR-010, FR-011, SC-005, SC-006
 - [ ] T025 [US2] Remove broad restart and legacy dashboard-auth mutation routes/tests in `src/app/api/engine/restart/route.ts`, `src/app/api/admin/hermes/dashboard-auth/route.ts`, and `src/app/api/admin/hermes/dashboard-auth/__tests__/route.test.ts` — FR-008, FR-009, SC-005
 - [ ] T026 [US2] In the `overnightdesk-engine` repository, first update `internal/hermes/handlers_test.go` and `internal/hermes/provisioner_test.go` to require only health, managed-variable, and approved read-only route registration and confirm the tests fail — FR-008, FR-009, SC-005
 - [ ] T027 [US2] In the `overnightdesk-engine` repository, remove provision, deprovision, restart, dashboard-auth, and write-secrets handlers/services while preserving managed-variable and approved read-only implementations in `internal/hermes/handlers.go` and `internal/hermes/provisioner.go` until T026 passes — FR-008, FR-009, FR-010, SC-005

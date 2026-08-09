@@ -71,17 +71,21 @@ wholesale would remove the product the owner uses.
 
 ## Decision 5: Narrow the mixed provisioner client
 
-**Decision**: Retain `replaceManagedVariable` and only proven read-only calls
-required by active dashboard/chat behavior, currently session and Mitchel
-summary reads. Remove `provision`, `writeSecrets`,
+**Decision**: Retain `replaceManagedVariable` and the proven Mitchel summary
+read required by the active dashboard. Remove the unsupported `getSessions`
+adapter and route: the frontend source calls `/sessions`, but the engine never
+registered that endpoint and the platform standard records it as
+deferred/superseded. Remove `provision`, `writeSecrets`,
 `configureDashboardAuth`, `restart`, and `deprovision` plus their route callers.
-The Aegis service retains only managed-variable handling and health/readiness
-after its separately reviewed isolation.
+After its separately reviewed isolation, the Aegis service retains only
+managed-variable handling, the Mitchel summary read, and health/readiness.
 
 **Rationale**: Graph tracing found customer lifecycle callers for provision,
 write-secrets, restart, and deprovision, while managed-variable replacement is
-the approved privileged operation. Read-only callers must be preserved or
-replaced before service isolation so the dashboard does not regress.
+the approved privileged operation. The Mitchel summary has a current dashboard
+consumer and an engine implementation. `/sessions` has neither an engine route
+nor a deployed contract, so retaining it would preserve a broken bridge rather
+than an active capability.
 
 **Alternatives considered**:
 
@@ -89,6 +93,34 @@ replaced before service isolation so the dashboard does not regress.
   authentication does not justify unused lifecycle authority.
 - Retire the service immediately: rejected because the qualified
   managed-variable operation is still required.
+
+### Verified caller inventory (2026-08-09)
+
+The canonical code graph and targeted source reads agree on the following
+boundary. This is source evidence only; it does not authorize production,
+provider, database, secret, or deployment changes.
+
+| Operation | Frontend caller | Engine/platform evidence | Treatment |
+| --- | --- | --- | --- |
+| `replaceManagedVariable` | `src/app/api/settings/agent-variables/handler.ts` | `POST /v1/managed-variable-replacements` is registered and qualified for the exact Titus boundary | Retain |
+| `getMitchelProspectingSummary` | `src/lib/mitchel-prospecting/trevor-summary-client.ts`, reached by the Mitchel dashboard and authenticated summary route | `GET /mitchel/prospecting/summary` is registered, bearer-protected, restricted to `hermes-mitchel`, and read-only | Retain; add the missing operation/owner record to platform-standard during T039-T040 |
+| `getSessions` | `src/app/api/engine/sessions/route.ts` | No engine route is registered; platform-standard says it was never deployed and is deferred/superseded | Retire the route and client method |
+| `healthz` | No direct frontend caller | `GET /healthz` is registered and documented as unauthenticated liveness | Retain; document its operational owner and check contract during T039-T040 |
+| `provision` | `src/app/api/wizard/complete/route.ts` | Legacy `POST /provision` remains registered but is documented as denied at ingress | Retire |
+| `writeSecrets` | `src/app/api/wizard/write-step/route.ts` | Legacy `POST /write-secrets` remains registered but is documented as denied at ingress | Retire |
+| `restart` | `src/app/api/engine/restart/route.ts` | Legacy `POST /restart` remains registered but is documented as denied at ingress | Retire |
+| `configureDashboardAuth` | `src/app/api/admin/hermes/dashboard-auth/route.ts` | Legacy `POST /dashboard-auth` remains registered but is outside the retained boundary | Retire |
+| `deprovision` | `src/app/api/account/delete/route.ts` and `src/lib/stripe-webhook-handlers.ts` | Legacy `POST /deprovision` remains registered but is documented as denied at ingress | Retire |
+
+The provisioning callback is also retired lifecycle authority:
+`src/app/api/provisioner/callback/route.ts` still accepts engine callbacks and
+mutates instance state. The engine still emits that callback from
+`internal/hermes/provisioner.go`. It is not a retained named-runtime operation.
+
+Remaining documentation gaps are bounded rather than inferred: the human owner
+for the qualified managed-variable operation, the operational owner/check
+contract for `/healthz`, and the platform-standard contract for the Mitchel
+summary must be recorded before the affected Aegis source or runtime changes.
 
 ## Decision 6: Separate source deletion from database deletion
 
