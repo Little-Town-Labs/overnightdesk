@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { instance } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { resolveAgentDirectory } from "@/lib/open-webui-workspace";
-import { isAdmin, getSubscriptionForUser } from "@/lib/billing";
+import { isInternalAdmin } from "@/lib/internal-authorization";
 import { SignOutButton } from "./sign-out-button";
 import { DashboardNav } from "./dashboard-nav";
 import { DashboardContent } from "./dashboard-content";
@@ -24,12 +24,11 @@ export default async function DashboardLayout({
     redirect("/sign-in");
   }
 
-  const [instances, directory, userSubscription] = await Promise.all([
+  const [instances, directory] = await Promise.all([
     db.select().from(instance).where(eq(instance.userId, session.user.id)),
     resolveAgentDirectory(session.user.id),
-    getSubscriptionForUser(session.user.id),
   ]);
-  const adminUser = isAdmin(session.user.email);
+  const adminUser = isInternalAdmin(session.user.email);
   const { instanceRunning, usesCanonicalAgentContext } =
     resolveDashboardNavigationState({
       directory:
@@ -57,7 +56,6 @@ export default async function DashboardLayout({
         <DashboardNav
           instanceRunning={instanceRunning}
           isAdmin={adminUser}
-          plan={userSubscription?.plan}
           usesCanonicalAgentContext={usesCanonicalAgentContext}
         />
 

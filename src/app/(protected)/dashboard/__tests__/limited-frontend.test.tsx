@@ -88,4 +88,22 @@ describe("limited internal dashboard", () => {
     expect(source).not.toMatch(/ProvisioningProgress|RestartButton/);
     expect(source).not.toMatch(/DeleteAccount|\/pricing|Pro plan/);
   });
+
+  it("does not derive dashboard presentation from subscription state", () => {
+    const source = [
+      "src/app/(protected)/dashboard/page.tsx",
+      "src/app/(protected)/dashboard/layout.tsx",
+      "src/app/(protected)/dashboard/security/page.tsx",
+    ]
+      .map((relativePath) =>
+        readFileSync(path.join(process.cwd(), relativePath), "utf8"),
+      )
+      .join("\n");
+
+    expect(source).toMatch(/resolveSelectedAgentPageContext/);
+    expect(source).not.toMatch(/@\/lib\/billing/);
+    expect(source).not.toMatch(/getSubscriptionForUser|ManageBillingButton/);
+    expect(source).not.toMatch(/PastDueBanner|\/pricing|Pro plan/);
+    expect(source).not.toMatch(/subscription|payment method|View plans/i);
+  });
 });
