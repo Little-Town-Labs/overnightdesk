@@ -1,7 +1,7 @@
 import {
   getSignInRedirectUrl,
   isPublicRoute,
-  isRetiredPageRoute,
+  isRetiredRoute,
 } from "../middleware-utils";
 
 describe("isPublicRoute", () => {
@@ -26,10 +26,6 @@ describe("isPublicRoute", () => {
 
     it("allows waitlist API route", () => {
       expect(isPublicRoute("/api/waitlist")).toBe(true);
-    });
-
-    it("allows Stripe webhook route", () => {
-      expect(isPublicRoute("/api/stripe/webhook")).toBe(true);
     });
 
     it("allows cron routes", () => {
@@ -86,6 +82,10 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/stripe/portal")).toBe(false);
     });
 
+    it("does not classify the retired Stripe webhook as public", () => {
+      expect(isPublicRoute("/api/stripe/webhook")).toBe(false);
+    });
+
     it("blocks engine API routes", () => {
       expect(isPublicRoute("/api/engine/jobs")).toBe(false);
       expect(isPublicRoute("/api/engine/status")).toBe(false);
@@ -102,21 +102,25 @@ describe("isPublicRoute", () => {
   });
 });
 
-describe("isRetiredPageRoute", () => {
+describe("isRetiredRoute", () => {
   it.each([
     "/sign-up",
     "/sign-up/",
     "/verify-email",
     "/pricing",
     "/checkout/success",
-  ])("identifies retired page path %s", (pathname) => {
-    expect(isRetiredPageRoute(pathname)).toBe(true);
+    "/api/stripe/checkout",
+    "/api/stripe/portal",
+    "/api/stripe/webhook",
+    "/api/stripe/webhook/",
+  ])("identifies retired path %s", (pathname) => {
+    expect(isRetiredRoute(pathname)).toBe(true);
   });
 
   it.each(["/", "/sign-in", "/reset-password", "/dashboard"])(
     "preserves active page path %s",
     (pathname) => {
-      expect(isRetiredPageRoute(pathname)).toBe(false);
+      expect(isRetiredRoute(pathname)).toBe(false);
     }
   );
 });

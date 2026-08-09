@@ -56,6 +56,21 @@ Using test fixtures, prove:
 
 ## 4. Prepare, but do not apply, data cleanup
 
+### Owner-operated account deletion
+
+Self-service account deletion is unavailable. Any deletion request requires a
+separately approved owner-operated procedure that inventories active identities
+and memberships, verifies a checked backup and rollback handle, and names the
+exact identity proposed for deletion. The procedure must refuse to delete the
+sole active owner identity. It must not cancel Stripe state, deprovision a
+runtime, or alter named-runtime and business records as a side effect.
+
+Because the current limited frontend has one active owner, that owner's account
+is not eligible for deletion unless ownership is first transferred through a
+separately reviewed change.
+
+### Legacy data preflight
+
 The migration plan reports:
 
 - provider obligation count/status without private payment detail;

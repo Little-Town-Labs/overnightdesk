@@ -11,24 +11,27 @@ const PUBLIC_ROUTES = [
 const PUBLIC_API_PREFIXES = [
   "/api/auth",
   "/api/waitlist",
-  "/api/stripe/webhook",
   "/api/cron",
   "/api/provisioner/callback",
   "/api/email/unsubscribe",
 ];
 
-const RETIRED_PAGE_ROUTES = new Set([
+const RETIRED_ROUTES = new Set([
   "/sign-up",
   "/verify-email",
   "/pricing",
   "/checkout/success",
+  "/api/stripe/checkout",
+  "/api/stripe/portal",
+  "/api/stripe/webhook",
+  "/api/account/delete",
 ]);
 
-export function isRetiredPageRoute(pathname: string): boolean {
+export function isRetiredRoute(pathname: string): boolean {
   const normalizedPathname =
     pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
-  return RETIRED_PAGE_ROUTES.has(normalizedPathname);
+  return RETIRED_ROUTES.has(normalizedPathname);
 }
 
 export function isPublicRoute(pathname: string): boolean {

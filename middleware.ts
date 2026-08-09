@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import {
   getSignInRedirectUrl,
   isPublicRoute,
-  isRetiredPageRoute,
+  isRetiredRoute,
 } from "@/lib/middleware-utils";
 
 export default async function middleware(req: NextRequest) {
@@ -11,7 +11,7 @@ export default async function middleware(req: NextRequest) {
   const origin = req.headers.get("origin") ?? "";
   const hostname = req.nextUrl.hostname;
 
-  if (isRetiredPageRoute(pathname)) {
+  if (isRetiredRoute(pathname)) {
     return new NextResponse(null, { status: 404 });
   }
 

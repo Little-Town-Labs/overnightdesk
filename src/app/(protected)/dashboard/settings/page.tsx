@@ -10,7 +10,6 @@ import {
 import { buildSelectedAgentCapabilities } from "@/lib/selected-agent-capabilities";
 import { resolveManagedVariableControlDescriptors } from "@/db/managed-agent-variable-boundary";
 import { ChangePassword } from "./change-password";
-import { DeleteAccount } from "./delete-account";
 import { SelectedAgentConfiguration } from "../selected-agent-configuration";
 import { SettingsSurface } from "./settings-surface";
 
@@ -45,7 +44,6 @@ export default async function SettingsPage({
 
   const accountProps = {
     accountSecurity: <ChangePassword />,
-    dangerZone: <DeleteAccount />,
     email: session.user.email,
     name: session.user.name,
   };
