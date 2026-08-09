@@ -16,13 +16,13 @@ export function resolveAdminPageAccess(
 }
 
 export const requireAdminPage = cache(async () => {
-  const [{ auth }, { headers }, { isAdmin }] = await Promise.all([
+  const [{ auth }, { headers }, { isInternalAdmin }] = await Promise.all([
     import("@/lib/auth"),
     import("next/headers"),
-    import("@/lib/billing"),
+    import("@/lib/internal-authorization"),
   ]);
   const session = await auth.api.getSession({ headers: await headers() });
-  const access = resolveAdminPageAccess(session, isAdmin);
+  const access = resolveAdminPageAccess(session, isInternalAdmin);
 
   if (access === "unauthenticated") redirect("/sign-in");
   if (access === "forbidden") notFound();

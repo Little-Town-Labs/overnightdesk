@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { isAdmin } from "@/lib/billing";
+import { isInternalAdmin } from "@/lib/internal-authorization";
 import { getAppUrl } from "@/lib/config";
 import { db } from "@/db";
 import { instance } from "@/db/schema";
@@ -22,7 +22,7 @@ const validTenantId = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers });
-  if (!session || !isAdmin(session.user.email)) {
+  if (!session || !isInternalAdmin(session.user.email)) {
     return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
   }
 

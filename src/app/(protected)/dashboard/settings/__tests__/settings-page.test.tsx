@@ -7,7 +7,6 @@ describe("SettingsSurface", () => {
     const markup = renderToStaticMarkup(
       <SettingsSurface
         accountSecurity={<div>Account security control</div>}
-        dangerZone={<div>Account deletion control</div>}
         email="owner@example.test"
         name="Owner"
         agentContent={<div>Titus agent controls</div>}
@@ -18,7 +17,6 @@ describe("SettingsSurface", () => {
     expect(markup).toContain("Owner");
     expect(markup).toContain("owner@example.test");
     expect(markup).toContain("Account security control");
-    expect(markup).toContain("Account deletion control");
     expect(markup).toContain("Agent settings");
     expect(markup).toContain("Titus agent controls");
   });
@@ -30,7 +28,6 @@ describe("SettingsSurface", () => {
     const markup = renderToStaticMarkup(
       <SettingsSurface
         accountSecurity={<div>Account security control</div>}
-        dangerZone={<div>Account deletion control</div>}
         email="owner@example.test"
         name="Owner"
         agentState={agentState}

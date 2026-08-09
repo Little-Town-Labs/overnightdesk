@@ -12,7 +12,9 @@ const mockConfigure = jest.fn();
 jest.mock("@/lib/auth", () => ({
   auth: { api: { getSession: (...args: unknown[]) => mockGetSession(...args) } },
 }));
-jest.mock("@/lib/billing", () => ({ isAdmin: (email: string) => email === "admin@test.com" }));
+jest.mock("@/lib/internal-authorization", () => ({
+  isInternalAdmin: (email: string) => email === "admin@test.com",
+}));
 jest.mock("@/lib/config", () => ({ getAppUrl: () => "https://www.overnightdesk.com" }));
 jest.mock("@/db", () => ({
   db: {

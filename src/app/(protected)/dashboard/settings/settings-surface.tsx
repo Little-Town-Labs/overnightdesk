@@ -6,7 +6,6 @@ import {
 
 interface AccountSettingsProps {
   accountSecurity: ReactNode;
-  dangerZone: ReactNode;
   email: string;
   name: string;
 }
@@ -57,7 +56,6 @@ export function SettingsSurface(props: SettingsSurfaceProps) {
         </div>
 
         {props.accountSecurity}
-        {props.dangerZone}
       </section>
 
       <section aria-labelledby="agent-settings-heading" className="space-y-4">

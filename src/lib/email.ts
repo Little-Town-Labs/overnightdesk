@@ -6,7 +6,6 @@ import { eq, and, gte } from "drizzle-orm";
 import { VerificationEmail } from "@/lib/emails/verification-email";
 import { PasswordResetEmail } from "@/lib/emails/password-reset-email";
 import { WelcomeEmail } from "@/lib/emails/welcome-email";
-import { PaymentFailureEmail } from "@/lib/emails/payment-failure-email";
 import { ProvisioningEmail } from "@/lib/emails/provisioning-email";
 import * as React from "react";
 
@@ -21,7 +20,6 @@ type EmailType =
   | "verification"
   | "password_reset"
   | "welcome"
-  | "payment_failure"
   | "provisioning";
 
 interface SendEmailOptions {
@@ -188,37 +186,6 @@ export async function sendWelcomeEmail(options: {
     html,
     text: `Hi ${userInfo.name}, welcome to OvernightDesk! Visit your dashboard: ${APP_URL}/dashboard`,
     emailType: "welcome",
-    userId: userInfo.id,
-  });
-}
-
-export async function sendPaymentFailureEmail(options: {
-  user: { email: string; name: string; id: string };
-  amount: string;
-  portalUrl: string;
-}): Promise<EmailResult> {
-  const { user: userInfo, amount, portalUrl } = options;
-
-  // Dedup: no duplicate payment failure emails within 24 hours
-  const twentyFourHours = 24 * 60 * 60 * 1000;
-  if (await hasRecentEmail(userInfo.email, "payment_failure", twentyFourHours)) {
-    return { success: true, messageId: "skipped-dedup" };
-  }
-
-  const html = await render(
-    React.createElement(PaymentFailureEmail, {
-      name: userInfo.name,
-      amount,
-      portalUrl,
-    })
-  );
-
-  return sendEmail({
-    to: userInfo.email,
-    subject: "Action required: payment failed — OvernightDesk",
-    html,
-    text: `Hi ${userInfo.name}, your payment of ${amount} failed. Update your payment method: ${portalUrl}`,
-    emailType: "payment_failure",
     userId: userInfo.id,
   });
 }

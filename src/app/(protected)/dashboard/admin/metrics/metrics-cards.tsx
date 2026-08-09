@@ -1,7 +1,6 @@
 "use client";
 
 interface MetricsCardsProps {
-  activeSubscribers: number;
   runningInstances: number;
   avgDailyClaudeCalls: number;
   atRiskTenants: string[];
@@ -29,7 +28,6 @@ function MetricCard({
 }
 
 export function MetricsCards({
-  activeSubscribers,
   runningInstances,
   avgDailyClaudeCalls,
   atRiskTenants,
@@ -37,12 +35,6 @@ export function MetricsCards({
 }: MetricsCardsProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <MetricCard
-        title="Active Subscribers"
-        value={activeSubscribers}
-        accent="border-blue-500/30"
-      />
-
       <MetricCard
         title="Running Instances"
         value={runningInstances}

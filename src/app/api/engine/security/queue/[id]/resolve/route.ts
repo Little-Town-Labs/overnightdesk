@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
+import { requireAdmin } from "@/lib/require-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { resolveSecurityQueueItem } from "@/lib/engine-client";
 
@@ -14,7 +14,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const result = await requireProOrAdmin();
+  const result = await requireAdmin();
   if (!result.ok) return result.response;
 
   const instance = await getInstanceForUser(result.session.user.id);

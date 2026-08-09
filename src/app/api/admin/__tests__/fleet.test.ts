@@ -13,9 +13,9 @@ jest.mock("next/headers", () => ({
   headers: jest.fn().mockResolvedValue(new Headers()),
 }));
 
-// Mock billing
-jest.mock("@/lib/billing", () => ({
-  isAdmin: jest.fn(),
+// Mock internal authorization
+jest.mock("@/lib/internal-authorization", () => ({
+  isInternalAdmin: jest.fn(),
 }));
 
 // Mock database
@@ -63,7 +63,7 @@ jest.mock("drizzle-orm", () => ({
   count: jest.fn(),
 }));
 
-const { isAdmin } = jest.requireMock("@/lib/billing");
+const { isInternalAdmin } = jest.requireMock("@/lib/internal-authorization");
 
 import { NextRequest } from "next/server";
 
@@ -92,7 +92,7 @@ describe("Admin Fleet API", () => {
       mockGetSession.mockResolvedValueOnce({
         user: { id: "user_1", email: "user@example.com" },
       });
-      isAdmin.mockReturnValueOnce(false);
+      isInternalAdmin.mockReturnValueOnce(false);
 
       const { GET } = await import(
         "@/app/api/admin/fleet/health/route"
@@ -110,7 +110,7 @@ describe("Admin Fleet API", () => {
       mockGetSession.mockResolvedValueOnce({
         user: { id: "admin_1", email: "admin@example.com" },
       });
-      isAdmin.mockReturnValueOnce(true);
+      isInternalAdmin.mockReturnValueOnce(true);
 
       const mockInstances = [
         {
@@ -165,7 +165,7 @@ describe("Admin Fleet API", () => {
       mockGetSession.mockResolvedValueOnce({
         user: { id: "user_1", email: "user@example.com" },
       });
-      isAdmin.mockReturnValueOnce(false);
+      isInternalAdmin.mockReturnValueOnce(false);
 
       const { GET } = await import(
         "@/app/api/admin/fleet/events/route"

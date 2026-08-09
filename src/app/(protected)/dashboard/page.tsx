@@ -1,16 +1,11 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import { getSubscriptionForUser, isAdmin } from "@/lib/billing";
-import { ManageBillingButton } from "./manage-billing-button";
 import { resolveSelectedAgentPageContext } from "@/db/selected-agent-page-context";
 import { AuthStatusBadge } from "./auth-status-badge";
-import { OnboardingWizard } from "./onboarding-wizard";
 import { RestartButton } from "./restart-button";
 import { getEngineStatus } from "@/lib/engine-client";
 import { isHermesMitchelTenant, isHermesTenant } from "@/lib/instance";
-import { SetupWizard } from "./setup-wizard";
-import { ProvisioningProgress } from "./provisioning-progress";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
 import {
@@ -33,11 +28,7 @@ export default async function DashboardPage({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 
-  const userIsAdmin = isAdmin(session.user.email);
-  const [rawSub, agentDirectory] = await Promise.all([
-    getSubscriptionForUser(session.user.id),
-    resolveAgentDirectory(session.user.id),
-  ]);
+  const agentDirectory = await resolveAgentDirectory(session.user.id);
   const pageContext = await resolveSelectedAgentPageContext(
     session.user.id,
     agentDirectory,
@@ -48,15 +39,6 @@ export default async function DashboardPage({
       : ({ status: "unavailable" } as const);
   const instances =
     pageContext.status === "available" ? pageContext.instances : [];
-
-  const sub = rawSub
-    ? {
-        status: rawSub.status,
-        plan: rawSub.plan,
-        currentPeriodEnd: rawSub.currentPeriodEnd,
-        hasStripeCustomer: !!rawSub.stripeCustomerId,
-      }
-    : null;
 
   const rawAgent = (await searchParams).agent;
   if (Array.isArray(rawAgent)) notFound();
@@ -110,7 +92,6 @@ export default async function DashboardPage({
     }
   }
 
-  const showOnboarding = inst?.status === "running" && inst.claudeAuthStatus !== "connected";
   const isRunning = inst?.status === "running";
 
   // ─── Membership-filtered selected-agent overview ───────────────────────────
@@ -126,14 +107,8 @@ export default async function DashboardPage({
           capability.state === "unavailable",
       )?.detail ?? null;
     const selectedStatusLabel = getSelectedAgentStatusLabel(selectedAgent, inst);
-    const isWizard = inst?.status === "queued";
-    const isProvisioning =
-      inst?.status === "awaiting_provisioning" || inst?.status === "provisioning";
-
     return (
       <>
-        {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
-
         <AgentOverview
           agents={agents}
           capabilities={capabilities}
@@ -171,21 +146,7 @@ export default async function DashboardPage({
           <MitchelProspectingWorkspace summary={mitchelProspectingSummary} />
         )}
 
-        {isWizard && inst && (
-          <div className="mt-4">
-            <SetupWizard
-              instanceId={inst.id}
-              tenantId={inst.tenantId}
-              wizardState={inst.wizardState ?? null}
-            />
-          </div>
-        )}
-        {isProvisioning && inst && (
-          <div className="mt-4">
-            <ProvisioningProgress initialStatus={inst.status} />
-          </div>
-        )}
-        {inst && !isRunning && !isWizard && !isProvisioning && (
+        {inst && !isRunning && (
           <div className="od-card mt-4 p-6">
             <StatusBadge
               instConfig={{ label: inst.status, color: "text-zinc-400", detail: "" }}
@@ -194,7 +155,7 @@ export default async function DashboardPage({
         )}
 
         <div className="mt-4">
-          <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
+          <AccountStrip session={session} />
         </div>
       </>
     );
@@ -207,10 +168,9 @@ export default async function DashboardPage({
   ) {
     return (
       <>
-        {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
         <AgentAccessState state={agentResolution.status} />
         <div className="mt-4">
-          <AccountStrip session={session} sub={sub} userIsAdmin={userIsAdmin} />
+          <AccountStrip session={session} />
         </div>
       </>
     );
@@ -219,9 +179,7 @@ export default async function DashboardPage({
   // ─── Non-hermes / no instance fallback ──────────────────────────────────────
   return (
     <>
-      {sub?.status === "past_due" && <PastDueBanner sub={sub} />}
-
-      <div className="grid gap-4 md:grid-cols-2 mb-4">
+      <div className="mb-4">
         <div className="od-card p-6">
           <h2 className="text-xs font-medium mb-4 uppercase tracking-wider" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}>Account</h2>
           <dl className="space-y-3">
@@ -234,22 +192,6 @@ export default async function DashboardPage({
               <dd className="text-sm" style={{ color: "var(--color-od-text-2)" }}>{session.user.email}</dd>
             </div>
           </dl>
-        </div>
-        <div className="od-card p-6">
-          <h2 className="text-xs font-medium mb-4 uppercase tracking-wider" style={{ fontFamily: "var(--font-mono)", color: "var(--color-od-text-2)" }}>
-            Subscription {userIsAdmin && <span className="ml-1 text-xs px-1.5 py-0.5 rounded" style={{ background: "var(--color-od-accent-bg)", color: "var(--color-od-accent)" }}>Admin</span>}
-          </h2>
-          <dl className="space-y-3">
-            <div>
-              <dt className="text-xs mb-0.5" style={{ color: "var(--color-od-text-3)" }}>Plan</dt>
-              <dd className="text-sm font-medium capitalize" style={{ color: "var(--color-od-text)" }}>{userIsAdmin ? "Pro (Admin)" : (sub?.plan ?? "None")}</dd>
-            </div>
-          </dl>
-          {sub?.hasStripeCustomer && (
-            <div className="mt-4" style={{ color: "var(--color-od-accent)" }}>
-              <ManageBillingButton className="text-xs underline" />
-            </div>
-          )}
         </div>
       </div>
 
@@ -271,8 +213,7 @@ export default async function DashboardPage({
         </div>
       ) : (
         <div className="od-card p-8 text-center">
-          <p className="text-sm" style={{ color: "var(--color-od-text-2)" }}>No instance provisioned yet.</p>
-          <p className="text-xs mt-1" style={{ color: "var(--color-od-text-3)" }}>Your agent will be created automatically after payment.</p>
+          <p className="text-sm" style={{ color: "var(--color-od-text-2)" }}>No runtime is currently available.</p>
         </div>
       )}
 
@@ -296,37 +237,14 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {showOnboarding && (
-        <div className="mt-4">
-          <OnboardingWizard instanceSubdomain={inst!.subdomain ?? ""} authStatus={inst!.claudeAuthStatus} />
-        </div>
-      )}
     </>
   );
 }
 
 // ─── Shared sub-components ────────────────────────────────────────────────────
 
-function PastDueBanner({ sub }: { sub: { status: string } }) {
-  return (
-    <div className="mb-4 rounded-lg p-4" style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)" }}>
-      <p className="text-sm font-medium" style={{ color: "#fcd34d" }}>
-        Your payment failed. Please update your payment method to avoid service interruption.
-      </p>
-      <ManageBillingButton className="mt-2 text-sm underline" />
-      <span className="hidden">{sub.status}</span>
-    </div>
-  );
-}
-
-function AccountStrip({
-  session,
-  sub,
-  userIsAdmin,
-}: {
+function AccountStrip({ session }: {
   session: { user: { name: string; email: string } };
-  sub: { status: string; plan: string; hasStripeCustomer: boolean; currentPeriodEnd: Date | null } | null;
-  userIsAdmin: boolean;
 }) {
   return (
     <div
@@ -334,14 +252,6 @@ function AccountStrip({
       style={{ background: "var(--color-od-raised)", border: "1px solid var(--color-od-border)", color: "var(--color-od-text-3)", fontFamily: "var(--font-mono)" }}
     >
       <span style={{ color: "var(--color-od-text-2)" }}>{session.user.email}</span>
-      <span>·</span>
-      <span className="capitalize">{userIsAdmin ? "Pro (Admin)" : (sub?.plan ?? "No plan")}</span>
-      {sub?.hasStripeCustomer && (
-        <>
-          <span>·</span>
-          <ManageBillingButton className="underline transition-colors" />
-        </>
-      )}
     </div>
   );
 }

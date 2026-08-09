@@ -25,8 +25,8 @@ jest.mock("@/lib/auth", () => ({
 }));
 
 const mockIsAdmin = jest.fn();
-jest.mock("@/lib/billing", () => ({
-  isAdmin: (...args: unknown[]) => mockIsAdmin(...args),
+jest.mock("@/lib/internal-authorization", () => ({
+  isInternalAdmin: (...args: unknown[]) => mockIsAdmin(...args),
 }));
 
 const mockSelectFromWhere = jest.fn().mockResolvedValue([{ count: 0 }]);
@@ -43,7 +43,6 @@ jest.mock("@/db", () => ({
 }));
 
 jest.mock("@/db/schema", () => ({
-  subscription: { status: "status" },
   instance: { id: "id", status: "status", tenantId: "tenantId" },
   usageMetric: {
     instanceId: "instanceId",
@@ -103,15 +102,13 @@ describe("GET /api/admin/metrics", () => {
     mockIsAdmin.mockReturnValue(true);
 
     // Mock the sequence of DB calls:
-    // 1. active subscribers count
-    // 2. running instances count
-    // 3. avg daily claude calls
-    // 4. running instances for at-risk
-    // 5. recent usage
-    // 6. queued events
-    // 7. running events
+    // 1. running instances count
+    // 2. avg daily claude calls
+    // 3. running instances for at-risk
+    // 4. recent usage
+    // 5. queued events
+    // 6. running events
     mockSelectFromWhere
-      .mockResolvedValueOnce([{ count: 10 }])   // active subs
       .mockResolvedValueOnce([{ count: 8 }])    // running instances
       .mockResolvedValueOnce([{ avg: 42.5 }])   // avg claude calls
       .mockResolvedValueOnce([                   // running instances for at-risk
@@ -128,7 +125,6 @@ describe("GET /api/admin/metrics", () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toEqual({
-      activeSubscribers: 10,
       runningInstances: 8,
       avgDailyClaudeCalls: 42.5,
       atRiskTenants: ["t2"],
@@ -143,7 +139,6 @@ describe("GET /api/admin/metrics", () => {
     mockIsAdmin.mockReturnValue(true);
 
     mockSelectFromWhere
-      .mockResolvedValueOnce([{ count: 0 }])    // active subs
       .mockResolvedValueOnce([{ count: 0 }])    // running instances
       .mockResolvedValueOnce([{ avg: 0 }])      // avg claude calls
       .mockResolvedValueOnce([])                  // no running instances

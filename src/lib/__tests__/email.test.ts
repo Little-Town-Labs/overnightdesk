@@ -60,7 +60,6 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendWelcomeEmail,
-  sendPaymentFailureEmail,
   sendProvisioningEmail,
 } from "@/lib/email";
 
@@ -212,40 +211,6 @@ describe("Email Service", () => {
       await sendWelcomeEmail({
         user: { email: "user@example.com", name: "Test User", id: "user_1" },
         isWaitlistConvert: false,
-      });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("sendPaymentFailureEmail()", () => {
-    it("sends payment failure email with amount and portal URL", async () => {
-      await sendPaymentFailureEmail({
-        user: { email: "user@example.com", name: "Test User", id: "user_1" },
-        amount: "$29.00",
-        portalUrl: "https://billing.stripe.com/session/xxx",
-      });
-
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "user@example.com",
-          subject: expect.stringContaining("ayment"),
-        })
-      );
-    });
-
-    it("skips duplicate payment failure within 24 hours", async () => {
-      const { db } = jest.requireMock("@/db");
-      db.select.mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([{ id: 1 }]), // Recent email exists
-        }),
-      });
-
-      await sendPaymentFailureEmail({
-        user: { email: "user@example.com", name: "Test User", id: "user_1" },
-        amount: "$29.00",
-        portalUrl: "https://billing.stripe.com/session/xxx",
       });
 
       expect(mockSend).not.toHaveBeenCalled();

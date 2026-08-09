@@ -1,4 +1,8 @@
-import { isPublicRoute, getSignInRedirectUrl } from "../middleware-utils";
+import {
+  getSignInRedirectUrl,
+  isPublicRoute,
+  isRetiredRoute,
+} from "../middleware-utils";
 
 describe("isPublicRoute", () => {
   describe("public routes", () => {
@@ -8,14 +12,6 @@ describe("isPublicRoute", () => {
 
     it("allows sign-in page", () => {
       expect(isPublicRoute("/sign-in")).toBe(true);
-    });
-
-    it("allows sign-up page", () => {
-      expect(isPublicRoute("/sign-up")).toBe(true);
-    });
-
-    it("allows verify-email page", () => {
-      expect(isPublicRoute("/verify-email")).toBe(true);
     });
 
     it("allows reset-password page", () => {
@@ -32,17 +28,9 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/waitlist")).toBe(true);
     });
 
-    it("allows Stripe webhook route", () => {
-      expect(isPublicRoute("/api/stripe/webhook")).toBe(true);
-    });
-
     it("allows cron routes", () => {
       expect(isPublicRoute("/api/cron/health-check")).toBe(true);
       expect(isPublicRoute("/api/cron/usage-collection")).toBe(true);
-    });
-
-    it("allows provisioner callback route", () => {
-      expect(isPublicRoute("/api/provisioner/callback")).toBe(true);
     });
 
     it("allows email unsubscribe route", () => {
@@ -57,6 +45,11 @@ describe("isPublicRoute", () => {
   });
 
   describe("protected routes", () => {
+    it("does not classify retired auth pages as public", () => {
+      expect(isPublicRoute("/sign-up")).toBe(false);
+      expect(isPublicRoute("/verify-email")).toBe(false);
+    });
+
     it("blocks dashboard", () => {
       expect(isPublicRoute("/dashboard")).toBe(false);
     });
@@ -85,6 +78,10 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/stripe/portal")).toBe(false);
     });
 
+    it("does not classify the retired Stripe webhook as public", () => {
+      expect(isPublicRoute("/api/stripe/webhook")).toBe(false);
+    });
+
     it("blocks engine API routes", () => {
       expect(isPublicRoute("/api/engine/jobs")).toBe(false);
       expect(isPublicRoute("/api/engine/status")).toBe(false);
@@ -99,6 +96,43 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/account/delete")).toBe(false);
     });
   });
+});
+
+describe("isRetiredRoute", () => {
+  it.each([
+    "/sign-up",
+    "/sign-up/",
+    "/verify-email",
+    "/pricing",
+    "/checkout/success",
+    "/api/stripe/checkout",
+    "/api/stripe/portal",
+    "/api/stripe/webhook",
+    "/api/stripe/webhook/",
+    "/api/subscription",
+    "/api/subscription/",
+    "/api/wizard/write-step",
+    "/api/wizard/write-step/",
+    "/api/wizard/complete",
+    "/api/wizard/complete/",
+    "/api/provisioner/callback",
+    "/api/provisioner/callback/",
+    "/api/instance/status",
+    "/api/instance/status/",
+    "/api/instance/auth-status",
+    "/api/instance/auth-status/",
+    "/api/instance/terminal-ticket",
+    "/api/instance/terminal-ticket/",
+  ])("identifies retired path %s", (pathname) => {
+    expect(isRetiredRoute(pathname)).toBe(true);
+  });
+
+  it.each(["/", "/sign-in", "/reset-password", "/dashboard"])(
+    "preserves active page path %s",
+    (pathname) => {
+      expect(isRetiredRoute(pathname)).toBe(false);
+    }
+  );
 });
 
 describe("getSignInRedirectUrl", () => {

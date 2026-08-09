@@ -1,6 +1,5 @@
 import { db } from "@/db";
 import {
-  subscription,
   instance,
   usageMetric,
   fleetEvent,
@@ -8,7 +7,6 @@ import {
 import { eq, sql, gte, and } from "drizzle-orm";
 
 export interface AdminMetrics {
-  activeSubscribers: number;
   runningInstances: number;
   avgDailyClaudeCalls: number;
   atRiskTenants: string[];
@@ -21,7 +19,6 @@ export async function computeAdminMetrics(): Promise<AdminMetrics> {
   const sevenDaysAgoStr = sevenDaysAgo.toISOString().slice(0, 10);
 
   const [
-    [activeSubResult],
     [runningResult],
     [avgResult],
     runningInstances,
@@ -29,11 +26,6 @@ export async function computeAdminMetrics(): Promise<AdminMetrics> {
     [queuedCount],
     [runningCount],
   ] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(subscription)
-      .where(eq(subscription.status, "active")),
-
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(instance)
@@ -85,7 +77,6 @@ export async function computeAdminMetrics(): Promise<AdminMetrics> {
       : 0;
 
   return {
-    activeSubscribers: activeSubResult.count,
     runningInstances: runningResult.count,
     avgDailyClaudeCalls: Math.round(Number(avgResult.avg) * 10) / 10,
     atRiskTenants,

@@ -5,19 +5,40 @@
 const PUBLIC_ROUTES = [
   "/",
   "/sign-in",
-  "/sign-up",
-  "/verify-email",
   "/reset-password",
 ];
 
 const PUBLIC_API_PREFIXES = [
   "/api/auth",
   "/api/waitlist",
-  "/api/stripe/webhook",
   "/api/cron",
-  "/api/provisioner/callback",
   "/api/email/unsubscribe",
 ];
+
+const RETIRED_ROUTES = new Set([
+  "/sign-up",
+  "/verify-email",
+  "/pricing",
+  "/checkout/success",
+  "/api/stripe/checkout",
+  "/api/stripe/portal",
+  "/api/stripe/webhook",
+  "/api/account/delete",
+  "/api/subscription",
+  "/api/wizard/write-step",
+  "/api/wizard/complete",
+  "/api/provisioner/callback",
+  "/api/instance/status",
+  "/api/instance/auth-status",
+  "/api/instance/terminal-ticket",
+]);
+
+export function isRetiredRoute(pathname: string): boolean {
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+  return RETIRED_ROUTES.has(normalizedPathname);
+}
 
 export function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.includes(pathname)) {

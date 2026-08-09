@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { isAdmin, getSubscriptionForUser } from "@/lib/billing";
+import { isInternalAdmin } from "@/lib/internal-authorization";
 import { getEngineStatus } from "@/lib/engine-client";
 import { getInstanceForUser } from "@/lib/instance";
 import { ApprovalQueue } from "./approval-queue";
@@ -11,21 +11,8 @@ export default async function SecurityPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/sign-in");
 
-  const subscription = await getSubscriptionForUser(session.user.id);
-  const adminUser = isAdmin(session.user.email);
-  const isPro = subscription?.plan === "pro" &&
-    (subscription.status === "active" || subscription.status === "past_due");
-
-  if (!adminUser && !isPro) {
-    return (
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-        <p className="text-zinc-300">Security screening is available on the Pro plan.</p>
-        <a href="/pricing" className="mt-2 inline-block text-sm text-blue-400 hover:text-blue-300">
-          View plans &rarr;
-        </a>
-      </div>
-    );
-  }
+  const adminUser = isInternalAdmin(session.user.email);
+  if (!adminUser) notFound();
 
   const instance = await getInstanceForUser(session.user.id);
   const isRunning = instance?.status === "running" && instance.subdomain && instance.engineApiKey;

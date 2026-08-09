@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { isAdmin } from "@/lib/billing";
+import { isInternalAdmin } from "@/lib/internal-authorization";
 
 type AdminResult =
   | {
@@ -23,7 +23,7 @@ export async function requireAdmin(): Promise<AdminResult> {
     };
   }
 
-  if (!isAdmin(session.user.email)) {
+  if (!isInternalAdmin(session.user.email)) {
     return {
       ok: false,
       response: NextResponse.json(

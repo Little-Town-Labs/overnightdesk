@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { isPublicRoute, getSignInRedirectUrl } from "@/lib/middleware-utils";
+import {
+  getSignInRedirectUrl,
+  isPublicRoute,
+  isRetiredRoute,
+} from "@/lib/middleware-utils";
 
 export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const origin = req.headers.get("origin") ?? "";
   const hostname = req.nextUrl.hostname;
+
+  if (isRetiredRoute(pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
 
   // Redirect www to non-www for page navigations (not API/fetch requests)
   if (

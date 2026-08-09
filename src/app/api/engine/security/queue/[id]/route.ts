@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireProOrAdmin } from "@/lib/require-pro-or-admin";
+import { requireAdmin } from "@/lib/require-admin";
 import { getInstanceForUser } from "@/lib/instance";
 import { getSecurityQueueItem } from "@/lib/engine-client";
 
@@ -9,7 +9,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const result = await requireProOrAdmin();
+  const result = await requireAdmin();
   if (!result.ok) return result.response;
 
   const instance = await getInstanceForUser(result.session.user.id);
