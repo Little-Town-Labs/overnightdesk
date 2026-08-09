@@ -12,7 +12,6 @@ const PUBLIC_API_PREFIXES = [
   "/api/auth",
   "/api/waitlist",
   "/api/cron",
-  "/api/provisioner/callback",
   "/api/email/unsubscribe",
 ];
 
@@ -28,6 +27,10 @@ const RETIRED_ROUTES = new Set([
   "/api/subscription",
   "/api/wizard/write-step",
   "/api/wizard/complete",
+  "/api/provisioner/callback",
+  "/api/instance/status",
+  "/api/instance/auth-status",
+  "/api/instance/terminal-ticket",
 ]);
 
 export function isRetiredRoute(pathname: string): boolean {

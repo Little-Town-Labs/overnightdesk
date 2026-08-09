@@ -33,10 +33,6 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/cron/usage-collection")).toBe(true);
     });
 
-    it("allows provisioner callback route", () => {
-      expect(isPublicRoute("/api/provisioner/callback")).toBe(true);
-    });
-
     it("allows email unsubscribe route", () => {
       expect(isPublicRoute("/api/email/unsubscribe")).toBe(true);
     });
@@ -119,6 +115,14 @@ describe("isRetiredRoute", () => {
     "/api/wizard/write-step/",
     "/api/wizard/complete",
     "/api/wizard/complete/",
+    "/api/provisioner/callback",
+    "/api/provisioner/callback/",
+    "/api/instance/status",
+    "/api/instance/status/",
+    "/api/instance/auth-status",
+    "/api/instance/auth-status/",
+    "/api/instance/terminal-ticket",
+    "/api/instance/terminal-ticket/",
   ])("identifies retired path %s", (pathname) => {
     expect(isRetiredRoute(pathname)).toBe(true);
   });
