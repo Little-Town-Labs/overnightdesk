@@ -3,12 +3,9 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { resolveSelectedAgentPageContext } from "@/db/selected-agent-page-context";
 import { AuthStatusBadge } from "./auth-status-badge";
-import { OnboardingWizard } from "./onboarding-wizard";
 import { RestartButton } from "./restart-button";
 import { getEngineStatus } from "@/lib/engine-client";
 import { isHermesMitchelTenant, isHermesTenant } from "@/lib/instance";
-import { SetupWizard } from "./setup-wizard";
-import { ProvisioningProgress } from "./provisioning-progress";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
 import { MitchelProspectingWorkspace } from "@/components/dashboard/mitchel-prospecting/workspace";
 import {
@@ -95,7 +92,6 @@ export default async function DashboardPage({
     }
   }
 
-  const showOnboarding = inst?.status === "running" && inst.claudeAuthStatus !== "connected";
   const isRunning = inst?.status === "running";
 
   // ─── Membership-filtered selected-agent overview ───────────────────────────
@@ -111,10 +107,6 @@ export default async function DashboardPage({
           capability.state === "unavailable",
       )?.detail ?? null;
     const selectedStatusLabel = getSelectedAgentStatusLabel(selectedAgent, inst);
-    const isWizard = inst?.status === "queued";
-    const isProvisioning =
-      inst?.status === "awaiting_provisioning" || inst?.status === "provisioning";
-
     return (
       <>
         <AgentOverview
@@ -154,21 +146,7 @@ export default async function DashboardPage({
           <MitchelProspectingWorkspace summary={mitchelProspectingSummary} />
         )}
 
-        {isWizard && inst && (
-          <div className="mt-4">
-            <SetupWizard
-              instanceId={inst.id}
-              tenantId={inst.tenantId}
-              wizardState={inst.wizardState ?? null}
-            />
-          </div>
-        )}
-        {isProvisioning && inst && (
-          <div className="mt-4">
-            <ProvisioningProgress initialStatus={inst.status} />
-          </div>
-        )}
-        {inst && !isRunning && !isWizard && !isProvisioning && (
+        {inst && !isRunning && (
           <div className="od-card mt-4 p-6">
             <StatusBadge
               instConfig={{ label: inst.status, color: "text-zinc-400", detail: "" }}
@@ -259,11 +237,6 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {showOnboarding && (
-        <div className="mt-4">
-          <OnboardingWizard instanceSubdomain={inst!.subdomain ?? ""} authStatus={inst!.claudeAuthStatus} />
-        </div>
-      )}
     </>
   );
 }
