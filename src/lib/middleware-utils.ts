@@ -19,6 +19,20 @@ const PUBLIC_API_PREFIXES = [
   "/api/email/unsubscribe",
 ];
 
+const RETIRED_PAGE_ROUTES = new Set([
+  "/sign-up",
+  "/verify-email",
+  "/pricing",
+  "/checkout/success",
+]);
+
+export function isRetiredPageRoute(pathname: string): boolean {
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+
+  return RETIRED_PAGE_ROUTES.has(normalizedPathname);
+}
+
 export function isPublicRoute(pathname: string): boolean {
   if (PUBLIC_ROUTES.includes(pathname)) {
     return true;
