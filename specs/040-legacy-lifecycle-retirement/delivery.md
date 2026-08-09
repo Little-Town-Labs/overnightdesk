@@ -4,7 +4,7 @@
 
 - Project: `overnightdesk`
 - Context: `brownfield`
-- Scale: `system`
+- Scale: `feature`
 - Risk: `sensitive`
 - Mode: `readonly-delegation`
 - Spec Kit required: `yes`
@@ -23,15 +23,14 @@
 - Project: `overnightdesk`
 - Status: `ready`
 
-- Canonical codebase-memory graph returned 12,957 nodes and 25,938 edges for overnightdesk.
-- Targeted graph and source reads verified Better Auth, dashboard, managed-variable, Stripe, wizard, callback, and provisioner boundaries.
-- Cross-repository engine and platform-standard paths were verified during Feature 040 planning.
+- Canonical graph traced billing.isAdmin to requireAdmin and its fleet, metrics, and security-scan callers.
+- Targeted source reads confirmed billing.ts imports subscription state while require-admin.ts needs only normalized ADMIN_EMAILS identity policy.
 
 ## Delegated Tasks
 
 | Task | Spec Kit IDs | Mutable | Lane | Owned paths | Verification |
 |---|---|---:|---|---|---|
-| t001-caller-inventory-analysis | T001 | no | codex-luna read-only | none | `python3 -c print('read-only task; report contract is the executable check')` |
+| t003-t004-authorization-review | T003, T004 | no | codex-luna read-only | none | `npx tsc --noEmit`; `git diff --check` |
 
 ## Scope and Safety Gates
 

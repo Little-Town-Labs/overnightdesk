@@ -37,8 +37,8 @@ documented; the qualification scan fails for known legacy artifacts.
 **Purpose**: Establish the current internal authorization helper before
 deleting the legacy billing module that currently owns `isAdmin`.
 
-- [ ] T003 Write and run failing admin/internal-role tests that prove authorization never reads subscription, plan, Stripe customer, or payment status in `src/lib/__tests__/internal-authorization.test.ts` — FR-004, SC-003
-- [ ] T004 Implement the environment-normalized admin helper and migrate `src/lib/require-admin.ts` to use it in `src/lib/internal-authorization.ts` and `src/lib/require-admin.ts` until T003 passes — FR-004, FR-015, SC-003
+- [X] T003 Write and run failing admin/internal-role tests that prove authorization never reads subscription, plan, Stripe customer, or payment status in `src/lib/__tests__/internal-authorization.test.ts` — FR-004, SC-003
+- [X] T004 Implement the environment-normalized admin helper and migrate `src/lib/require-admin.ts` to use it in `src/lib/internal-authorization.ts` and `src/lib/require-admin.ts` until T003 passes — FR-004, FR-015, SC-003
 
 **Checkpoint**: A subscription-free authorization primitive exists and all
 later stories can remove `billing.ts` without widening access.

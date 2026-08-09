@@ -25,8 +25,8 @@ jest.mock("@/lib/auth", () => ({
 }));
 
 const mockIsAdmin = jest.fn();
-jest.mock("@/lib/billing", () => ({
-  isAdmin: (...args: unknown[]) => mockIsAdmin(...args),
+jest.mock("@/lib/internal-authorization", () => ({
+  isInternalAdmin: (...args: unknown[]) => mockIsAdmin(...args),
 }));
 
 const mockSelectFromWhere = jest.fn().mockResolvedValue([{ count: 0 }]);
