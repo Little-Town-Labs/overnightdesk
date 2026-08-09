@@ -57,24 +57,24 @@ retired UI/API route returns 404 with zero external or database mutation.
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Write and run failing server-boundary tests for disabled email signup, retained sign-in, and retained password recovery in `src/lib/__tests__/auth-registration-retirement.test.ts` — FR-001, FR-003, SC-002
+- [ ] T005 [P] [US1] Write and run failing server-boundary tests proving direct `POST /api/auth/sign-up/email` returns exact 404 with zero identity creation while sign-in and password recovery remain available in `src/lib/__tests__/auth-registration-retirement.test.ts` — FR-001, FR-003, SC-001, SC-002
 - [ ] T006 [P] [US1] Write and run failing root-entry and retired-page 404 tests in `src/app/__tests__/limited-frontend-routes.test.tsx` — FR-002, FR-003, FR-017, SC-001
 - [ ] T007 [P] [US1] Write and run failing dashboard regression tests proving selected-agent/chat capabilities remain while plan, billing, wizard, provisioning, restart, and self-delete controls are absent in `src/app/(protected)/dashboard/__tests__/limited-frontend.test.tsx` — FR-001, FR-004, FR-005, SC-002
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Disable Better Auth email signup, retain sign-in/reset/OIDC behavior, migrate admin checks, and remove signup/verification public-route allowances in `src/lib/auth.ts` and `src/lib/middleware-utils.ts` until T005 passes — FR-001, FR-003, SC-002
+- [ ] T008 [US1] Disable Better Auth email signup, intercept direct email-registration requests with exact 404 in `src/app/api/auth/[...all]/route.ts`, retain sign-in/reset/session/OIDC dispatch, migrate admin checks, and remove signup/verification public-route allowances in `src/lib/auth.ts` and `src/lib/middleware-utils.ts` until T005 passes — FR-001, FR-003, SC-001, SC-002
 - [ ] T009 [US1] Remove the signup and verification pages and their sign-in link/test imports in `src/app/(auth)/sign-up/page.tsx`, `src/app/(auth)/verify-email/page.tsx`, `src/app/(auth)/sign-in/page.tsx`, and `src/lib/__tests__/auth-form-autocomplete.test.tsx` — FR-001, FR-002, SC-002
 - [ ] T010 [P] [US1] Replace customer marketing at the root with the minimal sign-in/dashboard entry and delete pricing/checkout pages in `src/app/page.tsx`, `src/app/pricing/page.tsx`, `src/app/pricing/pricing-card.tsx`, and `src/app/checkout/success/page.tsx` until T006 passes — FR-002, FR-003, SC-001
 - [ ] T011 [US1] Remove subscription gating from `src/app/(protected)/layout.tsx` and `src/lib/require-pro-or-admin.ts`, then replace Pro-or-admin checks with the existing admin rule in `src/app/api/engine/security/queue/route.ts`, `src/app/api/engine/security/queue/[id]/route.ts`, `src/app/api/engine/security/queue/[id]/resolve/route.ts`, and `src/app/api/engine/security/status/route.ts` — FR-004, FR-015, SC-003
 - [ ] T012 [US1] Remove subscription queries, plan labels, payment banners, billing controls, and paid security messaging while preserving selected-agent resolution in `src/app/(protected)/dashboard/page.tsx`, `src/app/(protected)/dashboard/layout.tsx`, and `src/app/(protected)/dashboard/security/page.tsx` until T007 passes — FR-001, FR-004, SC-002
-- [ ] T013 [P] [US1] Delete Stripe checkout, portal, and webhook route handlers plus the Stripe client in `src/app/api/stripe/checkout/route.ts`, `src/app/api/stripe/portal/route.ts`, `src/app/api/stripe/webhook/route.ts`, and `src/lib/stripe.ts` — FR-002, FR-003, FR-006, SC-001
-- [ ] T014 [P] [US1] Delete Stripe webhook behavior/tests and payment-failure presentation while preserving unrelated email delivery in `src/lib/stripe-webhook-handlers.ts`, `src/lib/__tests__/stripe-webhook.test.ts`, `src/lib/emails/payment-failure-email.tsx`, and `src/lib/email.ts` — FR-002, FR-003, FR-016, SC-001
+- [ ] T013 [P] [US1] Delete Stripe checkout, portal, and webhook route handlers plus the Stripe client as an undeployed source-only change in `src/app/api/stripe/checkout/route.ts`, `src/app/api/stripe/portal/route.ts`, `src/app/api/stripe/webhook/route.ts`, and `src/lib/stripe.ts`; production activation remains blocked by T036 — FR-002, FR-003, FR-006, SC-001
+- [ ] T014 [P] [US1] Delete Stripe webhook behavior/tests and payment-failure presentation as an undeployed source-only change while preserving unrelated email delivery in `src/lib/stripe-webhook-handlers.ts`, `src/lib/__tests__/stripe-webhook.test.ts`, `src/lib/emails/payment-failure-email.tsx`, and `src/lib/email.ts`; production activation remains blocked by T036 — FR-002, FR-003, FR-016, SC-001
 - [ ] T015 [US1] Remove the subscription API, billing module/tests, subscription-derived admin metrics, and remaining imports in `src/app/api/subscription/route.ts`, `src/lib/billing.ts`, `src/lib/__tests__/billing.test.ts`, and `src/lib/admin-metrics.ts` — FR-004, FR-013, SC-003
-- [ ] T016 [P] [US1] Remove self-service account deletion UI, endpoint, and coupled tests in `src/app/(protected)/dashboard/settings/delete-account.tsx`, `src/app/api/account/delete/route.ts`, and `src/app/api/account/__tests__/delete.test.ts` — FR-005, FR-015, SC-003
+- [ ] T016 [P] [US1] Remove self-service account deletion UI, endpoint, and coupled tests in `src/app/(protected)/dashboard/settings/delete-account.tsx`, `src/app/api/account/delete/route.ts`, and `src/app/api/account/__tests__/delete.test.ts`; document the explicit owner-operated process and sole-active-owner refusal in `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-005, FR-015, SC-003
 - [ ] T017 [P] [US1] Remove customer setup/provisioning presentation without touching Telegram or Discord bridge configuration in `src/app/(protected)/dashboard/setup-wizard.tsx`, `src/app/(protected)/dashboard/provisioning-progress.tsx`, and `src/app/(protected)/dashboard/onboarding-wizard.tsx` — FR-002, FR-012, SC-001
-- [ ] T018 [US1] Remove wizard mutation routes and their legacy tests in `src/app/api/wizard/write-step/route.ts`, `src/app/api/wizard/complete/route.ts`, and `src/app/api/wizard/__tests__/wizard-routes.test.ts` — FR-003, FR-009, FR-012, SC-001
-- [ ] T019 [US1] Remove the provisioner callback and customer instance-control routes/tests in `src/app/api/provisioner/callback/route.ts`, `src/app/api/provisioner/__tests__/callback.test.ts`, `src/app/api/instance/status/route.ts`, `src/app/api/instance/auth-status/route.ts`, and `src/app/api/instance/terminal-ticket/route.ts` — FR-003, FR-012, FR-017, SC-001
+- [ ] T018 [US1] After T001 confirms no active source caller, remove wizard mutation routes and their legacy tests as an undeployed source-only change in `src/app/api/wizard/write-step/route.ts`, `src/app/api/wizard/complete/route.ts`, and `src/app/api/wizard/__tests__/wizard-routes.test.ts`; production activation remains blocked by T036 — FR-003, FR-009, FR-012, SC-001
+- [ ] T019 [US1] After T001 confirms no active source caller, remove the provisioner callback and customer instance-control routes/tests as an undeployed source-only change in `src/app/api/provisioner/callback/route.ts`, `src/app/api/provisioner/__tests__/callback.test.ts`, `src/app/api/instance/status/route.ts`, `src/app/api/instance/auth-status/route.ts`, and `src/app/api/instance/terminal-ticket/route.ts`; production activation remains blocked by T036 — FR-003, FR-012, FR-017, SC-001
 - [ ] T020 [US1] Remove the Stripe package, Jest allowlist entry, billing/invite/Stripe environment contract, and lockfile entry in `package.json`, `package-lock.json`, `jest.config.ts`, and `.env.example` — FR-002, FR-016, SC-009
 - [ ] T021 [US1] Run T005-T007, existing sign-in/chat/dashboard/OIDC suites, `npm test`, `npm run build`, and `scripts/qualify-legacy-customer-lifecycle-retirement.sh`; fix only US1 regressions in the paths owned by T008-T020 and record sanitized results in `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-001, FR-002, FR-003, FR-004, FR-005, SC-001, SC-002, SC-003
 
@@ -125,16 +125,16 @@ approved disposable database.
 
 ### Tests for User Story 3
 
-- [ ] T031 [US3] Write and run failing plan/apply/verify and non-zero stop-condition tests in `scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts` — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
+- [ ] T031 [US3] Write and run failing plan/apply/verify/rollback plus non-zero stop-condition tests in `scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts`, including proof that rollback restores all before-counts without changing active data — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement parameterized, secret-safe plan/apply/verify modes with zero-state checks and an explicit approval token in `scripts/legacy-customer-lifecycle-cleanup.ts` until T031 passes — FR-006, FR-007, FR-013, FR-014, SC-004
+- [ ] T032 [US3] Implement parameterized, secret-safe plan/apply/verify/rollback modes with zero-state checks and explicit apply/rollback approval tokens in `scripts/legacy-customer-lifecycle-cleanup.ts` until T031 passes — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
 - [ ] T033 [P] [US3] Add deterministic cleanup plan/apply/verify commands in `package.json` and document test-database requirements in `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-014, FR-018, SC-007
 - [ ] T034 [US3] Remove the pure subscription model and only preflight-proven unused wizard compatibility fields in `src/db/schema.ts` and add reversible SQL in `drizzle/0011_legacy_customer_lifecycle_retirement.sql` — FR-013, FR-014, FR-015, SC-004, SC-007
-- [ ] T035 [US3] Run plan/apply/verify against a disposable populated test database using `scripts/legacy-customer-lifecycle-cleanup.ts`, prove non-zero fixtures stop unchanged, and attach sanitized counts to the implementation PR — FR-007, FR-014, FR-018, SC-007
-- [ ] T036 [US3] After source merge and explicit owner approval, run provider and production-database plan mode only with `scripts/legacy-customer-lifecycle-cleanup.ts`; stop on any non-zero/ambiguous result and record secret-safe evidence in the PR and Issue #215 — FR-006, FR-007, FR-019, SC-004
-- [ ] T037 [US3] Only after a separate destructive-data approval and verified backup, run production apply/verify with `scripts/legacy-customer-lifecycle-cleanup.ts` and record rollback/count evidence in `/opt/overnightdesk/deploys.log` — FR-014, FR-018, FR-019, FR-020, SC-007
+- [ ] T035 [US3] Run plan/apply/verify/rollback against a disposable populated test database using `scripts/legacy-customer-lifecycle-cleanup.ts`, prove rollback restores all before-counts, prove non-zero fixtures stop unchanged, and attach sanitized evidence to the implementation PR — FR-007, FR-014, FR-018, SC-007
+- [ ] T036 [US3] After source merge and explicit owner approval, run provider, callback, wizard/in-flight-work, and production-database plan mode only with `scripts/legacy-customer-lifecycle-cleanup.ts`; stop on any non-zero/ambiguous result and record secret-safe evidence in the PR and Issue #215 — FR-006, FR-007, FR-012, FR-019, SC-004
+- [ ] T037 [US3] Only after T035 rollback rehearsal passes, T036 reports zero state, a separate destructive-data approval is recorded, and a backup is verified, run production apply/verify with `scripts/legacy-customer-lifecycle-cleanup.ts` and record rollback/count evidence in `/opt/overnightdesk/deploys.log` — FR-014, FR-018, FR-019, FR-020, SC-007
 
 **Checkpoint**: Pure legacy data is either safely removed with zero-state
 evidence or explicitly stopped; active identity, membership, platform-instance,
@@ -161,11 +161,11 @@ closed, and every approved production action has rollback and ledger evidence.
 
 ### Separately Approved Production Activation
 
-- [ ] T043 [US4] After explicit Vercel approval, deploy the reviewed frontend head using `specs/040-legacy-lifecycle-retirement/quickstart.md`, verify owner sign-in/password recovery/chat/dashboard plus all retired-route 404 outcomes, and record the deployment identifier in the implementation PR — FR-001, FR-003, FR-018, FR-019, SC-001, SC-002
+- [ ] T043 [US4] Only after T036 reports zero provider/local/in-flight state and explicit Vercel approval is recorded, deploy the reviewed frontend head using `specs/040-legacy-lifecycle-retirement/quickstart.md`, verify owner sign-in/password recovery/chat/dashboard plus exact 404 for direct registration and all retired routes, and record the deployment identifier in the implementation PR — FR-001, FR-003, FR-006, FR-012, FR-018, FR-019, SC-001, SC-002, SC-004
 - [ ] T044 [US4] After explicit Aegis approval, deploy the isolated managed-variable service, verify health/readiness, qualified replacement, denial, idempotent replay, approved reads, and absence of legacy routes, then append the result to `/opt/overnightdesk/deploys.log` — FR-008, FR-009, FR-010, FR-018, FR-019, SC-005, SC-006
 - [ ] T045 [US4] After consumer-absence proof and separate owner approval, remove obsolete Stripe and retired provisioner variables/webhook registrations from their owning Vercel, provider, Phase, and Aegis systems without displaying values, then append metadata-only evidence to `/opt/overnightdesk/deploys.log` — FR-016, FR-019, FR-020, SC-009
 - [ ] T046 [US4] Run the approved observation window using `specs/040-legacy-lifecycle-retirement/quickstart.md`, roll back only the affected surviving capability if a threshold is met, and record each observation result in `/opt/overnightdesk/deploys.log` — FR-018, FR-019, FR-020, SC-008
-- [ ] T047 [US4] Re-run inventory and documentation consistency checks, verify all approved follow-ups and production evidence, mark Feature 040 complete in `specs/040-legacy-lifecycle-retirement/spec.md` and `specs/040-legacy-lifecycle-retirement/tasks.md`, then close Issue #215 only if every acceptance criterion is satisfied — FR-020, SC-009
+- [ ] T047 [US4] Re-run inventory and documentation consistency checks and verify every required production/data gate and its evidence; if any required gate is deferred, keep Feature 040 and Issue #215 open, otherwise mark Feature 040 complete in `specs/040-legacy-lifecycle-retirement/spec.md` and `specs/040-legacy-lifecycle-retirement/tasks.md` and close Issue #215 only after every acceptance criterion is satisfied — FR-019, FR-020, SC-009
 
 **Checkpoint**: Merge completion, production activation, destructive data
 cleanup, secret cleanup, and observation closeout are each independently
@@ -180,7 +180,8 @@ proven; Issue #215 may close.
 - **Phase 1**: No dependency.
 - **Phase 2**: Depends on T001; T002 may run in parallel.
 - **US1 / Phase 3**: Depends on T003-T004. Test tasks T005-T007 precede
-  implementation. T021 gates US1 completion.
+  implementation. T021 gates the undeployed US1 source slice; T013-T014 and
+  T018-T019 cannot activate in production before T036 passes.
 - **US2 / Phase 4**: Depends on T018-T019 and T021 so legacy application
   callers are removed before the client/service is narrowed. T022-T023 precede
   T024-T029. T030 gates US2 completion.
@@ -188,9 +189,10 @@ proven; Issue #215 may close.
   consumers. T036 requires merged source; T037 requires T036 zero-state
   evidence plus separate approval and backup.
 - **US4 / Phase 6**: T038-T040 may begin after source paths stabilize. T041-T042
-  require US1-US3 source work. T043-T046 are sequential production gates.
-  T047 requires every selected production/data task to be complete or explicitly
-  deferred in a linked Issue.
+  require US1-US3 source work. T043 requires T036 zero-state evidence; T043-T046
+  are sequential production gates. T047 requires every required production/data
+  task to be complete; a deferred required gate keeps Feature 040 and Issue #215
+  open.
 
 ### User Story Dependencies
 
@@ -263,7 +265,8 @@ Task T029: Engine environment/documentation
 1. Complete T001-T004.
 2. Write and run T005-T007 to capture RED evidence.
 3. Complete T008-T020 in small RED→GREEN slices.
-4. Complete T021 and stop for owner review.
+4. Complete T021 and stop for owner review; do not deploy this source slice
+   before T036 passes.
 
 The MVP is US1: the owner can use the limited frontend and no customer
 signup/payment/lifecycle surface remains in the Next.js application.

@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-09
 
-**Status**: Clarified; ready for implementation planning
+**Status**: Analyzed; ready for bounded implementation
 
 **Input**: Complete the separate migration deferred by ADR 007 by removing
 legacy customer signup, Stripe billing, setup wizard, callback, and
@@ -188,7 +188,8 @@ internal collaborator flows remain healthy.
 - **FR-003**: Retired customer lifecycle web and service requests MUST fail
   closed with `404 Not Found`, MUST NOT redirect to another application
   surface, and MUST NOT initiate payment, secret, ingress, certificate,
-  container, runtime, or data mutation.
+  container, runtime, or data mutation. This includes direct submission to the
+  Better Auth email-registration path, not only the removed signup page.
 - **FR-004**: Current authorization MUST NOT depend on a legacy subscription,
   plan, payment status, or customer identifier.
 - **FR-005**: The system MUST remove the self-service account-deletion UI and
@@ -197,10 +198,11 @@ internal collaborator flows remain healthy.
   deprovisioning, and MUST fail closed rather than delete the sole active owner
   identity.
 - **FR-006**: The migration MUST reconcile provider-side payment obligations
-  and local payment records before disabling payment callbacks, removing
-  payment configuration, or changing retained payment data. If the census
-  proves no provider obligation and no callback requiring handling, no callback
-  drain is required.
+  and local payment records before production activation disables payment
+  callbacks, removes payment configuration, or changes retained payment data.
+  Source removal may be reviewed and merged while remaining undeployed. If the
+  census proves no provider obligation and no callback requiring handling, no
+  callback drain is required.
 - **FR-007**: Any unresolved financial obligation or provider/local state
   mismatch MUST stop the affected retirement action and require an explicit
   owner decision.
@@ -220,15 +222,18 @@ internal collaborator flows remain healthy.
   value-free responses, and its approved runtime effect.
 - **FR-011**: Operations whose consumers or business ownership cannot be proven
   MUST remain inactive or unchanged until an owner-approved treatment exists.
-- **FR-012**: Legacy wizard and provisioning callback behavior MUST be removed
-  after one preflight proves no in-flight customer lifecycle work; any
-  unexpected work MUST stop only that cleanup for an owner decision.
+- **FR-012**: Production activation of legacy wizard and provisioning callback
+  removal MUST occur only after one preflight proves no in-flight customer
+  lifecycle work. Source removal may be reviewed and merged while remaining
+  undeployed; any unexpected work MUST stop only that activation for an owner
+  decision.
 - **FR-013**: The data preflight MUST report provider-obligation count, local
   subscription-row count, meaningful wizard-state count, and active schema
   consumers. Zero-state surfaces may proceed to removal; any non-zero or
   ambiguous result MUST stop and MUST NOT be automatically deleted.
 - **FR-014**: Every destructive data treatment MUST have a checked backup,
-  count reconciliation, rollback procedure, and separate explicit production
+  count reconciliation, executable rollback procedure, successful rollback
+  rehearsal against a disposable database, and separate explicit production
   approval.
 - **FR-015**: Active identity, membership, named-runtime, conversation, memory,
   audit, tenant, prospect, and business records MUST remain unchanged except

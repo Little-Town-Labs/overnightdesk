@@ -89,8 +89,9 @@ application database, and one qualified privileged operation.
    and internal authorization helpers from `billing.ts`; protected layouts and
    security APIs use current role/membership rules only.
 3. **Remove, do not stub, customer APIs**: deleted pages and route handlers
-   resolve to Next.js 404. Better Auth signup is explicitly disabled so the
-   catch-all auth route cannot create users after the signup page disappears.
+   resolve to Next.js 404. The Better Auth catch-all explicitly intercepts the
+   email-registration path with 404 before dispatch, while sign-in, recovery,
+   sessions, and OIDC continue through the retained handler.
 4. **Preserve the deep active workspace module**: selected-agent resolution,
    chat, dashboard capabilities, OIDC authorization, and read-only runtime
    views remain. Subscription banners, plan labels, setup/provisioning states,
@@ -105,8 +106,9 @@ application database, and one qualified privileged operation.
    schema and demonstrably unused wizard compatibility fields are handled by a
    separate migration gate.
 7. **No account cleanup in this feature**: self-service account deletion is
-   removed. Gary, Austin, Mitchel, and all other existing identities remain
-   unchanged.
+   removed. The owner-operated process is documented and must refuse deletion
+   of the sole active owner. Gary, Austin, Mitchel, and all other existing
+   identities remain unchanged.
 
 ## Delivery Sequence
 
@@ -129,7 +131,11 @@ application database, and one qualified privileged operation.
    prove source/config scans have no active customer lifecycle claim.
 6. **Activate separately**: after reviewed source merges, obtain independent
    approval for Vercel activation, database migration, Aegis operations-service
-   isolation, provider/secret cleanup, and observation closeout.
+   isolation, provider/secret cleanup, and observation closeout. Vercel
+   activation that removes callbacks or wizard behavior is blocked until the
+   provider/local/in-flight zero-state preflight passes. Destructive data work
+   is additionally blocked until rollback succeeds against a disposable
+   database.
 
 ## Project Structure
 

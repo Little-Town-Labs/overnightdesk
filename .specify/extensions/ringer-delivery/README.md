@@ -21,7 +21,7 @@ planning and the distinct final quality gate.
 Install locally from a project root:
 
 ```bash
-specify extension add --dev /home/frosted639/src/ringer-workflows/extension/ringer-delivery
+specify extension add --dev /home/powerbox2/src/ringer-workflows/extension/ringer-delivery
 ```
 
 The extension intentionally does not replace core Spec Kit templates. Project

@@ -2,9 +2,9 @@ schema_version: "1.0"
 profile_version: "1.0.1"
 
 tools:
-  generator: "/home/frosted639/src/ringer-workflows/scripts/delivery_profile.py"
-  ringer: "/home/frosted639/src/ringer/ringer.py"
-  ringer_config: "/home/frosted639/src/ringer-workflows/config/config.toml"
+  generator: "/home/powerbox2/src/ringer-workflows/scripts/delivery_profile.py"
+  ringer: "/home/powerbox2/src/ringer/ringer.py"
+  ringer_config: "/home/powerbox2/src/ringer-workflows/config/config.toml"
 
 routing:
   planning: codex-sol
