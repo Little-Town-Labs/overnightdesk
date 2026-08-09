@@ -13,7 +13,6 @@ import {
   sendVerificationEmail,
   sendPasswordResetEmail,
 } from "@/lib/email";
-import { isAdmin, isInvitedEmail } from "@/lib/billing";
 import { getBetterAuthUrl } from "@/lib/config";
 import {
   HERMES_JWT_OPTIONS,
@@ -138,6 +137,7 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    disableSignUp: true,
     requireEmailVerification: true,
     minPasswordLength: 12,
     maxPasswordLength: 128,
@@ -158,7 +158,6 @@ export const auth = betterAuth({
         url
       );
     },
-    sendOnSignUp: true,
     autoSignInAfterVerification: true,
     expiresIn: 86400, // 24 hours
   },
@@ -179,7 +178,6 @@ export const auth = betterAuth({
     storage: "memory",
     customRules: {
       "/sign-in/email": { window: 60, max: 10 },
-      "/sign-up/email": { window: 60, max: 5 },
       "/request-password-reset": { window: 300, max: 3 },
       "/send-verification-email": { window: 300, max: 3 },
     },
@@ -188,14 +186,9 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        before: async (user) => {
-          const email = user.email;
-          if (isAdmin(email) || isInvitedEmail(email)) {
-            return;
-          }
+        before: async () => {
           throw new APIError("FORBIDDEN", {
-            message:
-              "Registration is currently invite-only. Please contact us for access.",
+            message: "Registration is disabled.",
           });
         },
       },

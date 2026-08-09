@@ -41,24 +41,30 @@ describe("registration retirement at the auth server boundary", () => {
     mockIdentityCreation.mockClear();
   });
 
-  it("returns an empty 404 before direct email signup can create identity state", async () => {
-    const response = await POST(
-      new Request("https://overnightdesk.com/api/auth/sign-up/email", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          email: "new-user@example.com",
-          name: "New User",
-          password: "not-a-real-password",
+  it.each([
+    "/api/auth/sign-up/email",
+    "/api/auth/sign-up/email/",
+  ])(
+    "returns an empty 404 before direct email signup path %s can create identity state",
+    async (pathname) => {
+      const response = await POST(
+        new Request(`https://overnightdesk.com${pathname}`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            email: "new-user@example.com",
+            name: "New User",
+            password: "not-a-real-password",
+          }),
         }),
-      }),
-    );
+      );
 
-    expect(response.status).toBe(404);
-    expect(await response.text()).toBe("");
-    expect(mockBetterAuthPost).not.toHaveBeenCalled();
-    expect(mockIdentityCreation).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(404);
+      expect(await response.text()).toBe("");
+      expect(mockBetterAuthPost).not.toHaveBeenCalled();
+      expect(mockIdentityCreation).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     ["/api/auth/sign-in/email", 200, "sign-in"],

@@ -1,4 +1,8 @@
-import { isPublicRoute, getSignInRedirectUrl } from "../middleware-utils";
+import {
+  getSignInRedirectUrl,
+  isPublicRoute,
+  isRetiredPageRoute,
+} from "../middleware-utils";
 
 describe("isPublicRoute", () => {
   describe("public routes", () => {
@@ -8,14 +12,6 @@ describe("isPublicRoute", () => {
 
     it("allows sign-in page", () => {
       expect(isPublicRoute("/sign-in")).toBe(true);
-    });
-
-    it("allows sign-up page", () => {
-      expect(isPublicRoute("/sign-up")).toBe(true);
-    });
-
-    it("allows verify-email page", () => {
-      expect(isPublicRoute("/verify-email")).toBe(true);
     });
 
     it("allows reset-password page", () => {
@@ -57,6 +53,11 @@ describe("isPublicRoute", () => {
   });
 
   describe("protected routes", () => {
+    it("does not classify retired auth pages as public", () => {
+      expect(isPublicRoute("/sign-up")).toBe(false);
+      expect(isPublicRoute("/verify-email")).toBe(false);
+    });
+
     it("blocks dashboard", () => {
       expect(isPublicRoute("/dashboard")).toBe(false);
     });
@@ -99,6 +100,25 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/account/delete")).toBe(false);
     });
   });
+});
+
+describe("isRetiredPageRoute", () => {
+  it.each([
+    "/sign-up",
+    "/sign-up/",
+    "/verify-email",
+    "/pricing",
+    "/checkout/success",
+  ])("identifies retired page path %s", (pathname) => {
+    expect(isRetiredPageRoute(pathname)).toBe(true);
+  });
+
+  it.each(["/", "/sign-in", "/reset-password", "/dashboard"])(
+    "preserves active page path %s",
+    (pathname) => {
+      expect(isRetiredPageRoute(pathname)).toBe(false);
+    }
+  );
 });
 
 describe("getSignInRedirectUrl", () => {
