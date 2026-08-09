@@ -115,6 +115,10 @@ describe("isRetiredRoute", () => {
     "/api/stripe/webhook/",
     "/api/subscription",
     "/api/subscription/",
+    "/api/wizard/write-step",
+    "/api/wizard/write-step/",
+    "/api/wizard/complete",
+    "/api/wizard/complete/",
   ])("identifies retired path %s", (pathname) => {
     expect(isRetiredRoute(pathname)).toBe(true);
   });
