@@ -35,8 +35,9 @@ to clarification and planning
 
 ## Notes
 
-The specification is ready for `/speckit-clarify`. Clarification should confirm
-the exact inventory and ownership of retained named-runtime operations and the
-evidence required to classify payment and compatibility records before
-technical planning. No production, payment-provider, secret, or data mutation
-is authorized by this specification.
+Clarification completed on 2026-08-09. The approved posture is an
+existing-account Timeless Technology Solutions frontend with sign-in, password
+recovery, chat, dashboard, and qualified managed-variable replacement.
+Registration and the complete customer lifecycle are retired. No production,
+payment-provider, secret, identity, or data mutation is authorized by the
+specification or plan.

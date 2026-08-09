@@ -1,46 +1,63 @@
 # Feature Specification: Legacy Customer Lifecycle Retirement
 
-**Feature Branch**: `agent/codex/legacy-lifecycle-retirement`
+**Feature Branch**: `040-legacy-lifecycle-retirement`
 
 **Created**: 2026-08-09
 
-**Status**: Draft
+**Status**: Clarified; ready for implementation planning
 
 **Input**: Complete the separate migration deferred by ADR 007 by removing
 legacy customer signup, Stripe billing, setup wizard, callback, and
-self-service provisioning behavior while preserving invite-only internal
-registration and every approved named-runtime operation. Tracks
+self-service provisioning behavior while preserving the existing authenticated
+Timeless Technology Solutions frontend and its approved named-runtime support.
+Tracks
 [Issue #215](https://github.com/Little-Town-Labs/overnightdesk/issues/215).
+
+## Clarifications
+
+### Session 2026-08-09
+
+- Q: How should account deletion behave after retirement? → A: Retire
+  self-service deletion; account deletion is owner-operated only.
+- Q: Which privileged provisioner capability survives retirement? → A:
+  Preserve only qualified managed-variable replacement and its required
+  health/readiness endpoints.
+- Q: What final outcome should retired routes use? → A: Remove the entire
+  unused Stripe integration and return 404 for retired UI and API routes.
+- Q: What product posture should retirement leave? → A: Keep a limited-use
+  Timeless Technology Solutions frontend for existing sign-in, chat, and
+  dashboard use; remove registration and all customer lifecycle behavior.
 
 ## User Scenarios & Testing
 
-### User Story 1 - Use only the internal workspace (Priority: P1)
+### User Story 1 - Use the limited internal frontend (Priority: P1)
 
-As an approved collaborator, I want OvernightDesk to present only its current
-internal workspace so that I can register by invitation, authenticate, and use
-my approved workspaces without encountering obsolete customer plans, checkout,
-billing, or self-service hosting flows.
+As an existing authorized collaborator, I want OvernightDesk to present only
+the limited Timeless Technology Solutions frontend so that I can sign in and
+use chat and the dashboard without encountering registration, customer plans,
+checkout, billing, or self-service hosting flows.
 
 **Why this priority**: The current product direction is an authenticated
 internal workspace. Public customer-hosting offers contradict that direction
 and retain paths into payment and provisioning behavior that the business no
 longer supports.
 
-**Independent Test**: An invited collaborator can create and verify an account,
-sign in, and reach only membership-approved workspaces, while anonymous and
-authenticated users cannot view or initiate a customer subscription, billing,
+**Independent Test**: The existing owner account can sign in, recover access,
+use chat, and reach the dashboard, while anonymous and authenticated users
+cannot register or view or initiate a customer subscription, billing,
 setup-wizard, or self-service provisioning flow.
 
 **Acceptance Scenarios**:
 
-1. **Given** an invited collaborator with no account, **When** they register and
-   verify their email, **Then** they can authenticate without selecting a paid
-   plan or initiating runtime provisioning.
-2. **Given** an uninvited visitor, **When** they attempt registration, **Then**
-   registration remains denied without exposing a customer purchase path.
+1. **Given** the existing owner account, **When** the owner signs in, **Then**
+   chat and the dashboard remain available without any paid-plan or runtime
+   provisioning step.
+2. **Given** any visitor, **When** they request a registration surface or submit
+   a registration request, **Then** the system returns `404 Not Found` and does
+   not create an identity.
 3. **Given** any visitor or authenticated collaborator, **When** they request a
    retired pricing, checkout, billing, wizard, callback, or customer-hosting
-   surface, **Then** the system returns the defined fail-closed outcome and
+   surface, **Then** the system returns `404 Not Found` without redirecting and
    performs no payment or runtime action.
 
 ---
@@ -56,11 +73,11 @@ retired lifecycle behavior and approved operations. Removing it wholesale
 would break current business workflows, while retaining it unchanged preserves
 unnecessary high authority.
 
-**Independent Test**: Every approved named-runtime operation has an explicit
-owner, caller, target, authorization rule, input contract, audit result, and
-bounded runtime effect; those operations pass their existing positive and
-denial checks while customer container creation, deprovisioning, broad restart,
-and arbitrary secret writing remain unavailable.
+**Independent Test**: The qualified managed-variable replacement capability
+and its required health/readiness endpoints have explicit owners, callers,
+targets, authorization rules, input contracts, audit results, and bounded
+runtime effects; they pass their existing positive and denial checks while
+every other privileged provisioner operation remains unavailable.
 
 **Acceptance Scenarios**:
 
@@ -77,36 +94,32 @@ and arbitrary secret writing remain unavailable.
 
 ---
 
-### User Story 3 - Reconcile payment and compatibility data safely (Priority: P1)
+### User Story 3 - Prove legacy payment state is empty (Priority: P1)
 
-As the accountable owner, I want payment obligations and legacy application
-records reconciled before removal so that the migration neither abandons a
-financial obligation nor destroys identity, membership, runtime, audit, or
-business data.
+As the accountable owner, I want one bounded preflight to confirm that the
+unused Stripe integration has no provider obligation or local subscription
+record so that its remaining schema and configuration can be removed.
 
-**Why this priority**: Payment state, account behavior, authorization, and
-legacy instance records are currently coupled. A source-only deletion could
-silently change access, leave an active subscription unmanaged, or make a
-future audit impossible.
+**Why this priority**: Stripe was never fully established, but the source still
+contains payment and subscription coupling. A zero-state check is sufficient
+unless it finds unexpected evidence.
 
-**Independent Test**: A secret-safe census classifies every retained payment,
-subscription, customer-lifecycle, and compatibility record; each class has an
-approved preserve, archive, migrate, or delete treatment, and a reversible
-backup and verification result exist before any destructive data change.
+**Independent Test**: A secret-safe preflight reports zero provider obligations,
+zero local subscription rows, and no active callback or schema consumer before
+the separately approved removal migration runs.
 
 **Acceptance Scenarios**:
 
-1. **Given** any active, disputed, refundable, legally retained, or otherwise
-   unresolved payment obligation, **When** the retirement reaches payment
-   disconnection, **Then** it stops and requires an explicit owner decision.
+1. **Given** zero provider obligations and zero local subscription rows,
+   **When** the removal migration is reviewed, **Then** it is eligible for
+   separate approval with backup, rollback, and verification.
 2. **Given** a collaborator whose access was historically associated with a
    subscription, **When** subscription-derived authorization is removed,
    **Then** access is determined only by current internal identity and
    membership rules.
-3. **Given** legacy records with no current authority or operational consumer,
-   **When** their approved treatment is applied, **Then** the result is
-   reversible, count-reconciled, and does not alter active identity,
-   membership, named-runtime, or business records.
+3. **Given** any unexpected provider obligation, local subscription row, or
+   active consumer, **When** preflight runs, **Then** only the affected cleanup
+   stops for an owner decision and no record is automatically deleted.
 
 ---
 
@@ -163,30 +176,40 @@ internal collaborator flows remain healthy.
 
 ### Functional Requirements
 
-- **FR-001**: OvernightDesk MUST retain invite-only registration, email
-  verification, authentication, session management, password recovery, and
-  membership-scoped internal workspace access.
+- **FR-001**: OvernightDesk MUST retain existing-account authentication,
+  session management, password recovery, chat, dashboard access, and the
+  membership rules those surfaces require. It MUST remove all registration UI
+  and registration endpoints and MUST NOT create a replacement signup flow.
 - **FR-002**: The system MUST remove public customer plan, pricing, checkout,
   billing-management, checkout-success, setup-wizard, provisioning-progress,
-  and self-service hosting experiences.
+  and self-service hosting experiences. It MUST also remove Stripe API routes,
+  webhook handlers, application libraries, package dependencies, tests,
+  configuration references, and operational documentation.
 - **FR-003**: Retired customer lifecycle web and service requests MUST fail
-  closed and MUST NOT initiate payment, secret, ingress, certificate,
+  closed with `404 Not Found`, MUST NOT redirect to another application
+  surface, and MUST NOT initiate payment, secret, ingress, certificate,
   container, runtime, or data mutation.
 - **FR-004**: Current authorization MUST NOT depend on a legacy subscription,
   plan, payment status, or customer identifier.
-- **FR-005**: Account deletion MUST preserve the current internal identity and
-  data-custody contract and MUST NOT invoke legacy payment cancellation or
-  customer-runtime deprovisioning behavior.
+- **FR-005**: The system MUST remove the self-service account-deletion UI and
+  endpoint. Any account deletion MUST use an explicit owner-operated process,
+  MUST NOT invoke legacy payment cancellation or customer-runtime
+  deprovisioning, and MUST fail closed rather than delete the sole active owner
+  identity.
 - **FR-006**: The migration MUST reconcile provider-side payment obligations
   and local payment records before disabling payment callbacks, removing
-  payment configuration, or changing retained payment data.
+  payment configuration, or changing retained payment data. If the census
+  proves no provider obligation and no callback requiring handling, no callback
+  drain is required.
 - **FR-007**: Any unresolved financial obligation or provider/local state
   mismatch MUST stop the affected retirement action and require an explicit
   owner decision.
 - **FR-008**: Every still-required named-runtime operation MUST have an exact
   owner, caller, target, authorization rule, input boundary, audit outcome, and
   bounded runtime effect before the mixed-authority provisioning boundary is
-  retired.
+  retired. The only surviving privileged operation is the qualified
+  managed-variable replacement capability, together with the minimum
+  health/readiness endpoints required to operate it.
 - **FR-009**: The replacement operations boundary MUST NOT expose dynamic
   customer runtime creation, customer deprovisioning, arbitrary secret maps,
   unrestricted runtime selection, broad restart, or customer-controlled
@@ -198,11 +221,12 @@ internal collaborator flows remain healthy.
 - **FR-011**: Operations whose consumers or business ownership cannot be proven
   MUST remain inactive or unchanged until an owner-approved treatment exists.
 - **FR-012**: Legacy wizard and provisioning callback behavior MUST be removed
-  only after in-flight work is proven absent or handled by an approved drain
-  contract.
-- **FR-013**: Legacy payment, subscription, wizard, provisioning, and instance
-  compatibility data MUST be inventoried and assigned an explicit preserve,
-  archive, migrate, or delete treatment.
+  after one preflight proves no in-flight customer lifecycle work; any
+  unexpected work MUST stop only that cleanup for an owner decision.
+- **FR-013**: The data preflight MUST report provider-obligation count, local
+  subscription-row count, meaningful wizard-state count, and active schema
+  consumers. Zero-state surfaces may proceed to removal; any non-zero or
+  ambiguous result MUST stop and MUST NOT be automatically deleted.
 - **FR-014**: Every destructive data treatment MUST have a checked backup,
   count reconciliation, rollback procedure, and separate explicit production
   approval.
@@ -228,8 +252,9 @@ internal collaborator flows remain healthy.
 
 ### Key Entities
 
-- **Internal collaborator**: An invited person with an individual account and
-  explicit workspace memberships; no payment record grants this access.
+- **Internal collaborator**: A person with an existing authorized account and
+  explicit workspace memberships; no registration or payment record grants
+  new access after retirement.
 - **Legacy customer lifecycle**: The retired plan selection, payment,
   setup-wizard, callback, and automated customer-runtime lifecycle behavior.
 - **Payment obligation**: Provider-side and local records that may require
@@ -251,17 +276,19 @@ internal collaborator flows remain healthy.
 - **SC-001**: All tested public and authenticated customer lifecycle entry
   points produce the approved fail-closed outcome, with zero payment,
   credential, ingress, certificate, container, runtime, or database mutation.
-- **SC-002**: 100% of invite-only registration, verification, authentication,
-  password recovery, membership denial, and approved workspace access checks
-  pass after the migration.
-- **SC-003**: Zero current authorization decisions or account-deletion actions
-  depend on legacy payment or subscription state.
-- **SC-004**: 100% of provider-side and local payment records are
-  count-reconciled and assigned an owner-approved treatment before payment
-  integration removal.
-- **SC-005**: Every retained named-runtime operation has one explicit owner,
-  caller set, target set, authorization contract, audit contract, and rollback
-  handle; no customer lifecycle operation remains available.
+- **SC-002**: 100% of existing-owner authentication, password recovery, chat,
+  dashboard access, session denial, and membership denial checks pass after the
+  migration, while registration attempts create zero identities.
+- **SC-003**: Zero current authorization decisions depend on legacy payment or
+  subscription state, and no self-service account-deletion surface remains
+  available.
+- **SC-004**: The removal preflight reports zero provider obligations, zero
+  local subscription rows, zero meaningful wizard state, and zero active
+  consumers; otherwise the affected destructive cleanup remains unapplied.
+- **SC-005**: The managed-variable replacement capability and its required
+  health/readiness endpoints each have one explicit owner, caller set, target
+  set, authorization contract, audit contract, and rollback handle; no other
+  privileged provisioner or customer lifecycle operation remains available.
 - **SC-006**: The managed-variable replacement regression suite passes all
   approved success, denial, idempotency, secret-leak, and bounded runtime-effect
   cases with zero value disclosure.
@@ -276,8 +303,8 @@ internal collaborator flows remain healthy.
 
 ## Assumptions
 
-- Invite-only registration is a current internal workspace requirement and is
-  distinct from retired public customer acquisition and purchase flows.
+- The existing owner account is the required active user; no registration flow
+  is required for the limited Timeless Technology Solutions frontend.
 - Existing identity and membership records are the authoritative access model;
   subscription records are compatibility data only.
 - Any payment obligation discovered during reconciliation is handled before
@@ -293,8 +320,10 @@ internal collaborator flows remain healthy.
 
 ## Non-goals
 
-- Removing invite-only registration, authentication, sessions, password
-  recovery, email verification, or membership management.
+- Removing existing-account authentication, sessions, password recovery, chat,
+  dashboard access, or the membership controls those surfaces require.
+- Deleting or modifying Austin's, Mitchel's, or any other dormant identity as
+  part of the customer lifecycle source cleanup.
 - Creating a replacement customer-hosting, paid-plan, billing, or automated
   tenant-provisioning product.
 - Adding new named runtimes, supported managed variables, runtime authority,
