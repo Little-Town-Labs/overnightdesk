@@ -17,7 +17,6 @@
  *   GET    /api/engine/conversations
  *   GET    /api/engine/conversations/[id]/messages
  *   GET    /api/engine/logs
- *   POST   /api/engine/restart
  */
 
 import { NextRequest } from "next/server";
@@ -73,14 +72,6 @@ jest.mock("@/lib/engine-client", () => ({
   getConversationMessages: (...args: unknown[]) =>
     mockGetConversationMessages(...args),
   getEngineLogs: (...args: unknown[]) => mockGetEngineLogs(...args),
-}));
-
-// Mock provisioner client (for restart route)
-const mockProvisionerRestart = jest.fn();
-jest.mock("@/lib/provisioner", () => ({
-  provisionerClient: {
-    restart: (...args: unknown[]) => mockProvisionerRestart(...args),
-  },
 }));
 
 // ---------------------------------------------------------------------------
@@ -1110,101 +1101,4 @@ describe("Engine Proxy API Routes", () => {
     });
   });
 
-  // =========================================================================
-  // POST /api/engine/restart
-  // =========================================================================
-  describe("POST /api/engine/restart", () => {
-    it("returns 401 when not authenticated", async () => {
-      setupUnauthenticated();
-
-      const { POST } = await import(
-        "@/app/api/engine/restart/route"
-      );
-      const request = new NextRequest("http://localhost/api/engine/restart", {
-        method: "POST",
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(401);
-    });
-
-    it("returns 404 when no instance found", async () => {
-      setupAuthenticated(null);
-
-      const { POST } = await import(
-        "@/app/api/engine/restart/route"
-      );
-      const request = new NextRequest("http://localhost/api/engine/restart", {
-        method: "POST",
-      });
-      const response = await POST(request);
-
-      expect(response.status).toBe(404);
-    });
-
-    it("returns 200 on successful restart", async () => {
-      setupAuthenticated();
-      mockProvisionerRestart.mockResolvedValue({ success: true });
-
-      const { POST } = await import(
-        "@/app/api/engine/restart/route"
-      );
-      const request = new NextRequest("http://localhost/api/engine/restart", {
-        method: "POST",
-      });
-      const response = await POST(request);
-      const data = await parseResponse(response);
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(mockProvisionerRestart).toHaveBeenCalledWith("a1b2c3d4e5f6");
-    });
-
-    it("returns 502 when provisioner fails", async () => {
-      setupAuthenticated();
-      mockProvisionerRestart.mockResolvedValue({
-        success: false,
-        error: "Provisioner unavailable",
-      });
-
-      const { POST } = await import(
-        "@/app/api/engine/restart/route"
-      );
-      const request = new NextRequest("http://localhost/api/engine/restart", {
-        method: "POST",
-      });
-      const response = await POST(request);
-      const data = await parseResponse(response);
-
-      expect(response.status).toBe(502);
-      expect(data.success).toBe(false);
-    });
-
-    it("returns 429 when called again within 5 minute cooldown", async () => {
-      setupAuthenticated();
-      mockProvisionerRestart.mockResolvedValue({ success: true });
-
-      const { POST } = await import(
-        "@/app/api/engine/restart/route"
-      );
-
-      // First restart should succeed
-      const request1 = new NextRequest("http://localhost/api/engine/restart", {
-        method: "POST",
-      });
-      const response1 = await POST(request1);
-      expect(response1.status).toBe(200);
-
-      // Second restart immediately after should be rate limited
-      const request2 = new NextRequest("http://localhost/api/engine/restart", {
-        method: "POST",
-      });
-      const response2 = await POST(request2);
-      const data2 = await parseResponse(response2);
-
-      expect(response2.status).toBe(429);
-      expect(data2.success).toBe(false);
-      expect(data2.error).toMatch(/cooldown|rate limit|wait/i);
-    });
-  });
 });

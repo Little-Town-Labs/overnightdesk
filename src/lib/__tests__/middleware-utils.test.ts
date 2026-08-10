@@ -123,6 +123,12 @@ describe("isRetiredRoute", () => {
     "/api/instance/auth-status/",
     "/api/instance/terminal-ticket",
     "/api/instance/terminal-ticket/",
+    "/api/engine/restart",
+    "/api/engine/restart/",
+    "/api/engine/sessions",
+    "/api/engine/sessions/",
+    "/api/admin/hermes/dashboard-auth",
+    "/api/admin/hermes/dashboard-auth/",
   ])("identifies retired path %s", (pathname) => {
     expect(isRetiredRoute(pathname)).toBe(true);
   });

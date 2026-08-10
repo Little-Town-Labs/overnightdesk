@@ -31,6 +31,9 @@ const RETIRED_ROUTES = new Set([
   "/api/instance/status",
   "/api/instance/auth-status",
   "/api/instance/terminal-ticket",
+  "/api/engine/restart",
+  "/api/engine/sessions",
+  "/api/admin/hermes/dashboard-auth",
 ]);
 
 export function isRetiredRoute(pathname: string): boolean {
