@@ -469,8 +469,10 @@ Result: PASS — every T036 stop gate was an explicit numeric zero, and the plan
 preserves all active user, membership, and instance counts. This authorizes no
 data treatment by itself. T037 remains blocked until the owner separately
 approves the exact destructive production boundary and a production backup is
-verified. No apply, verify, rollback, DDL, database write, deployment, provider
-write, Aegis mutation, or production-ledger append occurred in T036.
+verified. No apply, verify, rollback, DDL, database write, production deployment,
+provider write, Aegis mutation, or production-ledger append occurred in T036.
+Publishing the evidence PR may run the repository's ordinary Vercel Preview
+check; that preview CI is not production activation or T043 verification.
 
 Focused repository verification passed 46 cleanup and retired-route tests,
 TypeScript compilation, and targeted source scans for zero active legacy route
