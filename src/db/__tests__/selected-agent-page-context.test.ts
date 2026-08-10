@@ -39,7 +39,6 @@ const projection: SelectedAgentInstance = {
   status: "running",
   containerId: "hermes-titus",
   subdomain: "titus-dashboard.overnightdesk.com",
-  wizardState: null,
   claudeAuthStatus: "not_configured",
   hermesDashboardAuthStatus: "active",
   hermesOidcClientId: "public_client_id_1234567890",

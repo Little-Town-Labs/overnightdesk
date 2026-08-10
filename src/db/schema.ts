@@ -49,13 +49,6 @@ export const waitlist = pgTable("waitlist", {
 // Enums
 // ---------------------------------------------------------------------------
 
-export const subscriptionStatusEnum = pgEnum("subscription_status", [
-  "active",
-  "past_due",
-  "canceled",
-  "trialing",
-]);
-
 export const instanceStatusEnum = pgEnum("instance_status", [
   "queued",
   "awaiting_provisioning",
@@ -71,11 +64,6 @@ export const claudeAuthStatusEnum = pgEnum("claude_auth_status", [
   "not_configured",
   "connected",
   "expired",
-]);
-
-export const subscriptionPlanEnum = pgEnum("subscription_plan", [
-  "starter",
-  "pro",
 ]);
 
 export const emailTypeEnum = pgEnum("email_type", [
@@ -308,26 +296,6 @@ export const oauthConsent = pgTable(
 // Platform tables
 // ---------------------------------------------------------------------------
 
-export const subscription = pgTable("subscription", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => user.id, { onDelete: "cascade" }),
-  stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  plan: subscriptionPlanEnum("plan").notNull(),
-  status: subscriptionStatusEnum("status").notNull(),
-  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
 export const instance = pgTable(
   "instance",
   {
@@ -348,10 +316,6 @@ export const instance = pgTable(
     dashboardTokenHash: text("dashboard_token_hash"),
     engineApiKey: text("engine_api_key"),
     phaseServiceToken: text("phase_service_token"),
-    wizardState: jsonb("wizard_state").$type<{
-      completedSteps: number[];
-      currentStep: number;
-    } | null>(),
     claudeAuthStatus: claudeAuthStatusEnum("claude_auth_status")
       .notNull()
       .default("not_configured"),
@@ -490,7 +454,6 @@ export const ocNewsletterInsights = pgTable(
 export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
-  subscriptions: many(subscription),
   instances: many(instance),
   oauthClients: many(oauthClient),
   oauthAccessTokens: many(oauthAccessToken),
@@ -595,13 +558,6 @@ export const sessionRelations = relations(session, ({ one }) => ({
 
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, { fields: [account.userId], references: [user.id] }),
-}));
-
-export const subscriptionRelations = relations(subscription, ({ one }) => ({
-  user: one(user, {
-    fields: [subscription.userId],
-    references: [user.id],
-  }),
 }));
 
 export const instanceRelations = relations(instance, ({ one, many }) => ({

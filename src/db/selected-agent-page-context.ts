@@ -14,7 +14,6 @@ export type SelectedAgentInstance = Pick<
   | "status"
   | "containerId"
   | "subdomain"
-  | "wizardState"
   | "claudeAuthStatus"
   | "hermesDashboardAuthStatus"
   | "hermesOidcClientId"
@@ -36,7 +35,6 @@ const safeInstanceColumns = {
   status: instance.status,
   containerId: instance.containerId,
   subdomain: instance.subdomain,
-  wizardState: instance.wizardState,
   claudeAuthStatus: instance.claudeAuthStatus,
   hermesDashboardAuthStatus: instance.hermesDashboardAuthStatus,
   hermesOidcClientId: instance.hermesOidcClientId,
