@@ -24,10 +24,6 @@ describe("isPublicRoute", () => {
       expect(isPublicRoute("/api/auth/get-session")).toBe(true);
     });
 
-    it("allows waitlist API route", () => {
-      expect(isPublicRoute("/api/waitlist")).toBe(true);
-    });
-
     it("allows cron routes", () => {
       expect(isPublicRoute("/api/cron/health-check")).toBe(true);
       expect(isPublicRoute("/api/cron/usage-collection")).toBe(true);
@@ -109,6 +105,8 @@ describe("isRetiredRoute", () => {
     "/api/stripe/portal",
     "/api/stripe/webhook",
     "/api/stripe/webhook/",
+    "/api/waitlist",
+    "/api/waitlist/",
     "/api/subscription",
     "/api/subscription/",
     "/api/wizard/write-step",

@@ -1,26 +1,17 @@
 import { Resend } from "resend";
 import { render } from "@react-email/components";
 import { db } from "@/db";
-import { emailLog, user } from "@/db/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { emailLog } from "@/db/schema";
 import { VerificationEmail } from "@/lib/emails/verification-email";
 import { PasswordResetEmail } from "@/lib/emails/password-reset-email";
-import { WelcomeEmail } from "@/lib/emails/welcome-email";
-import { ProvisioningEmail } from "@/lib/emails/provisioning-email";
 import * as React from "react";
 
 const EMAIL_FROM =
   process.env.EMAIL_FROM || "OvernightDesk <noreply@overnightdesk.com>";
 
-import { getAppUrl } from "@/lib/config";
-
-const APP_URL = getAppUrl();
-
 type EmailType =
   | "verification"
-  | "password_reset"
-  | "welcome"
-  | "provisioning";
+  | "password_reset";
 
 interface SendEmailOptions {
   to: string;
@@ -92,34 +83,6 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
   return { success: false, error: lastError };
 }
 
-async function isOptedOut(userId: string): Promise<boolean> {
-  const rows = await db
-    .select({ emailOptOut: user.emailOptOut })
-    .from(user)
-    .where(eq(user.id, userId));
-  return rows[0]?.emailOptOut === true;
-}
-
-async function hasRecentEmail(
-  recipientEmail: string,
-  emailType: EmailType,
-  withinMs: number
-): Promise<boolean> {
-  const cutoff = new Date(Date.now() - withinMs);
-  const rows = await db
-    .select({ id: emailLog.id })
-    .from(emailLog)
-    .where(
-      and(
-        eq(emailLog.recipientEmail, recipientEmail),
-        eq(emailLog.emailType, emailType),
-        eq(emailLog.status, "sent"),
-        gte(emailLog.createdAt, cutoff)
-      )
-    );
-  return rows.length > 0;
-}
-
 export async function sendVerificationEmail(
   userInfo: { email: string; name: string },
   url: string
@@ -157,62 +120,5 @@ export async function sendPasswordResetEmail(
     html,
     text: `Hi ${userInfo.name}, reset your password: ${url}`,
     emailType: "password_reset",
-  });
-}
-
-export async function sendWelcomeEmail(options: {
-  user: { email: string; name: string; id: string };
-  isWaitlistConvert: boolean;
-}): Promise<EmailResult> {
-  const { user: userInfo, isWaitlistConvert } = options;
-
-  if (await isOptedOut(userInfo.id)) {
-    return { success: true, messageId: "skipped-opt-out" };
-  }
-
-  const html = await render(
-    React.createElement(WelcomeEmail, {
-      name: userInfo.name,
-      dashboardUrl: `${APP_URL}/dashboard`,
-      isWaitlistConvert,
-    })
-  );
-
-  return sendEmail({
-    to: userInfo.email,
-    subject: isWaitlistConvert
-      ? "You're off the waitlist! — OvernightDesk"
-      : "Welcome to OvernightDesk",
-    html,
-    text: `Hi ${userInfo.name}, welcome to OvernightDesk! Visit your dashboard: ${APP_URL}/dashboard`,
-    emailType: "welcome",
-    userId: userInfo.id,
-  });
-}
-
-export async function sendProvisioningEmail(options: {
-  user: { email: string; name: string; id: string };
-  dashboardUrl: string;
-}): Promise<EmailResult> {
-  const { user: userInfo, dashboardUrl } = options;
-
-  if (await isOptedOut(userInfo.id)) {
-    return { success: true, messageId: "skipped-opt-out" };
-  }
-
-  const html = await render(
-    React.createElement(ProvisioningEmail, {
-      name: userInfo.name,
-      dashboardUrl,
-    })
-  );
-
-  return sendEmail({
-    to: userInfo.email,
-    subject: "Your instance is ready — OvernightDesk",
-    html,
-    text: `Hi ${userInfo.name}, your OvernightDesk instance is ready. Open your dashboard: ${dashboardUrl}`,
-    emailType: "provisioning",
-    userId: userInfo.id,
   });
 }

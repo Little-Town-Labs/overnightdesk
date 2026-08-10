@@ -34,6 +34,7 @@ describe("limited internal frontend routes", () => {
   it.each([
     "src/app/(auth)/sign-up/page.tsx",
     "src/app/(auth)/verify-email/page.tsx",
+    "src/app/api/waitlist/route.ts",
     "src/app/pricing/page.tsx",
     "src/app/checkout/success/page.tsx",
   ])("leaves %s absent so Next returns 404", (relativePath) => {
@@ -53,6 +54,8 @@ describe("limited internal frontend routes", () => {
           "/sign-up",
           "/sign-up/",
           "/verify-email",
+          "/api/waitlist",
+          "/api/waitlist/",
           "/pricing",
           "/checkout/success",
         ]) {

@@ -69,7 +69,7 @@ describe("Stripe route retirement", () => {
     );
 
     expect(emailSource).toMatch(/sendPasswordResetEmail/);
-    expect(emailSource).toMatch(/sendProvisioningEmail/);
+    expect(emailSource).toMatch(/sendVerificationEmail/);
     expect(emailSource).not.toMatch(/PaymentFailureEmail|sendPaymentFailureEmail/);
   });
 });

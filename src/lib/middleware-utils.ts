@@ -10,7 +10,6 @@ const PUBLIC_ROUTES = [
 
 const PUBLIC_API_PREFIXES = [
   "/api/auth",
-  "/api/waitlist",
   "/api/cron",
   "/api/email/unsubscribe",
 ];
@@ -23,6 +22,7 @@ const RETIRED_ROUTES = new Set([
   "/api/stripe/checkout",
   "/api/stripe/portal",
   "/api/stripe/webhook",
+  "/api/waitlist",
   "/api/account/delete",
   "/api/subscription",
   "/api/wizard/write-step",

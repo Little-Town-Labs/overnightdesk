@@ -301,27 +301,6 @@ describeDb("database constraints", () => {
     });
   });
 
-  describe("coexistence with waitlist", () => {
-    it("can insert into waitlist table", async () => {
-      const email = `coexist-${crypto.randomUUID()}@example.com`;
-      await testDb.insert(schema.waitlist).values({
-        email,
-        name: "Coexistence Test",
-        business: "Test Corp",
-      });
-
-      const rows = await testDb
-        .select()
-        .from(schema.waitlist)
-        .where(sql`email = ${email}`);
-      expect(rows).toHaveLength(1);
-      expect(rows[0].name).toBe("Coexistence Test");
-
-      // Cleanup
-      await testDb.execute(sql`DELETE FROM waitlist WHERE email = ${email}`);
-    });
-  });
-
   describe("platform_audit_log", () => {
     it("can insert audit entries with various actor types", async () => {
       await testDb.insert(schema.platformAuditLog).values({

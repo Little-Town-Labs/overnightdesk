@@ -30,22 +30,6 @@ export { user } from "./auth-core-schema";
 export * from "./identity-schema";
 
 // ---------------------------------------------------------------------------
-// Existing tables
-// ---------------------------------------------------------------------------
-
-export const waitlist = pgTable("waitlist", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  email: text("email").notNull().unique(),
-  name: text("name"),
-  business: text("business"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
-
-// ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
 
