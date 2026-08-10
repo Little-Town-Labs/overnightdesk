@@ -549,7 +549,32 @@ Repository closeout verification passed 23 focused cleanup/migration tests,
 TypeScript compilation, diff validation, and a secret scan. Remote closeout
 rechecked both restricted artifacts and the canonical ledger entry.
 
-## 15. Closeout
+## 15. T038 product-document reconciliation
+
+README and PRD now describe the current product in present tense: an
+existing-account, limited Timeless Technology Solutions and OvernightDesk
+frontend for owner sign-in/recovery, membership-scoped chat and dashboards,
+settings, and administration. They no longer advertise or preserve public
+registration, verification, pricing, checkout, Stripe, subscription authority,
+customer setup, lifecycle callbacks/controls, or self-service account deletion
+as current or pending product behavior.
+
+The documents also distinguish completed source and Neon schema retirement
+from the remaining production gates. The current Aegis provisioner binary's
+old routes are not declared retired before T044; production route verification
+remains T043; obsolete provider/secret cleanup remains T045. The active
+managed-variable boundary and current identity/membership/instance records are
+preserved. PRD now points production evidence to the canonical Aegis ledger at
+`/opt/overnightdesk/deploys.log` rather than an obsolete workstation path.
+
+T038 changed documentation and task state only. It performed no Vercel, Neon,
+Aegis, provider, secret, identity, membership, instance, or runtime mutation.
+Focused stale-claim and retired-environment scans, canonical-ledger checks,
+relative-link target checks, and `git diff --check` passed. No application test
+or build was rerun because T038 changes no source, configuration, or behavior;
+T041 owns the full frontend/engine verification gate.
+
+## 16. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
