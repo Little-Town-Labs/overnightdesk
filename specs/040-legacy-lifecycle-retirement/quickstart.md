@@ -30,6 +30,7 @@ The retirement scan must find no active source/config reference to:
 - Stripe SDK, keys, prices, checkout, portal, webhook, or subscription
   authorization;
 - signup or email-verification UI/API creation;
+- public waitlist or other anonymous customer-acquisition mutation;
 - customer setup wizard or provisioning callback;
 - provision, arbitrary write-secrets, configure-dashboard-auth, broad restart,
   deprovision, or self-service account deletion;
@@ -53,6 +54,13 @@ Using test fixtures, prove:
 - managed-variable replacement preserves its exact value-free response and
   denial behavior;
 - retired requests make zero mocked external and database mutation calls.
+
+The source retirement removes the waitlist route, application schema export,
+conversion helper, and lifecycle notification helpers. The historical
+`waitlist` table and any rows are intentionally not deleted or transformed by
+this source PR. Any retained-record export, deletion, or other data treatment
+requires a separately approved procedure with its own backup and rollback
+evidence.
 
 ## 4. Prepare, but do not apply, data cleanup
 
@@ -631,7 +639,34 @@ The result is local merged-source evidence only. It does not authorize T043
 frontend activation, T044 Aegis runtime replacement, T045 provider/secret
 cleanup, or any production mutation.
 
-## 17. Closeout
+## 17. T042 follow-up disposition
+
+The bounded security and code-quality follow-up review is recorded in the
+implementation PR and Issue #215. This slice disposition is:
+
+- Issue #230: the anonymous waitlist route now fails closed through the exact
+  middleware 404 registry; its application model, conversion path, lifecycle
+  email templates/helpers, and unreferenced customer instance mutation
+  helpers are removed. Retained waitlist data is untouched.
+- Issue #231: the transitive `nanoid` advisory is remediated with the exact
+  `3.3.17` override and lockfile entry. After `npm ci`,
+  `npm audit --omit=dev --audit-level=high` reports no high-severity finding.
+  The remaining three moderate findings are accepted pending non-breaking
+  upstream remediation: Better Auth has no fix and remains guarded by
+  `hasForbiddenOAuthResourceIndicator`; PostCSS remediation requires the
+  unapproved Next.js 16 major upgrade. Re-review is due 2026-09-10.
+- Issue #232: T041 is checked complete above and its merged PR/command evidence
+  remains recorded in section 16.
+- Issue #233: the qualifier now scans every non-test file under retired route
+  directories, validates the exact middleware deny registry, and scans
+  middleware code outside that registry. Regression fixtures cover a
+  JavaScript retired route and an active middleware reference.
+
+The Better Auth resource-indicator guard remains covered by the existing auth
+security suite, and no secret values were added to source, test output, or
+documentation.
+
+## 18. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
