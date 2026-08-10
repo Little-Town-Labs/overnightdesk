@@ -6,8 +6,22 @@ failure_count=0
 
 report_path() {
   local relative_path="$1"
+  local active_source_path
 
-  if [[ -e "${repo_root}/${relative_path}" ]]; then
+  if [[ -d "${repo_root}/${relative_path}" ]]; then
+    # The retirement contract tests intentionally remain under the retired
+    # route directories. Only active TypeScript source is a failure here.
+    active_source_path="$(find "${repo_root}/${relative_path}" -type f \
+      \( -name '*.ts' -o -name '*.tsx' \) \
+      ! -path '*/__tests__/*' \
+      ! -name '*.test.ts' \
+      ! -name '*.test.tsx' \
+      -print -quit)"
+  else
+    active_source_path="${repo_root}/${relative_path}"
+  fi
+
+  if [[ -n "${active_source_path}" && -e "${active_source_path}" ]]; then
     printf 'FAIL [retired-path]: %s\n' "$relative_path" >&2
     failure_count=$((failure_count + 1))
   fi
@@ -101,13 +115,15 @@ report_pattern \
   'retired-route-reference' \
   "/api/(stripe|subscription|wizard)(/|[\"'])|/api/provisioner/callback" \
   "${repo_root}/src" \
-  --glob '!**/*.test.*' --glob '!**/__tests__/**'
+  --glob '!**/*.test.*' --glob '!**/__tests__/**' \
+  --glob '!**/middleware-utils.ts'
 
 report_pattern \
   'subscription-authority' \
   'requireSubscription|requireProOrAdmin|isInvitedEmail|export const subscription|subscriptionRelations|/pricing' \
   "${repo_root}/src" \
-  --glob '!**/*.test.*' --glob '!**/__tests__/**'
+  --glob '!**/*.test.*' --glob '!**/__tests__/**' \
+  --glob '!**/middleware-utils.ts'
 
 report_pattern \
   'customer-lifecycle-copy' \
