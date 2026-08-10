@@ -15,7 +15,7 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 | Repo | Language | Purpose | Status |
 |------|----------|---------|--------|
 | **overnightdesk** (this repo) | TypeScript/Next.js | Vercel workspace shell, auth, memberships, dashboards, and named-runtime source | Active |
-| [overnightdesk-engine](../overnightdesk-engine) | Go | Historical orchestrator plus isolated managed-variable service source | Orchestrator retired; isolated service deployment pending |
+| [overnightdesk-engine](../overnightdesk-engine) | Go | Historical orchestrator plus isolated managed-variable service source | Orchestrator retired; isolated managed-variable service active |
 | [overnightdesk-securityteam](../overnightdesk-securityteam) | TypeScript/Fastify | Message traffic security, outbound guards, approval support | Active |
 | [overnightdesk-SecurityCouncil](../overnightdesk-SecurityCouncil) | Go | Platform security scanning and review | Active |
 | [overnightdesk-communicationmodule](../overnightdesk-communicationmodule) | Go | gRPC notification bus for Telegram and Discord dispatch | Active |
@@ -34,10 +34,12 @@ Feature 040 removed the legacy signup, verification, pricing, checkout,
 Stripe, subscription, setup-wizard, customer callback, lifecycle-control, and
 account-deletion source. The zero-state Neon cleanup removed the empty
 subscription table and enum types plus the unused instance wizard column while
-preserving active identities, memberships, and instances. Production route,
-Aegis service, and obsolete secret/configuration closeout remain separately
-approved T043-T045 operations; merge or database completion alone does not
-claim those gates are finished.
+preserving active identities, memberships, and instances. T044 deployed the
+isolated Aegis managed-variable service, and T045 completed as a metadata-only
+no-op because no obsolete provider or secret target was found. The owner
+waived the proposed T046 observation period after a passing baseline sample.
+T043 still requires owner-authenticated password-recovery, chat, and dashboard
+smoke evidence before Feature 040 and Issue #215 can close.
 
 ## Current Agent Control-Surface Delivery
 
@@ -65,11 +67,11 @@ Dashboard experience.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
 are write-only, role checked, and metadata audited. The reviewed engine source
-isolates this managed-variable operation, but the current Aegis provisioner
-binary still exposes old provision/deprovision routes pending separately
-approved T044 deployment. Frontend lifecycle callers are removed and the T036
-preflight found no in-flight lifecycle work; that evidence does not itself
-retire the mounted Aegis routes. Only the qualified Titus runtime/OpenRouter
+isolates this managed-variable operation, and the T044 ARM64 Aegis deployment
+now exposes only the qualified managed-variable and health boundaries; the old
+provision/deprovision routes return 404. Frontend lifecycle callers are
+removed and the T036 preflight found no in-flight lifecycle work. Only the
+qualified Titus runtime/OpenRouter
 tuple may be enabled through the server-only
 `MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID`; Walter and all other catalog
 combinations remain read-only. The governing contract is
@@ -154,10 +156,11 @@ active deployment under
 [`specs/028-orchestrator-retirement`](specs/028-orchestrator-retirement).
 Legacy customer-lifecycle source and zero-state Neon schema are retired under
 [`specs/040-legacy-lifecycle-retirement`](specs/040-legacy-lifecycle-retirement).
-The remaining production closeout is explicit: verify the reviewed frontend
-release, deploy the isolated managed-variable service, remove only obsolete
-provider/secret configuration, and complete the observation and inventory
-gates before closing Feature 040.
+The remaining production closeout is explicit: complete the owner-authenticated
+frontend acceptance and reconcile the final inventories before closing Feature
+040. T044 deployed the isolated managed-variable service, T045 found no
+obsolete provider/secret targets to mutate, and the owner waived the proposed
+T046 observation period after a passing baseline sample.
 
 ## Tenant Workflow Source
 
@@ -209,8 +212,9 @@ See `.env.example` for the full list. Key groups:
 - `CRON_SECRET`, owner notification settings
 
 Stripe, billing-enable, invite-list, wizard, and legacy customer-callback
-variables are not part of the repository environment contract. T045 separately
-owns removal of obsolete production-side registrations and secret metadata.
+variables are not part of the repository environment contract. T045's
+production-side metadata reconciliation found no obsolete target; the active
+managed-variable service credentials remain intentionally retained.
 
 ## Notes
 
