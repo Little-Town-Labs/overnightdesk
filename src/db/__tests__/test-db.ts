@@ -27,7 +27,6 @@ export async function cleanupTestData() {
   await db.execute(sql`DELETE FROM usage_metric`).catch(() => {});
   await db.execute(sql`DELETE FROM fleet_event`).catch(() => {});
   await db.execute(sql`DELETE FROM instance`).catch(() => {});
-  await db.execute(sql`DELETE FROM subscription`).catch(() => {});
   await db.execute(sql`DELETE FROM session`).catch(() => {});
   await db.execute(sql`DELETE FROM account`).catch(() => {});
   await db.execute(sql`DELETE FROM verification`).catch(() => {});

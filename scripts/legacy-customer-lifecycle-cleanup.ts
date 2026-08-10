@@ -16,6 +16,8 @@ export interface LegacyCustomerLifecycleCleanupCounts {
   meaningfulWizardStateCount: number | null;
   activeSchemaConsumerCount: number | null;
   subscriptionTableCount: number;
+  subscriptionPlanTypeCount: number;
+  subscriptionStatusTypeCount: number;
   wizardStateColumnCount: number;
   activeUserCount: number;
   activeMembershipCount: number;
@@ -90,6 +92,8 @@ const COUNT_FIELDS: ReadonlyArray<keyof LegacyCustomerLifecycleCleanupCounts> = 
   "meaningfulWizardStateCount",
   "activeSchemaConsumerCount",
   "subscriptionTableCount",
+  "subscriptionPlanTypeCount",
+  "subscriptionStatusTypeCount",
   "wizardStateColumnCount",
   "activeUserCount",
   "activeMembershipCount",
@@ -97,10 +101,6 @@ const COUNT_FIELDS: ReadonlyArray<keyof LegacyCustomerLifecycleCleanupCounts> = 
   "activeConversationCount",
   "activeBusinessRecordCount",
 ];
-
-const RETIRED_SCHEMA_FIELDS: ReadonlyArray<
-  keyof LegacyCustomerLifecycleCleanupCounts
-> = ["subscriptionTableCount", "wizardStateColumnCount"];
 
 const STOP_CONDITIONS: ReadonlyArray<{
   field: keyof LegacyCustomerLifecycleCleanupCounts;
@@ -151,6 +151,8 @@ function expectedAfterCounts(
   return {
     ...beforeCounts,
     subscriptionTableCount: 0,
+    subscriptionPlanTypeCount: 0,
+    subscriptionStatusTypeCount: 0,
     wizardStateColumnCount: 0,
   };
 }
@@ -167,6 +169,14 @@ function stopReasons(
     } else if (value > 0) {
       reasons.push(condition.reason);
     }
+  }
+
+  if (
+    counts.subscriptionTableCount === 1 &&
+    (counts.subscriptionPlanTypeCount !== 1 ||
+      counts.subscriptionStatusTypeCount !== 1)
+  ) {
+    reasons.push("subscription schema is inconsistent");
   }
 
   return reasons;
@@ -192,9 +202,19 @@ export function planLegacyCustomerLifecycleCleanup(
 function assertReadyPlan(
   plan: LegacyCustomerLifecycleCleanupPlan | undefined,
 ): asserts plan is LegacyCustomerLifecycleCleanupPlan & { status: "ready" } {
-  if (!plan || plan.status !== "ready") {
+  if (
+    !plan ||
+    plan.status !== "ready" ||
+    plan.stopReasons.length !== 0 ||
+    stopReasons(plan.beforeCounts).length !== 0
+  ) {
     throw new Error("Legacy customer lifecycle cleanup plan is not ready");
   }
+  assertCountsEqual(
+    plan.afterCounts,
+    expectedAfterCounts(plan.beforeCounts),
+    "Legacy customer lifecycle cleanup plan after-counts are invalid",
+  );
 }
 
 function assertCountsEqual(
@@ -251,6 +271,8 @@ const cleanupCountsSchema = z
     meaningfulWizardStateCount: nullableCountSchema,
     activeSchemaConsumerCount: nullableCountSchema,
     subscriptionTableCount: countSchema.max(1),
+    subscriptionPlanTypeCount: countSchema.max(1),
+    subscriptionStatusTypeCount: countSchema.max(1),
     wizardStateColumnCount: countSchema.max(1),
     activeUserCount: countSchema,
     activeMembershipCount: countSchema,
@@ -459,6 +481,18 @@ async function columnExists(
   return result.rows[0]?.present === true;
 }
 
+type KnownSubscriptionType = "subscription_plan" | "subscription_status";
+
+async function typeExists(
+  database: DatabaseExecutor,
+  type: KnownSubscriptionType,
+): Promise<boolean> {
+  const result = await database.execute(
+    sql`SELECT to_regtype(${`public.${type}`}) IS NOT NULL AS present`,
+  );
+  return result.rows[0]?.present === true;
+}
+
 function countValue(row: Record<string, unknown> | undefined): number {
   const value = row?.count;
   const parsed = typeof value === "number" ? value : Number(value);
@@ -489,6 +523,18 @@ export async function inspectLegacyCustomerLifecycleDatabase(
   database: DatabaseExecutor,
 ): Promise<LegacyCustomerLifecycleCleanupCounts> {
   const subscriptionTableCount = (await tableExists(database, "subscription"))
+    ? 1
+    : 0;
+  const subscriptionPlanTypeCount = (await typeExists(
+    database,
+    "subscription_plan",
+  ))
+    ? 1
+    : 0;
+  const subscriptionStatusTypeCount = (await typeExists(
+    database,
+    "subscription_status",
+  ))
     ? 1
     : 0;
   const wizardStateColumnCount = (await columnExists(
@@ -526,6 +572,8 @@ export async function inspectLegacyCustomerLifecycleDatabase(
       "LEGACY_CLEANUP_ACTIVE_SCHEMA_CONSUMER_COUNT",
     ),
     subscriptionTableCount,
+    subscriptionPlanTypeCount,
+    subscriptionStatusTypeCount,
     wizardStateColumnCount,
     activeUserCount: await countTable(database, "user"),
     activeMembershipCount: await countTable(database, "use_case_membership"),
@@ -574,6 +622,12 @@ class DatabaseCleanupStore implements LegacyCustomerLifecycleCleanupStore {
     const dropSubscription = sql.raw(
       plan.beforeCounts.subscriptionTableCount === 1 ? "TRUE" : "FALSE",
     );
+    const dropSubscriptionPlanType = sql.raw(
+      plan.beforeCounts.subscriptionPlanTypeCount === 1 ? "TRUE" : "FALSE",
+    );
+    const dropSubscriptionStatusType = sql.raw(
+      plan.beforeCounts.subscriptionStatusTypeCount === 1 ? "TRUE" : "FALSE",
+    );
     const dropWizardState = sql.raw(
       plan.beforeCounts.wizardStateColumnCount === 1 ? "TRUE" : "FALSE",
     );
@@ -615,6 +669,20 @@ class DatabaseCleanupStore implements LegacyCustomerLifecycleCleanupStore {
           DROP TABLE public."subscription";
         END IF;
 
+        IF ${dropSubscriptionPlanType} THEN
+          IF to_regtype('public.subscription_plan') IS NULL THEN
+            RAISE EXCEPTION 'subscription plan type changed after planning';
+          END IF;
+          DROP TYPE public.subscription_plan;
+        END IF;
+
+        IF ${dropSubscriptionStatusType} THEN
+          IF to_regtype('public.subscription_status') IS NULL THEN
+            RAISE EXCEPTION 'subscription status type changed after planning';
+          END IF;
+          DROP TYPE public.subscription_status;
+        END IF;
+
         IF ${dropWizardState} THEN
           ALTER TABLE public."instance" DROP COLUMN "wizard_state";
         END IF;
@@ -629,26 +697,32 @@ class DatabaseCleanupStore implements LegacyCustomerLifecycleCleanupStore {
     const restoreSubscription = sql.raw(
       plan.beforeCounts.subscriptionTableCount === 1 ? "TRUE" : "FALSE",
     );
+    const restoreSubscriptionPlanType = sql.raw(
+      plan.beforeCounts.subscriptionPlanTypeCount === 1 ? "TRUE" : "FALSE",
+    );
+    const restoreSubscriptionStatusType = sql.raw(
+      plan.beforeCounts.subscriptionStatusTypeCount === 1 ? "TRUE" : "FALSE",
+    );
     const restoreWizardState = sql.raw(
       plan.beforeCounts.wizardStateColumnCount === 1 ? "TRUE" : "FALSE",
     );
     await this.database.execute(sql`
       DO $$
       BEGIN
-        IF ${restoreSubscription} THEN
-          IF NOT EXISTS (
-            SELECT 1 FROM pg_type WHERE typname = 'subscription_plan'
-          ) THEN
+        IF ${restoreSubscriptionPlanType} THEN
+          IF to_regtype('public.subscription_plan') IS NULL THEN
             CREATE TYPE public.subscription_plan AS ENUM ('starter', 'pro');
           END IF;
+        END IF;
 
-          IF NOT EXISTS (
-            SELECT 1 FROM pg_type WHERE typname = 'subscription_status'
-          ) THEN
+        IF ${restoreSubscriptionStatusType} THEN
+          IF to_regtype('public.subscription_status') IS NULL THEN
             CREATE TYPE public.subscription_status AS ENUM
               ('active', 'past_due', 'canceled', 'trialing');
           END IF;
+        END IF;
 
+        IF ${restoreSubscription} THEN
           IF to_regclass('public.subscription') IS NULL THEN
             CREATE TABLE public."subscription" (
               "id" text PRIMARY KEY NOT NULL,

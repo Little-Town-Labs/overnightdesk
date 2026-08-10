@@ -19,6 +19,8 @@ const beforeCounts: LegacyCustomerLifecycleCleanupCounts = {
   meaningfulWizardStateCount: 0,
   activeSchemaConsumerCount: 0,
   subscriptionTableCount: 1,
+  subscriptionPlanTypeCount: 1,
+  subscriptionStatusTypeCount: 1,
   wizardStateColumnCount: 1,
   activeUserCount: 1,
   activeMembershipCount: 1,
@@ -46,6 +48,8 @@ class InMemoryCleanupStore implements LegacyCustomerLifecycleCleanupStore {
     this.counts = {
       ...this.counts,
       subscriptionTableCount: 0,
+      subscriptionPlanTypeCount: 0,
+      subscriptionStatusTypeCount: 0,
       wizardStateColumnCount: 0,
     };
   }
@@ -142,6 +146,8 @@ describe("legacy customer lifecycle cleanup", () => {
       meaningfulWizardStateCount: 0,
       activeSchemaConsumerCount: 0,
       subscriptionTableCount: 0,
+      subscriptionPlanTypeCount: 0,
+      subscriptionStatusTypeCount: 0,
       wizardStateColumnCount: 0,
     });
     expect(JSON.stringify(plan)).not.toContain("stripe_customer");
@@ -190,6 +196,11 @@ describe("legacy customer lifecycle cleanup", () => {
       "ambiguous schema consumers",
       { activeSchemaConsumerCount: null },
       "schema consumers",
+    ],
+    [
+      "an inconsistent subscription schema",
+      { subscriptionPlanTypeCount: 0 },
+      "subscription schema",
     ],
   ])(
     "stops without mutation when %s is non-zero or ambiguous",
@@ -322,6 +333,8 @@ describe("legacy customer lifecycle cleanup", () => {
     await expect(store.inspect()).resolves.toMatchObject({
       ...beforeCounts,
       subscriptionTableCount: 0,
+      subscriptionPlanTypeCount: 0,
+      subscriptionStatusTypeCount: 0,
       wizardStateColumnCount: 0,
     });
   });
@@ -472,6 +485,8 @@ describe("legacy customer lifecycle cleanup", () => {
       afterCounts: {
         ...beforeCounts,
         subscriptionTableCount: 0,
+        subscriptionPlanTypeCount: 0,
+        subscriptionStatusTypeCount: 0,
         wizardStateColumnCount: 0,
       },
       stopReasons: [],
@@ -544,6 +559,8 @@ describe("legacy customer lifecycle cleanup", () => {
       afterCounts: {
         ...beforeCounts,
         subscriptionTableCount: 0,
+        subscriptionPlanTypeCount: 0,
+        subscriptionStatusTypeCount: 0,
         wizardStateColumnCount: 0,
       },
       stopReasons: [],
@@ -556,6 +573,8 @@ describe("legacy customer lifecycle cleanup", () => {
     expect(queries[0]?.sql).toMatch(/LOCK TABLE public\."instance"/i);
     expect(queries[0]?.sql).toMatch(/local subscription rows are not zero/i);
     expect(queries[0]?.sql).toMatch(/meaningful wizard state is not zero/i);
+    expect(queries[0]?.sql).toMatch(/DROP TYPE public\.subscription_plan/i);
+    expect(queries[0]?.sql).toMatch(/DROP TYPE public\.subscription_status/i);
   });
 
   it("restores only schema objects recorded in the plan before-state", async () => {
@@ -573,11 +592,15 @@ describe("legacy customer lifecycle cleanup", () => {
       beforeCounts: {
         ...beforeCounts,
         subscriptionTableCount: 0,
+        subscriptionPlanTypeCount: 0,
+        subscriptionStatusTypeCount: 1,
         wizardStateColumnCount: 1,
       },
       afterCounts: {
         ...beforeCounts,
         subscriptionTableCount: 0,
+        subscriptionPlanTypeCount: 0,
+        subscriptionStatusTypeCount: 0,
         wizardStateColumnCount: 0,
       },
       stopReasons: [],
@@ -588,5 +611,11 @@ describe("legacy customer lifecycle cleanup", () => {
     expect(queries).toHaveLength(1);
     expect(queries[0]?.sql).toContain("IF FALSE THEN");
     expect(queries[0]?.sql).toContain("IF TRUE AND");
+    expect(queries[0]?.sql).toMatch(
+      /IF FALSE THEN\s+IF to_regtype\('public\.subscription_plan'\) IS NULL/i,
+    );
+    expect(queries[0]?.sql).toMatch(
+      /IF TRUE THEN\s+IF to_regtype\('public\.subscription_status'\) IS NULL/i,
+    );
   });
 });

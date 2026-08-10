@@ -288,7 +288,58 @@ the full frontend suite (116 suites passed; 4 skipped; 1,215 tests passed; 27
 skipped). Package inspection confirmed all three commands map to the expected
 script modes. No cleanup command or database connection was executed.
 
-## 11. Closeout
+## 11. T034 schema and reversible migration evidence
+
+The application schema no longer exports the legacy `subscription` table,
+`subscription_plan` or `subscription_status` enums, subscription relations, or
+the unused `instance.wizard_state` compatibility projection. Targeted source
+reads found `wizard_state` selected only by the shared agent-page projection
+and never consumed; removing that selection leaves active identity,
+membership, named-runtime, OIDC, conversation, and business-data fields
+unchanged.
+
+`drizzle/0011_legacy_customer_lifecycle_retirement.sql` contains one atomic
+PostgreSQL block. It locks and rechecks local subscription rows and meaningful
+wizard state before dropping the subscription table, its two enum types, and
+only the `instance.wizard_state` column. It never drops or recreates the active
+`instance` table. Any dependent object or nonzero local state causes the
+transaction to fail closed.
+
+The cleanup executor now reports separate count-only fields for both enum
+types. Apply, verify, and rollback reconcile those counts, reject an
+inconsistent table/type shape, and restore each type only when it was present
+in the recorded before-state. The migration header identifies the existing
+approval-gated rollback command and `LEGACY_CLEANUP_PLAN_PATH` artifact
+contract. T034 did not execute that migration or connect to a database; T035
+owns the populated disposable-database rehearsal.
+
+Verification run locally on 2026-08-10:
+
+```bash
+npx jest --config jest.config.ts --runInBand \
+  src/db/__tests__/schema.test.ts \
+  src/db/__tests__/selected-agent-page-context.test.ts
+npx jest --config jest.config.ts --roots scripts --runInBand \
+  scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts \
+  scripts/__tests__/legacy-customer-lifecycle-migration.test.ts
+npx tsc --noEmit
+npm test -- --runInBand
+DATABASE_URL='postgres://build:build@127.0.0.1:5432/build?sslmode=disable' \
+BETTER_AUTH_SECRET='local-build-placeholder-not-a-secret' npm run build
+```
+
+Results: PASS — 17 focused schema/context tests, 22 cleanup/migration contract
+tests, TypeScript compilation, the full frontend suite (116 suites passed; 4
+skipped; 1,214 tests passed; 23 skipped), and the production build. The
+T034-specific source scan found no production `wizardState`, `wizard_state`,
+subscription schema export, or subscription relation references.
+
+The broader retirement qualifier remains intentionally red on three retained
+404 route tombstones plus their middleware deny entries. Those fail-closed
+production routing surfaces are outside T034 and remain a T041/T043 closeout
+gate; they were not removed to make this schema task appear green.
+
+## 12. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,

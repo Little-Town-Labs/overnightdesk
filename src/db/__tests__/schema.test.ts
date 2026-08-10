@@ -1,3 +1,4 @@
+import { getTableConfig } from "drizzle-orm/pg-core";
 import * as schema from "../schema";
 
 /**
@@ -6,13 +7,6 @@ import * as schema from "../schema";
  */
 describe("schema exports", () => {
   describe("enums", () => {
-    it("exports subscriptionStatusEnum", () => {
-      expect(schema.subscriptionStatusEnum).toBeDefined();
-      expect(schema.subscriptionStatusEnum.enumValues).toEqual(
-        expect.arrayContaining(["active", "past_due", "canceled", "trialing"])
-      );
-    });
-
     it("exports instanceStatusEnum", () => {
       expect(schema.instanceStatusEnum).toBeDefined();
       expect(schema.instanceStatusEnum.enumValues).toEqual(
@@ -35,11 +29,9 @@ describe("schema exports", () => {
       );
     });
 
-    it("exports subscriptionPlanEnum", () => {
-      expect(schema.subscriptionPlanEnum).toBeDefined();
-      expect(schema.subscriptionPlanEnum.enumValues).toEqual(
-        expect.arrayContaining(["starter", "pro"])
-      );
+    it("does not export retired subscription enums", () => {
+      expect(schema).not.toHaveProperty("subscriptionStatusEnum");
+      expect(schema).not.toHaveProperty("subscriptionPlanEnum");
     });
   });
 
@@ -62,8 +54,12 @@ describe("schema exports", () => {
   });
 
   describe("platform tables", () => {
-    it("exports subscription table", () => {
-      expect(schema.subscription).toBeDefined();
+    it("does not export the retired subscription model or wizard state", () => {
+      expect(schema).not.toHaveProperty("subscription");
+      expect(schema).not.toHaveProperty("subscriptionRelations");
+      expect(
+        getTableConfig(schema.instance).columns.map((column) => column.name),
+      ).not.toContain("wizard_state");
     });
 
     it("exports instance table", () => {

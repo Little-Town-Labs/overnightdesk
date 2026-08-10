@@ -186,15 +186,6 @@ describeDb("database constraints", () => {
   });
 
   describe("enum constraints", () => {
-    it("rejects invalid subscription status", async () => {
-      const { id: userId } = await insertTestUser();
-      await expect(
-        testDb.execute(
-          sql`INSERT INTO subscription (id, user_id, plan, status) VALUES (${crypto.randomUUID()}, ${userId}, 'starter', 'invalid_status')`
-        )
-      ).rejects.toThrow();
-    });
-
     it("rejects invalid instance status", async () => {
       const { id: userId } = await insertTestUser();
       await expect(
@@ -213,27 +204,9 @@ describeDb("database constraints", () => {
       ).rejects.toThrow();
     });
 
-    it("rejects invalid subscription plan", async () => {
-      const { id: userId } = await insertTestUser();
-      await expect(
-        testDb.execute(
-          sql`INSERT INTO subscription (id, user_id, plan, status) VALUES (${crypto.randomUUID()}, ${userId}, 'enterprise', 'active')`
-        )
-      ).rejects.toThrow();
-    });
   });
 
   describe("foreign key constraints", () => {
-    it("rejects subscription with non-existent user_id", async () => {
-      await expect(
-        testDb.insert(schema.subscription).values({
-          userId: "non-existent-user-id",
-          plan: "starter",
-          status: "active",
-        })
-      ).rejects.toThrow();
-    });
-
     it("rejects instance with non-existent user_id", async () => {
       await expect(
         testDb.insert(schema.instance).values({
@@ -273,22 +246,6 @@ describeDb("database constraints", () => {
         .from(schema.account)
         .where(sql`user_id = ${userId}`);
       expect(accounts).toHaveLength(0);
-    });
-
-    it("cascades delete from user to subscription", async () => {
-      const { id: userId } = await insertTestUser();
-      await testDb.insert(schema.subscription).values({
-        userId,
-        plan: "starter",
-        status: "active",
-      });
-
-      await testDb.delete(schema.user).where(sql`id = ${userId}`);
-      const subs = await testDb
-        .select()
-        .from(schema.subscription)
-        .where(sql`user_id = ${userId}`);
-      expect(subs).toHaveLength(0);
     });
 
     it("cascades delete from user to instance", async () => {
