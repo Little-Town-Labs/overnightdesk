@@ -334,10 +334,11 @@ skipped; 1,214 tests passed; 23 skipped), and the production build. The
 T034-specific source scan found no production `wizardState`, `wizard_state`,
 subscription schema export, or subscription relation references.
 
-The broader retirement qualifier remains intentionally red on three retained
-404 route tombstones plus their middleware deny entries. Those fail-closed
-production routing surfaces are outside T034 and remain a T041/T043 closeout
-gate; they were not removed to make this schema task appear green.
+At the T034 checkpoint, the broader retirement qualifier was intentionally red
+on three retained 404 route tombstones plus their middleware deny entries.
+Those fail-closed production routing surfaces were outside T034; T041 records
+the corrected scanner scope below, while T043 remains the production route
+verification gate.
 
 ## 12. T035 populated disposable-database rehearsal
 
@@ -477,9 +478,9 @@ check; that preview CI is not production activation or T043 verification.
 Focused repository verification passed 46 cleanup and retired-route tests,
 TypeScript compilation, and targeted source scans for zero active legacy route
 handlers and zero active schema consumers. `git diff --check` also passed. The
-broader retirement qualifier remains intentionally red on retained test-only
-route directories and middleware 404 deny entries; those are T041/T043
-closeout surfaces rather than evidence of an active schema consumer.
+broader retirement qualifier is recorded in T041; its scan scope now treats
+retained test-only route contracts and the explicit middleware 404 deny
+registry as verification evidence rather than active source.
 
 ## 14. T037 production Neon apply and verification evidence
 
@@ -574,7 +575,63 @@ relative-link target checks, and `git diff --check` passed. No application test
 or build was rerun because T038 changes no source, configuration, or behavior;
 T041 owns the full frontend/engine verification gate.
 
-## 16. Closeout
+## 16. T041 full frontend and engine verification
+
+T041 verification ran locally on 2026-08-10 against the merged source heads:
+
+- Frontend `origin/main` at `2a1ae8593d9bd5bdf4ac5b416780326045b85e0f` (PR
+  228 merged).
+- Engine `origin/main` at `52cdcc53acdd663e5222c8f2fcbcdb96043abd87` (PR 7
+  merged).
+
+No production database, provider, Vercel, Aegis, runtime, secret, or ledger
+mutation occurred.
+
+### Frontend install, qualification, test, and build
+
+```bash
+npm ci
+scripts/qualify-legacy-customer-lifecycle-retirement.sh
+npm test -- --runInBand
+DATABASE_URL='postgres://build:build@127.0.0.1:5432/build?sslmode=disable' \
+BETTER_AUTH_SECRET='local-build-placeholder-not-a-secret' npm run build
+```
+
+Results:
+
+- `npm ci`: PASS — installation completed with no dependency changes. npm
+  reported 11 existing audit findings (8 moderate, 3 high); no audit fix was
+  run as part of T041.
+- `scripts/qualify-legacy-customer-lifecycle-retirement.sh`: PASS. The scanner
+  was corrected to classify only active TypeScript source as a retired-path
+  failure and to exclude the explicit middleware 404 registry from active
+  route-reference checks. Retained retirement tests remain available as
+  contract evidence.
+- `npm test -- --runInBand`: PASS — 116 suites passed; 4 existing
+  environment-gated suites skipped; 1,214 tests passed and 23 skipped.
+- `npm run build`: PASS — Next.js compilation, lint/type checking, static page
+  generation, route collection, and build-trace collection completed with
+  non-secret local placeholder values. No database connection or mutation was
+  performed.
+
+### Engine test, vet, and build
+
+```bash
+go test ./...
+go vet ./...
+make build
+make build-hermes-provisioner
+```
+
+Results: PASS — all Go packages passed, `go vet ./...` reported no findings,
+and both the historical platform-orchestrator and retained Hermes provisioner
+binaries built successfully. No production service or runtime state changed.
+
+The result is local merged-source evidence only. It does not authorize T043
+frontend activation, T044 Aegis runtime replacement, T045 provider/secret
+cleanup, or any production mutation.
+
+## 17. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
