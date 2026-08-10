@@ -17,18 +17,12 @@ export default function LandingPage() {
           Internal workspace for accessing your dashboard and conversations.
         </p>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3">
+        <div className="mt-8">
           <Link
             href="/sign-in"
             className="btn-accent inline-flex min-h-11 items-center justify-center px-5 py-3"
           >
             Sign in
-          </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-od-border px-5 py-3 font-semibold text-od-text transition-colors hover:bg-od-hover"
-          >
-            Dashboard
           </Link>
         </div>
       </section>
