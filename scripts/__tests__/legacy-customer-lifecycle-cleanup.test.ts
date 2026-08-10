@@ -1,6 +1,7 @@
 import {
   createLegacyCustomerLifecycleCleanupStore,
   executeLegacyCustomerLifecycleCleanup,
+  inspectLegacyCustomerLifecycleDatabase,
   parseLegacyCustomerLifecycleCleanupPlanArtifact,
   type LegacyCustomerLifecycleCleanupCounts,
   type LegacyCustomerLifecycleCleanupPlan,
@@ -575,6 +576,48 @@ describe("legacy customer lifecycle cleanup", () => {
     expect(queries[0]?.sql).toMatch(/meaningful wizard state is not zero/i);
     expect(queries[0]?.sql).toMatch(/DROP TYPE public\.subscription_plan/i);
     expect(queries[0]?.sql).toMatch(/DROP TYPE public\.subscription_status/i);
+  });
+
+  it("inspects each allowlisted table using its interpolated qualified name", async () => {
+    const dialect = new PgDialect();
+    const tableNames: string[] = [];
+
+    const counts = await inspectLegacyCustomerLifecycleDatabase({
+      async execute(query) {
+        const compiled = dialect.sqlToQuery(query);
+        if (/to_regclass/.test(compiled.sql)) {
+          tableNames.push(String(compiled.params[0]));
+          return { rows: [{ present: true }] };
+        }
+        if (/to_regtype/.test(compiled.sql)) {
+          return { rows: [{ present: true }] };
+        }
+        if (/information_schema\.columns/.test(compiled.sql)) {
+          return { rows: [{ present: true }] };
+        }
+        if (
+          compiled.sql.includes("wizard_state") &&
+          compiled.sql.includes("IS NOT NULL")
+        ) {
+          return { rows: [{ count: 0 }] };
+        }
+        return { rows: [{ count: 1 }] };
+      },
+    });
+
+    expect(tableNames).toEqual([
+      "public.subscription",
+      "public.subscription",
+      "public.user",
+      "public.use_case_membership",
+      "public.instance",
+    ]);
+    expect(counts).toMatchObject({
+      subscriptionTableCount: 1,
+      activeUserCount: 1,
+      activeMembershipCount: 1,
+      activeInstanceCount: 1,
+    });
   });
 
   it("restores only schema objects recorded in the plan before-state", async () => {

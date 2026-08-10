@@ -339,7 +339,86 @@ The broader retirement qualifier remains intentionally red on three retained
 production routing surfaces are outside T034 and remain a T041/T043 closeout
 gate; they were not removed to make this schema task appear green.
 
-## 12. Closeout
+## 12. T035 populated disposable-database rehearsal
+
+The cleanup commands were rehearsed on 2026-08-10 against one PostgreSQL 16
+database dedicated to T035. It used the required disposable database-name
+pattern, loopback-only transport, tmpfs-backed storage, and no concurrent
+writers. Migrations `0000` through `0010` established the pre-retirement
+schema; migration `0011` was intentionally excluded so the cleanup command
+encountered the four legacy objects it must remove. Count-only fixtures
+represented one active user, membership, and instance; explicit count inputs
+represented two conversations and three business records. No production,
+shared database, provider, Vercel, Aegis, customer, or secret-system operation
+occurred.
+
+Before apply, `pg_dump --format custom` created a non-empty backup and
+`pg_restore --list` successfully parsed its complete catalog. The unchanged
+package commands then exercised plan, apply, and verify; the documented
+approval-gated script entry point exercised rollback using the value-free apply
+artifact:
+
+```bash
+npm run --silent legacy-customer-lifecycle:plan
+npm run --silent legacy-customer-lifecycle:apply > cleanup-applied.json
+LEGACY_CLEANUP_PLAN_PATH="$PWD/cleanup-applied.json" \
+  npm run --silent legacy-customer-lifecycle:verify
+LEGACY_CLEANUP_PLAN_PATH="$PWD/cleanup-applied.json" \
+  npx --no-install tsx scripts/legacy-customer-lifecycle-cleanup.ts rollback
+```
+
+Approval values, database URLs, fixture identifiers, and backup contents were
+not printed or retained in repository evidence. The sanitized count matrix was:
+
+| Check | Provider | Local subscriptions | Wizard state | Consumers | Subscription table | Plan type | Status type | Wizard column | Users | Memberships | Instances | Conversations | Business records |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Ready plan / apply before | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 3 |
+| Apply after / fresh verify | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 2 | 3 |
+| Rollback after | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2 | 3 |
+
+Result: PASS — plan was ready, apply reached every planned after-count, verify
+re-inspected and matched that state, and rollback restored every before-count.
+Active user, membership, instance, conversation, and business-record counts
+remained unchanged throughout.
+
+Two independent non-zero fixtures then exercised apply with valid disposable
+approval. A single local subscription stopped with exit code 2 and reason
+`local subscription rows`; direct before/after state was identically
+`1/0/1/1/1/1/1/1/1`. A single meaningful wizard value stopped with exit code
+2 and reason `meaningful wizard state`; direct before/after state was
+identically `0/1/1/1/1/1/1/1/1`. Those vectors are, in order, subscription
+rows, meaningful wizard rows, users, memberships, instances, subscription
+table, plan type, status type, and wizard column. Both stopped runs preserved
+the non-zero fixture, active rows, and all four legacy schema objects unchanged.
+
+The first real plan also exposed that table inspection sent the literal
+`public.${table}` instead of each allowlisted qualified table name. A focused
+regression test reproduced the failure for subscription, user, membership, and
+instance inspection. The interpolation was corrected before any apply ran;
+the focused suite then passed all 22 tests and the repeated real plan reported
+the populated baseline shown above.
+
+Final repository verification passed:
+
+```bash
+npx jest --config jest.config.ts --roots scripts --runInBand \
+  scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts \
+  scripts/__tests__/legacy-customer-lifecycle-migration.test.ts
+npx tsc --noEmit
+npm test -- --runInBand
+DATABASE_URL='postgres://build:build@127.0.0.1:5432/build?sslmode=disable' \
+BETTER_AUTH_SECRET='local-build-placeholder-not-a-secret' npm run build
+git diff --check
+```
+
+Results: PASS — 23 focused cleanup/migration tests, TypeScript compilation,
+the full frontend suite (116 suites passed; 4 skipped; 1,214 tests passed; 23
+skipped), the production build, and diff validation. The exact disposable
+container and temporary artifact directory were then removed. Its tmpfs
+database and in-container backup are destroyed and not recoverable; repository
+and production data were not affected.
+
+## 13. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,

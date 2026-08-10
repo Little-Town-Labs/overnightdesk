@@ -457,7 +457,7 @@ async function tableExists(
   table: KnownTable,
 ): Promise<boolean> {
   const result = await database.execute(
-    sql`SELECT to_regclass(${"public.${table}"}) IS NOT NULL AS present`,
+    sql`SELECT to_regclass(${`public.${table}`}) IS NOT NULL AS present`,
   );
   return result.rows[0]?.present === true;
 }
