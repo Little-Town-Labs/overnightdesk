@@ -197,12 +197,15 @@ ambiguous unless their owner-supplied numeric gate values are explicitly set;
 ambiguous or non-zero local subscriptions, wizard state, provider obligations,
 or active consumers stop cleanup before mutation.
 
-Apply and rollback require separate configured approval tokens. The default
-database adapter additionally requires an explicit destructive opt-in and a
-database name matching the disposable cleanup pattern unless a separately
-controlled production opt-in is present. Database SQL uses fixed allowlisted
-tables and columns, and command output excludes identifiers, payment values,
-tokens, and error details.
+Apply and rollback require separate configured approval tokens and reject an
+identical token configuration. The default database adapter additionally
+requires an explicit destructive opt-in and a database name matching the
+disposable cleanup pattern unless a separately controlled production opt-in is
+present. Apply locks the affected tables and rechecks the local zero-state gates
+in the same transaction immediately before DDL. Rollback restores only objects
+recorded as present in the plan's before-state. Database SQL uses fixed
+allowlisted tables and columns, and command output excludes identifiers,
+payment values, tokens, and error details.
 
 Verification run locally on 2026-08-10:
 
@@ -218,7 +221,74 @@ existing frontend suite (116 suites passed; 4 skipped; 1,215 tests passed; 27
 skipped). No database, provider, filesystem, or production mutation was
 performed.
 
-## 10. Closeout
+## 10. T033 deterministic commands and disposable database contract
+
+The package exposes independently executable preflight, cutover, and postflight
+commands:
+
+```bash
+npm run legacy-customer-lifecycle:plan
+npm run legacy-customer-lifecycle:apply
+npm run legacy-customer-lifecycle:verify
+```
+
+Do not run apply, verify, or rollback against a shared or production database
+during T033. T035 owns the first execution against a populated disposable test
+database. That database must:
+
+- be dedicated to this rehearsal and safe to destroy;
+- use a database name matching
+  `overnightdesk_legacy_cleanup_[a-z0-9_]+` in `DATABASE_URL`;
+- have the current schema and representative count-only fixtures loaded;
+- have a checked backup and an executable restore handle before apply;
+- have no concurrent writers during the rehearsal; and
+- use explicit zero values for
+  `LEGACY_CLEANUP_PROVIDER_OBLIGATION_COUNT` and
+  `LEGACY_CLEANUP_ACTIVE_SCHEMA_CONSUMER_COUNT`. Missing or invalid values are
+  ambiguous and stop cleanup.
+
+Before apply, configure different non-empty values for
+`LEGACY_CLEANUP_APPLY_APPROVAL_TOKEN` and
+`LEGACY_CLEANUP_ROLLBACK_APPROVAL_TOKEN`. Supply only the token for the current
+mutation through `LEGACY_CLEANUP_APPROVAL_TOKEN`, and set
+`LEGACY_CLEANUP_ALLOW_DESTRUCTIVE=true`. Never print or commit token values.
+
+Persist the successful apply result as the value-free artifact consumed by
+verify and rollback. Using `--silent` prevents npm's command banner from
+corrupting the JSON file:
+
+```bash
+npm run --silent legacy-customer-lifecycle:apply > cleanup-applied.json
+LEGACY_CLEANUP_PLAN_PATH="$PWD/cleanup-applied.json" \
+  npm run legacy-customer-lifecycle:verify
+```
+
+The artifact parser accepts only a structurally valid `status: applied` result
+whose before/after counts agree with its ready plan. Verify and rollback fail
+closed when `LEGACY_CLEANUP_PLAN_PATH` is missing, unreadable, malformed,
+stopped, or count-inconsistent. Rollback remains independently executable with
+`npx tsx scripts/legacy-customer-lifecycle-cleanup.ts rollback`; it additionally
+requires the rollback approval token and the same validated artifact path.
+
+T033 verification is static and in-memory only: the focused contract suite,
+TypeScript compilation, and package-command inspection are run without a
+database connection and without provider, cleanup-artifact, or production
+mutation. The populated disposable-database plan/apply/verify/rollback
+evidence belongs to T035.
+
+```bash
+npx jest --config jest.config.ts --roots scripts --runInBand \
+  scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts
+npx tsc --noEmit
+npm test -- --runInBand
+```
+
+Results: PASS — 20 focused cleanup contract tests, TypeScript compilation, and
+the full frontend suite (116 suites passed; 4 skipped; 1,215 tests passed; 27
+skipped). Package inspection confirmed all three commands map to the expected
+script modes. No cleanup command or database connection was executed.
+
+## 11. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
