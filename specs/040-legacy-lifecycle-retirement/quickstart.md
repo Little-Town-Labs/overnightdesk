@@ -418,7 +418,68 @@ container and temporary artifact directory were then removed. Its tmpfs
 database and in-container backup are destroyed and not recoverable; repository
 and production data were not affected.
 
-## 13. Closeout
+## 13. T036 production read-only plan evidence
+
+The owner explicitly approved T036 plan mode on 2026-08-10 and explicitly
+excluded production apply. The check used merged frontend head
+`5cbc377910d7077b0ebeb28932a3fb42b6715103`. Vercel deployment metadata showed
+that head was already the current Production deployment before this check;
+T036 did not deploy or alter it. T043 still owns production-route and owner
+smoke verification plus reconciliation of the deployment record.
+
+Provider evidence combined the owner's prior statement that Stripe was never
+fully set up and is not used with a metadata-only inventory of the production
+Vercel project. The inventory found zero Stripe or billing-enable variable
+keys. It did not print values or call a payment-provider mutation API. On that
+bounded evidence, the owner-supplied provider-obligation gate was explicit
+zero. The deployed source contains no active legacy Stripe, subscription,
+wizard, or provisioner-callback route handler and no active subscription
+schema consumer; retained test-only route tombstones and middleware deny
+entries continue to fail closed with 404 and are not active consumers.
+
+The Aegis provisioner was active with zero restarts. A metadata-only check at
+the preflight instant found zero child processes, zero established provisioner
+connections, and zero exact legacy provision, deprovision, or callback journal
+mentions since the current service start. The old Aegis `/provision` and
+`/deprovision` routes remain mounted and are not claimed as retired by T036;
+safe GET probes returned 405. Together with the database's zero meaningful
+wizard rows, the observed callback/wizard/in-flight state was zero. No service
+restart, request mutation, file change, or secret change occurred.
+
+The production database URL was resolved inside the approved Phase/Vercel
+secret boundary, transferred directly into a temporary process environment,
+and never printed, passed as an argument, or written to a file. Destructive,
+production-apply, plan-artifact, and approval-token variables were explicitly
+unset. The unchanged merged command was then run once:
+
+```bash
+LEGACY_CLEANUP_PROVIDER_OBLIGATION_COUNT=0 \
+LEGACY_CLEANUP_ACTIVE_SCHEMA_CONSUMER_COUNT=0 \
+npm run --silent legacy-customer-lifecycle:plan
+```
+
+The secret-safe result was `ready` with no stop reasons:
+
+| Check | Provider | Local subscriptions | Wizard state | Consumers | Subscription table | Plan type | Status type | Wizard column | Users | Memberships | Instances |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Production before | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 2 | 2 |
+| Planned after | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 2 | 2 |
+
+Result: PASS — every T036 stop gate was an explicit numeric zero, and the plan
+preserves all active user, membership, and instance counts. This authorizes no
+data treatment by itself. T037 remains blocked until the owner separately
+approves the exact destructive production boundary and a production backup is
+verified. No apply, verify, rollback, DDL, database write, deployment, provider
+write, Aegis mutation, or production-ledger append occurred in T036.
+
+Focused repository verification passed 46 cleanup and retired-route tests,
+TypeScript compilation, and targeted source scans for zero active legacy route
+handlers and zero active schema consumers. `git diff --check` also passed. The
+broader retirement qualifier remains intentionally red on retained test-only
+route directories and middleware 404 deny entries; those are T041/T043
+closeout surfaces rather than evidence of an active schema consumer.
+
+## 14. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
