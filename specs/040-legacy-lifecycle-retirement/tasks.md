@@ -153,7 +153,7 @@ closed, and every approved production action has rollback and ledger evidence.
 
 ### Documentation and Source Closeout
 
-- [ ] T038 [P] [US4] Reconcile the limited TTS frontend and removed customer lifecycle in `README.md`, `PRD.md`, and `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-020, SC-009
+- [X] T038 [P] [US4] Reconcile the limited TTS frontend and removed customer lifecycle in `README.md`, `PRD.md`, and `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-020, SC-009
 - [ ] T039 [P] [US4] In the `overnightdesk-platform-standard` repository, update ADR 007 consequences and current-state inventories in `docs/decisions/007-retire-platform-orchestrator.md`, `WHAT/services.yaml`, `WHAT/tenant-provisioning.yaml`, `WHAT/databases.yaml`, and `WHAT/secrets.yaml` — FR-020, SC-009
 - [ ] T040 [P] [US4] In the `overnightdesk-platform-standard` repository, reconcile deployment, architecture, tenant-provisioning, and secrets procedures in `HOW/deployment.md`, `HOW/architecture.md`, `HOW/tenant-provisioning.md`, and `HOW/secrets.md` — FR-018, FR-020, SC-009
 - [ ] T041 [US4] Run the full frontend and engine test/build suites plus `scripts/qualify-legacy-customer-lifecycle-retirement.sh`; record exact commands and sanitized results in `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-018, FR-020, SC-001, SC-002, SC-005, SC-009

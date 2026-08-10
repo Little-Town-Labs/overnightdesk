@@ -6,6 +6,12 @@ Current product direction: an authenticated internal business workspace with
 membership-scoped access to named Hermes runtimes, operator tooling, and
 production auditability.
 
+The web product is existing-account only. One owner actively uses sign-in,
+password recovery, chat, dashboard, settings, and administration. Other
+existing identities remain untouched, but there is no public registration,
+email-verification journey, pricing, checkout, subscription authority,
+customer setup wizard, customer callback, or self-service account deletion.
+
 The former standalone tenant engine and Tenet-0 source tree are retired. This
 repo no longer treats the old personal tenant runtime as an active product
 surface.
@@ -41,6 +47,7 @@ surface.
 
 - Next.js app router frontend.
 - Auth, workspace membership, dashboard, and admin views.
+- Existing-account sign-in and password recovery with registration denied.
 - App database schema and migrations.
 - Tenant workflow source for Hermes tenants.
 - Trevor MCP server source, tests, runbooks, and migrations for
@@ -49,6 +56,9 @@ surface.
 ## Non-Goals
 
 - Reintroducing the retired standalone tenant engine.
+- Restoring acquisition, registration, pricing, checkout, Stripe,
+  subscription-derived authorization, customer lifecycle controls, or
+  self-service account deletion.
 - External customer signup, billing-triggered hosting, or self-service runtime
   provisioning on Aegis.
 - Customer workload or customer data hosting on `aegis-prod` without a
@@ -59,8 +69,17 @@ surface.
 - Shipping customer workflows around legacy provider-specific terminal auth.
 - Using retired personal-tenant source directories as active runtime code.
 - Renaming compatibility database columns without a deliberate migration plan.
-- Deleting legacy billing/provisioning source without a separate migration and
-  compatibility review.
+
+## Retirement State
+
+Feature 040 removed the customer signup, Stripe/billing, subscription, wizard,
+callback, customer instance-control, and self-service deletion source. Its
+approved Neon zero-state cleanup removed only the empty subscription schema and
+unused wizard column while preserving active identity, membership, and
+instance records. The remaining T043-T045 production gates independently own
+frontend release verification, deployment of the isolated managed-variable
+service, and removal of obsolete provider/secret configuration. Until those
+gates and the observation closeout pass, Feature 040 remains open.
 
 ## Compatibility Notes
 
@@ -74,5 +93,5 @@ updates schema, code, tests, and existing data together.
 - App tests pass for touched frontend/API surfaces.
 - Tenant workflow tests pass for touched tenant packages.
 - Platform standard is updated for production-facing runtime changes.
-- Production deploys are logged in
-  `/home/frosted639/src/overnightdesk-suite/deploys.log`.
+- Production actions are logged in the canonical Aegis ledger at
+  `/opt/overnightdesk/deploys.log`.

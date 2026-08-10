@@ -2,10 +2,11 @@
 
 **Your business never sleeps.**
 
-Authenticated internal business workspace for OvernightDesk and Timeless Tech
-Solutions. It provides identity, membership-scoped workspace launch, named
-agent-runtime source, and operator-facing administration for approved
-collaborators.
+Existing-account internal business workspace for OvernightDesk and Timeless
+Technology Solutions. It provides owner sign-in and recovery,
+membership-scoped chat and dashboard access, named agent-runtime source, and
+operator-facing administration. It has no public registration, pricing,
+checkout, billing, or customer-runtime provisioning journey.
 
 ## Architecture
 
@@ -14,10 +15,29 @@ OvernightDesk is a multi-repo platform deployed on aegis-prod:
 | Repo | Language | Purpose | Status |
 |------|----------|---------|--------|
 | **overnightdesk** (this repo) | TypeScript/Next.js | Vercel workspace shell, auth, memberships, dashboards, and named-runtime source | Active |
-| [overnightdesk-engine](../overnightdesk-engine) | Go | Historical orchestrator and provisioning source retained for rollback/reference | Retired from active Aegis deployment |
+| [overnightdesk-engine](../overnightdesk-engine) | Go | Historical orchestrator plus isolated managed-variable service source | Orchestrator retired; isolated service deployment pending |
 | [overnightdesk-securityteam](../overnightdesk-securityteam) | TypeScript/Fastify | Message traffic security, outbound guards, approval support | Active |
 | [overnightdesk-SecurityCouncil](../overnightdesk-SecurityCouncil) | Go | Platform security scanning and review | Active |
 | [overnightdesk-communicationmodule](../overnightdesk-communicationmodule) | Go | gRPC notification bus for Telegram and Discord dispatch | Active |
+
+## Current Product Boundary
+
+The frontend serves one actively used owner account and leaves other existing
+identities untouched. New identities cannot self-register, subscription state
+does not authorize access, and self-service account deletion is unavailable.
+Existing access is determined by current identity, role, and exact workspace
+membership. The retained product is sign-in and password recovery plus the
+chat, dashboard, settings, and administration needed for named Timeless
+Technology Solutions and OvernightDesk workspaces.
+
+Feature 040 removed the legacy signup, verification, pricing, checkout,
+Stripe, subscription, setup-wizard, customer callback, lifecycle-control, and
+account-deletion source. The zero-state Neon cleanup removed the empty
+subscription table and enum types plus the unused instance wizard column while
+preserving active identities, memberships, and instances. Production route,
+Aegis service, and obsolete secret/configuration closeout remain separately
+approved T043-T045 operations; merge or database completion alone does not
+claim those gates are finished.
 
 ## Current Agent Control-Surface Delivery
 
@@ -44,10 +64,14 @@ name/logo presentation, Arena absence, and composed Chat plus Advanced
 Dashboard experience.
 
 The legacy arbitrary credential-map endpoint is retired. Cataloged replacements
-are write-only, role checked, and metadata audited. The boundary-aware
-provisioner from engine PR 4 is deployed at `fc8211e`; only the qualified Titus
-runtime/OpenRouter tuple may be enabled through the server-only
-`MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID`. Walter and all other catalog
+are write-only, role checked, and metadata audited. The reviewed engine source
+isolates this managed-variable operation, but the current Aegis provisioner
+binary still exposes old provision/deprovision routes pending separately
+approved T044 deployment. Frontend lifecycle callers are removed and the T036
+preflight found no in-flight lifecycle work; that evidence does not itself
+retire the mounted Aegis routes. Only the qualified Titus runtime/OpenRouter
+tuple may be enabled through the server-only
+`MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID`; Walter and all other catalog
 combinations remain read-only. The governing contract is
 [`specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md`](specs/022-agent-control-surfaces/contracts/managed-variable-replacement.md),
 and the frontend uses its typed, value-free endpoint without legacy
@@ -128,8 +152,12 @@ migration is justified and approved.
 The former platform orchestrator and Docker socket proxy are retired from
 active deployment under
 [`specs/028-orchestrator-retirement`](specs/028-orchestrator-retirement).
-Legacy signup, billing, wizard, callback, and provisioning source remains
-inert pending a separate verified cleanup feature.
+Legacy customer-lifecycle source and zero-state Neon schema are retired under
+[`specs/040-legacy-lifecycle-retirement`](specs/040-legacy-lifecycle-retirement).
+The remaining production closeout is explicit: verify the reviewed frontend
+release, deploy the isolated managed-variable service, remove only obsolete
+provider/secret configuration, and complete the observation and inventory
+gates before closing Feature 040.
 
 ## Tenant Workflow Source
 
@@ -173,14 +201,16 @@ See `.env.example` for the full list. Key groups:
 
 - `DATABASE_URL`, `DATABASE_TEST_URL`
 - `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`
-- Legacy Stripe keys and price IDs (inactive compatibility surface)
-- `NEXT_PUBLIC_BILLING_ENABLED` (must remain disabled), `ADMIN_EMAILS`,
-  `INVITED_EMAILS`
+- `ADMIN_EMAILS`
 - `RESEND_API_KEY`, `EMAIL_FROM`
-- Legacy `PROVISIONER_URL`, `PROVISIONER_SECRET` (must not authorize customer
-  hosting on Aegis)
+- `PROVISIONER_URL`, `PROVISIONER_SECRET` for the server-side managed-variable
+  service boundary; they are not customer-hosting authority
 - `MANAGED_VARIABLE_TITUS_RUNTIME_BOUNDARY_ID` (server-only; unset means read-only)
 - `CRON_SECRET`, owner notification settings
+
+Stripe, billing-enable, invite-list, wizard, and legacy customer-callback
+variables are not part of the repository environment contract. T045 separately
+owns removal of obsolete production-side registrations and secret metadata.
 
 ## Notes
 
