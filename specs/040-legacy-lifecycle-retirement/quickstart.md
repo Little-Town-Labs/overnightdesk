@@ -481,7 +481,75 @@ broader retirement qualifier remains intentionally red on retained test-only
 route directories and middleware 404 deny entries; those are T041/T043
 closeout surfaces rather than evidence of an active schema consumer.
 
-## 14. Closeout
+## 14. T037 production Neon apply and verification evidence
+
+The owner separately approved the exact T037 destructive boundary on
+2026-08-10 after PR 226 merged: remove only the zero-state `subscription`
+table, `subscription_plan` and `subscription_status` enum types, and
+`instance.wizard_state`, then verify active counts. The approval did not cover
+identity, membership, instance, provider, secret, runtime, or other business
+data mutation.
+
+Production is Neon PostgreSQL 17. The first schema-backup attempt stopped
+before apply because Aegis had PostgreSQL 16 client tools; PostgreSQL correctly
+rejects an older `pg_dump` against a newer server. The official PostgreSQL 17
+container was then used locally as an ephemeral client, without adding a Neon
+CLI dependency or changing Aegis packages. A full schema-only custom archive
+was created, parsed successfully with `pg_restore --list`, and checked for all
+four targeted objects. The archive contains schema, not table data. Its remote
+copy was checksum-verified and restricted to mode 600:
+
+```text
+/opt/overnightdesk/backups/legacy-customer-lifecycle/
+  legacy-customer-lifecycle-schema-20260810T125416Z.dump
+SHA-256: 9ae3efe937263aba29a0016c0c9671a123a203519a66d7b3d730895c1f83c434
+```
+
+Immediately after backup verification, the unchanged merged plan was rerun
+against Neon and remained `ready`: provider obligations, local subscriptions,
+meaningful wizard state, and active schema consumers were all explicit zero;
+the four targeted schema-object counts were each one. Apply used distinct
+temporary apply and rollback tokens plus the explicit destructive and
+production opt-ins. The script locked and atomically rechecked the two local
+zero-state predicates before DDL.
+
+Fresh verify returned `verified` and reconciled every planned count:
+
+| Check | Provider | Local subscriptions | Wizard state | Consumers | Subscription table | Plan type | Status type | Wizard column | Users | Memberships | Instances |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Apply before | 0 | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | 2 | 2 |
+| Apply after / fresh verify | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 2 | 2 |
+
+The value-free apply artifact required by the independently approval-gated
+rollback command was checksum-verified and retained mode 600 beside the
+backup:
+
+```text
+/opt/overnightdesk/backups/legacy-customer-lifecycle/
+  legacy-customer-lifecycle-apply-20260810T125542Z.json
+SHA-256: e6a15317487b1aa7d6fe0aea8b69537ba296476a18effb986deff7783542ec0a
+```
+
+Rollback remains the T035-proven command documented in the migration header:
+retrieve the retained artifact into a restricted temporary path, resolve the
+production database through the approved secret boundary, configure a new
+pair of distinct approval tokens, set the destructive and production opt-ins,
+supply only the rollback token, and run the script's `rollback` mode with
+`LEGACY_CLEANUP_PLAN_PATH`. Rollback is not authorized or needed after this
+successful verify.
+
+Public postflight returned 200 for `/` and `/sign-in`, and 404 for
+`/api/subscription` and `/api/provisioner/callback`. No provider, identity,
+membership, instance, runtime, or secret mutation occurred. The canonical
+Aegis ledger records success at `2026-08-10T12:56:04Z` in
+`/opt/overnightdesk/deploys.log`, including the backup, rollback artifact,
+schema transition, and preserved active counts.
+
+Repository closeout verification passed 23 focused cleanup/migration tests,
+TypeScript compilation, diff validation, and a secret scan. Remote closeout
+rechecked both restricted artifacts and the canonical ledger entry.
+
+## 15. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
