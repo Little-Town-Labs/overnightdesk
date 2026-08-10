@@ -105,7 +105,67 @@ Before each production mutation:
 - append the production result to `/opt/overnightdesk/deploys.log` on Aegis
   where applicable.
 
-## 6. Closeout
+## 7. T030 verification evidence
+
+These checks were run locally on 2026-08-10 against the merged source heads:
+
+- Frontend `origin/main` at `533ac419fee7fdb5bd0e975bf5df672150582c82` (PRs
+  216–219 merged).
+- Engine `origin/main` at `52cdcc53acdd663e5222c8f2fcbcdb96043abd87` (PRs 6–7
+  merged).
+
+### Frontend managed-variable and read-only suites
+
+```bash
+npm ci
+npm test -- --runInBand \
+  src/app/api/settings/agent-variables/__tests__/route.test.ts \
+  src/lib/__tests__/managed-agent-variable.test.ts \
+  src/lib/__tests__/managed-agent-variable-audit.test.ts \
+  src/lib/__tests__/provisioner.test.ts \
+  src/lib/mitchel-prospecting/__tests__/trevor-summary-client.test.ts \
+  src/app/api/mitchel/prospecting/summary/__tests__/route.test.ts \
+  src/app/api/engine/__tests__/engine-routes.test.ts \
+  src/app/api/engine/__tests__/route-retirement.test.ts
+```
+
+Result: PASS — 8 suites, 115 tests, 0 failures.
+
+### Frontend full test and build checks
+
+```bash
+npm test -- --runInBand
+DATABASE_URL='postgres://build:build@127.0.0.1:5432/build?sslmode=disable' \
+BETTER_AUTH_SECRET='local-build-placeholder-not-a-secret' npm run build
+```
+
+Results:
+
+- `npm test -- --runInBand`: PASS — 116 suites passed; 4 existing
+  environment-gated suites skipped; 1,215 tests passed and 27 skipped.
+- `npm run build`: PASS — compilation, lint/type checking, static page
+  generation, and route collection completed with non-secret local placeholder
+  values; no database connection or mutation was performed.
+- `npm ci`: PASS — installation completed. npm reported 11 existing audit
+  findings (8 moderate, 3 high); no dependency changes were made for T030.
+
+### Engine full test, vet, and build checks
+
+```bash
+go test ./...
+go vet ./...
+make build && make build-hermes-provisioner
+```
+
+Results: PASS — all Go tests passed, `go vet ./...` reported no findings, and
+both the platform orchestrator and retained Hermes provisioner binaries built
+successfully. No production service or runtime state was changed.
+
+All recorded results are value-free. This section is local source evidence only
+and does not authorize production activation, secret removal, data cleanup, or
+deployment.
+
+## 8. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
