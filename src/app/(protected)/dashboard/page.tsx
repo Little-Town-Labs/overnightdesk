@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { resolveSelectedAgentPageContext } from "@/db/selected-agent-page-context";
 import { AuthStatusBadge } from "./auth-status-badge";
-import { RestartButton } from "./restart-button";
 import { getEngineStatus } from "@/lib/engine-client";
 import { isHermesMitchelTenant, isHermesTenant } from "@/lib/instance";
 import { fetchMitchelProspectingSummary } from "@/lib/mitchel-prospecting/trevor-summary-client";
@@ -132,7 +131,6 @@ export default async function DashboardPage({
                 </div>
               )}
             </dl>
-            <RestartButton instanceRunning />
           </div>
         )}
 
@@ -209,7 +207,6 @@ export default async function DashboardPage({
               </div>
             )}
           </dl>
-          <RestartButton instanceRunning={inst.status === "running"} />
         </div>
       ) : (
         <div className="od-card p-8 text-center">
