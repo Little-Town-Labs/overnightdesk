@@ -45,7 +45,7 @@ describe("subscription authority retirement", () => {
   it("uses current internal admin authorization without the billing module", () => {
     const source = [
       "src/lib/admin-page-authorization.ts",
-      "src/app/api/admin/hermes/dashboard-auth/route.ts",
+      "src/lib/internal-authorization.ts",
       "src/lib/require-admin.ts",
     ]
       .map((relativePath) =>
