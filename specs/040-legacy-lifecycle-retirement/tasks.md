@@ -129,7 +129,7 @@ approved disposable database.
 
 ### Implementation for User Story 3
 
-- [ ] T032 [US3] Implement parameterized, secret-safe plan/apply/verify/rollback modes with zero-state checks and explicit apply/rollback approval tokens in `scripts/legacy-customer-lifecycle-cleanup.ts` until T031 passes — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
+- [X] T032 [US3] Implement parameterized, secret-safe plan/apply/verify/rollback modes with zero-state checks and explicit apply/rollback approval tokens in `scripts/legacy-customer-lifecycle-cleanup.ts` until T031 passes — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
 - [ ] T033 [P] [US3] Add deterministic cleanup plan/apply/verify commands in `package.json` and document test-database requirements in `specs/040-legacy-lifecycle-retirement/quickstart.md` — FR-014, FR-018, SC-007
 - [ ] T034 [US3] Remove the pure subscription model and only preflight-proven unused wizard compatibility fields in `src/db/schema.ts` and add reversible SQL in `drizzle/0011_legacy_customer_lifecycle_retirement.sql` — FR-013, FR-014, FR-015, SC-004, SC-007
 - [ ] T035 [US3] Run plan/apply/verify/rollback against a disposable populated test database using `scripts/legacy-customer-lifecycle-cleanup.ts`, prove rollback restores all before-counts, prove non-zero fixtures stop unchanged, and attach sanitized evidence to the implementation PR — FR-007, FR-014, FR-018, SC-007

@@ -183,10 +183,42 @@ suite defines the T032 contract for value-free plan output, explicit distinct
 apply/rollback approval tokens, non-zero and ambiguous stop conditions,
 before/after count reconciliation, active-data preservation, and rollback.
 
-T032 is the next implementation task and must make this suite pass before the
+T032 is the implementation gate and must keep this suite passing before the
 cleanup command is used against any database.
 
-## 9. Closeout
+## 9. T032 implementation evidence
+
+The cleanup executor is now implemented in
+`scripts/legacy-customer-lifecycle-cleanup.ts`. It provides parameterized
+plan/apply/verify/rollback modes through an injected store contract and a
+default Drizzle database adapter. Plan mode reports only counts and stable
+stop-reason metadata. Provider obligations and active schema consumers remain
+ambiguous unless their owner-supplied numeric gate values are explicitly set;
+ambiguous or non-zero local subscriptions, wizard state, provider obligations,
+or active consumers stop cleanup before mutation.
+
+Apply and rollback require separate configured approval tokens. The default
+database adapter additionally requires an explicit destructive opt-in and a
+database name matching the disposable cleanup pattern unless a separately
+controlled production opt-in is present. Database SQL uses fixed allowlisted
+tables and columns, and command output excludes identifiers, payment values,
+tokens, and error details.
+
+Verification run locally on 2026-08-10:
+
+```bash
+npx jest --config jest.config.ts --roots scripts --runInBand \
+  scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts
+npx tsc --noEmit
+npm test -- --runInBand
+```
+
+Results: PASS — 16 cleanup contract tests, TypeScript compilation, and the
+existing frontend suite (116 suites passed; 4 skipped; 1,215 tests passed; 27
+skipped). No database, provider, filesystem, or production mutation was
+performed.
+
+## 10. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
