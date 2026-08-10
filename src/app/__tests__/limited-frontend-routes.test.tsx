@@ -16,7 +16,7 @@ jest.mock("@/lib/auth", () => ({
 import middleware from "../../../middleware";
 
 describe("limited internal frontend routes", () => {
-  it("presents only sign-in and dashboard entry points at the root", () => {
+  it("presents only the sign-in entry point at the root", () => {
     const markup = renderToStaticMarkup(<LandingPage />);
     const normalizedMarkup = markup.toLowerCase();
     const actionableHrefs = Array.from(
@@ -24,7 +24,7 @@ describe("limited internal frontend routes", () => {
       (match) => match[1],
     ).sort();
 
-    expect(actionableHrefs).toEqual(["/dashboard", "/sign-in"]);
+    expect(actionableHrefs).toEqual(["/sign-in"]);
     expect(markup).not.toContain("<form");
     expect(normalizedMarkup).not.toMatch(
       /sign up|early access|waitlist|pick a plan|setup wizard|after payment/,
