@@ -79,9 +79,4 @@ describe("schema exports", () => {
     });
   });
 
-  describe("existing tables preserved", () => {
-    it("still exports waitlist table", () => {
-      expect(schema.waitlist).toBeDefined();
-    });
-  });
 });

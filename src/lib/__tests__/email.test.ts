@@ -59,8 +59,6 @@ import {
   sendEmail,
   sendVerificationEmail,
   sendPasswordResetEmail,
-  sendWelcomeEmail,
-  sendProvisioningEmail,
 } from "@/lib/email";
 
 describe("Email Service", () => {
@@ -185,67 +183,4 @@ describe("Email Service", () => {
     });
   });
 
-  describe("sendWelcomeEmail()", () => {
-    it("sends welcome email for regular users", async () => {
-      await sendWelcomeEmail({
-        user: { email: "user@example.com", name: "Test User", id: "user_1" },
-        isWaitlistConvert: false,
-      });
-
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "user@example.com",
-          subject: expect.stringContaining("elcome"),
-        })
-      );
-    });
-
-    it("skips sending if user has opted out", async () => {
-      const { db } = jest.requireMock("@/db");
-      db.select.mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([{ emailOptOut: true }]),
-        }),
-      });
-
-      await sendWelcomeEmail({
-        user: { email: "user@example.com", name: "Test User", id: "user_1" },
-        isWaitlistConvert: false,
-      });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-  });
-
-  describe("sendProvisioningEmail()", () => {
-    it("sends provisioning email with dashboard URL", async () => {
-      await sendProvisioningEmail({
-        user: { email: "user@example.com", name: "Test User", id: "user_1" },
-        dashboardUrl: "https://overnightdesk.com/dashboard",
-      });
-
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: "user@example.com",
-          subject: expect.stringContaining("eady"),
-        })
-      );
-    });
-
-    it("skips sending if user has opted out", async () => {
-      const { db } = jest.requireMock("@/db");
-      db.select.mockReturnValueOnce({
-        from: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue([{ emailOptOut: true }]),
-        }),
-      });
-
-      await sendProvisioningEmail({
-        user: { email: "user@example.com", name: "Test User", id: "user_1" },
-        dashboardUrl: "https://overnightdesk.com/dashboard",
-      });
-
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-  });
 });

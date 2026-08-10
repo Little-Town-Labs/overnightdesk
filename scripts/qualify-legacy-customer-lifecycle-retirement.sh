@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="${LEGACY_LIFECYCLE_REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 failure_count=0
+temporary_paths=()
+
+cleanup() {
+  if ((${#temporary_paths[@]} > 0)); then
+    rm -f -- "${temporary_paths[@]}"
+  fi
+}
+
+trap cleanup EXIT
 
 report_path() {
   local relative_path="$1"
@@ -10,12 +19,11 @@ report_path() {
 
   if [[ -d "${repo_root}/${relative_path}" ]]; then
     # The retirement contract tests intentionally remain under the retired
-    # route directories. Only active TypeScript source is a failure here.
+    # route directories. Every other file is active-source evidence.
     active_source_path="$(find "${repo_root}/${relative_path}" -type f \
-      \( -name '*.ts' -o -name '*.tsx' \) \
       ! -path '*/__tests__/*' \
-      ! -name '*.test.ts' \
-      ! -name '*.test.tsx' \
+      ! -name '*.test.*' \
+      ! -name '*.spec.*' \
       -print -quit)"
   else
     active_source_path="${repo_root}/${relative_path}"
@@ -55,6 +63,49 @@ report_pattern() {
   esac
 }
 
+expected_retired_routes=(
+  "/sign-up"
+  "/verify-email"
+  "/pricing"
+  "/checkout/success"
+  "/api/stripe/checkout"
+  "/api/stripe/portal"
+  "/api/stripe/webhook"
+  "/api/account/delete"
+  "/api/subscription"
+  "/api/waitlist"
+  "/api/wizard/write-step"
+  "/api/wizard/complete"
+  "/api/provisioner/callback"
+  "/api/instance/status"
+  "/api/instance/auth-status"
+  "/api/instance/terminal-ticket"
+  "/api/engine/restart"
+  "/api/engine/sessions"
+  "/api/admin/hermes/dashboard-auth"
+)
+
+middleware_utils_path="${repo_root}/src/lib/middleware-utils.ts"
+if [[ ! -f "$middleware_utils_path" ]]; then
+  printf 'FAIL [middleware-registry]: missing %s\n' "$middleware_utils_path" >&2
+  failure_count=$((failure_count + 1))
+else
+  actual_registry_routes="$({
+    awk '
+      /const RETIRED_ROUTES = new Set\(\[/ { in_registry = 1; next }
+      in_registry && /^\]\);/ { exit }
+      in_registry { print }
+    ' "$middleware_utils_path" |
+      sed -n 's/^[[:space:]]*"\([^"]*\)"[,]*$/\1/p' |
+      sort
+  })"
+  expected_registry_routes="$(printf '%s\n' "${expected_retired_routes[@]}" | sort)"
+  if [[ "$actual_registry_routes" != "$expected_registry_routes" ]]; then
+    printf 'FAIL [middleware-registry]: retired route deny registry drifted\n' >&2
+    failure_count=$((failure_count + 1))
+  fi
+fi
+
 retired_paths=(
   'src/app/(auth)/sign-up'
   'src/app/(auth)/verify-email'
@@ -74,6 +125,7 @@ retired_paths=(
   'src/app/api/provisioner/callback'
   'src/app/api/stripe'
   'src/app/api/subscription'
+  'src/app/api/waitlist'
   'src/app/api/wizard'
   'src/app/checkout'
   'src/app/pricing'
@@ -121,6 +173,33 @@ report_pattern \
 report_pattern \
   'subscription-authority' \
   'requireSubscription|requireProOrAdmin|isInvitedEmail|export const subscription|subscriptionRelations|/pricing' \
+  "${repo_root}/src" \
+  --glob '!**/*.test.*' --glob '!**/__tests__/**' \
+  --glob '!**/middleware-utils.ts'
+
+if [[ -f "$middleware_utils_path" ]]; then
+  middleware_outside_registry="$(mktemp)"
+  temporary_paths+=("$middleware_outside_registry")
+  awk '
+    /const RETIRED_ROUTES = new Set\(\[/ { in_registry = 1; next }
+    in_registry && /^\]\);/ { in_registry = 0; next }
+    !in_registry { print }
+  ' "$middleware_utils_path" > "$middleware_outside_registry"
+
+  report_pattern \
+    'retired-route-reference' \
+    "/api/(stripe|subscription|wizard)(/|[\"'])|/api/provisioner/callback" \
+    "$middleware_outside_registry"
+
+  report_pattern \
+    'subscription-authority' \
+    'requireSubscription|requireProOrAdmin|isInvitedEmail|export const subscription|subscriptionRelations|/pricing' \
+    "$middleware_outside_registry"
+fi
+
+report_pattern \
+  'residual-customer-lifecycle-source' \
+  'waitlist|Waitlist|sendWelcomeEmail|sendProvisioningEmail|WelcomeEmail|ProvisioningEmail|createInstance|updateInstanceStatus|generateTenantId|allocatePort|generateBearerToken|hashToken' \
   "${repo_root}/src" \
   --glob '!**/*.test.*' --glob '!**/__tests__/**' \
   --glob '!**/middleware-utils.ts'
