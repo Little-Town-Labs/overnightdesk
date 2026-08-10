@@ -165,7 +165,28 @@ All recorded results are value-free. This section is local source evidence only
 and does not authorize production activation, secret removal, data cleanup, or
 deployment.
 
-## 8. Closeout
+## 8. T031 RED test evidence
+
+The T031 cleanup contract suite was authored before the implementation. It uses
+an in-memory count-only store and contains no real identifiers, payment values,
+database URLs, or secrets.
+
+```bash
+npx jest --config jest.config.ts --roots scripts --runInBand \
+  scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts
+```
+
+Result: EXPECTED RED — Jest discovered the suite and stopped because
+`scripts/legacy-customer-lifecycle-cleanup.ts` does not exist yet. Zero tests
+executed and zero database, provider, or filesystem mutations occurred. The
+suite defines the T032 contract for value-free plan output, explicit distinct
+apply/rollback approval tokens, non-zero and ambiguous stop conditions,
+before/after count reconciliation, active-data preservation, and rollback.
+
+T032 is the next implementation task and must make this suite pass before the
+cleanup command is used against any database.
+
+## 9. Closeout
 
 Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,

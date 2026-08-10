@@ -125,7 +125,7 @@ approved disposable database.
 
 ### Tests for User Story 3
 
-- [ ] T031 [US3] Write and run failing plan/apply/verify/rollback plus non-zero stop-condition tests in `scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts`, including proof that rollback restores all before-counts without changing active data — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
+- [X] T031 [US3] Write and run failing plan/apply/verify/rollback plus non-zero stop-condition tests in `scripts/__tests__/legacy-customer-lifecycle-cleanup.test.ts`, including proof that rollback restores all before-counts without changing active data — FR-006, FR-007, FR-013, FR-014, SC-004, SC-007
 
 ### Implementation for User Story 3
 
