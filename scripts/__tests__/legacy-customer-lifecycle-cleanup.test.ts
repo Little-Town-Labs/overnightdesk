@@ -54,6 +54,26 @@ class InMemoryCleanupStore implements LegacyCustomerLifecycleCleanupStore {
   }
 }
 
+class CorruptingOnVerifyStore extends InMemoryCleanupStore {
+  private postApplyInspectionCount = 0;
+  private hasApplied = false;
+
+  override async inspect(): Promise<LegacyCustomerLifecycleCleanupCounts> {
+    if (this.hasApplied) {
+      this.postApplyInspectionCount += 1;
+      if (this.postApplyInspectionCount >= 2) {
+        this.counts = { ...this.counts, activeUserCount: 0 };
+      }
+    }
+    return super.inspect();
+  }
+
+  override async apply(plan: LegacyCustomerLifecycleCleanupPlan): Promise<void> {
+    await super.apply(plan);
+    this.hasApplied = true;
+  }
+}
+
 function withApprovalTokens<T>(callback: () => Promise<T>): Promise<T> {
   const previousApply = process.env[APPLY_APPROVAL_ENV];
   const previousRollback = process.env[ROLLBACK_APPROVAL_ENV];
@@ -107,8 +127,18 @@ describe("legacy customer lifecycle cleanup", () => {
       "local subscription rows",
     ],
     [
+      "ambiguous local subscription rows",
+      { localSubscriptionRowCount: null },
+      "local subscription rows",
+    ],
+    [
       "meaningful wizard state",
       { meaningfulWizardStateCount: 1 },
+      "meaningful wizard state",
+    ],
+    [
+      "ambiguous meaningful wizard state",
+      { meaningfulWizardStateCount: null },
       "meaningful wizard state",
     ],
     [
@@ -137,7 +167,9 @@ describe("legacy customer lifecycle cleanup", () => {
       });
 
       expect(plan.status).toBe("stopped");
-      expect(plan.stopReasons).toEqual(expect.arrayContaining([reason]));
+      expect(plan.stopReasons).toEqual(
+        expect.arrayContaining([expect.stringContaining(reason)]),
+      );
       expect(store.applyCalls).toBe(0);
 
       await withApprovalTokens(async () => {
@@ -180,6 +212,65 @@ describe("legacy customer lifecycle cleanup", () => {
 
     expect(store.applyCalls).toBe(0);
     await expect(store.inspect()).resolves.toEqual(beforeCounts);
+  });
+
+  it("rejects apply when the expected approval token is not configured", async () => {
+    const store = new InMemoryCleanupStore();
+
+    await withApprovalTokens(async () => {
+      const previous = process.env[APPLY_APPROVAL_ENV];
+      delete process.env[APPLY_APPROVAL_ENV];
+      try {
+        await expect(
+          executeLegacyCustomerLifecycleCleanup({
+            command: "apply",
+            store,
+            approvalToken: APPLY_APPROVAL,
+          }),
+        ).rejects.toThrow(/approval token/i);
+      } finally {
+        if (previous === undefined) delete process.env[APPLY_APPROVAL_ENV];
+        else process.env[APPLY_APPROVAL_ENV] = previous;
+      }
+    });
+
+    expect(store.applyCalls).toBe(0);
+    await expect(store.inspect()).resolves.toEqual(beforeCounts);
+  });
+
+  it("rejects rollback when the expected rollback token is not configured", async () => {
+    const store = new InMemoryCleanupStore();
+
+    await withApprovalTokens(async () => {
+      const applied = await executeLegacyCustomerLifecycleCleanup({
+        command: "apply",
+        store,
+        approvalToken: APPLY_APPROVAL,
+      });
+
+      const previous = process.env[ROLLBACK_APPROVAL_ENV];
+      delete process.env[ROLLBACK_APPROVAL_ENV];
+      try {
+        await expect(
+          executeLegacyCustomerLifecycleCleanup({
+            command: "rollback",
+            store,
+            plan: applied.plan,
+            approvalToken: ROLLBACK_APPROVAL,
+          }),
+        ).rejects.toThrow(/approval token/i);
+      } finally {
+        if (previous === undefined) delete process.env[ROLLBACK_APPROVAL_ENV];
+        else process.env[ROLLBACK_APPROVAL_ENV] = previous;
+      }
+    });
+
+    expect(store.rollbackCalls).toBe(0);
+    await expect(store.inspect()).resolves.toMatchObject({
+      ...beforeCounts,
+      subscriptionTableCount: 0,
+      wizardStateColumnCount: 0,
+    });
   });
 
   it("applies only the retired schema objects and verifies before/after counts", async () => {
@@ -260,6 +351,29 @@ describe("legacy customer lifecycle cleanup", () => {
       ).rejects.toThrow(/approval token/i);
     });
 
+    expect(store.rollbackCalls).toBe(0);
+  });
+
+  it("rejects verification when a fresh post-apply inspection finds changed active data", async () => {
+    const store = new CorruptingOnVerifyStore();
+
+    await withApprovalTokens(async () => {
+      const applied = await executeLegacyCustomerLifecycleCleanup({
+        command: "apply",
+        store,
+        approvalToken: APPLY_APPROVAL,
+      });
+
+      await expect(
+        executeLegacyCustomerLifecycleCleanup({
+          command: "verify",
+          store,
+          plan: applied.plan,
+        }),
+      ).rejects.toThrow(/not verified|after-counts/i);
+    });
+
+    expect(store.applyCalls).toBe(1);
     expect(store.rollbackCalls).toBe(0);
   });
 
