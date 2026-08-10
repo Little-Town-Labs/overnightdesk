@@ -1,9 +1,12 @@
 import {
+  createLegacyCustomerLifecycleCleanupStore,
   executeLegacyCustomerLifecycleCleanup,
+  parseLegacyCustomerLifecycleCleanupPlanArtifact,
   type LegacyCustomerLifecycleCleanupCounts,
   type LegacyCustomerLifecycleCleanupPlan,
   type LegacyCustomerLifecycleCleanupStore,
 } from "../legacy-customer-lifecycle-cleanup";
+import { PgDialect } from "drizzle-orm/pg-core";
 
 const APPLY_APPROVAL_ENV = "LEGACY_CLEANUP_APPLY_APPROVAL_TOKEN";
 const ROLLBACK_APPROVAL_ENV = "LEGACY_CLEANUP_ROLLBACK_APPROVAL_TOKEN";
@@ -88,6 +91,38 @@ function withApprovalTokens<T>(callback: () => Promise<T>): Promise<T> {
     if (previousRollback === undefined) delete process.env[ROLLBACK_APPROVAL_ENV];
     else process.env[ROLLBACK_APPROVAL_ENV] = previousRollback;
   });
+}
+
+async function withTestDestructiveBoundary<T>(
+  callback: () => Promise<T>,
+): Promise<T> {
+  const previousDestructive = process.env.LEGACY_CLEANUP_ALLOW_DESTRUCTIVE;
+  const previousProduction = process.env.LEGACY_CLEANUP_ALLOW_PRODUCTION;
+  const previousDatabaseUrl = process.env.DATABASE_URL;
+  process.env.LEGACY_CLEANUP_ALLOW_DESTRUCTIVE = "true";
+  delete process.env.LEGACY_CLEANUP_ALLOW_PRODUCTION;
+  process.env.DATABASE_URL =
+    "postgres://test:test@127.0.0.1/overnightdesk_legacy_cleanup_test";
+
+  try {
+    return await callback();
+  } finally {
+    if (previousDestructive === undefined) {
+      delete process.env.LEGACY_CLEANUP_ALLOW_DESTRUCTIVE;
+    } else {
+      process.env.LEGACY_CLEANUP_ALLOW_DESTRUCTIVE = previousDestructive;
+    }
+    if (previousProduction === undefined) {
+      delete process.env.LEGACY_CLEANUP_ALLOW_PRODUCTION;
+    } else {
+      process.env.LEGACY_CLEANUP_ALLOW_PRODUCTION = previousProduction;
+    }
+    if (previousDatabaseUrl === undefined) {
+      delete process.env.DATABASE_URL;
+    } else {
+      process.env.DATABASE_URL = previousDatabaseUrl;
+    }
+  }
 }
 
 describe("legacy customer lifecycle cleanup", () => {
@@ -212,6 +247,24 @@ describe("legacy customer lifecycle cleanup", () => {
 
     expect(store.applyCalls).toBe(0);
     await expect(store.inspect()).resolves.toEqual(beforeCounts);
+  });
+
+  it("rejects identical configured apply and rollback approval tokens", async () => {
+    const store = new InMemoryCleanupStore();
+
+    await withApprovalTokens(async () => {
+      process.env[ROLLBACK_APPROVAL_ENV] = APPLY_APPROVAL;
+
+      await expect(
+        executeLegacyCustomerLifecycleCleanup({
+          command: "apply",
+          store,
+          approvalToken: APPLY_APPROVAL,
+        }),
+      ).rejects.toThrow(/distinct|approval token/i);
+    });
+
+    expect(store.applyCalls).toBe(0);
   });
 
   it("rejects apply when the expected approval token is not configured", async () => {
@@ -409,5 +462,131 @@ describe("legacy customer lifecycle cleanup", () => {
     expect(store.applyCalls).toBe(1);
     expect(store.rollbackCalls).toBe(1);
     await expect(store.inspect()).resolves.toEqual(beforeCounts);
+  });
+
+  it("loads only a validated ready plan from an applied CLI artifact", () => {
+    const plan: LegacyCustomerLifecycleCleanupPlan = {
+      command: "plan",
+      status: "ready",
+      beforeCounts,
+      afterCounts: {
+        ...beforeCounts,
+        subscriptionTableCount: 0,
+        wizardStateColumnCount: 0,
+      },
+      stopReasons: [],
+    };
+
+    expect(
+      parseLegacyCustomerLifecycleCleanupPlanArtifact({
+        command: "apply",
+        status: "applied",
+        plan,
+        beforeCounts: plan.beforeCounts,
+        afterCounts: plan.afterCounts,
+      }),
+    ).toEqual(plan);
+
+    expect(() =>
+      parseLegacyCustomerLifecycleCleanupPlanArtifact({
+        command: "plan",
+        status: "stopped",
+        beforeCounts,
+        afterCounts: beforeCounts,
+        stopReasons: ["provider obligations"],
+      }),
+    ).toThrow(/artifact|ready/i);
+
+    expect(() =>
+      parseLegacyCustomerLifecycleCleanupPlanArtifact({
+        command: "apply",
+        status: "applied",
+        plan: { ...plan, beforeCounts: { ...beforeCounts, activeUserCount: -1 } },
+        beforeCounts: plan.beforeCounts,
+        afterCounts: plan.afterCounts,
+      }),
+    ).toThrow(/artifact|count/i);
+
+    expect(() =>
+      parseLegacyCustomerLifecycleCleanupPlanArtifact({
+        command: "apply",
+        status: "applied",
+        plan: {
+          ...plan,
+          beforeCounts: { ...beforeCounts, providerObligationCount: 1 },
+          afterCounts: {
+            ...plan.afterCounts,
+            providerObligationCount: 1,
+          },
+        },
+        beforeCounts: { ...beforeCounts, providerObligationCount: 1 },
+        afterCounts: {
+          ...plan.afterCounts,
+          providerObligationCount: 1,
+        },
+      }),
+    ).toThrow(/artifact|ready/i);
+  });
+
+  it("locks and rechecks local zero-state gates in the apply DDL transaction", async () => {
+    const queries: Array<{ sql: string; params: unknown[] }> = [];
+    const dialect = new PgDialect();
+    const store = createLegacyCustomerLifecycleCleanupStore({
+      async execute(query) {
+        queries.push(dialect.sqlToQuery(query));
+        return { rows: [] };
+      },
+    });
+    const plan: LegacyCustomerLifecycleCleanupPlan = {
+      command: "plan",
+      status: "ready",
+      beforeCounts,
+      afterCounts: {
+        ...beforeCounts,
+        subscriptionTableCount: 0,
+        wizardStateColumnCount: 0,
+      },
+      stopReasons: [],
+    };
+
+    await withTestDestructiveBoundary(() => store.apply(plan));
+
+    expect(queries).toHaveLength(1);
+    expect(queries[0]?.sql).toMatch(/LOCK TABLE public\."subscription"/i);
+    expect(queries[0]?.sql).toMatch(/LOCK TABLE public\."instance"/i);
+    expect(queries[0]?.sql).toMatch(/local subscription rows are not zero/i);
+    expect(queries[0]?.sql).toMatch(/meaningful wizard state is not zero/i);
+  });
+
+  it("restores only schema objects recorded in the plan before-state", async () => {
+    const queries: Array<{ sql: string; params: unknown[] }> = [];
+    const dialect = new PgDialect();
+    const store = createLegacyCustomerLifecycleCleanupStore({
+      async execute(query) {
+        queries.push(dialect.sqlToQuery(query));
+        return { rows: [] };
+      },
+    });
+    const plan: LegacyCustomerLifecycleCleanupPlan = {
+      command: "plan",
+      status: "ready",
+      beforeCounts: {
+        ...beforeCounts,
+        subscriptionTableCount: 0,
+        wizardStateColumnCount: 1,
+      },
+      afterCounts: {
+        ...beforeCounts,
+        subscriptionTableCount: 0,
+        wizardStateColumnCount: 0,
+      },
+      stopReasons: [],
+    };
+
+    await withTestDestructiveBoundary(() => store.rollback(plan));
+
+    expect(queries).toHaveLength(1);
+    expect(queries[0]?.sql).toContain("IF FALSE THEN");
+    expect(queries[0]?.sql).toContain("IF TRUE AND");
   });
 });

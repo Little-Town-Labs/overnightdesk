@@ -1,6 +1,8 @@
 import { timingSafeEqual } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { sql, type SQL } from "drizzle-orm";
+import { z } from "zod";
 
 export type LegacyCustomerLifecycleCleanupCommand =
   | "plan"
@@ -80,6 +82,7 @@ const APPLY_APPROVAL_ENV = "LEGACY_CLEANUP_APPLY_APPROVAL_TOKEN";
 const ROLLBACK_APPROVAL_ENV = "LEGACY_CLEANUP_ROLLBACK_APPROVAL_TOKEN";
 const ALLOW_DESTRUCTIVE_ENV = "LEGACY_CLEANUP_ALLOW_DESTRUCTIVE";
 const ALLOW_PRODUCTION_ENV = "LEGACY_CLEANUP_ALLOW_PRODUCTION";
+const PLAN_PATH_ENV = "LEGACY_CLEANUP_PLAN_PATH";
 
 const COUNT_FIELDS: ReadonlyArray<keyof LegacyCustomerLifecycleCleanupCounts> = [
   "providerObligationCount",
@@ -210,6 +213,17 @@ function requiredApprovalToken(
   command: "apply" | "rollback",
   suppliedToken: string | undefined,
 ): void {
+  const applyToken = process.env[APPLY_APPROVAL_ENV];
+  const rollbackToken = process.env[ROLLBACK_APPROVAL_ENV];
+  if (!applyToken || !rollbackToken) {
+    throw new Error(
+      `${command} approval token configuration requires distinct apply and rollback tokens`,
+    );
+  }
+  if (applyToken === rollbackToken) {
+    throw new Error("Apply and rollback approval tokens must be distinct");
+  }
+
   const environmentName =
     command === "apply" ? APPLY_APPROVAL_ENV : ROLLBACK_APPROVAL_ENV;
   const expectedToken = process.env[environmentName];
@@ -226,6 +240,85 @@ function requiredApprovalToken(
   ) {
     throw new Error(`${command} approval token is invalid`);
   }
+}
+
+const nullableCountSchema = z.number().int().nonnegative().nullable();
+const countSchema = z.number().int().nonnegative();
+const cleanupCountsSchema = z
+  .object({
+    providerObligationCount: nullableCountSchema,
+    localSubscriptionRowCount: nullableCountSchema,
+    meaningfulWizardStateCount: nullableCountSchema,
+    activeSchemaConsumerCount: nullableCountSchema,
+    subscriptionTableCount: countSchema.max(1),
+    wizardStateColumnCount: countSchema.max(1),
+    activeUserCount: countSchema,
+    activeMembershipCount: countSchema,
+    activeInstanceCount: countSchema,
+    activeConversationCount: countSchema,
+    activeBusinessRecordCount: countSchema,
+  })
+  .strict();
+const readyPlanSchema = z
+  .object({
+    command: z.literal("plan"),
+    status: z.literal("ready"),
+    beforeCounts: cleanupCountsSchema,
+    afterCounts: cleanupCountsSchema,
+    stopReasons: z.tuple([]),
+  })
+  .strict();
+const appliedArtifactSchema = z
+  .object({
+    command: z.literal("apply"),
+    status: z.literal("applied"),
+    plan: readyPlanSchema,
+    beforeCounts: cleanupCountsSchema,
+    afterCounts: cleanupCountsSchema,
+  })
+  .strict();
+
+export function parseLegacyCustomerLifecycleCleanupPlanArtifact(
+  artifact: unknown,
+): LegacyCustomerLifecycleCleanupPlan {
+  const parsed = appliedArtifactSchema.safeParse(artifact);
+  if (!parsed.success) {
+    throw new Error("Cleanup plan artifact is not a validated applied result");
+  }
+
+  const { plan, beforeCounts, afterCounts } = parsed.data;
+  if (stopReasons(plan.beforeCounts).length > 0) {
+    throw new Error("Cleanup plan artifact is not a ready zero-state plan");
+  }
+  assertCountsEqual(
+    beforeCounts,
+    plan.beforeCounts,
+    "Cleanup plan artifact before-counts do not match",
+  );
+  assertCountsEqual(
+    afterCounts,
+    plan.afterCounts,
+    "Cleanup plan artifact after-counts do not match",
+  );
+  assertCountsEqual(
+    plan.afterCounts,
+    expectedAfterCounts(plan.beforeCounts),
+    "Cleanup plan artifact after-counts are invalid",
+  );
+  return plan;
+}
+
+async function loadPlanArtifact(): Promise<LegacyCustomerLifecycleCleanupPlan> {
+  const path = process.env[PLAN_PATH_ENV];
+  if (!path) throw new Error(`${PLAN_PATH_ENV} is required`);
+
+  let artifact: unknown;
+  try {
+    artifact = JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    throw new Error("Cleanup plan artifact could not be read");
+  }
+  return parseLegacyCustomerLifecycleCleanupPlanArtifact(artifact);
 }
 
 export function executeLegacyCustomerLifecycleCleanup(
@@ -478,20 +571,51 @@ class DatabaseCleanupStore implements LegacyCustomerLifecycleCleanupStore {
   async apply(plan: LegacyCustomerLifecycleCleanupPlan): Promise<void> {
     assertDestructiveBoundary();
     assertReadyPlan(plan);
+    const dropSubscription = sql.raw(
+      plan.beforeCounts.subscriptionTableCount === 1 ? "TRUE" : "FALSE",
+    );
+    const dropWizardState = sql.raw(
+      plan.beforeCounts.wizardStateColumnCount === 1 ? "TRUE" : "FALSE",
+    );
     await this.database.execute(sql`
       DO $$
       BEGIN
-        IF to_regclass('public.subscription') IS NOT NULL THEN
+        IF ${dropSubscription} THEN
+          IF to_regclass('public.subscription') IS NULL THEN
+            RAISE EXCEPTION 'subscription table changed after planning';
+          END IF;
+          LOCK TABLE public."subscription" IN ACCESS EXCLUSIVE MODE;
+          IF EXISTS (SELECT 1 FROM public."subscription" LIMIT 1) THEN
+            RAISE EXCEPTION 'local subscription rows are not zero';
+          END IF;
+        END IF;
+
+        IF ${dropWizardState} THEN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'instance'
+              AND column_name = 'wizard_state'
+          ) THEN
+            RAISE EXCEPTION 'wizard state column changed after planning';
+          END IF;
+          LOCK TABLE public."instance" IN ACCESS EXCLUSIVE MODE;
+          IF EXISTS (
+            SELECT 1
+            FROM public."instance"
+            WHERE "wizard_state" IS NOT NULL
+            LIMIT 1
+          ) THEN
+            RAISE EXCEPTION 'meaningful wizard state is not zero';
+          END IF;
+        END IF;
+
+        IF ${dropSubscription} THEN
           DROP TABLE public."subscription";
         END IF;
 
-        IF EXISTS (
-          SELECT 1
-          FROM information_schema.columns
-          WHERE table_schema = 'public'
-            AND table_name = 'instance'
-            AND column_name = 'wizard_state'
-        ) THEN
+        IF ${dropWizardState} THEN
           ALTER TABLE public."instance" DROP COLUMN "wizard_state";
         END IF;
       END
@@ -502,38 +626,46 @@ class DatabaseCleanupStore implements LegacyCustomerLifecycleCleanupStore {
   async rollback(plan: LegacyCustomerLifecycleCleanupPlan): Promise<void> {
     assertDestructiveBoundary();
     assertReadyPlan(plan);
+    const restoreSubscription = sql.raw(
+      plan.beforeCounts.subscriptionTableCount === 1 ? "TRUE" : "FALSE",
+    );
+    const restoreWizardState = sql.raw(
+      plan.beforeCounts.wizardStateColumnCount === 1 ? "TRUE" : "FALSE",
+    );
     await this.database.execute(sql`
       DO $$
       BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_type WHERE typname = 'subscription_plan'
-        ) THEN
-          CREATE TYPE public.subscription_plan AS ENUM ('starter', 'pro');
+        IF ${restoreSubscription} THEN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_type WHERE typname = 'subscription_plan'
+          ) THEN
+            CREATE TYPE public.subscription_plan AS ENUM ('starter', 'pro');
+          END IF;
+
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_type WHERE typname = 'subscription_status'
+          ) THEN
+            CREATE TYPE public.subscription_status AS ENUM
+              ('active', 'past_due', 'canceled', 'trialing');
+          END IF;
+
+          IF to_regclass('public.subscription') IS NULL THEN
+            CREATE TABLE public."subscription" (
+              "id" text PRIMARY KEY NOT NULL,
+              "user_id" text NOT NULL
+                REFERENCES public."user"("id") ON DELETE CASCADE,
+              "stripe_customer_id" text,
+              "stripe_subscription_id" text,
+              "plan" public.subscription_plan NOT NULL,
+              "status" public.subscription_status NOT NULL,
+              "current_period_end" timestamp with time zone,
+              "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+              "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+            );
+          END IF;
         END IF;
 
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_type WHERE typname = 'subscription_status'
-        ) THEN
-          CREATE TYPE public.subscription_status AS ENUM
-            ('active', 'past_due', 'canceled', 'trialing');
-        END IF;
-
-        IF to_regclass('public.subscription') IS NULL THEN
-          CREATE TABLE public."subscription" (
-            "id" text PRIMARY KEY NOT NULL,
-            "user_id" text NOT NULL
-              REFERENCES public."user"("id") ON DELETE CASCADE,
-            "stripe_customer_id" text,
-            "stripe_subscription_id" text,
-            "plan" public.subscription_plan NOT NULL,
-            "status" public.subscription_status NOT NULL,
-            "current_period_end" timestamp with time zone,
-            "created_at" timestamp with time zone DEFAULT now() NOT NULL,
-            "updated_at" timestamp with time zone DEFAULT now() NOT NULL
-          );
-        END IF;
-
-        IF NOT EXISTS (
+        IF ${restoreWizardState} AND NOT EXISTS (
           SELECT 1
           FROM information_schema.columns
           WHERE table_schema = 'public'
@@ -572,10 +704,15 @@ function printResult(result: LegacyCustomerLifecycleCleanupResult): void {
 
 async function main(): Promise<void> {
   const command = commandFrom(process.argv[2]);
+  const plan =
+    command === "verify" || command === "rollback"
+      ? await loadPlanArtifact()
+      : undefined;
   const result = await executeLegacyCustomerLifecycleCleanup({
     command,
     store: await createDefaultStore(),
     approvalToken: process.env.LEGACY_CLEANUP_APPROVAL_TOKEN,
+    plan,
   });
   printResult(result);
   if (result.status === "stopped") process.exitCode = 2;
