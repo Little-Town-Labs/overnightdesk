@@ -4,7 +4,8 @@
 
 **Created**: 2026-08-09
 
-**Status**: Analyzed; ready for bounded implementation
+**Status**: Source and zero-state data retirement complete; production closeout
+pending owner-authenticated T043 acceptance
 
 **Input**: Complete the separate migration deferred by ADR 007 by removing
 legacy customer signup, Stripe billing, setup wizard, callback, and
@@ -12,6 +13,17 @@ self-service provisioning behavior while preserving the existing authenticated
 Timeless Technology Solutions frontend and its approved named-runtime support.
 Tracks
 [Issue #215](https://github.com/Little-Town-Labs/overnightdesk/issues/215).
+
+### Closeout status
+
+The source retirement and Neon zero-state cleanup are complete. T044 deployed
+the isolated managed-variable service and retired the remaining provisioner
+lifecycle routes. T045 completed as a metadata-only no-op because no obsolete
+provider or secret target was identified; the active managed-variable service
+credentials remain in use. The owner waived the proposed T046 observation
+period after a passing baseline sample. T043 remains open because durable
+owner-authenticated password-recovery, chat, and dashboard smoke evidence has
+not yet been recorded, so T047 and Issue #215 remain open.
 
 ## Clarifications
 

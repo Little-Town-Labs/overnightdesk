@@ -672,3 +672,66 @@ Close Issue #215 only after source, production routes, database treatment,
 Aegis operations service, secret metadata, inventories, ADR 007, README/PRD,
 runbooks, and the canonical deployment ledger all agree. Record any retained
 compatibility field as historical and non-authoritative.
+
+## 19. T043-T047 production closeout reconciliation — 2026-08-10
+
+This section supersedes the earlier pre-production gate notes above without
+rewriting their historical results.
+
+### T043 frontend production evidence
+
+The reviewed frontend head is `4876046826d638b162f59c01e2f2b9c773bc6a13`
+(PR #235). The associated Vercel deployment is Ready:
+`https://vercel.com/poorlyordereds-projects/overnightdesk/75yqK5jyJwQzVre8abwKj2j5L9j1`.
+Public root and `/sign-in` followed their redirects and returned 200. The
+retired public routes `/api/waitlist`, `/api/auth/sign-up/email`,
+`/api/subscription`, `/api/provisioner/callback`, `/api/stripe/checkout`,
+`/api/wizard/complete`, and `/api/engine/restart` returned 404.
+
+The owner confirmed that sign-in works. T043 is not complete: durable
+owner-authenticated password-recovery, chat, and dashboard smoke evidence is
+still required. No claim of Feature 040 or Issue #215 closure is made here.
+
+### T044 Aegis runtime closeout
+
+The isolated ARM64 `hermes-provisioner` release built from engine commit
+`52cdcc53acdd663e5222c8f2fcbcdb96043abd87` has artifact SHA256
+`c1971790a3cf377e2fc92074422950a42cad8f1feaf87a7abe348c37aa2192f0`.
+Health returned 200; `/provision`, `/deprovision`, `/restart`,
+`/write-secrets`, and `/dashboard-auth` returned 404 on loopback, and the
+retired public routes returned 404 at ingress. The pre-T044 rollback binary is
+retained at `/opt/hermes-provisioner/rollback/hermes-provisioner-pre-t044-20260810T170331Z-1d035601`.
+An initial x86 artifact was rejected with `Exec format error` and automatically
+rolled back before the final ARM64 cutover. T044 success, rollback, and
+architecture-rejection entries are recorded in the canonical Aegis ledger at
+`/opt/overnightdesk/deploys.log`.
+
+### T045 provider and secret reconciliation
+
+T036 found zero provider obligations and no Vercel Stripe/billing keys. The
+value-free Aegis and Phase key-name inventories found no Stripe or retired
+lifecycle targets. The active `PROVISIONER_URL`, `PROVISIONER_SECRET`, and
+managed-variable service credentials remain because the qualified
+managed-variable boundary is still an approved capability. T045 was therefore
+a metadata-only no-op; its canonical ledger entry records that no provider,
+Vercel, Phase, or secret mutation occurred.
+
+### T046 observation disposition
+
+The owner waived the proposed 14-day observation period on 2026-08-10 after
+the first sample passed. The sample verified frontend root/sign-in 200,
+provisioner health 200, retired mutation routes 404, and healthy
+Walter/Titus/Mitchel/Tenet0/SecurityTeam services. Only expected 404
+verification probes appeared in provisioner errors. No rollback threshold was
+met, and no rollback was performed. This is an owner-approved waiver after a
+passing sample, not a claim that fourteen days elapsed.
+
+### T047 disposition
+
+The inventories, ADR 007, procedures, README, PRD, and this quickstart are
+being reconciled with the production evidence. T039, T040, T044, T045, and
+T046 are complete. T047 remains open, as do T043 and Issue #215, until the
+owner-authenticated password-recovery, chat, and dashboard checks are recorded.
+The canonical ledger records this state at
+`2026-08-10T18:32:03Z`:
+`T047-closeout-reconciliation | 4876046826d638b162f59c01e2f2b9c773bc6a13 | partial | T044/T045/T046 reconciled; T043 owner-authenticated password-recovery/chat/dashboard smoke evidence remains required; no closure`.

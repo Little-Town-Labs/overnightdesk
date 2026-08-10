@@ -76,10 +76,12 @@ Feature 040 removed the customer signup, Stripe/billing, subscription, wizard,
 callback, customer instance-control, and self-service deletion source. Its
 approved Neon zero-state cleanup removed only the empty subscription schema and
 unused wizard column while preserving active identity, membership, and
-instance records. The remaining T043-T045 production gates independently own
-frontend release verification, deployment of the isolated managed-variable
-service, and removal of obsolete provider/secret configuration. Until those
-gates and the observation closeout pass, Feature 040 remains open.
+instance records. T044 deployed the isolated managed-variable service and T045
+completed a metadata-only no-op because no obsolete provider or secret target
+was found. The owner waived the proposed T046 observation period after a
+passing baseline sample. Feature 040 remains open only for T043
+owner-authenticated password-recovery, chat, and dashboard smoke evidence and
+the resulting final closeout reconciliation.
 
 ## Compatibility Notes
 
