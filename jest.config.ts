@@ -11,7 +11,7 @@ const config: Config = {
   setupFiles: ["<rootDir>/jest.setup.ts"],
   setupFilesAfterEnv: ["<rootDir>/jest.setup-after-env.ts"],
   transformIgnorePatterns: [
-    "node_modules/(?!(better-auth|@better-auth|@react-email|resend|stripe|bcryptjs)/)",
+    "node_modules/(?!(better-auth|@better-auth|@react-email|resend|bcryptjs)/)",
   ],
   transform: {
     "^.+\\.m?[tj]sx?$": [
