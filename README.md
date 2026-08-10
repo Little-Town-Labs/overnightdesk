@@ -125,11 +125,13 @@ automation default to Go when practical. Browser UI and small changes inside an
 established non-Go service stay in their existing stack unless a deliberate
 migration is justified and approved.
 
-The former platform orchestrator and Docker socket proxy are retired from
+The former platform orchestrator and Docker socket proxy were retired from
 active deployment under
 [`specs/028-orchestrator-retirement`](specs/028-orchestrator-retirement).
-Legacy signup, billing, wizard, callback, and provisioning source remains
-inert pending a separate verified cleanup feature.
+The retained production state was cleaned up under
+[`specs/038-orchestrator-cleanup`](specs/038-orchestrator-cleanup). Legacy
+signup, billing, wizard, callback, and provisioning source remains inert and
+historical pending a separate source-removal feature.
 
 ## Tenant Workflow Source
 
