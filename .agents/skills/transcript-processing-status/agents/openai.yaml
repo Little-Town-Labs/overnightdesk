@@ -1,0 +1,4 @@
+interface:
+  display_name: "Transcript Processing Status"
+  short_description: "Check safe Aegis transcript health"
+  default_prompt: "Use $transcript-processing-status to report the latest safe transcript-processing status."
