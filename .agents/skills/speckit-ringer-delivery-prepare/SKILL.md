@@ -48,14 +48,14 @@ greenfield and micro routes are not blocked when graph work is not required.
 ## Prepare
 
 Create a scratch JSON request matching
-`/home/frosted639/src/ringer-workflows/schemas/delivery-request.schema.json`.
+`/home/powerbox2/src/ringer-workflows/schemas/delivery-request.schema.json`.
 Every task must include exact Spec Kit task IDs, requirements, disjoint owned
 paths, non-goals, an argv verification list, and a mutable boolean.
 
 Run:
 
 ```bash
-python3 /home/frosted639/src/ringer-workflows/scripts/delivery_profile.py prepare \
+python3 /home/powerbox2/src/ringer-workflows/scripts/delivery_profile.py prepare \
   --request /tmp/ringer-delivery-request.json \
   --output /tmp/ringer-delivery/<project>-<feature> \
   --delivery-out <active-feature-directory>/delivery.md
