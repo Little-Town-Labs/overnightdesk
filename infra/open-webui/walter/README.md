@@ -1,6 +1,6 @@
 # Walter Open WebUI Runtime
 
-This source defines one pinned Open WebUI `v0.10.2` candidate for the Walter
+This source defines one pinned Open WebUI `v0.11.0` candidate for the Walter
 platform-operations runtime. It installs without a public route, has its own
 Linux account, runtime directory, container identity, named volume, OIDC client
 metadata, cookie state, and rollback target, and reaches only
