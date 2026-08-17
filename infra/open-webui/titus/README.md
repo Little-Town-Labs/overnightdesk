@@ -1,6 +1,6 @@
 # Titus Open WebUI Runtime
 
-This source provisions one pinned Open WebUI `v0.10.2` workload for the Titus
+This source provisions one pinned Open WebUI `v0.11.0` workload for the Titus
 use case. It is isolated from Walter and Trevor, has its own named volume, and
 reaches only `http://hermes-titus:8642/v1` on the private OvernightDesk Docker
 network.
