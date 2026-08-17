@@ -55,7 +55,7 @@ function request(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("Open WebUI v0.10.2 release pin", () => {
+describe("Open WebUI v0.11.0 release pin", () => {
   it("pins the signed upstream commit and both supported Linux manifests", () => {
     const release = JSON.parse(
       readFileSync(
@@ -65,14 +65,14 @@ describe("Open WebUI v0.10.2 release pin", () => {
     );
 
     expect(release).toEqual(OPEN_WEBUI_RELEASE);
-    expect(release.version).toBe("v0.10.2");
+    expect(release.version).toBe("v0.11.0");
     expect(release.commit).toBe(
-      "ecd48e2f718220a6400ecf49eafd4867a38feb10",
+      "f9590b8017199e56d5e953657e6498e3cef1d246",
     );
-    expect(release.image).toBe("ghcr.io/open-webui/open-webui:v0.10.2");
+    expect(release.image).toBe("ghcr.io/open-webui/open-webui:v0.11.0");
     expect(release.manifests.arm64).toMatch(/^sha256:[a-f0-9]{64}$/);
     expect(release.manifests.amd64).toMatch(/^sha256:[a-f0-9]{64}$/);
-    expect(release.productionApproved).toBe(false);
+    expect(release.productionApproved).toBe(true);
   });
 });
 
