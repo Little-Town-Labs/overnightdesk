@@ -178,6 +178,82 @@ def test_send_requires_owner_elicitation_acceptance_before_service_send() -> Non
     assert service.sends == []
 
 
+def test_telegram_gateway_approval_does_not_prompt_a_second_time(
+    monkeypatch, tmp_path
+) -> None:
+    service = FakeService()
+    authorizer_calls: list[str] = []
+
+    async def unexpected_owner_gate(_context: object, fingerprint: str) -> bool:
+        authorizer_calls.append(fingerprint)
+        return False
+
+    monkeypatch.setenv("HERMES_SESSION_PLATFORM", "telegram")
+    monkeypatch.setenv("HERMES_SESSION_KEY", "telegram:gary:private")
+    marker = tmp_path / "marker.1"
+    marker.touch()
+    monkeypatch.setenv("TITUS_GUARDED_EMAIL_APPROVAL_MARKER_DIR", str(tmp_path))
+    # The server consumes a marker whose prefix matches the validated draft.
+    import hashlib
+
+    token_digest = hashlib.sha256(b"opaque-token").hexdigest()
+    fingerprint = "0123456789ab"
+    prefix = hashlib.sha256(
+        f"telegram:gary:private\0{fingerprint}\0{token_digest}".encode("utf-8")
+    ).hexdigest()
+    marker.rename(tmp_path / f"{prefix}.1")
+    server = create_server(
+        service,
+        event_writer=lambda _event: None,
+        owner_authorizer=unexpected_owner_gate,
+    )
+    result = asyncio.run(
+        server.call_tool(
+            "titus_send_approved_email",
+            {
+                "approval_token": "opaque-token",
+                "inbox_id": "titus-operations@agentmail.to",
+                "to": ["owner@example.com"],
+                "subject": "Exact subject",
+                "text": "Exact complete body",
+                "html": None,
+            },
+        )
+    )[1]
+    assert result["status"] == "verified_sent"
+    assert authorizer_calls == []
+    assert len(service.sends) == 1
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_telegram_gateway_without_hook_handoff_fails_closed(monkeypatch, tmp_path) -> None:
+    service = FakeService()
+    monkeypatch.setenv("HERMES_SESSION_PLATFORM", "telegram")
+    monkeypatch.setenv("HERMES_SESSION_KEY", "telegram:gary:private")
+    monkeypatch.setenv("TITUS_GUARDED_EMAIL_APPROVAL_MARKER_DIR", str(tmp_path))
+    server = create_server(
+        service,
+        event_writer=lambda _event: None,
+        owner_authorizer=lambda *_args: True,
+    )
+    result = asyncio.run(
+        server.call_tool(
+            "titus_send_approved_email",
+            {
+                "approval_token": "opaque-token",
+                "inbox_id": "titus-operations@agentmail.to",
+                "to": ["owner@example.com"],
+                "subject": "Exact subject",
+                "text": "Exact complete body",
+                "html": None,
+            },
+        )
+    )[1]
+    assert result["status"] == "rejected_before_send"
+    assert result["error_code"] == "owner_approval_unavailable"
+    assert service.sends == []
+
+
 def test_default_owner_gate_uses_mcp_elicitation_bound_to_safe_fingerprint() -> None:
     class FakeContext:
         def __init__(self) -> None:
