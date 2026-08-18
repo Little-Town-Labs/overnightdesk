@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import sys
 import time
 from collections.abc import Awaitable, Callable
+from pathlib import Path
 from typing import Protocol, cast
 
 from guarded_email import SafeError
@@ -11,6 +14,9 @@ from mcp.server.fastmcp import Context, FastMCP
 from mcp.types import ToolAnnotations
 from pydantic import BaseModel, ConfigDict, Field
 from service import build_service_from_environment
+
+
+_TELEGRAM_GATE_MARKER_TTL_SECONDS = 15 * 60
 
 
 class GuardedService(Protocol):
@@ -61,6 +67,52 @@ async def _elicit_owner_approval(context: Context, fingerprint: str) -> bool:
         schema=OwnerApprovalResponse,
     )
     return result.action == "accept"
+
+
+def _telegram_gateway_approval_active() -> bool:
+    """Return true only for a Hermes Telegram child session with an identity."""
+
+    return (
+        os.environ.get("HERMES_SESSION_PLATFORM", "").strip().casefold()
+        == "telegram"
+        and bool(os.environ.get("HERMES_SESSION_KEY", "").strip())
+    )
+
+
+def _consume_telegram_gateway_marker(fingerprint: str, approval_token: object) -> bool:
+    """Consume the hook-to-MCP handoff before trusting the outer approval."""
+
+    if not _telegram_gateway_approval_active():
+        return False
+    session_key = os.environ["HERMES_SESSION_KEY"].strip()
+    token_digest = hashlib.sha256(str(approval_token).encode("utf-8")).hexdigest()
+    prefix = hashlib.sha256(
+        f"{session_key}\0{fingerprint}\0{token_digest}".encode("utf-8")
+    ).hexdigest()
+    directory = Path(
+        os.environ.get(
+            "TITUS_GUARDED_EMAIL_APPROVAL_MARKER_DIR",
+            "/opt/data/guarded-agentmail/approval-gates",
+        )
+    )
+    try:
+        candidates = sorted(
+            directory.glob(f"{prefix}.*"), key=lambda path: path.stat().st_mtime
+        )
+    except OSError:
+        return False
+    for candidate in candidates:
+        try:
+            if time.time() - candidate.stat().st_mtime > _TELEGRAM_GATE_MARKER_TTL_SECONDS:
+                candidate.unlink()
+                continue
+            candidate.unlink()
+            return True
+        except FileNotFoundError:
+            continue
+        except OSError:
+            return False
+    return False
 
 
 def _write_event(event: dict[str, object]) -> None:
@@ -160,10 +212,19 @@ async def _send_result(
         return _failure(error.code)
     except Exception:
         return _failure("guarded_service_unavailable")
-    try:
-        approved = await authorizer(context, fingerprint)
-    except Exception:
-        return _failure("owner_approval_unavailable")
+    if _telegram_gateway_approval_active():
+        # The parent Hermes gateway has already resolved its native Telegram
+        # approval queue for this exact tool call. The content-free marker
+        # proves the repo-owned hook ran; local validation above remains
+        # mandatory, but there is no second terminal-oriented MCP prompt.
+        if not _consume_telegram_gateway_marker(fingerprint, approval_token):
+            return _failure("owner_approval_unavailable")
+        approved = True
+    else:
+        try:
+            approved = await authorizer(context, fingerprint)
+        except Exception:
+            return _failure("owner_approval_unavailable")
     if approved is not True:
         return _failure("owner_approval_declined")
     try:

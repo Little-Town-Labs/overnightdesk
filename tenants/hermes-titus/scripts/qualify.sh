@@ -53,6 +53,9 @@ runtime_files=(
   "$tenant_root/plugins/platforms/titus_teams/__init__.py"
   "$tenant_root/plugins/platforms/titus_teams/adapter.py"
   "$tenant_root/plugins/platforms/titus_teams/policy.py"
+  "$tenant_root/plugins/approvals/titus_guarded_email/plugin.yaml"
+  "$tenant_root/plugins/approvals/titus_guarded_email/__init__.py"
+  "$tenant_root/plugins/approvals/titus_guarded_email/policy.py"
   "$tenant_root/scripts/deploy-aegis.sh" \
   "$tenant_root/scripts/verify-github-repository-manager.sh"
   "$tenant_root/README.md"
@@ -65,6 +68,9 @@ runtime_files=(
   "$tenant_root/runbooks/linear-technical-delivery.md"
   "$tenant_root/runbooks/github-app-integration.md"
   "$tenant_root/tests/test_github_runtime_contract.py"
+  "$tenant_root/tests/test_rollback_controls_contract.py"
+  "$tenant_root/tests/test_telegram_email_approval_contract.py"
+  "$tenant_root/tests/test_telegram_runtime_contract.py"
   "$tenant_root/runbooks/teams-internal-channel.md"
   "$tenant_root/skills/titus-teams-channel/SKILL.md"
   "$repo_root/infra/nginx/titus-teams.conf"
@@ -129,10 +135,19 @@ require_pattern 'README\.md' "$tenant_root/skills/titus-project-knowledge/SKILL.
 reject_pattern 'sidecar|remote synchronization|Obsidian Sync' \
   "$tenant_root/skills/titus-project-knowledge/SKILL.md"
 
+if python3 -c 'import pytest' >/dev/null 2>&1; then
+  pytest_runner=(python3 -m pytest)
+else
+  command -v uv >/dev/null 2>&1 || fail 'pytest is unavailable and uv is not installed'
+  pytest_runner=(uv run --with pytest --with pyyaml --with pydantic --with 'mcp==1.26.0' pytest)
+fi
 PYTHONDONTWRITEBYTECODE=1 \
 PYTHONPATH="$tenant_root/mcp-servers/guarded-agentmail" \
-  python3 -m pytest -q "$tenant_root/mcp-servers/guarded-agentmail/tests" \
-    "$tenant_root/tests/test_github_runtime_contract.py"
+  "${pytest_runner[@]}" -q "$tenant_root/mcp-servers/guarded-agentmail/tests" \
+    "$tenant_root/tests/test_github_runtime_contract.py" \
+    "$tenant_root/tests/test_rollback_controls_contract.py" \
+    "$tenant_root/tests/test_telegram_email_approval_contract.py" \
+    "$tenant_root/tests/test_telegram_runtime_contract.py"
 PYTHONDONTWRITEBYTECODE=1 python3 - \
   "$tenant_root/mcp-servers/guarded-agentmail/guarded_email.py" \
   "$tenant_root/mcp-servers/guarded-agentmail/service.py" \
@@ -140,7 +155,9 @@ PYTHONDONTWRITEBYTECODE=1 python3 - \
   "$tenant_root/runtime/apply-email-mode.py" \
   "$tenant_root/runtime/verify-mcp-registry.py" \
   "$tenant_root/plugins/platforms/titus_teams/adapter.py" \
-  "$tenant_root/plugins/platforms/titus_teams/policy.py" <<'PY'
+  "$tenant_root/plugins/platforms/titus_teams/policy.py" \
+  "$tenant_root/plugins/approvals/titus_guarded_email/__init__.py" \
+  "$tenant_root/plugins/approvals/titus_guarded_email/policy.py" <<'PY'
 from pathlib import Path
 import ast
 import sys
@@ -237,7 +254,7 @@ require_pattern 'Control Tower' "$tenant_root/config/SOUL.md"
 require_pattern 'Do not expand your authority' "$tenant_root/config/SOUL.md"
 require_pattern 'url: "https://mcp\.agentmail\.to/mcp"' "$tenant_root/config/config.yaml"
 require_pattern 'x-api-key: "\$\{AGENTMAIL_API_KEY\}"' "$tenant_root/config/config.yaml"
-python - "$tenant_root/config/config.yaml" <<'PY'
+python3 - "$tenant_root/config/config.yaml" <<'PY'
 from pathlib import Path
 import sys
 
@@ -262,7 +279,7 @@ for prohibited in ("command", "args", "env", "database", "webhook", "github"):
             f"configured: {prohibited}"
         )
 PY
-python - "$tenant_root/config/config.yaml" <<'PY'
+python3 - "$tenant_root/config/config.yaml" <<'PY'
 from pathlib import Path
 import sys
 
@@ -314,7 +331,7 @@ require_pattern 'AGENTMAIL_API_KEY: "\$\{AGENTMAIL_API_KEY\}"' "$tenant_root/con
 require_pattern 'AGENTMAIL_INBOX_ID: "\$\{AGENTMAIL_INBOX_ID\}"' "$tenant_root/config/config.yaml"
 require_pattern 'SECURITY_SERVICE_TOKEN: "\$\{SECURITY_SERVICE_TOKEN\}"' "$tenant_root/config/config.yaml"
 require_pattern 'TITUS_GUARDED_EMAIL_STATE: "/opt/data/guarded-agentmail/attempts\.sqlite3"' "$tenant_root/config/config.yaml"
-python - "$tenant_root/config/config.yaml" <<'PY'
+python3 - "$tenant_root/config/config.yaml" <<'PY'
 from pathlib import Path
 import sys
 

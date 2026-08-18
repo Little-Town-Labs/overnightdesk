@@ -195,9 +195,10 @@ mutation. Preparation validates and canonicalizes the complete draft, rejects
 unsupported fields, and returns a 30-minute purpose-derived HMAC token bound to
 the exact inbox, recipients, subject, text, HTML, and empty attachment state.
 The send tool accepts only that unchanged draft and token, validates their
-fingerprint, and then blocks on Hermes's MCP elicitation approval surface.
-Decline, cancel, timeout, or approval-routing failure stops before external
-I/O. Explicit acceptance synchronously calls SecurityTeam's private
+fingerprint, and uses the native Telegram gateway approval for Telegram turns;
+non-Telegram callers retain Hermes's MCP elicitation surface. Decline, cancel,
+timeout, or approval-routing failure stops before external I/O. Explicit
+acceptance synchronously calls SecurityTeam's private
 authenticated `/check-outbound`, submits every supplied field to AgentMail with
 one stable idempotency key, then reads the exact message back. Only exact inbox,
 recipient, subject, supplied-body, message/thread ID, and `sent`-label equality
@@ -211,6 +212,13 @@ approval tokens, SecurityTeam content, or credentials. Structured stderr
 events likewise omit draft and token values. Rollback removes the local guarded
 server from Titus while retaining the hosted read-only allowlist and the state
 database for reconciliation.
+
+For Telegram-initiated Titus turns, the parent Hermes gateway now presents the
+guarded-send approval as native Approve Once/Deny buttons in Gary's private DM;
+there is no terminal prompt to answer and no token or fingerprint to copy. The
+button decision is unique to that exact tool call, while local draft/token
+validation, SecurityTeam screening, idempotency, and provider readback remain
+mandatory. Other callers retain the existing fail-closed approval surface.
 
 Titus must use `skills/agentmail-email/SKILL.md` for inbox discovery, triage,
 exact draft presentation, later-turn explicit owner approval, guarded sending,
@@ -340,8 +348,10 @@ tenants/hermes-titus/scripts/deploy-aegis.sh install
 tenants/hermes-titus/scripts/deploy-aegis.sh verify
 tenants/hermes-titus/scripts/deploy-aegis.sh status
 tenants/hermes-titus/scripts/deploy-aegis.sh restart
-tenants/hermes-titus/scripts/deploy-aegis.sh email-read-only
-tenants/hermes-titus/scripts/deploy-aegis.sh email-guarded
+TITUS_GUARDED_EMAIL_ROLLBACK_CONFIRM=ROLLBACK_TITUS_GUARDED_EMAIL_TO_READ_ONLY \
+  tenants/hermes-titus/scripts/deploy-aegis.sh rollback-email
+TITUS_GUARDED_EMAIL_ROLLBACK_CONFIRM=RESTORE_TITUS_GUARDED_EMAIL \
+  tenants/hermes-titus/scripts/deploy-aegis.sh restore-email
 tenants/hermes-titus/scripts/deploy-aegis.sh stop
 tenants/hermes-titus/scripts/deploy-aegis.sh rollback
 
@@ -374,10 +384,14 @@ Guarded-email rollback is separate from the dashboard rollback. The
 `email-read-only` action installs a root-owned durable marker, restarts only
 Titus, projects the local guarded MCP server out of the runtime config, and
 fully verifies the retained hosted read-only server and all runtime state.
-`email-guarded` validates and removes only that marker, restarts only Titus,
-and requires both guarded tools again. Neither action changes the native
-dashboard route, deletes the attempt ledger, or restores a direct AgentMail
-mutation.
+`rollback-email` is the explicit, confirmation-gated form of that transition.
+`restore-email` first proves the read-only restart, then removes only that
+marker and restarts Titus; if the guarded restart fails it reinstalls the
+marker and restores the read-only state before returning failure. The legacy
+`email-guarded` alias remains available for the existing operator procedure.
+Neither action changes the native dashboard route, deletes the attempt ledger,
+or restores a direct AgentMail mutation. The generic `rollback` command is the
+dashboard/OIDC rollback and must not be used as an email rollback.
 
 Safe activation order:
 

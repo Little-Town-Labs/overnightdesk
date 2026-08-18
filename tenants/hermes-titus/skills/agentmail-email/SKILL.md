@@ -91,9 +91,10 @@ If the operator asks for an outgoing message:
    prepared draft and before the returned expiry.
 7. Pass the exact unchanged `approval_token`, `inbox_id`, recipients, subject,
    text, and HTML into `titus_send_approved_email`. Never reconstruct, shorten,
-   summarize, improve, or omit any field. The send tool will then present a
-   separate owner approval control bound to the validated draft fingerprint;
-   this approval control must be accepted before screening or delivery.
+   summarize, improve, or omit any field. For a Telegram-initiated turn,
+   Hermes presents the native approval buttons in the same private DM; choose
+   Approve Once only after checking the exact draft already shown. Other
+   callers retain the existing fail-closed owner approval surface.
 8. Treat a declined, cancelled, timed-out, or unavailable approval control as
    a rejected send. Do not retry it or claim delivery.
 9. Report success only for an exact `verified_sent` result containing both
@@ -106,9 +107,10 @@ If the operator asks for an outgoing message:
     for an ambiguous result. State instead: provider accepted one message, exact content delivery is unverified, do not retry, and operator reconciliation is required.
 
 The guarded tool enforces field completeness, a short-lived signature bound to
-the exact canonical draft, a fail-closed Hermes owner-approval interaction,
-SecurityTeam screening immediately before send, one stable provider
-idempotency key, and exact AgentMail read-after-send equality. For plain-text
+the exact canonical draft, a fail-closed Hermes owner-approval interaction
+(native Telegram buttons for Telegram turns), SecurityTeam screening
+immediately before send, one stable provider idempotency key, and exact
+AgentMail read-after-send equality. For plain-text
 readback, equality permits only the exact submitted text or that text followed
 by AgentMail's exact deterministic `\n\n--\nSent via AgentMail` provider footer;
 every other addition, removal, or transformation remains ambiguous. It does

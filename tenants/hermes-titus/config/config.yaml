@@ -6,6 +6,7 @@ model:
 plugins:
   enabled:
     - platforms/titus_teams
+    - approvals/titus_guarded_email
 
 agent:
   reasoning_effort: medium
