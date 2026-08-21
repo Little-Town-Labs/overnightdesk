@@ -1,0 +1,11 @@
+name: titus-guarded-email-approval
+label: Titus Telegram guarded-email approval
+kind: security
+version: 0.1.0
+description: >
+  Route Telegram-initiated Titus guarded-email sends through Hermes's native
+  one-time gateway approval surface.
+author: OvernightDesk
+hooks:
+  - pre_tool_call
+  - post_approval_response

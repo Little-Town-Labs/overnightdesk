@@ -53,6 +53,7 @@ export HOME=/opt/data
 export HERMES_HOME=/opt/data
 export HERMES_INFERENCE_MODEL=$HERMES_DEFAULT_MODEL
 export XDG_CACHE_HOME=/opt/data/.cache
+export TITUS_GUARDED_EMAIL_APPROVAL_MARKER_DIR=/opt/data/guarded-agentmail/approval-gates
 export PYTHONPATH=/opt/data/python-packages:/opt/hermes
 export TDAI_LLM_API_KEY=$OPENROUTER_API_KEY
 export TDAI_LLM_BASE_URL=https://openrouter.ai/api/v1

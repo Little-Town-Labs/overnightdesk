@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image=${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3}
+image=${OPEN_WEBUI_IMAGE:-ghcr.io/open-webui/open-webui@sha256:dcd09c38681c57a876866a2a95a4b35d16cd0c24eda434b9d9d14f3a292a6c5c}
 volume=open-webui-hermes-titus-data
 
 docker pull "$image" >/dev/null

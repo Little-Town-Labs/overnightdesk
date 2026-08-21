@@ -103,7 +103,7 @@ verify_private() {
     ! sudo docker inspect -f "{{json .Config.Env}}" open-webui-hermes-walter | grep -Eq "(OPENAI_API_KEY|WEBUI_SECRET_KEY|PHASE_SERVICE_TOKEN|OPENROUTER_API_KEY)"
     sudo docker volume inspect open-webui-hermes-walter-data >/dev/null
     sudo env \
-      OPEN_WEBUI_IMAGE=ghcr.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3 \
+      OPEN_WEBUI_IMAGE=ghcr.io/open-webui/open-webui@sha256:dcd09c38681c57a876866a2a95a4b35d16cd0c24eda434b9d9d14f3a292a6c5c \
       OPEN_WEBUI_DATA_VOLUME=open-webui-hermes-walter-data \
       OPEN_WEBUI_PERSONA_CONFIG=/opt/open-webui-walter/source/persona-model.json \
       OPEN_WEBUI_PERSONA_SEED_SCRIPT=/opt/open-webui-walter/bin/seed_persona_model.py \

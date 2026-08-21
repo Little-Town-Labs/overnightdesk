@@ -10,7 +10,7 @@ ssh_cmd=(ssh -i "$ssh_key" "$remote")
 oidc_client_file=${TITUS_DASHBOARD_OIDC_CLIENT_FILE:-}
 
 usage() {
-  printf 'usage: %s {preflight|prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|verify-teams-route|enable-teams-route|disable-teams-route|enable-route|disable-route|status|restart|email-read-only|email-guarded|stop|rollback}\n' "$0" >&2
+  printf 'usage: %s {preflight|prepare|install|install-disabled|verify|verify-private|verify-restart-persistence|verify-teams-route|enable-teams-route|disable-teams-route|enable-route|disable-route|status|restart|email-read-only|email-guarded|rollback-email|restore-email|stop|rollback|rollback-dashboard}\n' "$0" >&2
   exit 2
 }
 
@@ -723,6 +723,22 @@ restart_runtime() {
 }
 
 email_read_only() {
+  rollback_email
+}
+
+email_guarded() {
+  restore_email
+}
+
+require_email_rollback_confirmation() {
+  test "${TITUS_GUARDED_EMAIL_ROLLBACK_CONFIRM:-}" = "$1" || {
+    printf 'TITUS_GUARDED_EMAIL_ROLLBACK_CONFIRM must equal %s\n' "$1" >&2
+    return 1
+  }
+}
+
+rollback_email() {
+  require_email_rollback_confirmation ROLLBACK_TITUS_GUARDED_EMAIL_TO_READ_ONLY
   "${ssh_cmd[@]}" '
     set -eu
     marker=/opt/hermes-titus/guarded-email-read-only
@@ -734,17 +750,26 @@ email_read_only() {
   verify
 }
 
-email_guarded() {
+restore_email() {
+  require_email_rollback_confirmation RESTORE_TITUS_GUARDED_EMAIL
   "${ssh_cmd[@]}" '
     set -eu
     marker=/opt/hermes-titus/guarded-email-read-only
-    if sudo test -e "$marker" || sudo test -L "$marker"; then
-      sudo test -f "$marker" && ! sudo test -L "$marker"
-      test "$(sudo stat -c %a "$marker")" = 400
-      test "$(sudo stat -c %u "$marker")" = 0
-      sudo rm -f "$marker"
+    if ! sudo test -e "$marker" && ! sudo test -L "$marker"; then
+      echo "guarded_email=already_guarded"
+      exit 0
     fi
+    sudo test -f "$marker" && ! sudo test -L "$marker"
+    test "$(sudo stat -c %a "$marker")" = 400
+    test "$(sudo stat -c %u "$marker")" = 0
     sudo systemctl restart hermes-titus.service
+    sudo systemctl is-active --quiet hermes-titus.service
+    sudo rm -f "$marker"
+    if ! sudo systemctl restart hermes-titus.service; then
+      sudo install -o root -g root -m 0400 /dev/null "$marker"
+      sudo systemctl restart hermes-titus.service || true
+      exit 1
+    fi
     sudo systemctl is-active --quiet hermes-titus.service
     echo "guarded_email=guarded_restart_requested"
   '
@@ -806,6 +831,8 @@ case "$action" in
   email-read-only) email_read_only ;;
   email-guarded) email_guarded ;;
   stop) stop_runtime ;;
-  rollback) rollback_runtime ;;
+  rollback-email) rollback_email ;;
+  restore-email) restore_email ;;
+  rollback|rollback-dashboard) rollback_runtime ;;
   *) usage ;;
 esac

@@ -49,7 +49,7 @@ python -m unittest "$common_root/test_seed_persona_model.py"
 jq -e 'keys == ["modelId", "name", "profileImageUrl"] and .modelId == "hermes-agent" and .name == "Walter" and .profileImageUrl == "https://www.overnightdesk.com/api/agent-identity/walter/logo"' \
   "$runtime_root/persona-model.json" >/dev/null || fail 'invalid Walter persona model config'
 
-image='ghcr\.io/open-webui/open-webui@sha256:0d58a66704d69e52da83f72bcd43869ad4fd0c761313778bc95ef6940a0b81e3'
+image='ghcr\.io/open-webui/open-webui@sha256:dcd09c38681c57a876866a2a95a4b35d16cd0c24eda434b9d9d14f3a292a6c5c'
 require_pattern "$image" "$runtime_root/run-container.sh"
 require_pattern "$image" "$runtime_root/prepare-volume.sh"
 require_pattern '/opt/overnightdesk/secrets/phase-service-token' "$runtime_root/load-phase-env.sh"
