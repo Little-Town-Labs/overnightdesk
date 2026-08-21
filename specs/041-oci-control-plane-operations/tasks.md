@@ -113,7 +113,6 @@ documentation agree before any live read-only qualification.
 - [ ] T038 [P] Add structured event and deployment-ledger field mapping to `overnightdesk-maintenance/docs/observability.md` — FR-006, FR-010, SC-005
 - [ ] T039 [P] Reconcile the companion project's purpose, commands, security boundary, and no-listener runtime in `overnightdesk-maintenance/README.md` — FR-002, FR-006, FR-011, FR-013
 - [ ] T040 Run the complete fixture qualification suite, race/vet/build checks, secret scans, and no-listener/no-Docker checks; record sanitized results in `specs/041-oci-control-plane-operations/quickstart.md` — FR-004, FR-009, FR-011, SC-001, SC-002, SC-004, SC-005
-- [ ] T041 After explicit owner approval and only with the read-only identity, perform one live inventory qualification on the approved machine, verify evidence completeness and request-ID correlation, and append metadata-only results to `/opt/overnightdesk/deploys.log` — FR-003, FR-006, FR-010, SC-001, SC-005
 - [ ] T042 Keep live mutation disabled; if a future owner-approved mutation phase is authorized, create a new scoped implementation plan and re-run constitution, security, and code-quality gates before changing `overnightdesk-maintenance/internal/mutation/` or installing a write identity — FR-002, FR-007, FR-008, FR-009, FR-013, SC-003, SC-004
 
 **Checkpoint**: The fixture-tested, read-only project is ready for a separately
@@ -127,9 +126,9 @@ fixture default, file-based evidence custody, and the no-mutation boundary.
 
 - [x] T043 [P] Write failing CLI contract tests for `--live`, fixture/live exclusivity, default fixture behavior, and safe rejection of live mode without the required runtime boundary in `overnightdesk-maintenance/internal/cli/cli_test.go` and `overnightdesk-maintenance/internal/cli/inventory_test.go` — FR-014, FR-015, SC-006
 - [x] T044 Implement the explicit live inventory option and dependency wiring in `overnightdesk-maintenance/internal/cli/cli.go`, `overnightdesk-maintenance/internal/cli/inventory.go`, and `overnightdesk-maintenance/internal/inventory/oci.go`, reusing the existing OCI adapter, target scope, normalization, and evidence seam — FR-003, FR-014, FR-015, SC-006
-- [ ] T045 [P] Add live-path secret-boundary, target-mismatch, incomplete-run, and no-credential-output tests using fake Phase and OCI providers in `overnightdesk-maintenance/internal/secret/`, `overnightdesk-maintenance/internal/oci/`, `overnightdesk-maintenance/internal/inventory/`, and `overnightdesk-maintenance/tests/` — FR-001, FR-004, FR-009, FR-011, FR-014, FR-015, SC-006
-- [ ] T046 Implement root-owned host installation/config/evidence path checks and manual runbook instructions for `/opt/overnightdesk-maintenance/bin`, `/etc/overnightdesk-maintenance/config.json`, and `/var/lib/overnightdesk-maintenance/evidence/` in `overnightdesk-maintenance/deploy/`, `overnightdesk-maintenance/README.md`, and `specs/041-oci-control-plane-operations/quickstart.md` — FR-006, FR-011, FR-015, SC-005, SC-006
-- [ ] T047 Run the complete local quality gate and record the live-path contract results without contacting OCI in `specs/041-oci-control-plane-operations/quickstart.md` — FR-009, FR-011, FR-014, FR-015, SC-001, SC-006
+- [x] T045 [P] Add live-path secret-boundary, target-mismatch, incomplete-run, and no-credential-output tests using fake Phase and OCI providers in `overnightdesk-maintenance/internal/secret/`, `overnightdesk-maintenance/internal/oci/`, `overnightdesk-maintenance/internal/inventory/`, and `overnightdesk-maintenance/tests/` — FR-001, FR-004, FR-009, FR-011, FR-014, FR-015, SC-006
+- [x] T046 Implement root-owned host installation/config/evidence path checks and manual runbook instructions for `/opt/overnightdesk-maintenance/bin`, `/etc/overnightdesk-maintenance/config.json`, and `/var/lib/overnightdesk-maintenance/evidence/` in `overnightdesk-maintenance/deploy/`, `overnightdesk-maintenance/README.md`, and `specs/041-oci-control-plane-operations/quickstart.md` — FR-006, FR-011, FR-015, SC-005, SC-006
+- [x] T047 Run the complete local quality gate and record the live-path contract results without contacting OCI in `specs/041-oci-control-plane-operations/quickstart.md` — FR-009, FR-011, FR-014, FR-015, SC-001, SC-006
 - [ ] T048 After T047 and explicit owner approval, perform one manual read-only Aegis qualification through the Phase launcher, verify target identity, evidence completeness, request-ID correlation, file permissions, and absence of credential material, then append metadata-only results to `/opt/overnightdesk/deploys.log` — FR-003, FR-006, FR-010, FR-011, FR-015, SC-001, SC-005, SC-006
 
 **Checkpoint**: Live inventory is an explicit, manually invoked, read-only
@@ -161,8 +160,8 @@ Host qualification and closeout
   run in parallel with late US1 fixture work when paths remain disjoint.
 - T031-T035 are mock-only and do not authorize OCI writes.
 - T036-T040 are required before any host installation or live qualification.
-- T041 and T048 are explicit production-read-only gates and are not ordinary
-  build or test tasks. T042 prevents the roadmap from silently expanding into
+- T048 is the sole explicit production-read-only gate and is not an ordinary
+  build or test task. T042 prevents the roadmap from silently expanding into
   mutation. T043-T047 must complete before T048.
 
 ## Parallel Execution Examples
@@ -192,9 +191,9 @@ T031 mutation denial tests || T034 work-request fixtures
 
 The MVP is T001-T030 plus T036-T040: a version-controlled, fixture-tested,
 host-local, maintenance-first read-only inventory and deterministic grouping tool with secure
-operational documentation. T041 and T048 require separate owner approval and
-are not part of ordinary implementation. T043-T047 define the post-MVP live
-read-only path. T031-T035 define mock-only future behavior.
+operational documentation. T048 requires separate owner approval and is not
+part of ordinary implementation. T043-T047 define the post-MVP live read-only
+path. T031-T035 define mock-only future behavior.
 
 The roadmap does not include automatic patch scheduling, general OCI tenancy
 administration, deletion, unrestricted reboot, public API hosting, Docker

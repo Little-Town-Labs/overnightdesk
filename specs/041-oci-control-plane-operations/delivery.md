@@ -31,7 +31,7 @@
 
 | Task | Spec Kit IDs | Mutable | Lane | Owned paths | Verification |
 |---|---|---:|---|---|---|
-| roadmap-audit | T040 | no | codex-luna read-only | none | `git diff --check rg -n 'NEEDS CLARIFICATION|\[FEATURE\]|\[DATE\]' specs/041-oci-control-plane-operations` |
+| roadmap-audit | T040 | no | codex-luna read-only | none | `git diff --check -- specs/041-oci-control-plane-operations && ! rg -n 'NEEDS CLARIFICATION|\[FEATURE\]|\[DATE\]' specs/041-oci-control-plane-operations --glob '!delivery.md'` |
 
 ## Scope and Safety Gates
 

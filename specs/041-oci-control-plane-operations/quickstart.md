@@ -38,7 +38,7 @@ Before any live call, an operator must verify metadata only:
 
 ```bash
 ./bin/overnightdesk-maintenance preflight \
-  --config /etc/overnightdesk/oci-maintenance/config.json \
+  --config /etc/overnightdesk-maintenance/config.json \
   --mode read-only
 ```
 
@@ -55,6 +55,59 @@ machine, config revision, read-only OCI identity, Phase reference, and evidence
 destination. The operator then runs the reviewed command from the approved
 machine and records only sanitized results and OCI request IDs in the deployment
 ledger.
+
+## Host Layout Check
+
+The separately authorized host layout is:
+
+| Path | Required state |
+| --- | --- |
+| `/opt/overnightdesk-maintenance/bin/` | root-owned directory, mode `0755` |
+| `/opt/overnightdesk-maintenance/bin/overnightdesk-maintenance` | root-owned executable, mode `0755` |
+| `/etc/overnightdesk-maintenance/` | root-owned directory, mode `0700` |
+| `/etc/overnightdesk-maintenance/config.json` | root-owned non-secret config, mode `0600` |
+| `/var/lib/overnightdesk-maintenance/evidence/` | root-owned evidence directory, mode `0700` |
+
+From the checked-out source, run the read-only validator after installation:
+
+```bash
+sudo deploy/check-host-layout.sh
+```
+
+The validator does not create, modify, remove, or print the contents of any
+path. A failed check blocks live qualification. The expected live invocation
+uses the validated configuration and writes only to the validated evidence
+directory:
+
+```bash
+sudo deploy/phase-run.sh /opt/overnightdesk-maintenance/bin/overnightdesk-maintenance \
+  inventory --live \
+  --config /etc/overnightdesk-maintenance/config.json \
+  --output /var/lib/overnightdesk-maintenance/evidence/run.json
+```
+
+This is an operator runbook contract, not an authorization to install files or
+contact OCI. Installation, credential provisioning, and live qualification
+remain separately approved actions.
+
+## Local Live-Path Contract Gate
+
+Recorded 2026-08-21 on the companion repository's isolated closeout branch:
+
+```text
+make ci — passed
+go test ./... — passed
+go test -race ./... — passed
+go vet ./... — passed
+go build ./cmd/overnightdesk-maintenance — passed
+bash deploy/phase-run_test.sh — passed (phase-run-contract-ok)
+bash -n deploy/check-host-layout.sh deploy/phase-run.sh deploy/preflight.sh — passed
+git diff --check — passed
+roadmap audit (git diff check plus placeholder scan) — passed
+```
+
+The gate used fixture data and fake Phase/OCI providers only; it made no OCI
+network calls and did not perform host installation or live qualification.
 
 No live mutation command is part of this quickstart. A future mutation
 quickstart must be added only after a separate approval and must include backup,
