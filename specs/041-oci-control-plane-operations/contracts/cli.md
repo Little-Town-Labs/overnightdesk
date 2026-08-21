@@ -5,6 +5,7 @@ The initial command surface is host-local and non-networked:
 ```text
 overnightdesk-maintenance preflight --config PATH --mode read-only
 overnightdesk-maintenance inventory --config PATH [--input FIXTURE] --output PATH
+overnightdesk-maintenance inventory --live --config PATH --output PATH
 overnightdesk-maintenance group --input PATH --output PATH
 ```
 
@@ -13,7 +14,9 @@ overnightdesk-maintenance group --input PATH --output PATH
 - `preflight`: validate non-secret config, target scope, limits, secret
   reference, and required permissions without performing a mutation.
 - `inventory`: collect or consume sanitized backup/vulnerability evidence;
-  live collection requires an explicit read-only qualification gate.
+  fixture input remains the default, while live collection requires the
+  explicit `--live` selector and a separate read-only qualification gate.
+  `--live` and `--input` are mutually exclusive.
 - `group`: deterministically group sanitized vulnerability evidence without
   network access.
 
