@@ -4,8 +4,10 @@ FROM nousresearch/hermes-agent@sha256:16788311e2fa3035456bdc1bafb8ec2b1777db64eb
 
 USER root
 
-ARG GH_VERSION=2.97.0
+ARG GH_VERSION=2.98.0
 
+# The upstream image includes docker-cli, but tenant runtimes have no Docker
+# socket or remote daemon. Remove that unused host-control surface.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl ca-certificates gnupg \
  && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
@@ -15,6 +17,8 @@ RUN apt-get update \
       > /etc/apt/sources.list.d/github-cli.list \
  && apt-get update \
  && apt-get install -y --no-install-recommends "gh=${GH_VERSION}" \
+ && apt-get purge -y docker-cli \
+ && ! command -v docker \
  && rm -rf /var/lib/apt/lists/*
 
 # Pre-set the repository identity used by platform_code_worker.
