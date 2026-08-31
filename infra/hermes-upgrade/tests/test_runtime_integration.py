@@ -2,11 +2,21 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).parents[3]
-CANDIDATE = ROOT / "releases/hermes/0.20.0-local-2026-08-07.yaml"
+sys.path.insert(0, str(ROOT / "infra" / "hermes-upgrade"))
+
+from candidate import validate_candidate  # noqa: E402
+
+
+CANDIDATE = (
+    ROOT
+    / "releases/hermes/0.20.0-local-2026-08-31-cve-2026-33747.yaml"
+)
+CANDIDATE_IMAGE = validate_candidate(CANDIDATE)["derived"]["reference"]
 
 
 def docker_candidate_available() -> bool:
@@ -20,9 +30,10 @@ def docker_candidate_available() -> bool:
     )
     if compose.returncode != 0:
         return False
-    image = "overnightdesk/hermes-agent:0.20.0-coder"
     inspected = subprocess.run(
-        [docker, "image", "inspect", image], capture_output=True, check=False
+        [docker, "image", "inspect", CANDIDATE_IMAGE],
+        capture_output=True,
+        check=False,
     )
     return inspected.returncode == 0
 
