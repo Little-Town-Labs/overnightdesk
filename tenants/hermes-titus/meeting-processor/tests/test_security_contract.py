@@ -74,6 +74,12 @@ class SecurityContractTests(unittest.TestCase):
         self.assertIn("--exclude='*.py[co]'", deploy)
         self.assertNotIn("cp -a /tmp/titus-meeting-processor-deploy/. /opt/titus-meeting-processor/source/", deploy)
 
+    def test_systemd_owns_volatile_runtime_directory(self):
+        unit = (ROOT / "runtime" / "titus-meeting-processor.service").read_text(encoding="utf-8")
+        self.assertIn("RuntimeDirectory=titus-meeting-processor", unit)
+        self.assertIn("RuntimeDirectoryMode=0750", unit)
+        self.assertIn("ReadWritePaths=/run/titus-meeting-processor", unit)
+
     def test_nested_orchestrator_is_retired_and_titus_validates_output(self):
         deploy = (ROOT / "scripts" / "deploy-aegis.sh").read_text(encoding="utf-8")
         for path in [
