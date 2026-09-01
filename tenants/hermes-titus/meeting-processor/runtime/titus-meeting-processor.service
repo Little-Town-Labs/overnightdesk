@@ -21,6 +21,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
+RuntimeDirectory=titus-meeting-processor
+RuntimeDirectoryMode=0750
 ReadWritePaths=/run/titus-meeting-processor
 
 [Install]
