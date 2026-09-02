@@ -1,169 +1,150 @@
 # Research: Buzz Private Pilot on Aegis
 
-**Date**: 2026-09-01
+**Original assessment**: 2026-09-01
+
+**Design reconsideration**: 2026-09-02
 
 **Detailed assessment**: [Buzz on Aegis feasibility](../../docs/research/buzz-aegis-feasibility.md)
 
-## Decisions
+## Current Decisions
 
-### Require an immutable ARM64 candidate
+### Requalify immutable ARM64 artifacts
 
-**Decision**: Require a Buzz source/image pair with an immutable ARM64 index
-digest, successful same-SHA CI, provenance, an SBOM, and an accepted
-vulnerability posture immediately before implementation. The initially
-assessed source `571c1902d0ca55cfd4ccf6b91eeb731909cc10be` and relay index
-digest `sha256:aa5180ce58ac367a125a1c079bfde88f8c158daa99e1aa5df86e8814649669f5`
-failed the independent vulnerability check and are rejected for deployment.
+**Decision**: Revalidate and pin the Buzz source, relay wrapper, Desktop/client
+behavior, canary adapter, PostgreSQL, Redis, MinIO, initializer, and every other
+new runtime image immediately before implementation. Require immutable ARM64
+digests, provenance, SBOMs, accepted vulnerability dispositions, explicit
+non-root execution, hardening, and reproducible startup.
 
-**Rationale**: Upstream is pre-1.0 and supports `main` actively; a floating tag
-would make qualification and rollback irreproducible.
+**Rationale**: Buzz is pre-1.0 and the completed 2026-09-01 evidence is a
+historical snapshot. The locally qualified Wolfi relay wrapper may remain the
+candidate starting point, but it is not current production authorization.
 
-**Rejected**: `:main`, `:latest`, and source builds directly on Aegis.
+**Rejected**: Mutable tags, building on Aegis, or treating a previous scan as a
+permanent exception.
 
-### Use a dedicated tailnet device for private ingress
+### Reuse Nginx on a private-only listener
 
-**Decision**: Keep application, health, metrics, database, Redis, MinIO, and
-management ports unpublished and omit bundled Caddy. Create a dedicated
-tag-owned Tailscale device named `buzz` and use Serve HTTPS/WSS at
-`buzz.tail5c4f73.ts.net` with Funnel disabled. Run Tailscale in userspace mode
-and have the relay share its network namespace so Serve can proxy only to relay
-loopback. Do not edit or displace the host's existing Nginx or Tailscale Serve
-listeners.
+**Decision**: Remove the dedicated Tailscale container from the proposed
+topology. Use the existing qualified Nginx process with a Buzz server block
+that is selectable only on a dedicated private listener address. Select the
+address only after fresh host and OCI evidence proves it is unassigned and has
+no public NAT path. If Nginx is containerized, map its internal Buzz listener
+port only on that private host address.
 
-**Rationale**: Official Tailscale documentation restricts Serve HTTP proxy
-targets to loopback and documents the shared-network-namespace container
-pattern. A separate device supplies an independent MagicDNS name, certificate,
-tag policy, state, and rollback handle without contending for the existing
-device root handler.
+**Rationale**: This removes the unqualified upstream image that blocked the old
+plan while retaining the already operated TLS proxy. Listener separation, not
+DNS obscurity, prevents public clients from selecting Buzz with a forged SNI or
+Host header.
 
-**Rejected**: Treating `10.0.0.234` as a Tailscale address, Buzz's optional
-Caddy override, direct relay port publication, or displacing the existing
-Tailscale Serve handler implicitly. Adding a path under the existing host name
-was also rejected because it couples Buzz rollback and route ownership to the
-current `ob1-mcp` device.
+**Rejected**: A Buzz vhost on the public `10.0.0.234:443` listener, reliance on
+no public DNS record, direct relay port publication, or bundled Caddy.
 
-### Repackage exact Buzz artifacts only when the runtime is reproducible
+### Preserve the tailnet boundary with an exact host route and grant
 
-**Decision**: A relay wrapper may copy the exact upstream ARM64 relay binary
-and web assets into a smaller current runtime, but it may not rebuild or patch
-Buzz. It must freeze its base digest and runtime package versions, preserve the
-required Git/cURL/OpenSSL/CA/glibc/libgcc behavior, run as `1000:1000`, produce
-a new immutable OCI digest/SBOM/scan, and pass integration tests.
+**Decision**: Have the existing Aegis Tailscale node advertise only the selected
+private listener address as `/32`. Approve/inject that route separately from a
+deny-by-default grant permitting only approved owner devices to reach it.
+Capture and compare the existing advertised-route set, grants, node identity,
+and Serve configuration before, during, and after the experiment.
 
-**Rationale**: The original vulnerabilities are in the runtime operating-system
-packages. A wrapper can refresh those packages while keeping the application
-artifact identical and the change independently auditable.
+**Rationale**: Tailscale documents subnet route advertisement/approval and
+access grants as distinct controls. This retains tailnet-gated transport
+without adding a new Tailscale image, device, tag-owned state, or MagicDNS
+hostname.
 
-**Rejected**: Accepting the original image through a configuration exception,
-building a source fork, or treating a successful process start as complete
-qualification.
+**Rejected**: Funnel, a broad subnet route, changing the existing Serve root,
+or assuming route approval alone restricts source devices.
 
-**Qualification evidence**: A Debian Trixie wrapper ran correctly but scanned
-with 40 Critical and 62 High matches and was rejected. The promoted,
-digest-pinned Wolfi wrapper freezes all package versions, runs the exact ARM64
-relay artifact as `1000:1000`, includes the required helper tools, produced
-byte-identical OCI archives across two uncached builds, passed 9/9 runtime
-contracts, and produced zero Grype matches. Its qualified local manifest is
-`sha256:f98fe0e1cc0e66c547adbe325f93df48fb0c451753983e95abb6b89c97da54a2`;
-publishing it as a registry reference remains separately authorized.
+### Do not reuse OvernightDesk `auth_request`
 
-### Require the ingress image to pass the same gate
+**Decision**: Nginx must not invoke `verify-tenant`, `verify-workspace`, or an
+equivalent Better Auth session check for Buzz.
 
-**Decision**: Treat the Tailscale sidecar as a first-class runtime image. Pin
-and scan it independently, prove userspace startup as an explicit non-root
-UID/GID with writable state/socket paths, and reject it on undisposed
-Critical/High findings.
+**Rationale**: Targeted source reads show `verify-tenant` requires a platform
+session and exact instance hostname; dashboard authorization requires a
+running platform instance, active dashboard auth, and OIDC client; and
+`verify-workspace` is scoped to Open WebUI. Buzz Desktop instead supplies
+NIP-42 WebSocket and NIP-98 signed HTTP credentials. The platform subrequest
+would reject the intended client before Buzz authentication.
 
-**Rationale**: Moving the trust boundary into a sidecar does not justify a
-weaker supply-chain or runtime standard.
+**Rejected**: Creating a fake OvernightDesk runtime/instance to satisfy an
+unrelated authorization model.
 
-**Prototype evidence**: Official `tailscale/tailscale:stable` resolved to index
-`sha256:8c42c4574ab066384fcb72f69e086a2ff1dd3652eb6f56856cee34bcf0d2f680`
-and ARM64 Tailscale 1.102.3. Userspace startup succeeded under UID/GID 65532
-with a writable state/socket path, but its preliminary scan reported 2 Critical
-and 22 High matches, including fixes available in later dependency versions.
-It is rejected pending a fixed immutable upstream release.
+### Preserve one canonical relay URL through the proxy
 
-### Preserve upstream stores but minimize feature use
+**Decision**: Use `wss://buzz.overnightdesk.com` everywhere. Nginx must preserve
+Host, method, path, query, WebSocket upgrade, NIP-98 `Authorization`, and the
+external HTTPS scheme, strip unrelated cookies, and perform no URI rewrite.
+Contract tests must complete signed NIP-42 and NIP-98 flows through Nginx.
 
-**Decision**: Operate PostgreSQL, Redis, MinIO, and local Git scratch as
-isolated state boundaries, while disabling Git web, workflows, admin, large
-media, and multi-community. PostgreSQL and object storage are authoritative;
-the selected source explicitly describes local Git data as disposable scratch
-that is hydrated from object storage per request.
+**Rationale**: Buzz's signed event model binds behavior to the relay URL.
+Upstream issue #6281 reports that a colocated agent cannot safely use an
+alternate internal target when TCP destination, Host, and signed relay tag
+diverge. A successful WebSocket upgrade does not prove the signed protocol.
 
-**Rationale**: These stores are coupled to the shipped relay even when optional
-features are not used. Removing them would create a fork before viability is
-known; minimizing feature use reduces data and recovery risk.
+**Rejected**: Direct canary-to-relay access, alternate internal hostnames, or a
+transport-only `101` check.
 
-**Rejected**: Sharing existing databases or object stores and modifying Buzz to
-remove stores for the first pilot.
+### Split connectivity into three networks
 
-### Use a new canary rather than an existing agent
+**Decision**:
 
-**Decision**: Build/supervise one distinct Buzz adapter with a new key, one
-channel, owner-only responses, no MCP/tools, bounded work, and revocation tests.
+- `buzz-ingress`: Nginx and relay only.
+- `buzz-data`: relay, PostgreSQL, Redis, and MinIO only.
+- `buzz-canary`: Nginx and canary only.
 
-**Rationale**: Existing Hermes containers do not currently ship a Hermes ACP
-executable, and the relay image does not include `buzz-cli` or `buzz-acp`.
-Reusing Walter/Titus/Trevor would mix identity, memory, data, and authority.
+**Rationale**: A single Buzz network would unnecessarily expose stores to
+Nginx. Putting canary and relay together would allow the canary to bypass the
+canonical ingress contract.
 
-**Rejected**: Embedding the adapter in the relay, sharing an owner key, enabling
-`respond-to anyone`, or connecting an existing production agent in MVP.
+### Keep recovery authority explicit
 
-### Follow the established disabled-first Aegis seam
+**Decision**: PostgreSQL and MinIO are the coherent authoritative backup set.
+Redis is diagnostic/cache state and Git scratch is reproducible. The old
+Tailscale sidecar state is removed from the recovery model; private listener,
+route, and grant metadata are recreated through an explicitly approved
+configuration, not restored as identity state.
 
-**Decision**: Mirror the source-verified deployment stages in
-`infra/open-webui/walter/deploy-aegis.sh`: local qualification, root-owned
-prepare, disabled install, private inspection, separate route enablement,
-public/private behavior checks, log sentinel, and state-preserving rollback.
+### Use gated, route-first lifecycle control
 
-**Rationale**: This is the repository's proven production integration seam and
-explicitly separates installation, verification, reachability, and rollback.
+**Decision**: Install disabled, validate `nginx -t`, reload rather than restart,
+and require current local/protocol/recovery proof before owner admission.
+Rollback disables the private listener first, proves unreachability, withdraws
+the exact grant/route when authorized, preserves workload state, and verifies
+all pre-existing Nginx and Tailscale behavior.
 
-**Rejected**: One-shot `docker compose up` deployment or ad hoc long-lived
-containers.
+## Current Sources
 
-### Require a coherent recovery set
+- [Buzz repository](https://github.com/block/buzz)
+- [Buzz security policy](https://github.com/block/buzz/security)
+- [Buzz testing and relay URL guidance](https://github.com/block/buzz/blob/main/TESTING.md)
+- [Buzz NIP-AA relay-tag behavior](https://github.com/block/buzz/blob/main/docs/nips/NIP-AA.md)
+- [Buzz issue #6281](https://github.com/block/buzz/issues/6281)
+- [Tailscale subnet routers](https://tailscale.com/docs/features/subnet-routers)
+- [Tailscale route injection](https://tailscale.com/docs/reference/route-injection)
+- [Tailscale grants syntax](https://tailscale.com/docs/reference/syntax/grants)
 
-**Decision**: Add authoritative Buzz PostgreSQL and MinIO data, Redis diagnostic
-state, and safe configuration metadata to the encrypted producer; recreate
-local Git scratch and prove logical repository state rehydrates after an
-isolated restore before owner admission.
+These sources guide planning only. Gate 0 must refresh time-sensitive facts.
 
-**Rationale**: Buzz spans multiple stores and upstream provides a checklist,
-not an automated recovery guarantee. The general Aegis backup repair is
-verified, but it does not yet cover Buzz.
+## Historical Decisions Retained for Audit
 
-**Rejected**: Treating successful container startup, volume archives alone, or
-the existing baseline backup as proof of Buzz recoverability.
+The 2026-09-01 plan selected a dedicated tag-owned Tailscale sidecar/device and
+MagicDNS hostname. Local work qualified an exact-artifact Wolfi relay wrapper,
+but the official Tailscale runtime image failed the vulnerability gate. The
+initiative then closed without production mutation. That topology is
+superseded, while its evidence remains under `evidence/` and ADR-007.
 
-## Verified Baseline
+## Facts Still Requiring Proof
 
-- Aegis is ARM64 with 4 OCPUs, 23 GiB RAM, about 18 GiB then available, and 73
-  GiB free disk.
-- Nineteen named containers were healthy at assessment time.
-- Docker Compose v5.3.1 exceeds Buzz's documented minimum.
-- Nginx publishes 80/443 on the OCI interface `10.0.0.234`. Host Tailscale uses
-  `100.100.1.21`; Tailscale Serve already owns tailnet HTTPS on port 443 and
-  proxies the root path to `ob1-mcp`. The approved Buzz design uses a separate
-  device and therefore does not modify either listener.
-- The encrypted backup producer completed successfully on 2026-09-01 with 64
-  artifacts, 689,390,615 encrypted bytes, exit zero, and `COMPLETE`.
-- Buzz publishes ARM64 relay images but no upstream runtime sizing baseline or
-  resource limits.
-- Current source includes Redis-backed fixed-window admission limiting despite
-  stale architecture documentation; edge connection/body/time limits remain
-  required.
+- the current Aegis interface, address, NAT, security-list, Nginx listener,
+  Docker networking, Tailscale route, grant, Serve, capacity, and backup state;
+- a safe, unassigned private listener address with no public path;
+- exact DNS-01 certificate issuance/renewal and private resolution mechanics;
+- `/32` route coexistence without changing the existing Serve handler;
+- complete Desktop NIP-42 and NIP-98 behavior through the proposed Nginx
+  configuration; and
+- current image/source/client/canary qualification and resource measurements.
 
-## Open Items Resolved During Implementation Preflight
-
-These are bounded configuration choices, not scope questions:
-
-- final qualified relay and Tailscale image digests;
-- Phase app/environment/path names and exact service accounts;
-- per-container limits within the combined ceiling;
-- exact RPO/RTO targets after measured backup/restore duration;
-- whether the adapter uses `buzz-acp` directly or a narrower `buzz-cli`
-  wrapper after local protocol qualification;
-- exact alert transport already approved for Aegis.
+Each item is a gate with an executable check, not permission to assume or
+deploy.

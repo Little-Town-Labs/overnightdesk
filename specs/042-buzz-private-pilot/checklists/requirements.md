@@ -1,42 +1,36 @@
 # Specification Quality Checklist: Buzz Private Pilot on Aegis
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning
-
 **Created**: 2026-09-01
+
+**Revalidated**: 2026-09-02
 
 **Feature**: [spec.md](../spec.md)
 
-## Content Quality
+## Content and Scope
 
-- [x] No implementation details in user-facing requirements or success criteria
-- [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders while retaining operational boundaries
-- [x] All mandatory sections completed
+- [x] MVP and explicit non-goals define the scope ceiling.
+- [x] Planning reactivation is distinct from Issue or deployment reactivation.
+- [x] Historical evidence and unexecuted tasks are clearly identified.
+- [x] User scenarios are independently testable.
+- [x] Twenty-seven requirements and fourteen success criteria are measurable.
+- [x] No `[NEEDS CLARIFICATION]` marker or critical ambiguity remains.
+- [x] Dependencies and time-sensitive assumptions are explicit Gate 0 facts.
 
-## Requirement Completeness
+## Security and Operations
 
-- [x] No `[NEEDS CLARIFICATION]` markers remain
-- [x] Requirements are testable and unambiguous
-- [x] Success criteria are measurable
-- [x] Success criteria are technology-agnostic
-- [x] All acceptance scenarios are defined
-- [x] Edge cases are identified
-- [x] Scope is clearly bounded
-- [x] Dependencies and assumptions are identified
-
-## Project Governance
-
-- [x] MVP and explicit non-goals define the scope ceiling
-- [x] Human approval gates cover production, identity, secrets, agent authority, and expansion
-- [x] Customer and business-data use is excluded from the pilot
-- [x] Backup, restore, rollback, and observation requirements are explicit
-- [x] Existing agents and their identities remain outside MVP scope
-- [x] No GitHub or production mutation is implied by planning completion
+- [x] Public IP/SNI/Host exposure is denied independently of DNS visibility.
+- [x] Route advertisement/approval and device grant are separate controls.
+- [x] The incompatible Better Auth `auth_request` seam is explicitly excluded.
+- [x] NIP-42 and NIP-98 require full signed-protocol contract tests.
+- [x] Nginx, relay, stores, and canary have least-connectivity networks.
+- [x] Identity, secret, backup, restore, observability, capacity, and rollback
+  boundaries are explicit.
+- [x] Existing public Nginx and Tailscale Serve behavior must remain invariant.
+- [x] Production, identity, route, secret, Issue, Project, and expansion actions
+  require explicit approval.
 
 ## Notes
 
-- Clarification found no critical gaps requiring a user question. The conservative
-  default is an owner-only human pilot followed by one new, tool-free agent
-  identity. Any existing agent integration is an explicit post-pilot scope
-  decision.
-- Validation completed 2026-09-01. The specification is ready for planning.
+Clarification found no critical user question. The exact private listener
+address and operational values are intentionally deferred to evidence-based
+Gate 0 preflight; choosing them in documentation would be unsafe speculation.

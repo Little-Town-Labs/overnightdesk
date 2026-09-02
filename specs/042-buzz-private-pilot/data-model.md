@@ -1,38 +1,48 @@
 # Data Model: Buzz Private Pilot
 
-This model describes operational truth and authority. It does not duplicate
-Buzz's internal database schema or persist private keys.
+This model records operational truth and authority. It does not duplicate
+Buzz's internal schema or persist private keys, credentials, headers, cookies,
+or message content.
 
 ## PilotWorkload
 
-- `workload_id`: fixed value `buzz-private-pilot`
-- `owner`: accountable human
-- `source_commit`, `relay_digest`, `ingress_digest`, `adapter_digest`
+- `workload_id`: `buzz-private-pilot`
+- `owner`, `source_commit`, `relay_digest`, `canary_digest`
+- `nginx_config_digest`, `canonical_url`
 - `lifecycle_state`: `planned | installed_disabled | private_qualified |
   owner_active | canary_active | observing | paused | rolled_back`
-- `route_state`: `absent | enabled | disabled_preserved`
-- `resource_ceiling`: CPU, memory, PIDs, disk, connections
-- `previous_release_handle`
-- `approval_refs`: per-gate approval metadata
+- `resource_ceiling`, `previous_release_handle`, `approval_refs`
 
-**Rules**: State transitions are monotonic except explicit pause/rollback.
-Route activation requires current private qualification, recovery evidence,
-rollback verification, and approval.
+**Rules**: Production transitions require the prior gate's exact evidence and
+approval. Pause and rollback preserve authoritative state.
 
-## PrivateIngressIdentity
+## PrivateIngressRoute
 
-- `device_name`: fixed value `buzz`
-- `fqdn`: fixed value `buzz.tail5c4f73.ts.net`
-- `tags`: exactly `tag:buzz-private-pilot`
-- `state`: `absent | enrolled_disabled | serve_active | revoked`
-- `serve_target`: fixed value `http://127.0.0.1:3000`
-- `funnel_enabled`, `ssh_enabled`, `exit_node_enabled`: false
-- `state_path`, `credential_scope_ref`, `last_verified_at`
+- `private_address`: selected only after current preflight
+- `prefix_length`: exactly `32`
+- `advertising_node`: existing Aegis Tailscale node
+- `route_state`: `absent | advertised | approved | active | withdrawn`
+- `grant_state`: `absent | staged | active | withdrawn`
+- `allowed_source_devices`: approved owner devices only
+- `baseline_route_digest`, `baseline_serve_digest`, `last_verified_at`
 
-**Rules**: The enrollment credential grants only `auth_keys` for the exact tag.
-Node state and credentials never enter evidence. Activation requires the exact
-Serve contract and existing host Serve/Nginx baselines to remain unchanged.
-Revocation is independent of Buzz application identities.
+**Rules**: The address has no public NAT path. Advertisement/approval and the
+source grant are separate transitions. Existing routes, node identity, and
+Serve handlers remain unchanged. Withdrawal targets only this exact `/32` and
+grant.
+
+## IngressConfiguration
+
+- `canonical_url`: `wss://buzz.overnightdesk.com`
+- `listener_address`, `listener_port`: selected private address and `443`
+- `internal_nginx_port`: implementation-frozen value
+- `certificate_ref`, `certificate_method`: secret-free metadata and DNS-01
+- `config_digest`, `enabled_state`: `absent | installed_disabled | active`
+- `public_listener_denial_evidence`, `protocol_evidence`
+
+**Rules**: The Buzz server block is not selectable on a public listener.
+Activation requires `nginx -t`, a reload, full NIP-42/NIP-98 proof, and public
+IP/SNI/Host denial. It never invokes OvernightDesk `auth_request`.
 
 ## Community
 
@@ -40,88 +50,76 @@ Revocation is independent of Buzz application identities.
 - `closed_relay_required`: true
 - `git_web_enabled`, `admin_enabled`, `workflows_enabled`: false
 - `allowed_data_class`: synthetic pilot content
-- `retention_policy`
 
-**Rules**: Exactly one community exists in MVP. Multi-community changes scope.
+**Rules**: Exactly one community exists in the MVP.
 
-## Identity
+## Identity and MembershipGrant
 
-- `public_key`, `kind`: `human_owner | relay_admin | agent_canary |
-  negative_test`
-- `status`: `generated | admitted | active | revoked`
-- `recovery_custodian`, `created_at`, `revoked_at`
-- `secret_reference`: opaque path metadata only
+- `Identity`: `public_key`, `kind` (`human_owner | relay_admin |
+  agent_canary | negative_test`), `status`, recovery-custody metadata
+- `MembershipGrant`: identity public key, relay/channel scope, role, grant and
+  revocation timestamps
 
-**Rules**: Public keys are unique. Private keys never enter this model,
-evidence, Compose, logs, or another identity's process.
-
-## MembershipGrant
-
-- `grant_id`, `identity_public_key`
-- `scope_type`: `relay | channel`
-- `scope_id`, `role`, `granted_by`, `granted_at`, `revoked_at`
-
-**Rules**: A channel grant requires an active relay grant. Revocation must
-invalidate existing and queued canary work. Grants are independently auditable.
+**Rules**: Private keys never enter this model. A channel grant requires active
+relay membership. Revocation invalidates queued and future canary work.
 
 ## AgentAuthorityProfile
 
 - `agent_public_key`
-- `allowed_owner_public_keys`: exactly one in MVP
-- `allowed_channel_ids`: exactly one in MVP
+- `allowed_owner_public_keys`: exactly one
+- `allowed_channel_ids`: exactly one
 - `max_concurrency`: one
 - `max_output`, `timeout`, `deduplication_window`
 - `allowed_tools`: empty
-- `prohibited_actions`: production, shell, secrets, outreach, payments,
-  CRM/customer/prospect data, repository mutation, cross-channel response
+- `network_target`: canonical Nginx URL only
+- `prohibited_actions`: direct relay/store access, production, shell, secrets,
+  outreach, payments, CRM/customer/prospect data, repository mutation, and
+  cross-channel response
 
-**Rules**: Missing owner or channel means respond to nobody. Tool addition,
-multiple channels, or another caller requires a new approval.
+**Rules**: Missing owner or channel denies all response. Any new caller,
+channel, tool, target, or authority is a separately approved scope change.
 
 ## StateStore
 
-- `store_id`: `postgres | redis | minio | git_scratch | tailscale_state |
+- `store_id`: `postgres | minio | redis | git_scratch | ingress_metadata |
   secret_custody`
-- `authority`: durable or ephemeral owner
+- `authority`: `authoritative | diagnostic | reproducible | metadata |
+  external-secret`
 - `volume_or_scope`, `unix_owner`, `network_scope`
 - `backup_method`, `restore_order`, `validation_checks`
 - `last_backup_set_id`, `last_restore_run_id`
 
-**Rules**: A recovery set is complete only when every authoritative store has
-the same maintenance-window marker and all logical validation checks pass.
-`git_scratch` is recreated and validated through repository-state rehydration;
-it is not an authoritative backup artifact. `tailscale_state` is revocable
-device identity state and is recreated through explicit re-enrollment rather
-than restored into a second live device.
+**Rules**: PostgreSQL and MinIO form one coherent recovery set. Redis is
+diagnostic and Git scratch is regenerated. Ingress metadata contains no secret
+or Tailscale node state; route/grant/listener configuration is recreated only
+through an approved lifecycle.
 
 ## QualificationRun
 
-- `run_id`, `gate`, `candidate_identity`, `started_at`, `completed_at`
-- `environment_baseline_ref`, `approval_ref`
-- `checks[]`: name, safe result, duration, evidence digest
+- `run_id`, `gate`, `candidate_identity`, `environment_baseline_ref`
+- `approval_ref`, timestamps, checks, safe result, duration, evidence digest
 - `result`: `pass | fail | incomplete`
-- `blockers[]`, `rollback_run_id`
+- `blockers`, `rollback_run_id`
 
-**Rules**: Incomplete runs never satisfy a gate. Evidence excludes secrets and
-message content. Results bind to the exact release and environment.
+**Rules**: Incomplete or digest-mismatched runs satisfy no gate. Evidence
+contains outcome classes, not sensitive payloads.
 
 ## RecoverySet
 
 - `backup_set_id`, `maintenance_window`, `source_release`
-- `artifacts[]`: store, digest, encrypted bytes, completeness
+- PostgreSQL and MinIO artifacts, digests, encrypted sizes, completeness
 - `complete_marker`, `off_box_custody_ref`
-- `restore_run_id`, `restore_result`, `measured_rpo`, `measured_rto`
+- restore result, logical assertions, measured RPO/RTO
 
-**Rules**: A `COMPLETE` marker is emitted only after all artifacts finish.
-Owner admission requires a successful isolated restore of the current schema.
+**Rules**: `COMPLETE` is emitted only after both authoritative artifacts
+succeed. Owner admission requires an isolated current-schema restore.
 
 ## PilotDecision
 
-- `decision_id`, `qualification_run_ids[]`, `observation_window`
+- `decision_id`, qualification run references, observation window
 - `decision`: `continue_bounded | pause_disabled | rollback |
   propose_expansion`
-- `residual_risks[]`, `approved_by`, `decided_at`
-- `proposed_authority_delta`: optional and non-executing
+- residual risks, approver, timestamp, optional non-executing authority delta
 
-**Rules**: A decision never grants authority by itself. Any proposed expansion
-becomes a separately scoped approval and tracked change.
+**Rules**: A decision does not grant authority. Expansion requires a new scope
+and approval.

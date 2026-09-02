@@ -17,6 +17,10 @@ retained to preserve the research and decision history, but a future restart
 must make a new ingress and deployment decision rather than assuming this ADR
 remains approved.
 
+Planning was reconsidered on 2026-09-02. The proposed replacement ingress is
+recorded in [ADR-008](008-buzz-private-nginx-ingress.md); this ADR remains
+deprecated and must not be used as the active implementation contract.
+
 ## Context
 
 Buzz could give the owner and agents one shared real-time collaboration space,

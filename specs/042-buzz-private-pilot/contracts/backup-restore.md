@@ -1,30 +1,31 @@
 # Contract: Backup and Restore
 
-## Recovery Set
+## Authoritative set
 
-The encrypted set contains a transaction-consistent PostgreSQL dump, MinIO
-object snapshot, Redis diagnostic/AOF state, and safe configuration manifest.
-Local Git data is disposable scratch in the assessed source and is recreated,
-not archived as authoritative state. Identity and service secrets remain in
-approved encrypted secret custody and are referenced only by opaque metadata.
-Tailscale node state is excluded from the multi-store recovery set: loss or
-corruption is recovered by revoking the old device and explicitly re-enrolling
-a new `buzz` device after approval, preventing accidental identity duplication.
+- PostgreSQL and MinIO are captured in one maintenance window with a shared
+  marker and immutable release/schema metadata.
+- Redis is diagnostic/cache state and is not required for authoritative
+  recovery. Git scratch is regenerated and validated.
+- A `COMPLETE` marker is written only after both authoritative encrypted
+  artifacts, digests, sizes, and off-box transfer succeed.
+- Secrets, private keys, authorization material, and message content never
+  enter evidence or backup metadata.
 
-All authoritative artifacts share one maintenance-window and release marker.
-The producer writes `COMPLETE` only after encryption, integrity metadata, and
-off-box set completion succeed.
+## Restore gate
 
-## Restore
+- Restore occurs on a disposable, unrouted network with distinct names and no
+  production listener.
+- PostgreSQL is restored before relay validation; MinIO is restored before
+  attachment/object assertions.
+- Logical checks cover schema/migrations, community/membership references,
+  object references, synthetic pilot records, and restart behavior.
+- RPO and RTO are measured. Owner admission is blocked until the exact current
+  candidate has a successful restore run.
 
-Restore uses disposable names and an isolated unrouted network. It restores
-database, object, and coordination state in documented order, creates empty
-Git scratch, starts the exact candidate, and validates membership, channels,
-messages, attachments, logical repository rehydration, schema/migration state,
-and secret absence from evidence.
+## Ingress recovery
 
-## Gate
-
-Owner admission requires a successful restore of the current release and
-schema. A missing artifact, incompatible point, failed assertion, excessive
-duration, or incomplete marker blocks ingress/admission and preserves evidence.
+There is no Buzz Tailscale node state to back up. Non-secret listener, route,
+grant, certificate-reference, and config-digest metadata may be recorded, but
+the private listener and exact `/32` route/grant are recreated only through the
+normal approval-bound activation sequence. Recovery never clones or restores
+the host Tailscale identity.

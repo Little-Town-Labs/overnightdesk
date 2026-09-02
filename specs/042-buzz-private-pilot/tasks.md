@@ -1,167 +1,122 @@
 # Tasks: Buzz Private Pilot on Aegis
 
-**Input**: Design documents from `specs/042-buzz-private-pilot/`
+**Input**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/`, and `quickstart.md`
 
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
+**Status**: Planning reactivated; no implementation or production action authorized
 
-**Delivery Status**: Closed without deployment on 2026-09-01. T001 through
-T009 are completed research/evidence. T010 through T054 are intentionally
-unexecuted and not scheduled; their unchecked boxes do not represent active
-work.
+**Method**: Contracts first. Production tasks are sequential, owned by Sol, and marked **[OWNER APPROVAL]**.
 
-**Tests**: Test-first and deterministic qualification are required by FR-023.
-Production mutation tasks are marked **[OWNER APPROVAL]** and are never
-delegated.
+## Historical record — completed 2026-09-01
 
-## Phase 1: Scope, Tracking, and Candidate Freeze
+These tasks produced research and local evidence only. Their sidecar topology
+is superseded but the record is retained.
 
-**Purpose**: Establish approved scope and reproducible inputs without changing Aegis.
+- [X] T001 Create and route Issue #249 with its original acceptance criteria.
+- [X] T002 Record the historical decision in docs/decisions/007-buzz-private-pilot.md.
+- [X] T003 Document the original lifecycle in docs/runbooks/buzz-private-pilot.md.
+- [X] T004 Assess the pinned Buzz source/image and record specs/042-buzz-private-pilot/evidence/candidate.md.
+- [X] T005 Capture the 2026-09-01 read-only Aegis baseline in specs/042-buzz-private-pilot/evidence/baseline.md.
+- [X] T006 Freeze the original sidecar topology and authority model.
+- [X] T007 Research official Tailscale container and Serve interfaces.
+- [X] T008 Run the local relay-wrapper and sidecar experiments recorded in specs/042-buzz-private-pilot/evidence/gate-0-remediation.md.
+- [X] T009 Add the historical candidate-image contract and exact-artifact relay wrapper under infra/buzz/.
 
-- [X] T001 **[GITHUB APPROVED 2026-09-01]** Create/adopt the primary Issue, route it to Engineering Delivery project 4, and record Intake fields and acceptance/non-goals from specs/042-buzz-private-pilot/spec.md; tracked by [#249](https://github.com/Little-Town-Labs/overnightdesk/issues/249) (FR-001, FR-024)
-- [X] T002 Record the hosting, identity, recovery, and agent-authority decision in docs/decisions/007-buzz-private-pilot.md (FR-001, FR-005, FR-021)
-- [X] T003 [P] Add the operator-facing planned lifecycle and approval gates to docs/runbooks/buzz-private-pilot.md (FR-014, FR-019, FR-022, FR-024)
-- [X] T004 [P] Re-verify the pinned Buzz commit/image ARM64 manifest, provenance, SBOM, same-SHA CI, vulnerability posture, and rollback candidate; record safe evidence in specs/042-buzz-private-pilot/evidence/candidate.md (FR-001, FR-008)
-- [X] T005 Capture a current read-only Aegis service, route, container, resource, disk, backup, and health baseline in specs/042-buzz-private-pilot/evidence/baseline.md (FR-019, FR-024)
-- [X] T006 Freeze exact hostname, dedicated Tailscale TLS/WSS topology, services, volumes, networks, resource limits, Phase path names, recovery objectives, and authority matrix in docs/runbooks/buzz-private-pilot.md (FR-001, FR-003, FR-005, FR-007, FR-008, FR-025)
-- [X] T007 [P] Verify official Tailscale Docker, Serve, HTTPS, OAuth/tag, state, and userspace interfaces and encode the selected topology in specs/042-buzz-private-pilot/research.md and specs/042-buzz-private-pilot/contracts/ingress-and-runtime.md (FR-003, FR-009, FR-014)
-- [X] T008 [P] Run throwaway ARM64 relay-wrapper and non-root Tailscale-sidecar experiments with pinned Syft/Grype tooling and record dispositions in specs/042-buzz-private-pilot/evidence/gate-0-remediation.md (FR-001, FR-008, FR-025)
-- [X] T009 Write a failing candidate-image contract in infra/buzz/tests/test_candidate_images.py, promote the version-frozen Wolfi relay wrapper to infra/buzz/relay/Dockerfile, reproduce its ARM64 digest/SBOM/scan, and prove exact-artifact runtime compatibility (FR-001, FR-008, FR-023, FR-025)
-- [ ] T010 Qualify a fixed immutable official Tailscale ARM64 release under the same non-root runtime and vulnerability contract and update specs/042-buzz-private-pilot/evidence/gate-0-remediation.md; do not create a custom Tailscale fork (FR-003, FR-008, FR-025)
+T010-T054 were never executed. They are retired rather than renumbered or
+silently rewritten. Continuation begins at T055.
 
-**Checkpoint**: Candidate and scope are reproducible; production is unchanged.
+## Phase 1 — Reactivation and current-fact freeze
 
----
+- [ ] T055 **[OWNER APPROVAL]** Update the reopened Issue #249 body to the ADR-008 scope, confirm its Engineering Delivery project 4 routing, and initialize current delivery fields without implying deployment approval (FR-027) in the approved GitHub surfaces.
+- [ ] T056 Refresh Buzz repository, security policy, client/relay URL behavior, NIP-AA behavior, issue #6281, release/commit status, and supported ARM64 artifacts in specs/042-buzz-private-pilot/evidence/current-upstream.md (FR-001, FR-002).
+- [ ] T057 Requalify relay, PostgreSQL, Redis, MinIO, initializer, and canary images by immutable ARM64 digest, provenance, SBOM, vulnerability disposition, non-root execution, and startup behavior in specs/042-buzz-private-pilot/evidence/current-images.md (FR-001, FR-026).
+- [ ] T058 [P] Perform read-only Aegis inventory of addresses, interfaces, Docker port bindings/networks, Nginx image/modules/listeners/config/reload method, service health, capacity, disk, and backup state in specs/042-buzz-private-pilot/evidence/current-aegis.md (FR-003, FR-004, FR-008, FR-025).
+- [ ] T059 [P] Perform read-only OCI inspection of VNIC private/public addresses, NAT, route tables, gateways, security lists, IPv6, and DNS/certificate constraints in specs/042-buzz-private-pilot/evidence/current-oci.md (FR-004, FR-009, FR-011).
+- [ ] T060 [P] Perform read-only Tailscale inspection of node identity, version, advertised/approved routes, route injection, grants, Serve root, and `ob1-mcp` handler in specs/042-buzz-private-pilot/evidence/current-tailscale.md (FR-005 through FR-007).
+- [ ] T061 Select and record a candidate private listener address only if T058-T060 prove it unassigned, locally bindable, exactly routable, publicly unreachable, and safely withdrawable in docs/runbooks/buzz-private-pilot.md (FR-004, FR-005, FR-009).
+- [ ] T062 Freeze the canonical hostname, DNS-01 certificate/renewal, private resolution, exact `/32`, owner-device grant, resource ceiling, recovery targets, approval owners, and rollback assertions in docs/runbooks/buzz-private-pilot.md (FR-005, FR-006, FR-010, FR-011, FR-017, FR-021).
 
-## Phase 2: Foundational Local Contracts
+**Checkpoint**: Current facts and inputs are immutable; no production state changed.
 
-**Purpose**: Write failing contracts before deployment source.
+## Phase 2 — Failing local contracts
 
-- [ ] T011 Create minimal upstream-derived services, the dedicated Tailscale namespace owner, and qualified digest placeholders in infra/buzz/compose.yml and infra/buzz/compose.aegis.yml so contract tests have a concrete target (FR-001, FR-003, FR-007, FR-025)
-- [ ] T012 [P] Write failing runtime isolation, hardening, image pin, explicit non-root, shared namespace, optional-surface, limit, and no-host-port tests in infra/buzz/tests/test_compose_contract.py (FR-003, FR-008, FR-025)
-- [ ] T013 [P] Write failing exact-hostname/tag, userspace, loopback-only Serve, Funnel absence, WebSocket, internal-probe, existing-listener invariance, and fail-closed route tests in infra/buzz/tests/test_ingress_contract.py (FR-003, FR-014, FR-019)
-- [ ] T014 [P] Write failing Phase projection, container-metadata, and log-sentinel tests in infra/buzz/tests/test_secret_and_log_contract.py (FR-005, FR-009, FR-011)
-- [ ] T015 [P] Write failing coherent-set, completeness-marker, isolated-name/network, restore-order, and logical-assertion tests in infra/buzz/tests/test_backup_restore_contract.py (FR-007, FR-012, FR-013)
-- [ ] T016 [P] Write failing owner-only, one-channel, no-tool, deduplication, resource, refusal, and revocation tests in infra/buzz/tests/test_agent_authority_contract.py (FR-015 through FR-018)
-- [ ] T017 [P] Write failing prepare/install-disabled/verify/enable/rollback ordering and approval-gate tests in infra/buzz/tests/test_deployment_lifecycle.py (FR-014, FR-019, FR-022, FR-023)
-- [ ] T018 Add deterministic local test and Compose-render commands to infra/buzz/tests/README.md and verify all new contract tests fail for the intended missing behavior (FR-023)
+- [ ] T063 Create minimal renderable service and Nginx fixtures with immutable placeholders in infra/buzz/compose.yml, infra/buzz/compose.aegis.yml, and infra/buzz/nginx/buzz-private.conf.example so tests have concrete targets (FR-003, FR-004, FR-015).
+- [ ] T064 [P] Write failing image, hardening, resource, optional-surface, and no-public-port contracts in infra/buzz/tests/test_compose_contract.py (FR-001, FR-003, FR-025, FR-026).
+- [ ] T065 [P] Write failing private-listener, no-public-SNI/Host selection, DNS/certificate, no-`auth_request`, header/URI preservation, and Nginx reload contracts in infra/buzz/tests/test_ingress_contract.py (FR-004, FR-008 through FR-013, FR-022).
+- [ ] T066 [P] Write failing full signed NIP-42 and NIP-98 proxy contract fixtures under infra/buzz/tests/protocol/ and assertions in infra/buzz/tests/test_protocol_contract.py (FR-010, FR-012, FR-014).
+- [ ] T067 [P] Write failing three-network membership and forbidden-path tests in infra/buzz/tests/test_network_contract.py (FR-015, FR-020).
+- [ ] T068 [P] Write failing exact `/32`, separate route/grant, existing-route/Serve invariance, and route-first ordering tests in infra/buzz/tests/test_route_contract.py (FR-005 through FR-007, FR-021 through FR-023).
+- [ ] T069 [P] Write failing secret projection, owner-key exclusion, safe-log, and evidence-sentinel tests in infra/buzz/tests/test_secret_and_log_contract.py (FR-018, FR-024, FR-026).
+- [ ] T070 [P] Write failing coherent PostgreSQL+MinIO set, completeness, disposable restore, and logical-assertion tests in infra/buzz/tests/test_backup_restore_contract.py (FR-016, FR-017).
+- [ ] T071 [P] Write failing owner/channel/tool/network/concurrency/output/timeout/deduplication/revocation tests in infra/buzz/tests/test_agent_authority_contract.py (FR-019, FR-020).
+- [ ] T072 Write deterministic commands in infra/buzz/tests/README.md and prove T064-T071 fail only for their intended missing behavior (FR-026).
 
-**Checkpoint**: Every security, recovery, and lifecycle boundary has a failing executable contract.
+**Checkpoint**: Every security, protocol, recovery, authority, and lifecycle boundary has an intentional failing contract.
 
----
+## Phase 3 — Minimum local implementation
 
-## Phase 3: User Story 2 - Operator Qualifies and Recovers the Service (Priority: P1)
+- [ ] T073 [US2] Implement immutable, non-root, hardened relay/store services, volumes, health checks, and limits in infra/buzz/compose.yml and infra/buzz/compose.aegis.yml until T064 passes (FR-001, FR-003, FR-016, FR-025).
+- [ ] T074 [US2] Implement `buzz-ingress`, `buzz-data`, and `buzz-canary` membership and internal name-resolution boundaries in infra/buzz/compose.yml and infra/buzz/compose.aegis.yml until T067 passes (FR-015, FR-020).
+- [ ] T075 [US1] Implement the private-only canonical Buzz server block in infra/buzz/nginx/buzz-private.conf.example until T065 passes (FR-004, FR-008 through FR-013, FR-022).
+- [ ] T076 [US1] Implement the synthetic canonical NIP-42/NIP-98 Nginx harness under infra/buzz/tests/protocol/ until T066 passes (FR-010, FR-012, FR-014).
+- [ ] T077 [P] [US2] Implement runtime secret projection and non-secret configuration examples in infra/buzz/load-phase-env.sh and infra/buzz/env.example until T069 passes (FR-018, FR-024).
+- [ ] T078 [P] [US2] Implement coherent encrypted backup and disposable restore helpers in infra/buzz/backup-buzz.sh and infra/buzz/restore-rehearsal.sh until T070 passes (FR-016, FR-017).
+- [ ] T079 [P] [US3] Implement the tool-free canonical-Nginx-only canary boundary in infra/buzz/canary/ and infra/buzz/compose.aegis.yml until T071 passes (FR-019, FR-020).
+- [ ] T080 [US2] Implement disabled install, validate/reload, route/grant activation, route-first rollback, status, approval guards, and invariant comparisons in infra/buzz/deploy-aegis.sh and infra/buzz/rollback.sh until T068 passes (FR-005 through FR-007, FR-021 through FR-023).
+- [ ] T081 [US2] Run all local contracts, rendered-Compose checks, synthetic protocol matrix, safe-log sentinel, recovery rehearsal, and rollback simulation; record digest-bound results in specs/042-buzz-private-pilot/evidence/local-qualification.md (SC-001, SC-005, SC-012).
 
-**Goal**: Produce a disabled-first, privately qualified, recoverable workload.
+**Checkpoint**: The proposed topology is locally executable and still has no production effect.
 
-**Independent Test**: Run the local qualification, then—with approvals—install
-without a route, complete backup/restore, and rollback without affecting the
-existing Aegis baseline.
+## Phase 4 — Route coexistence proof
 
-### Local implementation
+- [ ] T082 [US2] **[OWNER APPROVAL]** Capture signed current production baselines and install the inactive private Nginx include plus protocol probe without admitting any Buzz identity (FR-021, FR-026) on Aegis.
+- [ ] T083 [US2] **[OWNER APPROVAL]** Advertise/approve only the selected `/32`, apply only the approved owner-device grant, validate/reload Nginx, and record exact mutations in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-005, FR-006, FR-022).
+- [ ] T084 [US1] **[OWNER APPROVAL]** Execute canonical signed-protocol positive tests and public IPv4/IPv6, forged-SNI/Host, unapproved-device, alternate-hostname, and direct-target denial tests in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-009, FR-010, FR-012, FR-014).
+- [ ] T085 [US2] **[OWNER APPROVAL]** Disable the private listener, validate/reload, withdraw only the exact grant and `/32`, and prove routes, Serve, public vhosts, services, and health match baseline in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-007, FR-008, FR-023).
 
-- [ ] T019 [US2] Implement isolated service networks, Tailscale-owned shared namespace, volumes, immutable images, health checks, migrations, hardening, and resource limits in infra/buzz/compose.yml and infra/buzz/compose.aegis.yml until T012 passes (FR-003, FR-007, FR-008, FR-025)
-- [ ] T020 [P] [US2] Implement least-privilege secret projection and non-secret configuration example in infra/buzz/load-phase-env.sh and infra/buzz/env.example until T014 passes (FR-005, FR-009)
-- [ ] T021 [P] [US2] Implement the loopback-only HTTPS/WSS Serve definition with Funnel disabled in infra/buzz/tailscale/serve.json until T013 passes (FR-003, FR-014)
-- [ ] T022 [US2] Implement root-owned systemd and stack lifecycle source in infra/buzz/buzz.service, infra/buzz/run-stack.sh, and infra/buzz/stop-stack.sh (FR-001, FR-008, FR-019)
-- [ ] T023 [US2] Implement private container/dependency/resource/secret/baseline checks in infra/buzz/qualify-private.sh until the runtime contracts pass (FR-008, FR-010, FR-011, FR-023)
-- [ ] T024 [P] [US2] Implement coherent encrypted-set production integration in infra/buzz/backup-buzz.sh until backup contracts pass (FR-012)
-- [ ] T025 [P] [US2] Implement disposable unrouted restore and logical assertions in infra/buzz/restore-rehearsal.sh until restore contracts pass (FR-013)
-- [ ] T026 [US2] Implement dedicated-device-first disable/revocation, host-Serve invariance, state preservation, and previous-release handling in infra/buzz/rollback.sh until lifecycle tests pass (FR-019)
-- [ ] T027 [US2] Compose prepare, install-disabled, private verification, backup, restore, route, rollback, status, evidence, and explicit approval gates in infra/buzz/deploy-aegis.sh (FR-014, FR-019, FR-022, FR-023)
-- [ ] T028 [US2] Run all local contracts, Compose rendering, isolated synthetic integration, safe-log sentinel, and local rollback; record results in specs/042-buzz-private-pilot/evidence/local-qualification.md (SC-001, SC-010)
+**Checkpoint**: Private route and protocol coexistence are proven and fully rolled back.
 
-### Production qualification
+## Phase 5 — Disabled installation and owner qualification
 
-- [ ] T029 [US2] **[OWNER APPROVAL]** Create the exact tag-scoped ingress credential/policy, install root-owned source and services disabled on Aegis, with Serve inactive and no admitted identities (FR-001, FR-002, FR-009, FR-014)
-- [ ] T030 [US2] **[OWNER APPROVAL]** Run private hardening, readiness, capacity, safe-log, restart, and existing-service checks; record safe evidence in specs/042-buzz-private-pilot/evidence/private-qualification.md (SC-001, SC-003, SC-009, SC-010)
-- [ ] T031 [US2] **[OWNER APPROVAL]** Extend the encrypted backup producer, create a current coherent set, and verify off-box completion without exposing secrets (FR-012)
-- [ ] T032 [US2] **[OWNER APPROVAL]** Restore the current set on a disposable unrouted network, validate all stores, measure RPO/RTO, and record specs/042-buzz-private-pilot/evidence/restore-rehearsal.md (SC-004)
-- [ ] T033 [US2] **[OWNER APPROVAL]** Rehearse route-first rollback, verify Buzz becomes unreachable within five minutes with state preserved, and compare every existing Aegis health check to T005 (SC-005)
+- [ ] T086 [US2] **[OWNER APPROVAL]** Install exact root-owned sources and immutable services disabled on Aegis with no route and no admitted identity; record specs/042-buzz-private-pilot/evidence/private-qualification.md (FR-001, FR-003, FR-015, FR-021).
+- [ ] T087 [US2] **[OWNER APPROVAL]** Verify hardening, network isolation, readiness, restart, resource ceiling, safe logs, and existing-service health in specs/042-buzz-private-pilot/evidence/private-qualification.md (FR-015, FR-024, FR-025).
+- [ ] T088 [US2] **[OWNER APPROVAL]** Create the coherent encrypted set, verify off-box completion, restore it unrouted, run logical assertions, and record RPO/RTO in specs/042-buzz-private-pilot/evidence/restore-rehearsal.md (FR-016, FR-017, SC-006).
+- [ ] T089 [US2] **[OWNER APPROVAL]** Rehearse route-first rollback and confirm Buzz unreachability plus existing-state invariance in specs/042-buzz-private-pilot/evidence/rollback-rehearsal.md (FR-021 through FR-023, SC-007).
+- [ ] T090 [US1] **[OWNER APPROVAL]** Activate the exact private route/grant/listener and admit only the client-held owner identity after T088-T089 pass (FR-005, FR-006, FR-018, FR-021).
+- [ ] T091 [US1] **[OWNER APPROVAL]** Run owner collaboration, complete NIP-42/NIP-98, denial, reconnect, restart, load, resource, and sentinel checks in specs/042-buzz-private-pilot/evidence/owner-qualification.md (SC-002, SC-003, SC-004, SC-008, SC-011, SC-012).
 
-**Checkpoint**: The service is privately qualified and recoverable; no human route or membership is active.
+**Checkpoint**: Owner-only use passes; canary remains absent.
 
----
+## Phase 6 — Canary and observation
 
-## Phase 4: User Story 1 - Owner Uses a Private Collaboration Space (Priority: P1)
+- [ ] T092 [US3] **[OWNER APPROVAL]** Create a new canary key/scope, admit it to one owner/channel, and start it with canonical-Nginx-only networking (FR-019, FR-020).
+- [ ] T093 [US3] **[OWNER APPROVAL]** Execute twenty valid, caller/channel denial, no-tool, direct-network denial, duplicate, adversarial, restart, resource, and revocation cases in specs/042-buzz-private-pilot/evidence/canary-qualification.md (SC-005, SC-009, SC-010, SC-011, SC-012).
+- [ ] T094 [US4] **[OWNER APPROVAL]** Run the seven-day bounded observation without adding authority or business data and record daily safe evidence in specs/042-buzz-private-pilot/evidence/observation.md (FR-024, FR-027, SC-013, SC-014).
+- [ ] T095 [US4] Record exactly one continue/pause/rollback/new-scope decision and synchronized operational documentation in specs/042-buzz-private-pilot/evidence/pilot-decision.md and docs/runbooks/buzz-private-pilot.md (FR-027, SC-014).
 
-**Goal**: Admit only the owner and prove core collaboration plus denial.
+## Phase 7 — Final quality gate
 
-**Independent Test**: Owner actions pass; every unadmitted identity and
-unapproved network attempt fails; restart preserves synthetic state.
-
-- [ ] T034 [P] [US1] Implement deterministic owner collaboration, negative admission/channel, reconnect, restart, load, and safe-evidence checks in infra/buzz/qualify-owner.sh (FR-004, FR-006, FR-023)
-- [ ] T035 [US1] Add owner route/admission and qualification commands with backup/rollback preconditions to infra/buzz/deploy-aegis.sh (FR-002, FR-014)
-- [ ] T036 [US1] Run local/synthetic owner qualification and prove denied cases before production activation; record specs/042-buzz-private-pilot/evidence/owner-local.md (FR-004, FR-006)
-- [ ] T037 [US1] **[OWNER APPROVAL]** Generate/recover the owner's distinct client identity, activate the exact dedicated-device Serve route with Funnel absent, and admit only that identity (FR-002 through FR-005)
-- [ ] T038 [US1] **[OWNER APPROVAL]** Execute send/edit/delete/reaction/thread/search/reconnect/restart/load and unadmitted connect/read/write denial; record specs/042-buzz-private-pilot/evidence/owner-qualification.md (SC-002, SC-003, SC-008, SC-010)
-
-**Checkpoint**: Owner-only pilot works; the canary remains disabled.
-
----
-
-## Phase 5: User Story 3 - Low-Authority Agent Participates Safely (Priority: P2)
-
-**Goal**: Admit one new tool-free canary and prove bounded behavior and revocation.
-
-**Independent Test**: Twenty valid owner interactions pass; all out-of-scope
-sources/actions remain zero; revocation cancels future and queued activity.
-
-- [ ] T039 [P] [US3] Build a reproducible pinned adapter image with no bundled tools in infra/buzz/canary/Dockerfile and document its digest inputs in infra/buzz/canary/README.md (FR-015, FR-016)
-- [ ] T040 [P] [US3] Define deny-by-default owner/channel/concurrency/output/timeout/deduplication configuration in infra/buzz/canary/config.example.toml (FR-016, FR-017)
-- [ ] T041 [US3] Implement the separately supervised adapter boundary in infra/buzz/buzz-canary.service and infra/buzz/compose.aegis.yml until T016 passes (FR-015 through FR-018)
-- [ ] T042 [US3] Implement 20 valid, unapproved-source, adversarial, duplicate, restart, resource, queued-revocation, and log-sentinel checks in infra/buzz/qualify-canary.sh (FR-017, FR-018, FR-023)
-- [ ] T043 [US3] Add explicit canary enable/disable/qualify commands and owner/private qualification preconditions to infra/buzz/deploy-aegis.sh (FR-015, FR-022)
-- [ ] T044 [US3] Run the complete adapter test suite locally with synthetic keys and prove no tools, cross-channel response, or sensitive telemetry; record specs/042-buzz-private-pilot/evidence/canary-local.md (SC-006, SC-007, SC-010)
-- [ ] T045 [US3] **[OWNER APPROVAL]** Create a new canary key/Phase scope, admit it to one channel, and start the bounded adapter (FR-015, FR-016)
-- [ ] T046 [US3] **[OWNER APPROVAL]** Execute canary behavioral, adversarial, restart, capacity, and revocation qualification; record specs/042-buzz-private-pilot/evidence/canary-qualification.md (SC-006 through SC-010)
-
-**Checkpoint**: The isolated canary passes or is revoked and disabled; no existing agent was changed.
-
----
-
-## Phase 6: User Story 4 - Evidence-Based Decision (Priority: P3)
-
-**Goal**: Observe the bounded pilot and make one explicit decision without expanding authority.
-
-- [ ] T047 [P] [US4] Add daily safe health/capacity/backup/canary/denial evidence capture and blocker rules to docs/runbooks/buzz-private-pilot.md (FR-010, FR-020, FR-024)
-- [ ] T048 [US4] **[OWNER APPROVAL]** Run the seven-day bounded observation without adding users, agents, tools, routes, channels beyond the ceiling, or business data (SC-011, SC-012)
-- [ ] T049 [US4] Summarize exact release, approvals, checks, recovery, capacity, incidents, residual risks, rollback state, and gate disposition in specs/042-buzz-private-pilot/evidence/pilot-decision.md (FR-024)
-- [ ] T050 [US4] Update README.md, docs/runbooks/buzz-private-pilot.md, ../overnightdesk-platform-standard/WHAT/services.yaml, ../overnightdesk-platform-standard/WHAT/network.yaml, ../overnightdesk-platform-standard/WHAT/databases.yaml, ../overnightdesk-platform-standard/WHAT/secrets.yaml, and ../overnightdesk-platform-standard/HOW/deployment.md, then append the verified production result to /opt/overnightdesk/deploys.log so canonical truth matches the live bounded/paused/rolled-back state (FR-001, FR-024)
-- [ ] T051 [US4] Record exactly one owner decision—continue bounded, pause disabled, rollback, or propose a separately scoped expansion—without activating any authority delta (FR-020, FR-021)
-
----
-
-## Phase 7: Final Quality Gate
-
-- [ ] T052 Run all infra/buzz/tests, Compose rendering, Tailscale Serve validation, Funnel/host-listener invariance, security/log scans, backup/restore assertions, and documentation link checks on the latest reviewed head (FR-023)
-- [ ] T053 Perform security-and-hardening review against every contract and dispose each evidence-backed finding without expanding scope (FR-023, FR-025)
-- [ ] T054 Perform code-review-and-quality against the primary Issue/spec, verify required CI/review/follow-ups, and confirm production activation remains separately authorized (FR-022 through FR-024)
+- [ ] T096 Run all tests, rendering, protocol, public-denial, route/Serve invariance, security/sentinel, recovery, documentation-link, and task-coverage checks on the latest reviewed head (FR-026).
+- [ ] T097 Perform security-and-hardening review of authentication, route/listener, network, identity, secret, recovery, telemetry, and rollback contracts; disposition findings without expanding scope in specs/042-buzz-private-pilot/evidence/final-review.md (FR-026).
+- [ ] T098 Perform code-review-and-quality against Issue/spec, latest-head CI, approvals, follow-ups, rollout, and rollback; confirm merge and production activation remain separate decisions in specs/042-buzz-private-pilot/evidence/final-review.md (FR-027).
 
 ## Dependencies
 
-- T002-T006 and T007-T010 freeze scope and qualify both runtime images before T011; completed GitHub tracking T001 does not gate image qualification.
-- T011 enables T012-T017; all failing contracts precede T019-T027.
-- T028 must pass before T029; T029 before T030-T033.
-- T032 and T033 must pass before T037.
-- T038 must pass before T045.
-- T039-T044 must pass before T045; T045 before T046.
-- T046 must pass before T048; T048 before T049-T051.
-- T052-T054 follow the selected pilot outcome and latest reviewed head.
+- T056-T060 may run concurrently; T061-T062 require their evidence.
+- T063 enables T064-T071; all failing contracts precede T073-T080.
+- T081 requires T073-T080 and gates every production task.
+- T082-T085 are sequential and require separate production authorization.
+- T085 must prove full rollback before T086.
+- T086-T089 precede T090; T091 precedes T092.
+- T092 precedes T093; T093 precedes T094; T094 precedes T095.
+- T096-T098 run on the final selected head and do not authorize deployment.
+- T055 is required for tracked delivery but does not block read-only/local Gate
+  0 research unless repository governance requires an active Issue first.
 
-## Parallel Opportunities
+## MVP Stop Points
 
-- T003-T005 and T007-T008 are disjoint read-only documentation/evidence work.
-- T009 can proceed locally while T010 waits for a fixed upstream Tailscale release; T011 waits for both.
-- T012-T017 own separate contract files and can run in parallel.
-- T020/T021 and T024/T025 own disjoint source surfaces after T019 establishes
-  Compose names.
-- T039/T040 can proceed in parallel after the authority contract is frozen.
-- Production tasks are intentionally sequential, approval-bound, and
-  non-delegable.
+- T085: ingress feasibility proven, production returned to baseline.
+- T089: disabled workload is recoverable and reversible, no user admitted.
+- T091: owner-only product value proven.
+- T093: bounded canary authority proven.
 
-## MVP Stop Point
-
-Gate 2 / T033 is the minimum infrastructure MVP: Buzz is proven private,
-recoverable, bounded, and reversible with no admitted user. Gate 3 answers
-whether the human product is useful. Gate 4 answers whether a low-authority
-agent is safe. Each is independently stoppable.
+Every stop point permits pause or route-first rollback without expanding scope.

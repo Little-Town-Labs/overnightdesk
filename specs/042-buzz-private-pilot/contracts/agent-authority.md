@@ -1,30 +1,23 @@
-# Contract: Agent Authority
+# Contract: Canary Identity and Authority
 
-## Allowed
+- The canary uses a newly generated identity distinct from the owner, relay
+  administrator, existing agents, and negative-test identities.
+- It accepts requests from exactly one owner public key in exactly one channel.
+- It has zero tools, one concurrent job, bounded input/output/time, and an
+  explicit deduplication window.
+- Its only network path is `buzz-canary` to the canonical Nginx endpoint at
+  `wss://buzz.overnightdesk.com`; it cannot resolve or connect directly to the
+  relay, PostgreSQL, Redis, MinIO, host Docker socket, metadata endpoints, or
+  other workload networks.
+- It has no deployment, shell, repository, secret, payment, outreach,
+  CRM/customer/prospect-data, production-lifecycle, or cross-channel authority.
+- Missing or malformed caller/channel policy fails closed.
+- Revocation stops admission, cancels queued work, terminates in-flight work at
+  the approved boundary, and prevents future responses until a new approval.
+- Logs and evidence record only safe correlation IDs, durations, result/denial
+  classes, and resource measurements—never prompts, responses, keys, signed
+  events, headers, or message bodies.
 
-- One new canary public identity.
-- One owner public identity as caller.
-- One approved test channel.
-- Read context and post one bounded reply in the correct channel/thread.
-- One active prompt at a time with timeout, output cap, and event deduplication.
-
-## Denied
-
-- Unknown callers or channels; direct messages unless separately approved.
-- Shell, code/repository mutation, Docker, deployment, secrets, MCP, payments,
-  outreach, CRM, customer/prospect data, or cross-workspace memory.
-- Owner/admin private keys and existing Walter, Titus, or Trevor credentials.
-- `respond-to anyone`, implicit tools, or automatic authority expansion.
-
-## Fail-Closed Rules
-
-Missing owner/channel configuration means respond to nobody. Invalid
-signatures, revoked membership, repeated events, excessive work, adapter errors,
-and prohibited requests produce safe reason codes and no action. Revocation
-cancels queued work before reconnect/publish attempts.
-
-## Verification
-
-Run 20 owner requests, messages from an unapproved identity and channel,
-adversarial authority requests, duplicate/reconnect cases, restart, resource
-bounds, and relay/channel revocation. Expected prohibited actions: zero.
+Qualification includes valid owner interactions, unapproved caller/channel,
+duplicate, adversarial, restart, capacity, direct-network, and queued/in-flight
+revocation cases.

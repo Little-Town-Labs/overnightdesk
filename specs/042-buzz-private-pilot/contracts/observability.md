@@ -1,30 +1,32 @@
-# Contract: Observability and Evidence
+# Contract: Safe Observability and Evidence
 
-## Signals
+## Required signals
 
-- lifecycle, health, restart, digest, readiness, and migration state;
-- dedicated Tailscale device online state, expected tag/name, Serve/Funnel
-  state, TLS/WSS errors, and unchanged host-listener baseline;
-- WebSocket/request count, latency/error totals, membership denials, invalid
-  signatures, rate-limit results, and dependency failures;
-- database pool, Redis, MinIO, queue/canary, CPU, memory, PID, disk/inode, and
-  connection capacity;
-- backup/restore set IDs, artifact counts, validation results, and duration;
-- canary processed, ignored, failed, duplicate, prohibited, and revoked events.
+- service availability and restart count;
+- CPU, memory, PIDs, disk, connections, and store health;
+- Nginx config digest, validation result, reload result, and private-listener
+  state;
+- `/32` advertisement/approval and source-grant state without credentials;
+- digests proving existing routes and Tailscale Serve remained unchanged;
+- public/forged-SNI/unapproved-device denial counts;
+- NIP-42 and NIP-98 outcome classes, latency, and reconnect result;
+- backup completeness, encrypted artifact sizes, restore result, RPO/RTO;
+- canary allow/deny/deduplicate/revoke outcome classes.
 
-## Data Safety
+## Forbidden telemetry
 
-Telemetry permits public keys only where operationally required, safe event
-IDs, counts, durations, status, and reason codes. It forbids private keys,
-secrets, Tailscale OAuth/auth values, node-state contents, authorization
-values, cookies, raw URLs with credentials, message
-bodies, prompts, model output, attachments, and secret-store responses.
+Do not record private keys, secrets, authorization values, cookies, signed
+events, complete URLs containing sensitive values, message bodies, prompts,
+responses, attachment content, or raw database/object-store records.
 
-## Alerts and Hard Stops
+## Evidence rules
 
-Readiness loss, restart loops, disk or memory ceiling, database exhaustion,
-Redis admission failure, object errors, denial spikes, secret sentinel hits,
-unexpected Funnel/route/SSH state, ingress tag/name drift, prohibited canary
-actions, or existing Aegis health regression block gate
-advancement. Secret leakage, data loss, or cross-scope action triggers immediate
-route-first rollback and human decision.
+- Evidence is bound to source, image, rendered Compose, Nginx config, route,
+  grant, and baseline digests.
+- Failure categories distinguish transport denial, TLS/hostname, WebSocket,
+  NIP-42, NIP-98, membership, upstream, recovery, and authority failures
+  without capturing payloads.
+- Every production run names its gate and approval reference.
+- Sentinel scans fail the gate on any forbidden value.
+- Rollback evidence proves Buzz unreachable and existing Nginx vhosts,
+  Tailscale Serve, routes, containers, backup jobs, and health checks unchanged.

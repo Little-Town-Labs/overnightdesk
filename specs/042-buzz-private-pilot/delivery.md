@@ -6,63 +6,59 @@
 - Context: `brownfield`
 - Scale: `system`
 - Risk: `production`
-- Mode: `closed-no-deployment`
+- Mode: `planning-reactivated`
 - Spec Kit required: `yes`
 - Mutation owner: `sol-lead`
-- Primary Issue: [`Little-Town-Labs/overnightdesk#249`](https://github.com/Little-Town-Labs/overnightdesk/issues/249)
-- Delivery Project: [`poorlyordered/Engineering Delivery` project 4](https://github.com/users/poorlyordered/projects/4)
-
-## Analysis Result
-
-The reconciled spec, plan, and tasks contain 25 functional requirements, 12
-buildable success criteria, and 54 sequential tasks. Every requirement and
-criterion has task coverage. No constitutional conflict, unresolved
-clarification, placeholder, or ingress terminology conflict remains.
-
-One task-order finding was remediated after the read-only analysis: Gate 0
-remediation tasks are now sequential `T007` through `T010`. GitHub tracking
-`T001` was non-blocking for local work and is now complete.
+- Primary Issue: [#249](https://github.com/Little-Town-Labs/overnightdesk/issues/249), reopened for planning on 2026-09-02
+- Delivery Project: [Engineering Delivery project 4](https://github.com/users/poorlyordered/projects/4)
 
 ## Current Gate
 
-- There is no active delivery gate. The initiative was closed without
-  deployment on 2026-09-01 at the owner's direction.
-- `T001` through `T009` are retained as completed research and local
-  qualification evidence. `T010` through `T054` were not executed and are not
-  scheduled.
-- Issue #249 was closed as not planned, and its Engineering Delivery project 4
-  item was moved to Done.
-- No remote Git push or PR, registry publication, Phase secret, Aegis change,
-  tailnet mutation, route, deployment, or identity was created.
+Gate 0 documentation is active. Issue reopening is complete. No implementation,
+registry, Phase, Aegis, tailnet, route, DNS, certificate, identity, admission,
+deployment, remote Git, Issue-content, or Project mutation is authorized.
 
-No Ringer task is selected. The feature is production-risk, so Luna/Ringer
-work would be read-only only. No manifest was generated, linted, dry-run, or
-executed, and no worker was started.
+T001-T009 remain completed historical research. T010-T054 are retired and were
+never executed. Continuation tasks begin at T055 to preserve the audit trail.
 
-## Codebase Graph
+## Codebase Graph and Targeted Verification
 
-- Policy: `required-before-planning`
+- Policy: required before brownfield planning
 - Project: `overnightdesk`
-- Status: `ready`
-- Index mode: `fast`, refreshed 2026-09-01
+- Status: ready (13,789 nodes / 26,616 edges at planning time)
 
-The graph confirms this is an existing brownfield repository. Targeted source
-verification retains `infra/open-webui/walter/deploy-aegis.sh` as the lifecycle
-pattern for root-owned preparation, disabled installation, private
-qualification, separate route activation, sentinels, and route-first rollback.
-Read-only host verification remains authoritative for listener ownership:
-Nginx binds the OCI interface while host Tailscale Serve owns tailnet HTTPS and
-an existing root handler.
+Graph discovery and source reads confirmed the existing Better Auth
+`verify-tenant` and Open WebUI `verify-workspace` contracts are incompatible
+with Buzz Desktop's NIP-42/NIP-98 client. The revised plan uses Tailscale route
+and grant controls for transport and Buzz membership for application access.
 
-## Reopening Conditions
+## Cross-Artifact Analysis
 
-1. The owner explicitly reopens the initiative or creates a new primary Issue.
-2. Buzz, ingress dependencies, security findings, and the Aegis baseline are
-   revalidated against current facts.
-3. The ingress architecture is selected and approved anew; neither Tailscale
-   nor Nginx/OIDC is carried forward by default.
-4. Any production, secret, network, identity, registry, or remote Git mutation
-   receives fresh explicit approval.
+The 2026-09-02 Spec Kit consistency pass found no unresolved critical
+ambiguity, constitutional conflict, placeholder, stale active-sidecar
+assumption, or uncovered requirement. The active set contains 27 functional
+requirements, 14 success criteria, nine preserved historical tasks, and 44
+contiguous continuation tasks T055-T098. Every requirement and success
+criterion has task coverage; local document links resolve.
 
-Workers may never commit, push, edit `.git`, update canonical task status,
-widen scope, or mutate Aegis, Phase, or the tailnet.
+One format finding was remediated during the quality pass: explicit acceptance
+scenarios, edge cases, key entities, project structure, and user-story task
+tags were restored to match the repository templates.
+
+## Delivery Boundary
+
+No Ringer implementation is selected for this documentation-only update.
+Production-risk work remains read-only for delegated lanes. Future execution
+requires dependency-ready task IDs, disjoint paths, frozen scope, explicit
+checks, and separate approvals for every production mutation.
+
+## Reactivation Preconditions
+
+1. Explicitly authorize synchronization of the reopened Issue body and Project
+   fields before tracked execution advances.
+2. Refresh all time-sensitive upstream, image, client, host, route, DNS,
+   certificate, backup, and capacity facts.
+3. Pass local contracts and the separately approved route-coexistence
+   experiment before disabled installation.
+4. Keep production activation, owner admission, canary admission, and expansion
+   separately authorized.

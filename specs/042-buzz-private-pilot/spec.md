@@ -2,259 +2,301 @@
 
 **Feature Branch**: `042-buzz-private-pilot`
 
-**Primary Issue**: [`Little-Town-Labs/overnightdesk#249`](https://github.com/Little-Town-Labs/overnightdesk/issues/249)
+**Primary Issue**: [Little-Town-Labs/overnightdesk#249](https://github.com/Little-Town-Labs/overnightdesk/issues/249)
 
 **Created**: 2026-09-01
 
-**Status**: Closed without deployment on 2026-09-01 at the owner's direction
+**Reactivated for planning**: 2026-09-02
 
-**Input**: User description: "Plan how to deploy and test Buzz on aegis-prod for the owner and agents to use."
+**Status**: Issue reopened for planning; implementation and production mutation are not authorized
+
+## Reactivation Boundary
+
+Issue #249 was closed on 2026-09-01 after research tasks T001-T009 and reopened
+for planning on 2026-09-02. No Aegis, Phase, tailnet, registry, identity, route,
+deployment, or remote Git state was changed. The old implementation tasks
+T010-T054 were never executed.
+
+This revision and the reopened Issue reactivate planning, not implementation or
+deployment. The design supersedes the dedicated Tailscale-container topology
+with a proposed private Nginx listener reached through an exact
+host-advertised `/32` subnet route. Current upstream, image, host, route, and
+protocol facts must be revalidated before implementation.
 
 ## Scope
 
-## Closure
-
-This research initiative is closed and is not active delivery work. Issue #249
-was closed as not planned. Tasks T001 through T009 record completed research
-and local qualification only; T010 through T054 were not executed and are not
-scheduled. No Aegis, Phase, tailnet, registry, identity, route, or remote Git
-state was changed.
-
-Restarting this initiative requires an explicit owner decision, revalidation of
-the then-current upstream and host facts, and a newly approved ingress
-architecture. Neither the Tailscale topology described here nor the discussed
-Nginx/OIDC alternative is implicitly approved for a future attempt.
-
-## Clarifications
-
-### Session 2026-09-01
-
-- Q: Which private ingress and image-remediation path should Gate 0 use? → A:
-  Use a dedicated tailnet-only Tailscale device and a local hardened wrapper
-  experiment; do not mutate Aegis, Phase, Tailscale, GitHub, or remote Git.
-
 ### MVP
 
-The MVP is a private, reversible qualification of one closed Buzz community on
-`aegis-prod`. It serves one owner account and one newly created, low-authority
-agent canary. It proves infrastructure isolation, identity and membership
-denial, core collaboration behavior, persistence, backup and restore, resource
-bounds, observability, and route-first rollback before any existing production
-agent or additional person is admitted.
+Privately and reversibly qualify one closed Buzz community on `aegis-prod` for
+one human owner and one newly created, low-authority canary. The pilot must
+prove that:
+
+- only specifically authorized owner devices can reach the private ingress;
+- Buzz enforces NIP-42/NIP-98 identity and closed-relay membership;
+- the canonical Buzz URL works unchanged through Nginx for both WebSocket and
+  signed HTTP traffic;
+- stores, identities, secrets, backups, telemetry, and rollback remain
+  isolated from existing workloads; and
+- existing public Nginx routes and the host Tailscale Serve root remain
+  unchanged.
 
 ### Non-Goals
 
-- Public-internet or unauthenticated access.
-- Customer, client, prospect, payment, outreach, or regulated data.
-- Reusing a Walter, Titus, Trevor, or other existing agent identity or secret.
-- Giving the canary deployment, shell, secret, payment, outreach, CRM, or
-  production-lifecycle authority.
-- Replacing Hermes, Open WebUI, OvernightDesk authentication, or an existing
-  workspace.
-- Migrating existing conversations, memory, channels, or business records.
-- Multi-community hosting, general relay hosting, or customer self-service.
-- Enabling Buzz's admin dashboard, Git web interface, workflow automation,
-  webhooks, or large-media use during the pilot.
-- Solving generalized Hermes-to-Buzz integration before the isolated canary has
-  passed qualification.
+- Public DNS, public-internet reachability, Funnel, or unauthenticated access.
+- Reusing OvernightDesk `auth_request`; Buzz Desktop does not carry the Better
+  Auth session cookie expected by those endpoints.
+- A dedicated Buzz Tailscale container, node, hostname, tag, certificate, or
+  state directory.
+- Moving, replacing, or extending the existing `ob1-mcp` Tailscale Serve root.
+- Customer, prospect, payment, outreach, regulated, or production business
+  data.
+- Reusing an existing human or agent identity, secret, memory, or tool scope.
+- Admin UI, Git web UI, workflows, webhooks, large media, multi-community
+  hosting, or generalized Hermes integration.
+- Publishing a branch, changing Project fields, deploying, or changing routes
+  without separate explicit authorization.
 
-## User Scenarios & Testing *(mandatory)*
+## Clarifications
 
-### User Story 1 - Owner Uses a Private Collaboration Space (Priority: P1)
+### Session 2026-09-02
 
-As the owner, I can enter a closed Buzz community with my own identity and use
-its core collaboration features without exposing the service or content to
-unapproved people.
+- The existing Nginx process may be reused only through a dedicated private
+  listener that cannot select Buzz from the public OCI listener, even with a
+  forged SNI or `Host` header.
+- The exact private listener address is selected only after a current read-only
+  host and OCI route/NAT preflight proves that it is unassigned and has no
+  public path.
+- The host's existing Tailscale node advertises exactly that address as a `/32`.
+  Route advertisement/approval and a deny-by-default owner-device grant are
+  distinct controls and must both pass.
+- `wss://buzz.overnightdesk.com` is the canonical URL used by the relay,
+  Desktop, tests, and canary. It has no public A/AAAA record and uses a DNS-01
+  certificate.
+- Nginx transports NIP-42 WebSocket and NIP-98 HTTP traffic without substituting
+  OIDC. A successful upgrade alone is not sufficient protocol proof.
+- Nginx, relay, stores, and canary use narrow networks so Nginx cannot reach
+  data stores and the canary cannot bypass the canonical ingress.
 
-**Why this priority**: The pilot has no value unless the human collaboration
-experience works and the access boundary fails closed.
+No remaining clarification materially changes the MVP, architecture, security
+boundary, or acceptance tests.
 
-**Independent Test**: From an approved private-network client, admit the owner,
-exercise the agreed core message flows, and prove that an unadmitted identity
-cannot connect, read, or write.
+## User Scenarios and Testing
 
-**Acceptance Scenarios**:
+### User Story 1 — Owner Uses a Private Collaboration Space (P1)
 
-1. **Given** a healthy relay with no admitted members, **when** the owner presents an approved identity and completes admission, **then** only that identity can enter the pilot community.
-2. **Given** the owner is admitted, **when** the owner sends, edits, deletes, reacts to, threads, and searches test messages, **then** each action has the expected visible result.
-3. **Given** an unadmitted identity, **when** it attempts to connect, subscribe, read, or publish, **then** every attempt is denied without revealing community content.
-4. **Given** a planned restart, **when** the stack returns healthy, **then** the owner's membership, channels, and test messages remain available.
+An owner on an approved device can reach the canonical hostname, authenticate
+with a client-held Nostr identity, and use the closed community. A public
+client, an unapproved tailnet device, and an unadmitted Nostr identity cannot
+read or write.
 
----
+**Independent test**: Exercise complete NIP-42 and NIP-98 flows through Nginx,
+then repeat from each denied network and identity class.
 
-### User Story 2 - Operator Qualifies and Recovers the Service (Priority: P1)
+**Acceptance scenarios**:
 
-As the accountable operator, I can install and qualify Buzz privately, observe
-its health and resource use, restore its state in isolation, and disable it
-quickly without disturbing existing Aegis services.
+1. **Given** an approved owner device and admitted owner identity, **when** the
+   client uses the canonical URL, **then** signed WebSocket and HTTP actions
+   succeed through Nginx.
+2. **Given** a public or unapproved tailnet client, **when** it uses DNS, direct
+   IP, SNI, or Host variations, **then** it cannot select or reach Buzz.
+3. **Given** an unadmitted Nostr identity, **when** it connects or requests
+   content, **then** Buzz denies subscription, read, and write without content
+   disclosure.
 
-**Why this priority**: A new multi-store collaboration service is acceptable on
-the shared production plane only when its health, capacity, recovery, and
-rollback behavior are proven before users depend on it.
+### User Story 2 — Operator Qualifies and Recovers the Service (P1)
 
-**Independent Test**: Install a disabled-first candidate with no active route,
-run deterministic private checks, capture a coherent backup, restore it into a
-disposable isolated environment, then disable the route and stack while
-confirming the existing production baseline remains healthy.
+An operator can install the stack disabled, prove private routing and store
+isolation, restore a coherent backup into an unrouted disposable environment,
+and remove ingress first without affecting existing services.
 
-**Acceptance Scenarios**:
+**Independent test**: Compare pre/post baselines, perform an isolated restore,
+enable then disable only the Buzz private listener, and prove Buzz becomes
+unreachable while existing Nginx and Serve routes stay healthy.
 
-1. **Given** reviewed deployment source and an approved release candidate, **when** it is installed, **then** no Buzz service publishes a host port and no user-facing route is active.
-2. **Given** the private stack is running, **when** qualification inspects identities, privileges, mounts, networks, secrets, resource limits, and dependency health, **then** every approved boundary passes before ingress can be enabled.
-3. **Given** representative pilot data, **when** a coherent backup and isolated restore drill complete, **then** membership, channels, messages, attachments, and repository-backed state satisfy the documented recovery checks.
-4. **Given** a rollback decision, **when** rollback is invoked, **then** ingress is disabled first, the canary is stopped, Buzz is stopped with state preserved, and existing Aegis services remain healthy.
+**Acceptance scenarios**:
 
----
+1. **Given** an exact disabled candidate, **when** qualification runs, **then**
+   hardening, connectivity, capacity, recovery, and safe-evidence checks pass
+   before any identity is admitted.
+2. **Given** active private ingress, **when** route-first rollback runs, **then**
+   Buzz becomes unreachable within five minutes, its data remains preserved,
+   and existing services match baseline.
 
-### User Story 3 - Low-Authority Agent Participates Safely (Priority: P2)
+### User Story 3 — Low-Authority Canary Participates Safely (P2)
 
-As the owner, I can invite one dedicated evaluation agent that reads and replies
-only inside an approved test channel and cannot perform unrelated business or
-production actions.
+A new tool-free canary can respond only to the owner in one channel through
+the canonical Nginx endpoint. Revocation cancels queued and future activity.
 
-**Why this priority**: Agent participation is the main differentiator under
-evaluation, but it must not precede human and infrastructure qualification.
+**Independent test**: Pass valid interactions and deny other callers,
+channels, tools, direct relay/store access, duplicates, and post-revocation
+work.
 
-**Independent Test**: Admit a new canary identity, allow it to respond only to
-the owner in one test channel, exercise normal and adversarial messages, then
-revoke it and prove it loses access.
+**Acceptance scenarios**:
 
-**Acceptance Scenarios**:
+1. **Given** the exact owner and channel, **when** the canary receives a valid
+   request, **then** it returns one bounded response through canonical Nginx.
+2. **Given** another caller/channel or a prohibited action, **when** a request
+   arrives, **then** the canary refuses without tools or sensitive telemetry.
+3. **Given** revoked canary authority, **when** queued, in-flight, or future
+   work exists, **then** it is cancelled or terminated at the approved boundary.
 
-1. **Given** a distinct canary identity and an owner-only allowlist, **when** the owner addresses the canary in the approved channel, **then** it can read context and post a bounded reply in the correct thread.
-2. **Given** a message from an unapproved member or another channel, **when** the canary observes it, **then** it does not respond or invoke work.
-3. **Given** content that requests secrets, tools, production mutation, outreach, payments, or data access, **when** the canary processes it, **then** it refuses or ignores the request and no prohibited action occurs.
-4. **Given** the canary's membership or key is revoked, **when** it reconnects or publishes, **then** access is denied and the denial is visible to the operator without leaking the private key.
-5. **Given** a canary process restart, **when** it resumes, **then** it does not duplicate replies and remains within its channel, member, concurrency, and resource limits.
+### User Story 4 — Owner Makes an Evidence-Based Decision (P3)
 
----
+After seven bounded days, the owner can continue, pause, roll back, or propose
+a separately scoped expansion using safe evidence without implicitly granting
+new authority.
 
-### User Story 4 - Owner Makes an Evidence-Based Expansion Decision (Priority: P3)
+**Independent test**: Review the seven daily evidence records and verify that
+one decision is recorded without changing any unapproved authority.
 
-As the owner, I receive a concise qualification record that identifies what
-passed, what failed, residual risks, resource cost, rollback status, and the
-exact authority requested before deciding whether to admit more people or
-agents.
-
-**Why this priority**: Pilot completion is a decision point, not automatic
-permission to widen production access or agent authority.
-
-**Independent Test**: Review the pilot evidence after the observation window
-and verify that no additional identity, route, agent, or capability can be
-enabled without a new explicit approval.
-
-**Acceptance Scenarios**:
-
-1. **Given** completed qualification and observation, **when** the report is generated, **then** it includes release identity, tests, security denials, recovery evidence, resource measurements, incidents, residual risks, and rollback instructions.
-2. **Given** one or more hard gates failed, **when** the pilot concludes, **then** expansion is blocked and the service is left disabled or rolled back with state preserved.
-3. **Given** all hard gates passed, **when** the owner considers expansion, **then** each new person, existing agent runtime, business-data class, or authority grant is presented as a separate approval rather than being enabled automatically.
+**Acceptance scenario**: **Given** a complete observation window, **when** the
+owner records a decision, **then** the live state and documentation match that
+decision and no proposed expansion is automatically activated.
 
 ### Edge Cases
 
-- A client or canary loses connectivity while publishing and retries the same event.
-- The relay is healthy while Postgres, Redis, object storage, or repository-backed state is degraded.
-- A backup captures the stores at incompatible points in time.
-- A membership change races with an existing client session or queued canary reply.
-- The private key, authorization material, message content, or test sentinel is accidentally offered to logs or evidence output.
-- A malformed or very large event, attachment, search, or WebSocket session attempts to exhaust shared host capacity.
-- The selected image is unavailable, changes architecture support, or fails vulnerability/provenance checks.
-- TLS or WebSocket proxy configuration is valid syntactically but routes to the wrong upstream or becomes reachable outside the approved private network.
-- Rollback is requested while a backup, restore, upload, or canary response is in flight.
+- The candidate private address is already assigned, routed publicly, selected
+  by a wildcard listener, or reachable over IPv6: Gate 0 fails and no address
+  is selected.
+- The `/32` route works but the source grant does not deny another tailnet
+  device: the experiment rolls back and cannot satisfy transport privacy.
+- Nginx returns `101` but signed NIP-42 or NIP-98 fails because Host, URL,
+  scheme, or headers changed: protocol qualification fails.
+- DNS-01 renewal fails while the current certificate is valid: activation is
+  blocked until renewal is proven; no HTTP challenge is opened.
+- Existing route, Serve, or public-vhost state changes unexpectedly: stop,
+  remove only the Buzz delta, and require human review.
+- PostgreSQL succeeds but MinIO backup/restore fails: the set is incomplete and
+  owner admission remains blocked.
+- Redis is empty after recovery: the relay must safely rebuild diagnostic/cache
+  state without treating it as authoritative loss.
+- The canary resolves a direct relay/store target or canonical DNS bypasses
+  Nginx: network qualification fails.
+- Rollback cannot prove unreachability or baseline equivalence within five
+  minutes: stop progression and preserve state for human diagnosis.
 
-## Requirements *(mandatory)*
+## Functional Requirements
 
-### Functional Requirements
-
-- **FR-001**: The pilot MUST represent one named internal business workload with an accountable owner, deterministic source, approved release identity, deployment procedure, and rollback handle.
-- **FR-002**: The pilot MUST start with one closed community, one owner identity, one private test channel, and no active agent identity.
-- **FR-003**: The service MUST be reachable only through a dedicated,
-  tag-owned Tailscale device named `buzz` using Tailscale Serve HTTPS/WSS at
-  `buzz.tail5c4f73.ts.net`; the device MUST use its own persistent identity,
-  MUST NOT enable Funnel, and MUST NOT displace or modify the existing
-  `aegis-prod.tail5c4f73.ts.net` Serve handler. Data services and management
-  surfaces MUST remain unrouted and publish no host ports.
-- **FR-004**: Admission, community membership, and channel membership MUST be explicit, independently revocable, and tested for both authorized use and denial.
-- **FR-005**: Human and agent identities MUST use separate keypairs; identities, private keys, recovery material, service credentials, or sessions MUST NOT be shared.
-- **FR-006**: The owner MUST be able to perform connection, send, edit, delete, reaction, thread, search, reconnect, and restart-persistence qualification using synthetic test content.
-- **FR-007**: The deployment MUST use isolated state boundaries for relational records, ephemeral coordination, object data, and repository scratch, MUST document what each store owns, and MUST treat PostgreSQL/object storage rather than disposable local Git scratch as authoritative for repository-backed state.
-- **FR-008**: The deployment MUST enforce an approved non-root user, dropped capabilities, no-new-privileges, no Docker socket, read-only filesystems where supported, explicit writable paths, private dependency networking, and bounded CPU, memory, process, connection, event-size, and upload limits.
-- **FR-009**: Secrets MUST be delivered from the approved secret boundary to only the consuming service and MUST NOT appear in source, images, container metadata, logs, qualification evidence, or general agent memory. A later ingress approval MAY add one OAuth client credential limited to `auth_keys` and `tag:buzz-private-pilot`; it MUST be independently revocable and MUST NOT grant general tailnet administration.
-- **FR-010**: The deployment MUST expose internal liveness, readiness, dependency, capacity, and error evidence sufficient to distinguish relay, database, coordination, object-store, repository-state, ingress, and canary failures.
-- **FR-011**: Logs and evidence MUST use safe correlation identifiers and MUST prove with sentinel tests that private keys, authorization values, cookies, message content, and secret-bearing query data are not emitted.
-- **FR-012**: The pilot MUST add all Buzz-owned authoritative durable stores and the minimum non-secret configuration metadata to the encrypted off-box backup boundary; disposable cache/scratch state MUST be recreated rather than treated as authoritative backup data.
-- **FR-013**: Before human use, the operator MUST complete a coherent backup and isolated restore drill that validates membership, channels, messages, object data, and repository-backed state without exposing a public route.
-- **FR-014**: Ingress activation MUST be a separate, explicit step that requires passing private qualification, current backup evidence, a tested rollback command, a validated Tailscale Serve configuration with Funnel disabled, an approved tag/access policy, and human approval.
-- **FR-015**: The canary MUST be a newly generated low-authority identity admitted only after the owner and infrastructure gates pass.
-- **FR-016**: The canary MUST run through a separately supervised adapter with an owner allowlist, one-channel scope, bounded concurrency, bounded output, duplicate-event protection, and no production or business-action tools.
-- **FR-017**: The canary MUST treat all message content and model output as untrusted and MUST fail closed on requests for secrets, shell execution, production mutation, outreach, payments, customer/prospect data, or other prohibited authority.
-- **FR-018**: Revoking the canary's membership or key MUST prevent subsequent connect, read, publish, and queued-response activity without requiring service-wide downtime.
-- **FR-019**: Rollback MUST stop or revoke the dedicated Buzz tailnet ingress first without altering the existing Aegis Serve handler, stop the canary adapter, stop the Buzz stack without deleting state, restore the previous source/configuration handle if needed, and verify the existing Aegis service baseline.
-- **FR-020**: The pilot MUST retain a minimum seven-day observation window after owner-and-canary qualification unless the owner explicitly records a different decision.
-- **FR-021**: Additional people, existing agents, communities, routes, data classes, workflows, webhooks, management surfaces, or authority grants MUST require separate explicit approval and MUST NOT be enabled by pilot completion alone.
-- **FR-022**: Every production mutation task MUST be explicitly marked as owner-approved and executed by the accountable lead; delegated production work is read-only only.
-- **FR-023**: The implementation MUST provide deterministic configuration, security-contract, private-qualification, negative-access, backup/restore, rollback, and post-change health checks before the pilot is considered ready.
-- **FR-024**: The pilot MUST produce a durable qualification record and deployment-ledger entry that identify the release, approvals, checks, resource results, backup/restore evidence, incidents, residual risks, and final decision without recording secrets or message content.
-- **FR-025**: Every runtime image, including the relay and Tailscale ingress,
-  MUST use an immutable ARM64 digest, run under an explicit non-root UID/GID,
-  have a current SBOM and vulnerability result, and fail Gate 0 when an
-  undisposed Critical or High finding remains. A wrapper MUST copy only exact
-  upstream artifacts, freeze every runtime package input, and pass integration
-  checks before it can become a candidate.
+- **FR-001**: Pin and requalify every new runtime image and upstream source by
+  immutable ARM64 digest, provenance, SBOM, vulnerability disposition, and
+  reproducible startup behavior.
+- **FR-002**: Preserve completed research and qualification evidence as
+  historical records; do not represent it as current production proof.
+- **FR-003**: Publish no Buzz application, health, metrics, database, Redis,
+  MinIO, or management port on a public interface.
+- **FR-004**: Bind Buzz only to a dedicated private host listener address that
+  fresh network evidence proves is unassigned and has no public NAT path.
+- **FR-005**: Advertise exactly the selected private address as `/32` through
+  the existing Aegis Tailscale node only after explicit approval.
+- **FR-006**: Apply a separate deny-by-default Tailscale grant allowing only
+  approved owner devices to reach the Buzz listener.
+- **FR-007**: Leave the existing host Tailscale identity, advertised-route set,
+  Serve root, and `ob1-mcp` handler unchanged except for the approved exact
+  `/32` route operation.
+- **FR-008**: Leave every existing public Nginx listener and virtual host
+  behavior unchanged.
+- **FR-009**: Prove public clients cannot select or reach Buzz by IP, SNI, Host,
+  IPv4, or IPv6, regardless of public DNS absence.
+- **FR-010**: Use `wss://buzz.overnightdesk.com` as the exact canonical relay
+  URL across relay configuration, Desktop, canary, tests, and signed events.
+- **FR-011**: Provide no public A/AAAA record for the canonical hostname and
+  obtain its certificate without opening a public HTTP challenge path.
+- **FR-012**: Preserve request path, method, query, Host, WebSocket upgrade,
+  NIP-98 `Authorization`, and external HTTPS semantics through Nginx while
+  removing unrelated cookies.
+- **FR-013**: Do not invoke OvernightDesk `auth_request` or require a platform
+  runtime/session for Buzz traffic.
+- **FR-014**: Test a complete signed NIP-42 challenge/auth/subscription flow and
+  NIP-98 HTTP flow through Nginx under the canonical URL.
+- **FR-015**: Use three least-connectivity networks: Nginx+relay ingress,
+  relay+stores data, and Nginx+canary egress.
+- **FR-016**: Keep PostgreSQL and MinIO authoritative, Redis diagnostic,
+  generated Git scratch disposable, and secrets external to Compose/evidence.
+- **FR-017**: Create a coherent encrypted PostgreSQL+MinIO backup set and prove
+  an isolated restore before owner admission.
+- **FR-018**: Keep the owner's private key client-side and out of server secret
+  stores, logs, configuration, and evidence.
+- **FR-019**: Create a separate canary identity with no tools, one owner, one
+  channel, one concurrent job, bounded output/time, deduplication, and explicit
+  revocation.
+- **FR-020**: Force canary traffic through the canonical Nginx endpoint; deny
+  direct relay and store connectivity.
+- **FR-021**: Install disabled first; require `nginx -t`, contract success,
+  restore proof, rollback proof, safe evidence, and explicit approval at each
+  production gate.
+- **FR-022**: Activate and roll back with an include/listener change followed
+  by an Nginx reload, never a process replacement or unrelated configuration
+  rewrite.
+- **FR-023**: Roll back route first, prove Buzz unreachable, preserve workload
+  state, and compare all existing routes, listeners, and health checks to the
+  baseline.
+- **FR-024**: Emit content-free logs and metrics for availability, Nginx
+  reload, route/grant state, protocol outcome class, recovery, capacity, and
+  canary authority denials.
+- **FR-025**: Keep combined CPU, memory, PIDs, disk, and connection use within
+  an approved measured ceiling on the shared production host.
+- **FR-026**: Require deterministic local contracts before matching production
+  actions and retain redacted, digest-bound evidence for every gate.
+- **FR-027**: Treat Issue/Project updates, route/grant changes, secret creation,
+  deployment, admission, and pilot expansion as separate approval-bound
+  actions.
 
 ### Key Entities
 
-- **Pilot Workload**: The named Buzz deployment, approved release, lifecycle state, resource envelope, owner, ingress status, and rollback handle.
-- **Community**: The single closed collaboration boundary and its policy; it contains explicitly admitted members and channels.
-- **Identity**: A person or agent public identity, type, lifecycle state, recovery custody, and membership relationships. Private key material is never part of this entity's durable evidence.
-- **Membership Grant**: An auditable, revocable relationship between an identity and the community or channel.
-- **Agent Authority Profile**: The canary's allowed members, channel, response behavior, resource bounds, and explicit prohibited capabilities.
-- **State Store**: A durable or ephemeral state boundary, its owner, backup method, restore order, recovery objective, and validation checks.
-- **Qualification Run**: An immutable record of candidate identity, environment baseline, executed checks, safe evidence, result, and approver.
-- **Pilot Decision**: The owner's recorded continue, expand, pause, or rollback decision and any separately approved next authority.
-- **Private Ingress Identity**: The dedicated `buzz` Tailscale device, its
-  `tag:buzz-private-pilot` authority, persistent node state, Serve-only route,
-  credential lifecycle, and independent revocation state.
+- **Pilot workload**: exact candidate, lifecycle state, limits, approvals, and
+  rollback handle.
+- **Private ingress route**: selected address, `/32`, advertising node, route
+  approval, owner-device grant, and baseline digests.
+- **Ingress configuration**: private listener, canonical hostname, certificate
+  reference, config digest, public-denial proof, and protocol proof.
+- **Community and identity**: one closed community, distinct public identities,
+  memberships, and client/external secret custody.
+- **Agent authority profile**: the canary's caller/channel/network/tool/resource
+  allowlist and revocation state.
+- **Recovery set and qualification run**: exact artifacts, safe checks,
+  approvals, restore measurements, and gate result.
+- **Pilot decision**: evidence-backed bounded outcome that grants no authority
+  by itself.
 
-## Success Criteria *(mandatory)*
+## Success Criteria
 
-### Measurable Outcomes
+- **SC-001**: All local contracts pass for the exact candidate digests and
+  rendered topology before any production mutation.
+- **SC-002**: Approved owner devices complete NIP-42 and NIP-98 through the
+  canonical Nginx endpoint.
+- **SC-003**: Public and unapproved tailnet clients have zero successful Buzz
+  connections, including forged-IP/SNI/Host attempts.
+- **SC-004**: Unadmitted identities have zero successful subscriptions, reads,
+  or writes.
+- **SC-005**: Nginx can reach only the relay on the Buzz ingress network; the
+  relay alone can reach stores; the canary can reach only Nginx.
+- **SC-006**: An isolated restore of a coherent current backup passes logical
+  assertions with measured RPO/RTO before owner admission.
+- **SC-007**: Route-first rollback makes Buzz unreachable within five minutes,
+  preserves data, and leaves existing routes/listeners healthy.
+- **SC-008**: Owner collaboration actions and restart persistence pass without
+  exposing private keys or content.
+- **SC-009**: Twenty valid canary interactions pass with zero responses to
+  unapproved callers/channels and zero tool or direct-store access.
+- **SC-010**: Revocation prevents queued and future canary activity.
+- **SC-011**: Resource usage remains inside the approved ceiling under measured
+  pilot load.
+- **SC-012**: Logs and evidence contain zero secrets, authorization values,
+  cookies, private keys, or message bodies.
+- **SC-013**: A seven-day observation has no unresolved security, data-loss,
+  required-test, or existing-service-health blocker.
+- **SC-014**: No user, agent, channel, tool, route, data class, or community is
+  added without separately recorded approval.
 
-- **SC-001**: Before ingress activation, 100% of private qualification checks pass, zero Buzz services publish a host port, Funnel is disabled, and the existing Aegis Serve configuration is byte-for-byte unchanged.
-- **SC-002**: The admitted owner completes all defined core collaboration actions successfully, while an unadmitted identity succeeds in zero connection, read, or write attempts.
-- **SC-003**: After a planned stack restart, 100% of the synthetic membership, channel, message, attachment, and repository-state recovery assertions pass.
-- **SC-004**: An encrypted backup and isolated restore rehearsal complete successfully before the canary is admitted, with every documented state store validated.
-- **SC-005**: Route-first rollback makes the dedicated Buzz tailnet identity unreachable to pilot clients within five minutes, leaves the existing Aegis Serve handler unchanged, and leaves all pre-existing Aegis health checks passing.
-- **SC-006**: The canary responds to at least 20 owner-authored test requests in the approved channel with zero replies to unapproved identities or channels, zero duplicate replies, and zero prohibited tool or business actions.
-- **SC-007**: Canary revocation prevents 100% of subsequent connection, read, publish, and queued-response attempts.
-- **SC-008**: Under the bounded pilot load of one admitted owner, one canary, five channels, and 10,000 synthetic small messages, 95% of message send-to-visible confirmations complete within two seconds and no existing Aegis workload breaches its established health threshold.
-- **SC-009**: The complete Buzz workload remains within an approved envelope no greater than 2 CPU cores, 4 GiB memory, and 10 GiB initial durable-disk growth during qualification; exceeding any bound blocks expansion pending a new capacity decision.
-- **SC-010**: Sentinel and evidence scans find zero private keys, service secrets, authorization values, cookies, or message bodies in application logs and qualification artifacts.
-- **SC-011**: The owner-and-canary pilot completes a seven-day observation window with zero unresolved security, data-loss, required-test, or existing-service health blockers.
-- **SC-012**: Pilot completion enables zero additional users, agents, communities, routes, data classes, or tools without a separately recorded approval.
+## Assumptions and Dependencies
 
-## Assumptions
-
-- Buzz remains a pre-1.0 dependency and the pilot pins one immutable ARM64 release candidate rather than following a mutable tag.
-- `aegis-prod` remains a shared internal production host, so all deployment and identity changes require explicit human approval even when the test content is synthetic.
-- The private route uses a dedicated userspace-networking Tailscale container
-  named `buzz`, sharing the relay network namespace so Serve can proxy only to
-  relay loopback. This avoids the OCI-bound Nginx and the occupied host
-  Tailscale Serve listener. Buzz's bundled Caddy is not operated in parallel.
-- The `buzz.tail5c4f73.ts.net` certificate name is acceptable for Certificate
-  Transparency publication because it contains no tenant, customer, or secret
-  identifier; reachability remains tailnet-restricted.
-- The resolved Aegis backup incident is not reopened by this feature. This feature adds Buzz-specific coverage and proves its own isolated restore path.
-- The first agent is an isolated evaluation process with no relationship to existing Hermes memory, identities, conversations, or tools.
-- The Phase paths, exact resource limits below the stated ceiling, recovery objectives, and observation schedule can be finalized during implementation preflight without changing approved scope.
-- GitHub Issue, Project, branch publication, pull request, and production deployment lifecycle changes occur only after the user explicitly authorizes those external-state actions.
-
-## Dependencies
-
-- Owner approval for a new named workload, a private route, new identity and secret scopes, backup changes, each production phase, and any later expansion.
-- A reviewed ARM64 Buzz release candidate and reproducible adapter build for the canary.
-- A qualified immutable Tailscale sidecar image, an owner-approved
-  `tag:buzz-private-pilot` access policy, and a least-privilege OAuth client
-  restricted to `auth_keys` for that tag, plus existing secret custody,
-  encrypted backup producer, off-box backup set, monitoring, and
-  deployment-ledger mechanisms.
-- Client-side custody and recovery for the owner's Buzz/Nostr identity.
+- Buzz remains pre-1.0; all source, image, client, and protocol facts are
+  revalidated at Gate 0.
+- Aegis remains shared production infrastructure; design documentation alone
+  authorizes no production or external mutation.
+- The current qualified Wolfi relay wrapper is a historical candidate, not an
+  automatically approved future runtime.
+- The selected private address, certificate method, resource limits, backup
+  objectives, and exact grant syntax are frozen only after current evidence.
+- Existing secret custody, encrypted off-box backup, monitoring, and deployment
+  ledger mechanisms remain available and must be reverified.

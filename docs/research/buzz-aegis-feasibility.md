@@ -1,6 +1,6 @@
 # Buzz on Aegis: feasibility assessment
 
-**Status:** Research closed; no deployment authorized or performed
+**Status:** Planning reactivated 2026-09-02; no implementation or deployment authorized or performed
 
 **Assessed:** 2026-09-01
 
@@ -8,9 +8,14 @@
 **Scope:** A private Buzz community for the owner, approved collaborators, and
 named agents on the existing ARM64 `aegis-prod` VM
 
-The owner closed this initiative without deployment on 2026-09-01. These
-findings are retained as historical evidence only and must be revalidated
-before any future proposal.
+The owner closed this initiative without deployment on 2026-09-01, then
+authorized a documentation reconsideration on 2026-09-02. The original facts
+remain historical evidence and must be revalidated. The current proposal uses
+a private-only listener in the existing Nginx process plus an exact `/32`
+subnet route on the host's existing Tailscale node and a separate owner-device
+grant. Issue #249 was reopened for planning on
+2026-09-02; neither that action nor this assessment authorizes production
+changes.
 
 ## Executive recommendation
 
@@ -19,18 +24,20 @@ CPU, memory, and disk headroom for a bounded pilot. It should not yet be
 approved as a generally shared production service.
 
 The strongest fit is a **private, named evaluation workload** with one explicit
-community, an allowlisted human/agent roster, a small set of private channels,
-no Buzz-hosted Git repositories initially, and agent execution kept outside the
-relay container. Proceeding beyond evaluation should require a measured
-capacity test, coherent backup/restore rehearsal, ingress controls, key
-custody/revocation procedures, and compensating edge rate limits.
+community, one owner, one low-authority canary, no Buzz-hosted Git repositories
+initially, and agent execution kept outside the relay container. Transport is
+tailnet-gated through a host-advertised exact `/32`; application access remains
+Buzz NIP-42/NIP-98 plus closed-relay membership. Proceeding requires measured
+capacity, coherent backup/restore, signed-protocol proxy tests, listener/public
+denial proof, key custody/revocation, and compensating edge limits.
 
 The prior baseline-backup blocker is resolved. A read-only production check
 found that Aegis's encrypted backup producer completed successfully on
 2026-09-01 with 64 artifacts, 689,390,615 encrypted bytes, exit status 0, and a
 `COMPLETE` marker. Buzz should still not receive durable business data until the
-backup configuration covers its PostgreSQL, MinIO, Git, and secret state and
-that expanded recovery set has been restored in an isolated rehearsal.
+backup configuration covers one coherent authoritative PostgreSQL+MinIO set,
+records external secret-custody dependencies, proves Git-scratch rehydration,
+and restores that expanded set in an isolated rehearsal.
 
 This conclusion is based on the following:
 
@@ -172,7 +179,8 @@ designed and rehearsed before valuable data is admitted:
 
 1. encrypted backup custody for relay, Git-hook, database, Redis, S3, and
    identity secrets;
-2. consistent PostgreSQL plus MinIO plus Git-volume recovery points;
+2. a coherent PostgreSQL plus MinIO recovery point and a separate proof that
+   disposable Git scratch is rehydrated correctly;
 3. a restore test to a disposable network with no public ingress;
 4. explicit retention and deletion policy for chat, media, agent memory,
    workflow history, and repositories; and
@@ -196,10 +204,12 @@ the app port directly unless its Caddy override resets that mapping
 The relay itself does not enforce TLS; production must terminate TLS at the
 relay or a reverse proxy
 ([security policy](https://github.com/block/buzz/blob/main/SECURITY.md)). For
-Aegis, the preferable integration is the existing reviewed ingress plane, with
-only one approved HTTPS/WSS hostname routed to the relay. PostgreSQL, Redis,
-MinIO, health, metrics, and any admin surface should publish no public host
-ports. The Git browser should remain disabled (`BUZZ_SERVE_GIT_WEB_GUI=false`),
+Aegis, the proposed integration reuses the existing reviewed Nginx process on a
+dedicated private-only listener reached through an exact Tailscale `/32` and a
+separate owner-device grant. The public listener must not select Buzz even with
+a forged SNI/Host. PostgreSQL, Redis, MinIO, health, metrics, and any admin
+surface should publish no public host ports. The Git browser should remain
+disabled (`BUZZ_SERVE_GIT_WEB_GUI=false`),
 and the moderation dashboard should remain unconfigured until its separate
 operator hostname and NIP-98 authorization are deliberately reviewed
 ([environment template](https://github.com/block/buzz/blob/main/deploy/compose/.env.example),
@@ -380,8 +390,10 @@ Read-only checks on 2026-09-01 found:
 - The existing Nginx plane publishes ports 80/443 on the OCI interface
   `10.0.0.234`, not the Tailscale interface. Tailscale is `100.100.1.21`, where
   Tailscale Serve already owns HTTPS port 443 and proxies `/` to `ob1-mcp`.
-  Buzz should omit bundled Caddy, but its private TLS/WSS topology must be
-  resolved without displacing either existing listener.
+  The proposed Buzz design omits bundled Caddy and adds only a separately bound
+  private Nginx listener reached by an exact host-advertised `/32`. Fresh
+  preflight must select an unassigned address with no public NAT path and prove
+  neither existing listener can select Buzz.
 - Docker Compose v5.3.1 exceeds Buzz's documented v2.24.4 minimum.
 - The prior encrypted backup failure caused by the invalid `n8n-files` dataset
   root has been repaired. A production run completed successfully at
@@ -415,10 +427,12 @@ separately approved evaluation—not a production activation:
    candidate. Its exact artifacts now have a locally qualified Wolfi wrapper,
    but publishing and pinning that exact result remain separately authorized.
    Do not track `:main` or floating `:latest`.
-3. Use the selected dedicated-device Tailscale Serve HTTPS/WSS topology, which
-   preserves the existing OCI Nginx and host Tailscale Serve listeners; keep
-   PostgreSQL, Redis, MinIO, health, metrics, and admin internal. The sidecar
-   image must still pass its independent image gate.
+3. Use the proposed private-only Nginx listener on a freshly verified address,
+   advertise only that address as `/32` through the existing Aegis Tailscale
+   node, and separately grant only approved owner devices. Preserve public
+   Nginx and the existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO,
+   health, metrics, and admin internal. Prove public IP/SNI/Host denial and full
+   NIP-42/NIP-98 behavior through the canonical hostname.
 4. Start closed: require signed REST auth and relay membership; disable Git web
    UI, admin UI, hosted multi-community mode, and unnecessary workflows.
 5. Create separate keys for the owner, each human, and each named evaluation
@@ -434,13 +448,14 @@ separately approved evaluation—not a production activation:
 
 ## Decision
 
-**Feasible in principle for a private evaluation; Gate 0 is blocked only on a
-qualified immutable official Tailscale ingress image.**
+**Feasible in principle under the proposed private-listener design; Gate 0 now
+requires current artifact/host revalidation and exact route/protocol proof.**
 
 Buzz's architecture and ARM64 publication make it a credible collaboration
-candidate for Aegis. Its separate human/agent identities and signed event trail
-fit OvernightDesk's accountability goals. The current upstream maturity and
-operational gaps, however, make immediate public/shared production exposure too
-risky on a VM that already hosts trusted business workloads. A later deployment
-decision should be based on a scoped specification and measured qualification,
-not on the upstream quick start alone.
+candidate for Aegis. Reusing qualified Nginx removes the failed Tailscale-image
+dependency, while an exact `/32` route plus a separate owner-device grant keeps
+transport private. This is not yet production proof: a dedicated private
+listener must be shown publicly unreachable, the existing Serve handler must
+remain unchanged, and complete signed NIP-42/NIP-98 flows must survive the
+proxy. A deployment decision follows those gates and measured qualification,
+not the upstream quick start or the historical scan alone.
