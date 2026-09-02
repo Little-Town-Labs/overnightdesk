@@ -3,14 +3,16 @@
 ## Static invariants
 
 - `buzz.overnightdesk.com` is the only configured relay hostname;
-  `wss://buzz.overnightdesk.com` is the byte-exact client/canary WebSocket
+  `wss://buzz.overnightdesk.com` is the byte-exact client/agent WebSocket
   relay URL, and it contains no explicit default `:443` port.
 - NIP-98 uses the distinct HTTPS origin `https://buzz.overnightdesk.com`. The
   Gate 0 manifest lists every supported literal method and byte-exact full URL
   where the full URL equals that origin plus the raw request target. The target
   begins with the absolute path and includes the exact `?` plus raw query when
   present; templates are invalid in fixtures and production evidence.
-- Buzz has no public A/AAAA record and the certificate uses DNS-01 issuance.
+- Private resolution maps the canonical hostname to the selected private
+  address. Any public wildcard A/AAAA answer is treated as hostile and cannot
+  select Buzz. The certificate uses DNS-01 issuance.
 - The Buzz server block listens only on the preflight-approved private address;
   no public `listen`, wildcard address, default server, or public port mapping
   can select it.
@@ -21,7 +23,10 @@
   HTTPS semantics, and WebSocket upgrade headers; it strips unrelated cookies
   and does not rewrite the URI.
 - `buzz-ingress` contains only Nginx and relay; `buzz-data` contains only relay
-  and stores; `buzz-canary` contains only Nginx and canary.
+  and stores; `buzz-agents` contains only Nginx and the three named Hermes
+  intake workers. Workers may also join the existing OvernightDesk network for
+  their exact authenticated Hermes API route; distinct credentials prevent a
+  worker from authenticating to another named runtime.
 - Images use immutable ARM64 digests, explicit non-root users, read-only roots,
   dropped capabilities, bounded resources, health checks, and no embedded
   secrets.
@@ -34,10 +39,10 @@
   listener activation.
 - Only the selected and locally assigned private address is advertised, with
   prefix length 32.
-- Address assignment, route advertisement/approval, and source-device grant are
-  represented and verified separately.
-- The grant is deny-by-default and permits only approved owner devices to the
-  selected address/port.
+- Address assignment and route advertisement/approval are represented and
+  verified separately.
+- The existing tailnet-wide policy is accepted and remains unchanged. Network
+  reachability alone grants no Buzz subscription, read, or write permission.
 - Existing OCI VNIC and host-interface addresses, Tailscale node identity,
   routes, Serve handlers, and `ob1-mcp` root are byte-equivalent before and
   after the experiment except for the approved Buzz address and exact `/32`
@@ -55,7 +60,7 @@ The positive test must traverse canonical Nginx and complete:
 5. reconnect without URL or signed-relay-tag divergence.
 
 The negative matrix must deny public IPv4/IPv6, known-public-IP plus forged
-SNI/Host, an unapproved tailnet device, an unadmitted identity, an invalid
+SNI/Host, an unadmitted identity from a reachable tailnet device, an invalid
 signature, an alternate hostname, and a direct relay/store target.
 
 ## Activation and rollback
@@ -63,10 +68,10 @@ signature, an alternate hostname, and a direct relay/store target.
 Activation requires passing local contracts, `nginx -t`, recovery proof, and
 baseline capture; assigning the exact secondary private IP to the frozen OCI
 VNIC and host interface; proving local bind and public denial; approving the
-route/grant; reloading the listener; and passing positive/negative protocol
-checks. Listener-first rollback disables the exact private include/listener,
-validates and reloads Nginx, proves Buzz unreachable, withdraws the exact grant
-and `/32` with approval, confirms no remaining listener or route uses the Buzz
-address, and removes only its host-interface and OCI VNIC assignments. Workload
-state is preserved and existing addresses, public vhosts, Serve, routes,
-containers, and health remain unchanged.
+route without a tailnet-policy change; reloading the listener; and passing
+positive and negative protocol checks. Listener-first rollback disables the
+exact private include/listener, validates and reloads Nginx, proves Buzz
+unreachable, withdraws the exact `/32` with approval, confirms no remaining
+listener or route uses the Buzz address, and removes only its host-interface
+and OCI VNIC assignments. Workload state is preserved and existing addresses,
+public vhosts, Serve, routes, containers, and health remain unchanged.

@@ -1,6 +1,7 @@
 # Buzz on Aegis: feasibility assessment
 
-**Status:** Planning reactivated 2026-09-02; no implementation or deployment authorized or performed
+**Status:** Planning reactivated and pilot boundary simplified 2026-09-02; no
+implementation or deployment authorized or performed
 
 **Assessed:** 2026-09-01
 
@@ -12,8 +13,12 @@ The owner closed this initiative without deployment on 2026-09-01, then
 authorized a documentation reconsideration on 2026-09-02. The original facts
 remain historical evidence and must be revalidated. The current proposal uses
 a private-only listener in the existing Nginx process plus an exact `/32`
-subnet route on the host's existing Tailscale node and a separate owner-device
-grant. Issue #249 was reopened for planning on
+subnet route on the host's existing Tailscale node. Later read-only evidence
+showed a broad tailnet policy and five owner-controlled devices under one user
+identity. The owner accepted that transport posture and made distinct Buzz
+membership the access boundary for the owner, Walter, Titus, and Mitchel/Trevor.
+Recommendations below that call for a separate owner-device grant are retained
+as historical analysis and superseded by ADR-008. Issue #249 was reopened for planning on
 2026-09-02; neither that action nor this assessment authorizes production
 changes.
 
@@ -24,8 +29,9 @@ CPU, memory, and disk headroom for a bounded pilot. It should not yet be
 approved as a generally shared production service.
 
 The strongest fit is a **private, named evaluation workload** with one explicit
-community, one owner, one low-authority canary, no Buzz-hosted Git repositories
-initially, and agent execution kept outside the relay container. Transport is
+community, one owner, and three separately identified named Hermes agents
+admitted one at a time after a canary, with no Buzz-hosted Git repositories
+initially and agent execution kept outside the relay container. Transport is
 tailnet-gated through a host-advertised exact `/32`; application access remains
 Buzz NIP-42/NIP-98 plus closed-relay membership. Proceeding requires measured
 capacity, coherent backup/restore, signed-protocol proxy tests, listener/public
@@ -432,9 +438,10 @@ separately approved evaluation—not a production activation:
 3. Use the proposed private-only Nginx listener on a freshly verified secondary
    private address. With explicit approval, assign that exact address to the
    frozen OCI VNIC and intended host interface and prove local binding before
-   advertising only its `/32` through the existing Aegis Tailscale node.
-   Separately grant only approved owner devices. Preserve public Nginx and the
-   existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
+   advertising only its `/32` through the existing Aegis Tailscale node. Keep
+   the accepted tailnet-wide policy unchanged and use distinct Buzz membership
+   identities for participant access. Preserve public Nginx and the existing
+   Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
    metrics, and admin internal. Prove public IP/SNI/Host denial, NIP-42 under
    exact `wss://buzz.overnightdesk.com`, and each qualified NIP-98 method/full-
    URL operation under the distinct `https://buzz.overnightdesk.com` origin.
@@ -458,8 +465,9 @@ requires current artifact/host revalidation and exact route/protocol proof.**
 
 Buzz's architecture and ARM64 publication make it a credible collaboration
 candidate for Aegis. Reusing qualified Nginx removes the failed Tailscale-image
-dependency, while an exact `/32` route plus a separate owner-device grant keeps
-transport private. This is not yet production proof: a dedicated private
+dependency, while an exact `/32` route keeps transport inside the
+owner-controlled tailnet and Buzz membership limits participation to the owner
+and three distinct named Hermes identities. This is not yet production proof: a dedicated private
 address must be safely assigned to and removed from the exact OCI VNIC and host
 interface, its listener must be shown publicly unreachable, the existing Serve
 handler must remain unchanged, and complete signed NIP-42 plus byte-exact

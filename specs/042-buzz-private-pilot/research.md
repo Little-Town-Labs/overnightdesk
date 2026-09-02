@@ -11,7 +11,7 @@
 ### Requalify immutable ARM64 artifacts
 
 **Decision**: Revalidate and pin the Buzz source, relay wrapper, Desktop/client
-behavior, canary adapter, PostgreSQL, Redis, MinIO, initializer, and every other
+behavior, Hermes intake worker, PostgreSQL, Redis, MinIO, initializer, and every other
 new runtime image immediately before implementation. Require immutable ARM64
 digests, provenance, SBOMs, accepted vulnerability dispositions, explicit
 non-root execution, hardening, and reproducible startup.
@@ -43,22 +43,26 @@ Host header.
 **Rejected**: A Buzz vhost on the public `10.0.0.234:443` listener, reliance on
 no public DNS record, direct relay port publication, or bundled Caddy.
 
-### Preserve the tailnet boundary with an exact host route and grant
+### Preserve the tailnet boundary with an exact host route
 
 **Decision**: Have the existing Aegis Tailscale node advertise only the selected
-and locally assigned private listener address as `/32`. Treat OCI VNIC/host-
-interface assignment, route approval/injection, and a deny-by-default grant
-permitting only approved owner devices as separate transitions. Capture and
-compare existing VNIC/interface addresses, advertised routes, grants, node
-identity, and Serve configuration before, during, and after the experiment.
+and locally assigned private listener address as `/32`. Accept the existing
+tailnet-wide policy for the bounded pilot because the owner controls the five
+visible devices. Make Buzz's closed-relay roster—not a second Tailscale grant—
+the participant boundary for the owner and three named Hermes identities.
+Capture and compare existing VNIC/interface addresses, advertised routes,
+compiled policy digest, node identity, and Serve configuration before, during,
+and after the experiment.
 
-**Rationale**: Tailscale documents subnet route advertisement/approval and
-access grants as distinct controls. This retains tailnet-gated transport
-without adding a new Tailscale image, device, tag-owned state, or MagicDNS
-hostname.
+**Rationale**: The current policy already permits all tailnet devices to all
+destinations, all visible devices share the owner's user identity, and grants
+are additive. A narrow Buzz grant would add complexity without constraining the
+existing broad rule. Tailnet routing still prevents public transport access;
+NIP-42/NIP-98 and distinct relay membership determine application access.
 
 **Rejected**: Funnel, a broad subnet route, changing the existing Serve root,
-or assuming route approval alone restricts source devices.
+or redesigning/tagging the tailnet before a participant outside the approved
+owner-controlled device set exists.
 
 ### Do not reuse OvernightDesk `auth_request`
 
@@ -92,7 +96,7 @@ Upstream issue #6281 reports that a colocated agent cannot safely use an
 alternate internal target when TCP destination, Host, and signed relay tag
 diverge. A successful WebSocket upgrade does not prove the signed protocol.
 
-**Rejected**: Direct canary-to-relay access, alternate internal hostnames, or a
+**Rejected**: Direct agent-to-relay access, alternate internal hostnames, or a
 transport-only `101` check.
 
 ### Split connectivity into three networks
@@ -101,26 +105,48 @@ transport-only `101` check.
 
 - `buzz-ingress`: Nginx and relay only.
 - `buzz-data`: relay, PostgreSQL, Redis, and MinIO only.
-- `buzz-canary`: Nginx and canary only.
+- `buzz-agents`: Nginx and the Walter, Titus, and Mitchel/Trevor intake workers only.
 
 **Rationale**: A single Buzz network would unnecessarily expose stores to
-Nginx. Putting canary and relay together would allow the canary to bypass the
+Nginx. Putting an intake worker and relay together would allow an agent to bypass the
 canonical ingress contract.
+
+### Admit three named Hermes agents in stages
+
+**Decision**: Give Walter, Titus, and Mitchel/Trevor separate Nostr identities
+and read/write membership in one pilot channel. Qualify one selected agent as
+the canary, then admit the other two one at a time. Automated responses are
+initially triggered only by the owner; bot-authored messages may be read as
+context but do not trigger another bot. Each route-specific intake worker
+accepts only the exact signed owner and channel, calls the matching authenticated
+Hermes Runs API, retains that runtime's existing authority/approval policy, and
+is independently revocable.
+
+**Rationale**: Agent participation is the product value being evaluated.
+Separate identities preserve attribution and revocation, while owner-only
+triggers, signature/channel checks, and the existing human-approval boundary
+prevent response loops or a chat message from bypassing production-action
+authority.
+
+**Rejected**: A single shared bot key, read-only agents that cannot respond,
+simultaneous three-agent admission, bot-to-bot-triggered automation, or mapping
+Buzz membership directly to existing Hermes tool authority.
 
 ### Keep recovery authority explicit
 
 **Decision**: PostgreSQL and MinIO are the coherent authoritative backup set.
 Redis is diagnostic/cache state and Git scratch is reproducible. The old
-Tailscale sidecar state is removed from the recovery model; private listener,
-route, and grant metadata are recreated through an explicitly approved
-configuration, not restored as identity state.
+Tailscale sidecar state is removed from the recovery model; private listener
+and route metadata are recreated through an explicitly approved configuration,
+not restored as identity state. The existing tailnet policy is not changed by
+the Buzz lifecycle.
 
 ### Use gated, listener-first rollback control
 
 **Decision**: Install disabled, validate `nginx -t`, reload rather than restart,
 and require current local/protocol/recovery proof before owner admission.
 Rollback disables the private listener first, proves unreachability, withdraws
-the exact grant/route when authorized, removes only the Buzz host-interface and
+the exact route when authorized, removes only the Buzz host-interface and
 OCI VNIC secondary-address assignment, preserves workload state, and verifies
 all pre-existing OCI, host, Nginx, and Tailscale behavior.
 
@@ -148,15 +174,15 @@ superseded, while its evidence remains under `evidence/` and ADR-007.
 ## Facts Still Requiring Proof
 
 - the current Aegis interface, address, NAT, security-list, Nginx listener,
-  Docker networking, Tailscale route, grant, Serve, capacity, and backup state;
+  Docker networking, Tailscale route, policy, Serve, capacity, and backup state;
 - a safe, unassigned private listener address with no public path plus an exact,
   reversible OCI VNIC and host-interface assignment/removal procedure;
 - exact DNS-01 certificate issuance/renewal and private resolution mechanics;
-- `/32` route coexistence without changing the existing Serve handler;
+- `/32` route coexistence without changing the existing policy or Serve handler;
 - complete Desktop NIP-42 behavior at the exact WebSocket relay URL and NIP-98
   behavior for frozen exact method/full-HTTPS-URL pairs through the proposed
   Nginx configuration; and
-- current image/source/client/canary qualification and resource measurements.
+- current image/source/client/intake-worker qualification and resource measurements.
 
 Each item is a gate with an executable check, not permission to assume or
 deploy.

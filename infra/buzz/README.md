@@ -15,5 +15,7 @@ Buzz listener, no OvernightDesk `auth_request`, exact
 byte-exact full NIP-98 HTTPS request URL contracts under
 `https://buzz.overnightdesk.com`, three least-connectivity networks, and an
 explicitly assigned secondary private address with an exact host-advertised
-`/32` plus separate owner-device grant. Tasks begin at T055 in
+`/32` under the unchanged tailnet-wide policy. Buzz membership separately
+admits the owner and distinct Walter, Titus, and Mitchel/Trevor identities;
+one agent qualifies first as the canary. Tasks begin at T055 in
 `specs/042-buzz-private-pilot/tasks.md`.

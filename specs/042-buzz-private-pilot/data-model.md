@@ -7,11 +7,12 @@ or message content.
 ## PilotWorkload
 
 - `workload_id`: `buzz-private-pilot`
-- `owner`, `source_commit`, `relay_digest`, `canary_digest`
+- `owner`, `source_commit`, `relay_digest`, `intake_worker_digests`
 - `nginx_config_digest`, `websocket_relay_url`, `nip98_https_origin`,
   `nip98_operation_manifest_digest`
 - `lifecycle_state`: `planned | installed_disabled | private_qualified |
-  owner_active | canary_active | observing | paused | rolled_back`
+  owner_active | canary_active | agents_active | observing | paused |
+  rolled_back`
 - `resource_ceiling`, `previous_release_handle`, `approval_refs`
 
 **Rules**: Production transitions require the prior gate's exact evidence and
@@ -26,18 +27,19 @@ approval. Pause and rollback preserve authoritative state.
 - `prefix_length`: exactly `32`
 - `advertising_node`: existing Aegis Tailscale node
 - `route_state`: `absent | advertised | approved | active | withdrawn`
-- `grant_state`: `absent | staged | active | withdrawn`
-- `allowed_source_devices`: approved owner devices only
+- `tailnet_policy_mode`: `existing_tailnet_wide`
+- `tailnet_policy_digest`: captured compiled-policy baseline
+- `allowed_transport_sources`: current owner-controlled tailnet devices
 - `baseline_vnic_digest`, `baseline_interface_digest`, `baseline_route_digest`,
   `baseline_serve_digest`, `last_verified_at`
 
 **Rules**: The address has no public NAT path. With explicit approval, the
 exact secondary private IP is assigned to the frozen OCI VNIC and intended host
 interface and passes local-bind proof before advertisement or listener
-activation. Address assignment, advertisement/approval, and the source grant
-are separate transitions. Listener-first rollback withdraws only this grant and
-`/32`, then removes only this address assignment. Existing addresses, routes,
-node identity, and Serve handlers remain unchanged.
+activation. Address assignment and advertisement/approval are separate
+transitions. Listener-first rollback withdraws only this `/32`, then removes
+only this address assignment. Existing addresses, routes, tailnet policy, node
+identity, and Serve handlers remain unchanged.
 
 ## IngressConfiguration
 
@@ -69,28 +71,36 @@ denial. It never invokes OvernightDesk `auth_request`.
 ## Identity and MembershipGrant
 
 - `Identity`: `public_key`, `kind` (`human_owner | relay_admin |
-  agent_canary | negative_test`), `status`, recovery-custody metadata
+  hermes_walter | hermes_titus | hermes_mitchel | negative_test`), `status`,
+  recovery-custody metadata
 - `MembershipGrant`: identity public key, relay/channel scope, role, grant and
   revocation timestamps
 
-**Rules**: Private keys never enter this model. A channel grant requires active
-relay membership. Revocation invalidates queued and future canary work.
+**Rules**: Private keys never enter this model. Each Hermes identity is unique,
+read/write, and independently revocable. A channel grant requires active relay
+membership. Revocation invalidates queued and future work for only that agent.
 
 ## AgentAuthorityProfile
 
 - `agent_public_key`
+- `runtime_id`: `hermes-walter | hermes-titus | hermes-mitchel`
 - `allowed_owner_public_keys`: exactly one
 - `allowed_channel_ids`: exactly one
+- `allowed_trigger_public_keys`: owner only
 - `max_concurrency`: one
 - `max_output`, `timeout`, `deduplication_window`
-- `allowed_tools`: empty
-- `network_target`: canonical Nginx URL only
-- `prohibited_actions`: direct relay/store access, production, shell, secrets,
-  outreach, payments, CRM/customer/prospect data, repository mutation, and
-  cross-channel response
+- `hermes_api_route`, `runtime_api_token_ref`
+- `existing_authority_policy_ref`: mapped runtime's current tool and human-
+  approval policy
+- `network_targets`: canonical Nginx and the mapped Hermes API
+- `prohibited_actions`: direct relay/store access, cross-runtime credentials,
+  approval bypass, authority expansion, and cross-channel response
 
-**Rules**: Missing owner or channel denies all response. Any new caller,
-channel, tool, target, or authority is a separately approved scope change.
+**Rules**: Missing owner, channel, or exact agent identity denies all response.
+Bot-authored messages do not trigger another agent. Exact owner signature and
+channel checks precede Hermes. Existing tools retain their current approval rules;
+any new caller, agent, channel, tool, target, or authority is a separately
+approved scope change.
 
 ## StateStore
 
@@ -104,8 +114,8 @@ channel, tool, target, or authority is a separately approved scope change.
 
 **Rules**: PostgreSQL and MinIO form one coherent recovery set. Redis is
 diagnostic and Git scratch is regenerated. Ingress metadata contains no secret
-or Tailscale node state; route/grant/listener configuration is recreated only
-through an approved lifecycle.
+or Tailscale node state; route/listener configuration is recreated only through
+an approved lifecycle.
 
 ## QualificationRun
 

@@ -8,13 +8,13 @@
   state;
 - OCI VNIC and host-interface secondary-address assignment state plus baseline
   digests;
-- `/32` advertisement/approval and source-grant state without credentials;
+- `/32` advertisement/approval and unchanged tailnet-policy digest;
 - digests proving existing routes and Tailscale Serve remained unchanged;
-- public/forged-SNI/unapproved-device denial counts;
+- public/forged-SNI and unadmitted-identity denial counts;
 - NIP-42 and NIP-98 outcome classes, safe operation ID, latency, and reconnect
   result without signed full URLs or query values;
 - backup completeness, encrypted artifact sizes, restore result, RPO/RTO;
-- canary allow/deny/deduplicate/revoke outcome classes.
+- per-agent allow/deny/deduplicate/revoke outcome classes.
 
 ## Forbidden telemetry
 
@@ -25,7 +25,7 @@ responses, attachment content, or raw database/object-store records.
 ## Evidence rules
 
 - Evidence is bound to source, image, rendered Compose, Nginx config, VNIC/
-  interface assignment, route, grant, and baseline digests.
+  interface assignment, route, policy, and baseline digests.
 - Failure categories distinguish transport denial, TLS/hostname, WebSocket,
   NIP-42, NIP-98, membership, upstream, recovery, and authority failures
   without capturing payloads.

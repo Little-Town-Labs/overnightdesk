@@ -12,24 +12,28 @@ listener in the existing qualified Nginx process. The listener binds to a
 freshly verified secondary private address only after that exact address is
 assigned to the approved OCI VNIC and intended Aegis host interface. It is then
 reachable through an exact `/32` subnet route advertised by the host's existing
-Tailscale node. A separate deny-by-default grant admits only approved owner
-devices.
+Tailscale node. The pilot accepts the current tailnet-wide transport policy;
+Buzz's closed-relay membership admits only the owner and three separately
+identified Hermes agents.
 
 Nginx terminates DNS-01 TLS for `buzz.overnightdesk.com` and proxies the exact
 canonical HTTPS/WSS traffic to the relay. It does not apply OvernightDesk
-`auth_request`; Buzz Desktop authenticates through NIP-42/NIP-98 and closed
-relay membership. There is no public DNS record or public listener path to the
-Buzz virtual host.
+`auth_request`; Buzz Desktop and the Hermes intake workers authenticate through
+NIP-42/NIP-98 and closed-relay membership. Public wildcard DNS may resolve the
+hostname to Aegis, but only private resolution reaches the dedicated listener
+and the public listener cannot select the Buzz virtual host.
 
-Three Docker networks enforce least connectivity:
+Three Buzz-specific Docker networks enforce least connectivity:
 
 ```text
-approved owner device
-  -> Tailscale exact /32 route and owner-device grant
+owner-controlled tailnet device
+  -> Tailscale exact /32 route under the existing tailnet policy
   -> private host address:443
   -> existing Nginx process (dedicated private listener)
        -> buzz-ingress -> relay -> buzz-data -> PostgreSQL / Redis / MinIO
-       -> buzz-canary  -> canary (canonical external URLs only)
+       -> buzz-agents  -> Walter / Titus / Mitchel intake workers
+                          (canonical Buzz URL only)
+                            -> exact named Hermes /v1/runs API
 ```
 
 The old sidecar evidence remains historical. Every upstream/image/host fact is
@@ -50,16 +54,16 @@ reversible gates.
 
 ## Technical Context
 
-- Docker Compose, Nginx, Bash lifecycle helpers, Python contract tests, and a
-  separately supervised canary adapter.
+- Docker Compose, Nginx, Bash lifecycle helpers, Python contract tests, and
+  three separately supervised route-specific Hermes intake workers.
 - Existing Aegis host Tailscale node and Nginx image/process; no new Tailscale
   container, identity, state, or certificate automation.
 - Existing OCI VNIC plus an approval-bound secondary private IP and matching
   host-interface assignment; no new public IP or public NAT path.
-- Immutable ARM64 Buzz relay wrapper, PostgreSQL, Redis, MinIO, and canary
+- Immutable ARM64 Buzz relay wrapper, PostgreSQL, Redis, MinIO, and Hermes intake
   images, all freshly qualified before use.
-- DNS-01 certificate for the canonical hostname and private-only name
-  resolution; no public A/AAAA record.
+- DNS-01 certificate for the canonical hostname and private resolution
+  overrides; public wildcard resolution is not an access-control boundary.
 - PostgreSQL and MinIO form the coherent authoritative recovery set. Redis is
   diagnostic/cache state and Git scratch is reproducible.
 
@@ -76,10 +80,19 @@ reused for Buzz:
 Buzz Desktop provides neither the platform session cookie nor that runtime
 model. Creating a fake instance would couple an external Nostr protocol to an
 unrelated authorization contract. The transport boundary therefore remains
-tailnet routing/grants, with NIP-42/NIP-98 as the application boundary.
+the tailnet-routed `/32`, with NIP-42/NIP-98 membership as the participant
+boundary.
 
-Upstream issue #6281 also indicates that alternate internal canary targeting
-can diverge from the relay URL signed in Buzz events. The canary must use the
+The accepted AgentMail intake pattern proves that one route-configured worker
+can call an exact authenticated Hermes `/v1/runs` endpoint while preserving
+Hermes tools, memory, model routing, and human approval policy. Buzz reuses only
+that narrow routing pattern—not AgentMail's dirty/clean database path—because
+automated Buzz responses accept only the exact signed owner and pilot channel.
+One worker per named runtime enforces exact runtime mapping, idempotency, and no
+authority to approve a Hermes action.
+
+Upstream issue #6281 also indicates that alternate internal agent targeting
+can diverge from the relay URL signed in Buzz events. Every intake worker must use the
 same canonical Nginx URL as Desktop, not a direct relay address.
 
 ## Architecture Decisions
@@ -100,19 +113,21 @@ interface, verify the resulting local address and bind, and only then enable
 the listener or advertise the route. Assignment and removal commands, resource
 identifiers, pre-state, and post-state are frozen before execution.
 
-### Route and grant are separate controls
+### Tailnet reachability and Buzz membership are separate controls
 
 The host advertises only the selected, locally assigned address as `/32`. Route
-approval/injection makes it reachable; a deny-by-default grant separately
-limits source devices. Address assignment, route advertisement/approval, and
-the grant are distinct transitions with independently captured baselines. The
-current Serve root and all pre-existing addresses, routes, and grants must
-remain unchanged.
+approval/injection makes it reachable from the current tailnet. The pilot
+explicitly accepts that all owner-controlled tailnet devices can reach the
+listener under the existing broad policy; no Buzz-specific policy, grant, tag,
+or Tailscale API credential is introduced. Separate Buzz identities and
+closed-relay membership determine who can subscribe, read, or write. The
+current Serve root, policy, and all pre-existing addresses and routes remain
+unchanged.
 
 ### Canonical protocol contract
 
-The relay, Desktop, canary, tests, and signed relay tags all use the byte-exact
-WebSocket relay URL `wss://buzz.overnightdesk.com`. NIP-98 instead uses the
+The relay, Desktop, Hermes intake workers, tests, and signed relay tags all use the
+byte-exact WebSocket relay URL `wss://buzz.overnightdesk.com`. NIP-98 instead uses the
 HTTPS origin `https://buzz.overnightdesk.com`; each supported operation freezes
 an exact method and full URL where `NIP98_FULL_URL` equals
 `NIP98_HTTPS_ORIGIN + RAW_REQUEST_TARGET`. `RAW_REQUEST_TARGET` begins with the
@@ -133,10 +148,14 @@ itself is not acceptance.
 
 - `buzz-ingress`: Nginx and relay only.
 - `buzz-data`: relay, PostgreSQL, Redis, and MinIO only.
-- `buzz-canary`: Nginx and canary only.
+- `buzz-agents`: Nginx and the three Hermes intake workers only.
 
-No store publishes a host port. Nginx cannot address stores; the canary cannot
-address relay or stores directly. Secrets are projected at runtime and never
+No store publishes a host port. Nginx cannot address stores; no Hermes intake
+worker can address relay or stores directly. Each worker also joins the
+existing qualified OvernightDesk network only for its exact authenticated
+Hermes Runs API target. It has a unique Nostr identity, is
+initially owner-triggered in one channel, and cannot approve or widen the
+runtime's existing tool policy. Secrets are projected at runtime and never
 stored in Compose, Git, logs, or evidence. The owner's private key stays on the
 client.
 
@@ -153,17 +172,18 @@ private address until evidence passes.
 
 Write failing contracts first, then render and test the minimum Nginx/Compose
 topology with synthetic identities. Prove public-listener non-selection,
-network isolation, canonical NIP-42/NIP-98 flows, safe telemetry, image policy,
-and listener-first rollback ordering without touching Aegis.
+network isolation, canonical NIP-42/NIP-98 flows, per-agent identity and
+owner-trigger policy, safe telemetry, image policy, and listener-first rollback
+ordering without touching Aegis.
 
 ### Gate 2 — Production route-coexistence experiment
 
 With explicit production approval and no admitted Buzz identity, assign the
 selected secondary private IP to the approved OCI VNIC and intended host
 interface, prove local bind and public denial, advertise and approve the exact
-`/32`, apply the exact owner-device grant, exercise the private
-listener/protocol probe, then fully withdraw the experiment. Diff VNIC,
-interface, route, grant, Serve, Nginx, and service baselines before and after.
+`/32`, exercise the private listener/protocol probe under the unchanged
+tailnet-wide policy, then fully withdraw the experiment. Diff VNIC, interface,
+route, policy digest, Serve, Nginx, and service baselines before and after.
 
 ### Gate 3 — Disabled Aegis installation and recovery
 
@@ -175,21 +195,31 @@ listener-first rollback.
 
 After the Gate 2 experiment and Gate 3 rollback rehearsal have removed the
 secondary address, repeat the approved VNIC/host-interface assignment and exact
-local-bind/public-denial proof. Then enable only its private route/grant/listener,
+local-bind/public-denial proof. Then enable only its private route/listener,
 admit only the owner, execute collaboration, denial, reconnect, restart, and
-load checks, and leave the canary disabled.
+load checks, and leave all Hermes intake workers disabled.
 
-### Gate 5 — Canary qualification
+### Gate 5 — First Hermes canary qualification
 
-Create a new tool-free canary identity, route it only through canonical Nginx,
-admit it to one owner/channel, test bounded and adversarial behavior, and prove
-revocation.
+Select one of Walter, Titus, or Mitchel/Trevor; create its distinct read/write
+Buzz identity; route its intake only through canonical Nginx to the mapped
+Hermes Runs API; admit it to the owner and pilot channel; test
+bounded, owner-triggered behavior plus existing tool/approval enforcement; and
+prove independent revocation.
 
-### Gate 6 — Seven-day decision
+### Gate 6 — Remaining Hermes agents
 
-Observe without expanding users, routes, tools, data classes, or authority.
-Record one decision: continue bounded, pause disabled, roll back, or propose a
-separately scoped expansion.
+Create distinct identities for the remaining two named Hermes agents and admit
+them one at a time only after the canary passes. Each must pass the same
+identity, network, trigger, authority, deduplication, and revocation
+contract.
+
+### Gate 7 — Seven-day decision
+
+Observe without expanding beyond the owner, three named agents, one pilot
+channel, current route, or existing Hermes authority. Record one
+decision: continue bounded, pause disabled, roll back, or propose a separately
+scoped expansion.
 
 ## Activation and Rollback
 
@@ -201,7 +231,7 @@ Activation is disabled-first:
 4. With approval, assign the exact secondary private IP to the approved OCI
    VNIC and intended host interface; prove the exact local address, bind, and
    absence of a public path.
-5. Advertise/approve the exact `/32` and apply the exact grant.
+5. Advertise/approve the exact `/32` without changing the tailnet policy.
 6. Enable only the Buzz private include/listener and reload Nginx.
 7. Run canonical positive and negative protocol checks.
 
@@ -209,10 +239,10 @@ Rollback is listener-first:
 
 1. Disable the exact Buzz include/listener, run `nginx -t`, and reload.
 2. Prove canonical Buzz ingress is unreachable from every test class.
-3. With approval, withdraw only the Buzz grant and exact `/32` route.
+3. With approval, withdraw only the exact Buzz `/32` route.
 4. Confirm no listener or route uses the Buzz address, then remove only its host
    interface and OCI VNIC secondary-address assignments.
-5. Stop canary and workload while preserving authoritative state.
+5. Stop Hermes intake workers and workload while preserving authoritative state.
 6. Compare existing OCI VNIC addresses, host interfaces, Nginx vhosts,
    Tailscale Serve, routes, containers, and health to the signed baseline.
 
@@ -222,9 +252,9 @@ Tailscale node state, or deletes Buzz data.
 ## Observability and Evidence
 
 Capture content-free outcome classes and measurements for private reachability,
-public denial, route/grant state, Nginx config/reload, NIP-42/NIP-98 success or
+public denial, route/policy state, Nginx config/reload, NIP-42/NIP-98 success or
 failure class, service health, resource ceilings, coherent backup/restore, and
-canary authority denials. Evidence binds to exact config/image digests and
+per-agent authority denials. Evidence binds to exact config/image digests and
 contains no headers, cookies, keys, authorization values, or message bodies.
 
 ## Project Structure
@@ -234,7 +264,7 @@ infra/buzz/
 ├── compose.yml
 ├── compose.aegis.yml
 ├── nginx/
-├── canary/
+├── agents/
 ├── tests/
 ├── backup-buzz.sh
 ├── restore-rehearsal.sh
@@ -267,13 +297,16 @@ records.
 
 The plan is fail-closed, approval-bound, least-connectivity, identity-separated,
 recoverable, observable, and reversible. It reuses a qualified ingress process
-without reusing an incompatible authentication contract. No public interface,
-schema, tenant boundary, or generalized integration is added. Current
-uncertainties are explicit Gate 0 facts rather than hidden assumptions.
+without reusing an incompatible authentication contract. The owner-approved
+scope adds only three named Hermes participants, each with a distinct identity
+and route-specific intake boundary. No public interface, schema, customer tenant,
+or generalized agent integration is added.
 
 ## Complexity Tracking
 
 The private listener plus exact `/32` route is the smallest design that retains
-tailnet-only transport without the unqualified sidecar image. The three-network
-split is justified by concrete reachability requirements; no speculative proxy,
-identity abstraction, or multi-community extension is introduced.
+tailnet-only transport without the unqualified sidecar image. Accepting the
+current tailnet policy avoids a second authorization system; Buzz membership
+owns participant access. The three-network split is justified by concrete
+reachability requirements, and the staged canary prevents simultaneous rollout
+to all three agents.
