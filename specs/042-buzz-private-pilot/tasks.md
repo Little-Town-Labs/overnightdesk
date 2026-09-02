@@ -81,7 +81,7 @@ silently rewritten. Continuation begins at T055.
 - [ ] T087 [US2] **[OWNER APPROVAL]** Verify hardening, network isolation, readiness, restart, resource ceiling, safe logs, and existing-service health in specs/042-buzz-private-pilot/evidence/private-qualification.md (FR-015, FR-024, FR-025).
 - [ ] T088 [US2] **[OWNER APPROVAL]** Create the coherent encrypted set, verify off-box completion, restore it unrouted, run logical assertions, and record RPO/RTO in specs/042-buzz-private-pilot/evidence/restore-rehearsal.md (FR-016, FR-017, SC-006).
 - [ ] T089 [US2] **[OWNER APPROVAL]** Rehearse listener-first rollback, including exact grant/route withdrawal and secondary-address removal, and confirm Buzz unreachability plus existing-state invariance in specs/042-buzz-private-pilot/evidence/rollback-rehearsal.md (FR-004, FR-021 through FR-023, SC-007).
-- [ ] T090 [US1] **[OWNER APPROVAL]** Activate the exact private route/grant/listener and admit only the client-held owner identity after T088-T089 pass (FR-005, FR-006, FR-018, FR-021).
+- [ ] T090 [US1] **[OWNER APPROVAL]** After T089 has removed the rehearsal address, reassign the selected secondary private IP to the frozen OCI VNIC and host interface, repeat exact local-address/bind and public-denial proof, activate only its `/32` route/grant/listener, and admit only the client-held owner identity (FR-004 through FR-006, FR-009, FR-018, FR-021).
 - [ ] T091 [US1] **[OWNER APPROVAL]** Run owner collaboration, complete NIP-42/NIP-98, denial, reconnect, restart, load, resource, and sentinel checks in specs/042-buzz-private-pilot/evidence/owner-qualification.md (SC-002, SC-003, SC-004, SC-008, SC-011, SC-012).
 
 **Checkpoint**: Owner-only use passes; canary remains absent.
@@ -106,7 +106,9 @@ silently rewritten. Continuation begins at T055.
 - T081 requires T073-T080 and gates every production task.
 - T082-T085 are sequential and require separate production authorization.
 - T085 must prove full rollback before T086.
-- T086-T089 precede T090; T091 precedes T092.
+- T086-T089 precede T090; T090 must repeat the address assignment and bind proof
+  because T089 returns the rehearsal to an unassigned baseline; T091 precedes
+  T092.
 - T092 precedes T093; T093 precedes T094; T094 precedes T095.
 - T096-T098 run on the final selected head and do not authorize deployment.
 - T055 is required for tracked delivery but does not block read-only/local Gate

@@ -122,8 +122,10 @@ through the approved activation sequence.
    listener, test, then fully roll back including address removal.
 4. **Gate 3, owner-approved disabled install**: hardening, isolation, capacity,
    backup/restore, and rollback proof.
-5. **Gate 4, owner-approved owner only**: admit owner and qualify collaboration
-   plus network/identity denials.
+5. **Gate 4, owner-approved owner only**: after the prior rehearsal removes the
+   secondary address, repeat its approved VNIC/host assignment and local-bind/
+   public-denial proof; enable only its route/grant/listener, admit the owner,
+   and qualify collaboration plus network/identity denials.
 6. **Gate 5, owner-approved canary**: create separate key/scope, qualify bounded
    behavior and revocation.
 7. **Gate 6**: seven-day observation and one explicit continue/pause/rollback/
