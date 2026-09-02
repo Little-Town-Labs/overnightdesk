@@ -15,5 +15,13 @@ Buzz listener, no OvernightDesk `auth_request`, exact
 byte-exact full NIP-98 HTTPS request URL contracts under
 `https://buzz.overnightdesk.com`, three least-connectivity networks, and an
 explicitly assigned secondary private address with an exact host-advertised
-`/32` plus separate owner-device grant. Tasks begin at T055 in
-`specs/042-buzz-private-pilot/tasks.md`.
+`/32` under the unchanged tailnet-wide policy. The shared Nginx container gets
+no new Docker publication and is not recreated: hardened systemd raw-TCP
+forwarding connects private host `:443` to Nginx's fixed `buzz-ingress:8443`
+endpoint. The same canonical TLS virtual host is available to intake workers
+only at Nginx's fixed `buzz-agents:443` endpoint. Intake workers remain off the
+shared production network and reach only fixed named Hermes operations through
+an Nginx egress broker with anchored run IDs and no query or approval-response
+paths. Buzz membership separately admits the owner and distinct Walter, Titus,
+and Mitchel/Trevor identities; one agent qualifies first as the canary. Tasks
+begin at T055 in `specs/042-buzz-private-pilot/tasks.md`.

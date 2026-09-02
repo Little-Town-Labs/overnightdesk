@@ -1,6 +1,7 @@
 # Buzz on Aegis: feasibility assessment
 
-**Status:** Planning reactivated 2026-09-02; no implementation or deployment authorized or performed
+**Status:** Planning reactivated and pilot boundary simplified 2026-09-02; no
+implementation or deployment authorized or performed
 
 **Assessed:** 2026-09-01
 
@@ -12,8 +13,12 @@ The owner closed this initiative without deployment on 2026-09-01, then
 authorized a documentation reconsideration on 2026-09-02. The original facts
 remain historical evidence and must be revalidated. The current proposal uses
 a private-only listener in the existing Nginx process plus an exact `/32`
-subnet route on the host's existing Tailscale node and a separate owner-device
-grant. Issue #249 was reopened for planning on
+subnet route on the host's existing Tailscale node. Later read-only evidence
+showed a broad tailnet policy and five owner-controlled devices under one user
+identity. The owner accepted that transport posture and made distinct Buzz
+membership the access boundary for the owner, Walter, Titus, and Mitchel/Trevor.
+Recommendations below that call for a separate owner-device grant are retained
+as historical analysis and superseded by ADR-008. Issue #249 was reopened for planning on
 2026-09-02; neither that action nor this assessment authorizes production
 changes.
 
@@ -24,8 +29,9 @@ CPU, memory, and disk headroom for a bounded pilot. It should not yet be
 approved as a generally shared production service.
 
 The strongest fit is a **private, named evaluation workload** with one explicit
-community, one owner, one low-authority canary, no Buzz-hosted Git repositories
-initially, and agent execution kept outside the relay container. Transport is
+community, one owner, and three separately identified named Hermes agents
+admitted one at a time after a canary, with no Buzz-hosted Git repositories
+initially and agent execution kept outside the relay container. Transport is
 tailnet-gated through a host-advertised exact `/32`; application access remains
 Buzz NIP-42/NIP-98 plus closed-relay membership. Proceeding requires measured
 capacity, coherent backup/restore, signed-protocol proxy tests, listener/public
@@ -205,10 +211,11 @@ The relay itself does not enforce TLS; production must terminate TLS at the
 relay or a reverse proxy
 ([security policy](https://github.com/block/buzz/blob/main/SECURITY.md)). For
 Aegis, the proposed integration reuses the existing reviewed Nginx process on a
-dedicated private-only listener reached through an exact Tailscale `/32` and a
-separate owner-device grant. The public listener must not select Buzz even with
-a forged SNI/Host. PostgreSQL, Redis, MinIO, health, metrics, and any admin
-surface should publish no public host ports. The Git browser should remain
+dedicated private-only listener reached through an exact Tailscale `/32` under
+the accepted owner-controlled tailnet policy. The public listener must not
+select Buzz even with a forged SNI/Host. PostgreSQL, Redis, MinIO, health,
+metrics, and any admin surface should publish no public host ports. The Git
+browser should remain
 disabled (`BUZZ_SERVE_GIT_WEB_GUI=false`),
 and the moderation dashboard should remain unconfigured until its separate
 operator hostname and NIP-98 authorization are deliberately reviewed
@@ -432,9 +439,12 @@ separately approved evaluation—not a production activation:
 3. Use the proposed private-only Nginx listener on a freshly verified secondary
    private address. With explicit approval, assign that exact address to the
    frozen OCI VNIC and intended host interface and prove local binding before
-   advertising only its `/32` through the existing Aegis Tailscale node.
-   Separately grant only approved owner devices. Preserve public Nginx and the
-   existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
+   advertising only its `/32` through the existing Aegis Tailscale node. Keep
+   the accepted tailnet-wide policy unchanged and use distinct Buzz membership
+   identities for participant access. Do not recreate Nginx or add a Docker
+   publication; use the host's existing `systemd-socket-proxyd` for raw-TCP
+   forwarding to Nginx's fixed `buzz-ingress` endpoint. Preserve public Nginx
+   and the existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
    metrics, and admin internal. Prove public IP/SNI/Host denial, NIP-42 under
    exact `wss://buzz.overnightdesk.com`, and each qualified NIP-98 method/full-
    URL operation under the distinct `https://buzz.overnightdesk.com` origin.
@@ -442,14 +452,17 @@ separately approved evaluation—not a production activation:
    UI, admin UI, hosted multi-community mode, and unnecessary workflows.
 5. Create separate keys for the owner, each human, and each named evaluation
    agent. Keep agent response policy `owner-only` or an explicit allowlist.
-6. Run no agent harness in the relay container. Give each harness its own
-   supervised process/container, working directory, Phase secret scope, and
-   bounded tool surface.
+6. Run no agent harness in the relay container or shared production network.
+   Give each harness its own supervised process/container, working directory,
+   Phase secret scope, and fixed-target Nginx egress path to only its mapped
+   Hermes operations.
 7. Add edge rate limits, resource limits, safe structured log collection,
    internal metric scraping, and disk/database/connection alerts.
-8. Prove admission denial, private-channel denial, revocation, restart
-   persistence, backup, restore, rollback, and a small concurrent human/agent
-   workload before allowing durable business data.
+8. Prove admission denial, private-channel denial, unsubmitted/future-work
+   rejection and late-result suppression after revocation, restart persistence,
+   backup, restore, rollback, and a small concurrent human/agent workload before
+   allowing durable business data. Do not claim cancellation of an
+   already-submitted Hermes run without a qualified cancellation API.
 
 ## Decision
 
@@ -458,11 +471,12 @@ requires current artifact/host revalidation and exact route/protocol proof.**
 
 Buzz's architecture and ARM64 publication make it a credible collaboration
 candidate for Aegis. Reusing qualified Nginx removes the failed Tailscale-image
-dependency, while an exact `/32` route plus a separate owner-device grant keeps
-transport private. This is not yet production proof: a dedicated private
+dependency, while an exact `/32` route keeps transport inside the
+owner-controlled tailnet and Buzz membership limits participation to the owner
+and three distinct named Hermes identities. This is not yet production proof: a dedicated private
 address must be safely assigned to and removed from the exact OCI VNIC and host
-interface, its listener must be shown publicly unreachable, the existing Serve
-handler must remain unchanged, and complete signed NIP-42 plus byte-exact
-NIP-98 flows must survive the proxy. A deployment decision follows those gates
-and measured qualification, not the upstream quick start or the historical
-scan alone.
+interface, its systemd-to-Nginx listener path must be shown publicly
+unreachable without recreating Nginx, the existing Serve handler must remain
+unchanged, and complete signed NIP-42 plus byte-exact NIP-98 flows must survive
+the proxy. A deployment decision follows those gates and measured
+qualification, not the upstream quick start or the historical scan alone.

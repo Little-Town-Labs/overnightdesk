@@ -6,66 +6,93 @@
 - Context: `brownfield`
 - Scale: `system`
 - Risk: `production`
-- Mode: `planning-reactivated`
+- Mode: `readonly-delegation`
 - Spec Kit required: `yes`
 - Mutation owner: `sol-lead`
-- Primary Issue: [#249](https://github.com/Little-Town-Labs/overnightdesk/issues/249), reopened for planning on 2026-09-02
-- Delivery Project: [Engineering Delivery project 4](https://github.com/users/poorlyordered/projects/4)
+
+## Model Routing
+
+- Planning and orchestration: `codex-sol`
+- Implementation: `lead-only`
+- Final quality gate: `codex-sol`
+- Automated remediation ceiling: one Luna remediation and one Sol delta review
+
+## Codebase Graph
+
+- Policy: `required-before-planning`
+- Project: `overnightdesk-buzz-042`
+- Status: `ready`
+
+- Fast index completed with 13,910 nodes and 26,890 edges for the active worktree.
+- Architecture inspection confirms existing Nginx and Hermes boundaries and an existing /v1/runs route.
+- Targeted source reads confirm POST /v1/runs uses session and idempotency headers and runtime capability checks require approval-response support.
+- Targeted source reads confirm runtime credentials are projected per intake rather than embedded in source.
 
 ## Current Gate
 
-Gate 0 documentation is active. Issue reopening and ADR-008 Issue/Project
-synchronization are complete, and PR #250 merged the revised planning set. No
-implementation, registry, Phase, Aegis, tailnet, route, DNS, certificate,
-identity, admission, or deployment mutation is authorized.
+Gate 0 documentation and read-only evidence collection are active. T056 and
+T058-T061 are complete. T057 image qualification and T062's operational
+contract freeze remain dependency-ready and incomplete. No address, route,
+listener, DNS record, certificate, identity, admission, container, or
+deployment was created.
 
-T001-T009 remain completed historical research. T010-T054 are retired and were
-never executed. Continuation tasks begin at T055 to preserve the audit trail.
-
-## Codebase Graph and Targeted Verification
-
-- Policy: required before brownfield planning
-- Project: `overnightdesk`
-- Status: ready (13,789 nodes / 26,616 edges at planning time)
-
-Graph discovery and source reads confirmed the existing Better Auth
-`verify-tenant` and Open WebUI `verify-workspace` contracts are incompatible
-with Buzz Desktop's NIP-42/NIP-98 client. The revised plan uses Tailscale route
-and grant controls for transport and Buzz membership for application access.
+The owner accepted the existing tailnet-wide policy and five owner-controlled
+devices for this bounded pilot. Participant authorization is enforced by
+separate Nostr identities and the closed-relay roster. Walter, Titus, and
+Mitchel/Trevor retain their existing Hermes tools, memory, model routing, and
+human-approval policy behind exact signed-owner/channel intake checks.
 
 ## Cross-Artifact Analysis
 
-The 2026-09-02 Spec Kit consistency pass found no unresolved critical
-ambiguity, constitutional conflict, stale active-sidecar assumption, or
-uncovered requirement. A post-merge Codex review then identified three
-execution-contract defects: missing OCI VNIC/host-interface address assignment,
-conflated WebSocket and NIP-98 HTTPS URL forms, and a rollback label that did
-not match its listener-first sequence. The follow-up planning delta corrects all
-three before Gate 0 production work.
+The 2026-09-02 Spec Kit consistency pass found no unresolved Critical or High
+finding and no uncovered functional requirement or success criterion. It
+remediated stale SecurityTeam routing text and made same-channel replies,
+fail-closed named-runtime mapping, cross-runtime credential denial,
+deduplication-only state, bot-trigger denial, and non-bypassable human approval
+explicit across the spec, contracts, and tasks.
+
+Codex review of PR #253 then found three execution-contract defects. The
+remediation keeps intake workers off the shared production network behind a
+fixed-target Nginx egress broker, narrows revocation to unsubmitted/future-work
+rejection plus late-result suppression because Hermes has no cancellation API,
+and uses the host's existing `systemd-socket-proxyd` instead of an impossible
+reload-time Docker port publication. No review finding remains undisposed.
 
 The active set contains 27 functional requirements, 14 success criteria, nine
-preserved historical tasks, and 44 contiguous continuation tasks T055-T098.
-Every requirement and success criterion has task coverage; local document links
-resolve.
+preserved historical tasks, and 45 contiguous continuation tasks T055-T099.
+The simpler design does not require a temporary Tailscale OAuth credential,
+device tag, grant, or policy rewrite.
 
-One format finding was remediated during the quality pass: explicit acceptance
-scenarios, edge cases, key entities, project structure, and user-story task
-tags were restored to match the repository templates.
+## Delegated Tasks
 
-## Delivery Boundary
+| Task | Spec Kit IDs | Mutable | Lane | Owned paths | Verification |
+|---|---|---:|---|---|---|
+| gate0-image-readiness | T057 | no | codex-luna read-only | none | `python3 -m unittest infra/buzz/tests/test_candidate_images.py` |
+| gate0-contract-readiness | T062 | no | codex-luna read-only | none | `specify check` |
 
-No Ringer implementation is selected for this documentation-only update.
-Production-risk work remains read-only for delegated lanes. Future execution
-requires dependency-ready task IDs, disjoint paths, frozen scope, explicit
-checks, and separate approvals for every production mutation.
+The generated read-only and quality-gate manifests both linted clean and
+completed dry runs. They were not executed; no worker or production mutation
+was started.
+
+## Scope and Safety Gates
+
+- `spec.md` is the scope ceiling, `plan.md` is the architecture boundary, and `tasks.md` is the authorized execution list.
+- Workers may not commit, push, edit `.git`, update canonical task status, or widen scope.
+- New requirements, dependencies, public interfaces, schemas, migrations, architecture decisions, or file surfaces require `SCOPE CHANGE REQUIRED`.
+- Sensitive and production mutation remains with Sol or the accountable human lead.
+
+## Pull Request Context
+
+The pull request must record this classification, important graph discoveries,
+delegated ownership, verification evidence, risk and rollback information, and
+links to any ADR, runbook, roadmap, or Spec Kit artifact that remains durable.
 
 ## Reactivation Preconditions
 
-1. Keep the synchronized Issue body and Project fields current at each material
-   handoff.
-2. Refresh all time-sensitive upstream, image, client, host, VNIC/interface,
-   route, DNS, certificate, backup, and capacity facts.
-3. Pass local contracts and the separately approved route-coexistence
-   experiment before disabled installation.
-4. Keep production activation, owner admission, canary admission, and expansion
-   separately authorized.
+1. Finish T057 and T062 without changing production.
+2. Pass local contracts before requesting the separately approved route
+   coexistence experiment.
+3. Keep address assignment, route advertisement/approval, DNS/certificate
+   work, listener activation, owner admission, and each named-agent admission
+   as separate owner decisions.
+4. Keep merge completion separate from production activation.

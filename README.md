@@ -144,7 +144,10 @@ Feature 042's Buzz pilot is in planning reconsideration only. Its proposed
 ingress reuses the existing Nginx process on an explicitly assigned secondary
 private listener address reached by an exact host-advertised Tailscale `/32`,
 with separate byte-exact WebSocket and NIP-98 HTTPS URL contracts behind that
-transport boundary. Issue #249 reopened for planning on 2026-09-02; no Buzz
+transport boundary. The bounded pilot accepts the current owner-controlled
+tailnet-wide transport policy; Buzz membership separately admits the owner and
+distinct Walter, Titus, and Mitchel/Trevor identities, one agent at a time
+after a canary. Issue #249 reopened for planning on 2026-09-02; no Buzz
 service, route, identity, secret, DNS record, or production state has been
 created.
 

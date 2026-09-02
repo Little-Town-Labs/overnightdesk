@@ -7,11 +7,12 @@ or message content.
 ## PilotWorkload
 
 - `workload_id`: `buzz-private-pilot`
-- `owner`, `source_commit`, `relay_digest`, `canary_digest`
+- `owner`, `source_commit`, `relay_digest`, `intake_worker_digests`
 - `nginx_config_digest`, `websocket_relay_url`, `nip98_https_origin`,
   `nip98_operation_manifest_digest`
 - `lifecycle_state`: `planned | installed_disabled | private_qualified |
-  owner_active | canary_active | observing | paused | rolled_back`
+  owner_active | canary_active | agents_active | observing | paused |
+  rolled_back`
 - `resource_ceiling`, `previous_release_handle`, `approval_refs`
 
 **Rules**: Production transitions require the prior gate's exact evidence and
@@ -26,18 +27,19 @@ approval. Pause and rollback preserve authoritative state.
 - `prefix_length`: exactly `32`
 - `advertising_node`: existing Aegis Tailscale node
 - `route_state`: `absent | advertised | approved | active | withdrawn`
-- `grant_state`: `absent | staged | active | withdrawn`
-- `allowed_source_devices`: approved owner devices only
+- `tailnet_policy_mode`: `existing_tailnet_wide`
+- `tailnet_policy_digest`: captured compiled-policy baseline
+- `allowed_transport_sources`: current owner-controlled tailnet devices
 - `baseline_vnic_digest`, `baseline_interface_digest`, `baseline_route_digest`,
   `baseline_serve_digest`, `last_verified_at`
 
 **Rules**: The address has no public NAT path. With explicit approval, the
 exact secondary private IP is assigned to the frozen OCI VNIC and intended host
 interface and passes local-bind proof before advertisement or listener
-activation. Address assignment, advertisement/approval, and the source grant
-are separate transitions. Listener-first rollback withdraws only this grant and
-`/32`, then removes only this address assignment. Existing addresses, routes,
-node identity, and Serve handlers remain unchanged.
+activation. Address assignment and advertisement/approval are separate
+transitions. Socket-first rollback withdraws only this `/32`, then removes
+only this address assignment. Existing addresses, routes, tailnet policy, node
+identity, and Serve handlers remain unchanged.
 
 ## IngressConfiguration
 
@@ -46,16 +48,26 @@ node identity, and Serve handlers remain unchanged.
 - `nip98_operations`: frozen exact method and full HTTPS request URL pairs,
   including raw path and query
 - `listener_address`, `listener_port`: selected private address and `443`
-- `internal_nginx_port`: implementation-frozen value
+- `nginx_bridge_address`, `internal_nginx_port`: fixed `buzz-ingress` target and
+  `8443`
+- `nginx_agent_address`, `internal_agent_tls_port`: fixed `buzz-agents` target
+  and `443` for canonical intake-worker traffic
+- `socket_unit`, `proxy_unit`, `proxy_binary`: exact hardened systemd unit
+  references and existing `systemd-socket-proxyd`
 - `certificate_ref`, `certificate_method`: secret-free metadata and DNS-01
-- `config_digest`, `enabled_state`: `absent | installed_disabled | active`
+- `config_digest`, `socket_unit_digest`, `enabled_state`:
+  `absent | installed_disabled | nginx_ready | socket_active`
 - `public_listener_denial_evidence`, `protocol_evidence`
 
 **Rules**: Neither external URL form includes an explicit default `:443` port.
-The Buzz server block is not selectable on a public listener. Activation
-requires `nginx -t`, a reload, NIP-42 proof under the exact WebSocket URL,
-NIP-98 proof for every frozen method/full-URL pair, and public IP/SNI/Host
-denial. It never invokes OvernightDesk `auth_request`.
+The Buzz server block is not selectable on a public listener. The shared Nginx
+container receives no new Docker publication and is never recreated for Buzz.
+Its only Buzz listeners are the fixed `buzz-ingress:8443` and
+`buzz-agents:443` endpoints.
+Activation requires `nginx -t`, a reload, starting the exact private socket,
+NIP-42 proof under the exact WebSocket URL, NIP-98 proof for every frozen
+method/full-URL pair, and public IP/SNI/Host denial. It never invokes
+OvernightDesk `auth_request`.
 
 ## Community
 
@@ -69,28 +81,43 @@ denial. It never invokes OvernightDesk `auth_request`.
 ## Identity and MembershipGrant
 
 - `Identity`: `public_key`, `kind` (`human_owner | relay_admin |
-  agent_canary | negative_test`), `status`, recovery-custody metadata
+  hermes_walter | hermes_titus | hermes_mitchel | negative_test`), `status`,
+  recovery-custody metadata
 - `MembershipGrant`: identity public key, relay/channel scope, role, grant and
   revocation timestamps
 
-**Rules**: Private keys never enter this model. A channel grant requires active
-relay membership. Revocation invalidates queued and future canary work.
+**Rules**: Private keys never enter this model. Each Hermes identity is unique,
+read/write, and independently revocable. A channel grant requires active relay
+membership. Revocation invalidates queued work not yet submitted and future
+work for only that agent and suppresses any late result publication.
 
 ## AgentAuthorityProfile
 
 - `agent_public_key`
+- `runtime_id`: `hermes-walter | hermes-titus | hermes-mitchel`
 - `allowed_owner_public_keys`: exactly one
 - `allowed_channel_ids`: exactly one
+- `allowed_trigger_public_keys`: owner only
 - `max_concurrency`: one
 - `max_output`, `timeout`, `deduplication_window`
-- `allowed_tools`: empty
-- `network_target`: canonical Nginx URL only
-- `prohibited_actions`: direct relay/store access, production, shell, secrets,
-  outreach, payments, CRM/customer/prospect data, repository mutation, and
-  cross-channel response
+- `hermes_api_route`, `runtime_api_token_ref`
+- `egress_broker_route`: one fixed Nginx route for capabilities, submission,
+  and status only
+- `existing_authority_policy_ref`: mapped runtime's current tool and human-
+  approval policy
+- `network_targets`: canonical Nginx and its fixed-target egress broker only
+- `prohibited_actions`: shared-production-network attachment, direct
+  relay/store/unrelated-service access, cross-runtime credentials, approval
+  bypass, authority expansion, and cross-channel response
+- `revocation_state`: active, revoked-before-submission, or
+  revoked-after-submission-result-suppressed
 
-**Rules**: Missing owner or channel denies all response. Any new caller,
-channel, tool, target, or authority is a separately approved scope change.
+**Rules**: Missing owner, channel, or exact agent identity denies all response.
+Bot-authored messages do not trigger another agent. Exact owner signature and
+channel checks precede Hermes. Existing tools retain their current approval rules;
+any new caller, agent, channel, tool, target, or authority is a separately
+approved scope change. Revocation does not claim to cancel an already-submitted
+Hermes run; it prevents new submissions and suppresses late result publication.
 
 ## StateStore
 
@@ -104,8 +131,8 @@ channel, tool, target, or authority is a separately approved scope change.
 
 **Rules**: PostgreSQL and MinIO form one coherent recovery set. Redis is
 diagnostic and Git scratch is regenerated. Ingress metadata contains no secret
-or Tailscale node state; route/grant/listener configuration is recreated only
-through an approved lifecycle.
+or Tailscale node state; route/listener configuration is recreated only through
+an approved lifecycle.
 
 ## QualificationRun
 

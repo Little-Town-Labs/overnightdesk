@@ -8,7 +8,8 @@
 
 **Reactivated for planning**: 2026-09-02
 
-**Status**: Issue reopened for planning; implementation and production mutation are not authorized
+**Status**: Gate 0 evidence collection and simplified design revision in
+progress; implementation and production mutation are not authorized
 
 ## Reactivation Boundary
 
@@ -21,18 +22,28 @@ This revision and the reopened Issue reactivate planning, not implementation or
 deployment. The design supersedes the dedicated Tailscale-container topology
 with a proposed private Nginx listener reached through an exact
 host-advertised `/32` subnet route. Current upstream, image, host, route, and
-protocol facts must be revalidated before implementation.
+protocol facts must be revalidated before implementation. On 2026-09-02 the
+owner simplified the transport boundary: the current tailnet-wide access policy
+is accepted for this bounded pilot, while Buzz membership becomes the
+participant boundary for the owner and three named Hermes agents.
 
 ## Scope
 
 ### MVP
 
 Privately and reversibly qualify one closed Buzz community on `aegis-prod` for
-one human owner and one newly created, low-authority canary. The pilot must
-prove that:
+one human owner and the three named Aegis Hermes agents: Walter, Titus, and
+Mitchel/Trevor. The agents are admitted in stages, beginning with one selected
+canary. The pilot must prove that:
 
-- only specifically authorized owner devices can reach the private ingress;
+- only tailnet-connected devices can reach the private ingress, with the
+  current tailnet-wide policy accepted as a bounded residual risk;
 - Buzz enforces NIP-42/NIP-98 identity and closed-relay membership;
+- the owner and each agent use separate, independently revocable Nostr
+  identities with read/write messaging membership;
+- automated agent responses accept only the exact signed owner in one pilot
+  channel and retain each Hermes runtime's existing tool and human-approval
+  policy without gaining new authority;
 - the canonical Buzz WebSocket URL and each exact NIP-98 HTTPS request URL work
   unchanged through Nginx;
 - stores, identities, secrets, backups, telemetry, and rollback remain
@@ -50,9 +61,10 @@ prove that:
 - Moving, replacing, or extending the existing `ob1-mcp` Tailscale Serve root.
 - Customer, prospect, payment, outreach, regulated, or production business
   data.
-- Reusing an existing human or agent identity, secret, memory, or tool scope.
+- Sharing a human or agent identity, private key, or secret.
 - Admin UI, Git web UI, workflows, webhooks, large media, multi-community
-  hosting, or generalized Hermes integration.
+  hosting, agents beyond the three named Hermes runtimes, bot-to-bot-triggered
+  automation, or new business-action tools.
 - Publishing a branch, changing Project fields, deploying, or changing routes
   without separate explicit authorization.
 
@@ -69,19 +81,24 @@ prove that:
   and intended host interface is a separate owner-approved production mutation
   that must precede Nginx binding and route advertisement.
 - Only after assignment and local-bind proof may the host's existing Tailscale
-  node advertise exactly that address as a `/32`. Route advertisement/approval
-  and a deny-by-default owner-device grant are distinct controls and must both
-  pass.
+  node advertise exactly that address as a `/32`. The current broad tailnet
+  policy is accepted for this owner-controlled pilot, so no Buzz-specific
+  Tailscale policy, grant, tag, or temporary API credential is required.
 - `wss://buzz.overnightdesk.com` is the exact WebSocket relay URL used by the
-  relay, Desktop, tests, canary, and signed relay tags. NIP-98 uses the distinct
+  relay, Desktop, tests, Hermes intake workers, and signed relay tags. NIP-98 uses the distinct
   HTTPS origin `https://buzz.overnightdesk.com` and signs the byte-exact full
   request URL, including its path and query. Neither canonical form includes an
   explicit default `:443` port. Gate 0 freezes the literal supported NIP-98
   method/URL pairs before fixtures or production probes are built.
 - Nginx transports NIP-42 WebSocket and NIP-98 HTTP traffic without substituting
   OIDC. A successful upgrade alone is not sufficient protocol proof.
-- Nginx, relay, stores, and canary use narrow networks so Nginx cannot reach
-  data stores and the canary cannot bypass the canonical ingress.
+- Nginx, relay, stores, and Hermes intake workers use narrow networks so Nginx
+  cannot reach data stores and no worker can bypass the canonical ingress.
+- Walter, Titus, and Mitchel/Trevor each receive a distinct Buzz identity and
+  route-specific intake worker. They may read and post messages, but each
+  worker calls only its exact authenticated Hermes Runs API and does not add
+  tool, shell, deployment, outreach, payment, secret, or business-record
+  authority. Initially only owner-authored messages trigger responses.
 
 No remaining clarification materially changes the MVP, architecture, security
 boundary, or acceptance tests.
@@ -90,21 +107,21 @@ boundary, or acceptance tests.
 
 ### User Story 1 — Owner Uses a Private Collaboration Space (P1)
 
-An owner on an approved device can reach the canonical hostname, authenticate
+An owner on a tailnet device can reach the canonical hostname, authenticate
 with a client-held Nostr identity, and use the closed community. A public
-client, an unapproved tailnet device, and an unadmitted Nostr identity cannot
-read or write.
+client cannot reach Buzz. A tailnet device can reach the private listener, but
+an unadmitted Nostr identity cannot subscribe, read, or write.
 
 **Independent test**: Exercise complete NIP-42 and NIP-98 flows through Nginx,
 then repeat from each denied network and identity class.
 
 **Acceptance scenarios**:
 
-1. **Given** an approved owner device and admitted owner identity, **when** the
+1. **Given** an owner tailnet device and admitted owner identity, **when** the
    client uses the canonical WebSocket and HTTPS request URLs, **then** signed
    WebSocket and HTTP actions succeed through Nginx.
-2. **Given** a public or unapproved tailnet client, **when** it uses DNS, direct
-   IP, SNI, or Host variations, **then** it cannot select or reach Buzz.
+2. **Given** a public client, **when** it uses DNS, direct IP, SNI, or Host
+   variations, **then** it cannot select or reach Buzz.
 3. **Given** an unadmitted Nostr identity, **when** it connects or requests
    content, **then** Buzz denies subscription, read, and write without content
    disclosure.
@@ -124,15 +141,18 @@ unreachable while existing Nginx and Serve routes stay healthy.
 1. **Given** an exact disabled candidate, **when** qualification runs, **then**
    hardening, connectivity, capacity, recovery, and safe-evidence checks pass
    before any identity is admitted.
-2. **Given** active private ingress, **when** listener-first rollback runs,
+2. **Given** active private ingress, **when** socket-first rollback runs,
    **then** Buzz becomes unreachable within five minutes, its data remains
    preserved, the secondary address is removed, and existing services match
    baseline.
 
-### User Story 3 — Low-Authority Canary Participates Safely (P2)
+### User Story 3 — Named Hermes Agents Participate Safely (P2)
 
-A new tool-free canary can respond only to the owner in one channel through
-the canonical Nginx endpoint. Revocation cancels queued and future activity.
+Walter, Titus, and Mitchel/Trevor each use a separate read/write Buzz identity
+through the canonical Nginx endpoint. One is qualified first as the canary;
+the other two are admitted only after it passes. Automated responses are
+owner-triggered in one pilot channel, validated by exact sender and channel,
+governed by existing Hermes tool/approval policy, and independently revocable.
 
 **Independent test**: Pass valid interactions and deny other callers,
 channels, tools, direct relay/store access, duplicates, and post-revocation
@@ -140,12 +160,20 @@ work.
 
 **Acceptance scenarios**:
 
-1. **Given** the exact owner and channel, **when** the canary receives a valid
-   request, **then** it returns one bounded response through canonical Nginx.
-2. **Given** another caller/channel or a prohibited action, **when** a request
-   arrives, **then** the canary refuses without tools or sensitive telemetry.
-3. **Given** revoked canary authority, **when** queued, in-flight, or future
-   work exists, **then** it is cancelled or terminated at the approved boundary.
+1. **Given** the exact owner and pilot channel, **when** the selected canary
+   receives a valid request, **then** it returns one bounded response through
+   canonical Nginx.
+2. **Given** another caller/channel or a high-impact action without approval,
+   **when** a request arrives, **then** the canary refuses or enters the existing
+   human approval path without executing the action or emitting sensitive telemetry.
+3. **Given** revoked agent authority, **when** queued, already-submitted, or
+   future work exists, **then** unsubmitted and future work is rejected and any
+   late result is not published; the design does not claim to cancel the
+   already-submitted Hermes run.
+4. **Given** the canary passes, **when** the remaining named agents are admitted
+   one at a time, **then** each passes the same identity, channel, network,
+   sender/channel, authority, deduplication, and revocation checks before
+   remaining active.
 
 ### User Story 4 — Owner Makes an Evidence-Based Decision (P3)
 
@@ -168,8 +196,8 @@ decision and no proposed expansion is automatically activated.
 - OCI VNIC assignment, host-interface assignment, or local-bind proof fails or
   assigns a different address: activation stops and removes only the partial
   address delta before any `/32` is advertised.
-- The `/32` route works but the source grant does not deny another tailnet
-  device: the experiment rolls back and cannot satisfy transport privacy.
+- The `/32` becomes reachable from outside the tailnet, or the route includes
+  more than the selected address: the experiment rolls back.
 - Nginx returns `101` but signed NIP-42 or NIP-98 fails because Host, URL,
   scheme, or headers changed: protocol qualification fails.
 - DNS-01 renewal fails while the current certificate is valid: activation is
@@ -180,8 +208,8 @@ decision and no proposed expansion is automatically activated.
   owner admission remains blocked.
 - Redis is empty after recovery: the relay must safely rebuild diagnostic/cache
   state without treating it as authoritative loss.
-- The canary resolves a direct relay/store target or canonical DNS bypasses
-  Nginx: network qualification fails.
+- A Hermes intake worker resolves a direct relay/store target or canonical DNS
+  bypasses Nginx: network qualification fails.
 - Rollback cannot prove unreachability or baseline equivalence within five
   minutes: stop progression and preserve state for human diagnosis.
 
@@ -197,26 +225,31 @@ decision and no proposed expansion is automatically activated.
 - **FR-004**: Select a dedicated private listener address only when fresh
   network evidence proves it is unassigned and has no public NAT path; after
   explicit approval, assign that exact secondary private IP to the approved OCI
-  VNIC and intended host interface before binding Buzz.
+  VNIC and intended host interface before starting the exact private host
+  socket proxy.
 - **FR-005**: Advertise exactly the selected and locally assigned private
   address as `/32` through the existing Aegis Tailscale node only after explicit
   approval and successful local-bind proof.
-- **FR-006**: Apply a separate deny-by-default Tailscale grant allowing only
-  approved owner devices to reach the Buzz listener.
+- **FR-006**: Accept the current tailnet-wide transport policy for this bounded
+  pilot without adding a Buzz-specific grant, tag, or Tailscale credential;
+  rely on separate Buzz identities and closed-relay membership for participant
+  authorization.
 - **FR-007**: Leave the existing host Tailscale identity, advertised-route set,
   Serve root, and `ob1-mcp` handler unchanged except for the approved exact
   `/32` route operation.
 - **FR-008**: Leave every existing public Nginx listener and virtual host
   behavior unchanged.
 - **FR-009**: Prove public clients cannot select or reach Buzz by IP, SNI, Host,
-  IPv4, or IPv6, regardless of public DNS absence.
+  IPv4, or IPv6, regardless of public DNS behavior.
 - **FR-010**: Use `wss://buzz.overnightdesk.com` as the exact canonical
-  WebSocket relay URL across relay configuration, Desktop, canary, tests, and
-  signed relay tags; use `https://buzz.overnightdesk.com` as the distinct NIP-98
+  WebSocket relay URL across relay configuration, Desktop, Hermes intake workers,
+  tests, and signed relay tags; use `https://buzz.overnightdesk.com` as the distinct NIP-98
   HTTPS origin, and freeze each supported method plus byte-exact full request
   URL before testing.
-- **FR-011**: Provide no public A/AAAA record for the canonical hostname and
-  obtain its certificate without opening a public HTTP challenge path.
+- **FR-011**: Treat public DNS as non-authoritative for access: provide a
+  private resolution override for the canonical hostname, prove that any
+  public wildcard answer cannot select the Buzz listener, and obtain the
+  certificate without opening a public HTTP challenge path.
 - **FR-012**: Preserve request method, raw path, raw query ordering/encoding,
   Host, WebSocket upgrade, NIP-98 `Authorization`, and external HTTPS semantics
   through Nginx while removing unrelated cookies, so the relay evaluates the
@@ -226,53 +259,76 @@ decision and no proposed expansion is automatically activated.
 - **FR-014**: Test a complete signed NIP-42 challenge/auth/subscription flow
   under the exact WebSocket relay URL and each qualified NIP-98 HTTP operation
   under its frozen exact method and full HTTPS request URL through Nginx.
-- **FR-015**: Use three least-connectivity networks: Nginx+relay ingress,
-  relay+stores data, and Nginx+canary egress.
+- **FR-015**: Use three internal Buzz least-connectivity networks: Nginx+relay
+  ingress, relay+stores data, and Nginx+Hermes-intake egress. Intake workers
+  preserve the canonical Buzz hostname through an Nginx network alias, never
+  join the existing production network, and receive no default external-egress
+  path; Nginx brokers only the fixed, named Hermes API operations from the
+  intake network to the already connected runtimes.
 - **FR-016**: Keep PostgreSQL and MinIO authoritative, Redis diagnostic,
   generated Git scratch disposable, and secrets external to Compose/evidence.
 - **FR-017**: Create a coherent encrypted PostgreSQL+MinIO backup set and prove
   an isolated restore before owner admission.
 - **FR-018**: Keep the owner's private key client-side and out of server secret
   stores, logs, configuration, and evidence.
-- **FR-019**: Create a separate canary identity with no tools, one owner, one
-  channel, one concurrent job, bounded output/time, deduplication, and explicit
-  revocation.
-- **FR-020**: Force canary traffic through the canonical Nginx endpoint; deny
-  direct relay and store connectivity.
+- **FR-019**: Create separate read/write Buzz identities and route-specific
+  intake workers for Walter, Titus, and Mitchel/Trevor; qualify one first as a
+  canary; allow automated responses only to the exact signed owner in one pilot
+  channel; retain each runtime's existing tool/approval policy; add no new tool
+  authority; permit one bounded reply only to that same channel; prevent intake
+  from satisfying or bypassing human approvals; and enforce one concurrent job
+  per agent, bounded output/time, deduplication-only state, rejection of queued
+  unsubmitted and future work after revocation, and suppression of late results
+  from already-submitted runs.
+- **FR-020**: Force every Hermes intake worker through the canonical Nginx
+  endpoint for Buzz and a fixed-target Nginx egress broker for only
+  `GET /v1/capabilities`, `POST /v1/runs`, and
+  `GET /v1/runs/{run_id}` where `run_id` matches
+  `^run_[0-9a-f]{32}$`; fail closed on a query string, approval-response path,
+  missing or mismatched named-runtime mapping; and deny
+  shared-production-network attachment, direct relay/store or unrelated-service
+  connectivity, cross-runtime credentials, shared keys, redirects, variable
+  upstreams, and bot-to-bot-triggered automation.
 - **FR-021**: Install disabled first; require `nginx -t`, contract success,
   restore proof, rollback proof, safe evidence, and explicit approval at each
   production gate.
-- **FR-022**: Activate and roll back with an include/listener change followed
-  by an Nginx reload, never a process replacement or unrelated configuration
-  rewrite.
-- **FR-023**: Roll back the listener first, prove Buzz unreachable, withdraw
-  only the Buzz grant and exact `/32`, remove only the Buzz host-interface and
-  OCI VNIC secondary-address assignment, preserve workload state, and compare
-  all existing addresses, routes, listeners, and health checks to the baseline.
+- **FR-022**: Add no Docker host-port publication and never recreate Nginx.
+  Bind Nginx's internal Buzz server to its fixed `buzz-ingress` bridge address
+  at port `8443` for host-proxied owner traffic and to its fixed `buzz-agents`
+  address at port `443` for intake-worker traffic, forward raw TCP from the
+  private host `:443` with hardened `systemd-socket-proxyd`, expose neither
+  listener on the shared/public network, and keep Nginx configuration changes
+  reload-only.
+- **FR-023**: Roll back the externally reachable systemd socket first, prove
+  Buzz unreachable, remove the private Nginx include with a validated reload,
+  withdraw only the exact `/32`, remove only the Buzz host-interface and OCI
+  VNIC secondary-address assignment, preserve workload state, and compare all
+  existing addresses, routes, listeners, container identities, and health
+  checks to the baseline.
 - **FR-024**: Emit content-free logs and metrics for availability, Nginx
-  reload, route/grant state, protocol outcome class, recovery, capacity, and
-  canary authority denials.
+  reload, route state, protocol outcome class, recovery, capacity, and agent
+  authority denials.
 - **FR-025**: Keep combined CPU, memory, PIDs, disk, and connection use within
   an approved measured ceiling on the shared production host.
 - **FR-026**: Require deterministic local contracts before matching production
   actions and retain redacted, digest-bound evidence for every gate.
-- **FR-027**: Treat Issue/Project updates, route/grant changes, secret creation,
-  deployment, admission, and pilot expansion as separate approval-bound
-  actions.
+- **FR-027**: Treat Issue/Project updates, route changes, secret creation,
+  deployment, each identity admission, and pilot expansion as separate
+  approval-bound actions.
 
 ### Key Entities
 
 - **Pilot workload**: exact candidate, lifecycle state, limits, approvals, and
   rollback handle.
 - **Private ingress route**: selected address, OCI VNIC and host-interface
-  assignment state, `/32`, advertising node, route approval, owner-device grant,
-  and baseline digests.
+  assignment state, `/32`, advertising node, route approval, accepted tailnet
+  policy posture, and baseline digests.
 - **Ingress configuration**: private listener, canonical hostname, certificate
   reference, config digest, public-denial proof, and protocol proof.
 - **Community and identity**: one closed community, distinct public identities,
   memberships, and client/external secret custody.
-- **Agent authority profile**: the canary's caller/channel/network/tool/resource
-  allowlist and revocation state.
+- **Agent authority profile**: each named Hermes agent's identity, intake route,
+  caller/channel/network/tool/resource policy, and revocation state.
 - **Recovery set and qualification run**: exact artifacts, safe checks,
   approvals, restore measurements, and gate result.
 - **Pilot decision**: evidence-backed bounded outcome that grants no authority
@@ -282,33 +338,43 @@ decision and no proposed expansion is automatically activated.
 
 - **SC-001**: All local contracts pass for the exact candidate digests and
   rendered topology before any production mutation.
-- **SC-002**: Approved owner devices complete NIP-42 under the exact canonical
+- **SC-002**: An owner tailnet device completes NIP-42 under the exact canonical
   WebSocket URL and NIP-98 under the frozen byte-exact HTTPS request URLs
   through Nginx.
-- **SC-003**: Public and unapproved tailnet clients have zero successful Buzz
-  connections, including forged-IP/SNI/Host attempts.
+- **SC-003**: Public clients have zero successful Buzz connections, including
+  forged-IP/SNI/Host attempts; tailnet transport alone grants no application
+  access.
 - **SC-004**: Unadmitted identities have zero successful subscriptions, reads,
   or writes.
 - **SC-005**: Nginx can reach only the relay on the Buzz ingress network; the
-  relay alone can reach stores; the canary can reach only Nginx.
+  relay alone can reach stores; each Hermes intake worker is absent from the
+  shared production network, reaches Buzz only through Nginx, and reaches only
+  its mapped Hermes operations through the fixed Nginx egress broker.
 - **SC-006**: An isolated restore of a coherent current backup passes logical
   assertions with measured RPO/RTO before owner admission.
-- **SC-007**: Listener-first rollback makes Buzz unreachable within five
-  minutes, removes only the Buzz grant, `/32`, and secondary-address assignment,
-  preserves data, and leaves existing addresses/routes/listeners healthy.
+- **SC-007**: Socket-first rollback makes Buzz unreachable within five minutes,
+  removes only the Buzz Nginx include, `/32`, and secondary-address assignment,
+  preserves data, does not recreate Nginx, and leaves existing
+  addresses/routes/listeners healthy.
 - **SC-008**: Owner collaboration actions and restart persistence pass without
   exposing private keys or content.
-- **SC-009**: Twenty valid canary interactions pass with zero responses to
-  unapproved callers/channels and zero tool or direct-store access.
-- **SC-010**: Revocation prevents queued and future canary activity.
+- **SC-009**: Each of the three named Hermes identities passes twenty valid
+  interactions with zero responses to unapproved callers/channels, zero new or
+  bypassed tool authority, zero cross-runtime authentication, zero bot-triggered
+  runs, and zero direct relay/store/unrelated-service access.
+- **SC-010**: Per-agent revocation rejects queued work not yet submitted and all
+  future work, suppresses late results from previously submitted runs, and does
+  not revoke the owner or another named agent. Evidence does not claim that the
+  current Hermes API cancels an already-submitted run.
 - **SC-011**: Resource usage remains inside the approved ceiling under measured
   pilot load.
 - **SC-012**: Logs and evidence contain zero secrets, authorization values,
   cookies, private keys, or message bodies.
 - **SC-013**: A seven-day observation has no unresolved security, data-loss,
   required-test, or existing-service-health blocker.
-- **SC-014**: No user, agent, channel, tool, route, data class, or community is
-  added without separately recorded approval.
+- **SC-014**: No user or agent beyond the owner and three named Hermes agents,
+  and no additional channel, tool, route, data class, or community, is added
+  without separately recorded approval.
 
 ## Assumptions and Dependencies
 
@@ -320,7 +386,7 @@ decision and no proposed expansion is automatically activated.
   automatically approved future runtime.
 - The selected private address, exact OCI VNIC and host-interface assignment and
   removal procedure, certificate method, literal NIP-98 method/URL pairs,
-  resource limits, backup objectives, and exact grant syntax are frozen only
-  after current evidence.
+  resource limits, backup objectives, named-agent intake contract, and
+  accepted tailnet-policy posture are frozen only after current evidence.
 - Existing secret custody, encrypted off-box backup, monitoring, and deployment
   ledger mechanisms remain available and must be reverified.
