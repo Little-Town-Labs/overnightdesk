@@ -82,5 +82,5 @@ not as a replacement for Spec Kit artifacts.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/041-oci-control-plane-operations/plan.md`
+`specs/042-buzz-private-pilot/plan.md`
 <!-- SPECKIT END -->
