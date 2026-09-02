@@ -392,8 +392,10 @@ Read-only checks on 2026-09-01 found:
   Tailscale Serve already owns HTTPS port 443 and proxies `/` to `ob1-mcp`.
   The proposed Buzz design omits bundled Caddy and adds only a separately bound
   private Nginx listener reached by an exact host-advertised `/32`. Fresh
-  preflight must select an unassigned address with no public NAT path and prove
-  neither existing listener can select Buzz.
+  preflight must select an unassigned secondary private address with no public
+  NAT path, freeze its OCI VNIC and host-interface assignment/removal procedure,
+  and prove neither existing listener can select Buzz. The exact address must
+  be assigned and locally bindable before Nginx or Tailscale can use it.
 - Docker Compose v5.3.1 exceeds Buzz's documented v2.24.4 minimum.
 - The prior encrypted backup failure caused by the invalid `n8n-files` dataset
   root has been repaired. A production run completed successfully at
@@ -427,12 +429,15 @@ separately approved evaluation—not a production activation:
    candidate. Its exact artifacts now have a locally qualified Wolfi wrapper,
    but publishing and pinning that exact result remain separately authorized.
    Do not track `:main` or floating `:latest`.
-3. Use the proposed private-only Nginx listener on a freshly verified address,
-   advertise only that address as `/32` through the existing Aegis Tailscale
-   node, and separately grant only approved owner devices. Preserve public
-   Nginx and the existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO,
-   health, metrics, and admin internal. Prove public IP/SNI/Host denial and full
-   NIP-42/NIP-98 behavior through the canonical hostname.
+3. Use the proposed private-only Nginx listener on a freshly verified secondary
+   private address. With explicit approval, assign that exact address to the
+   frozen OCI VNIC and intended host interface and prove local binding before
+   advertising only its `/32` through the existing Aegis Tailscale node.
+   Separately grant only approved owner devices. Preserve public Nginx and the
+   existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
+   metrics, and admin internal. Prove public IP/SNI/Host denial, NIP-42 under
+   exact `wss://buzz.overnightdesk.com`, and each qualified NIP-98 method/full-
+   URL operation under the distinct `https://buzz.overnightdesk.com` origin.
 4. Start closed: require signed REST auth and relay membership; disable Git web
    UI, admin UI, hosted multi-community mode, and unnecessary workflows.
 5. Create separate keys for the owner, each human, and each named evaluation
@@ -455,7 +460,9 @@ Buzz's architecture and ARM64 publication make it a credible collaboration
 candidate for Aegis. Reusing qualified Nginx removes the failed Tailscale-image
 dependency, while an exact `/32` route plus a separate owner-device grant keeps
 transport private. This is not yet production proof: a dedicated private
-listener must be shown publicly unreachable, the existing Serve handler must
-remain unchanged, and complete signed NIP-42/NIP-98 flows must survive the
-proxy. A deployment decision follows those gates and measured qualification,
-not the upstream quick start or the historical scan alone.
+address must be safely assigned to and removed from the exact OCI VNIC and host
+interface, its listener must be shown publicly unreachable, the existing Serve
+handler must remain unchanged, and complete signed NIP-42 plus byte-exact
+NIP-98 flows must survive the proxy. A deployment decision follows those gates
+and measured qualification, not the upstream quick start or the historical
+scan alone.

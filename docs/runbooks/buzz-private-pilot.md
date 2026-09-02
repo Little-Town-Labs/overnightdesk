@@ -18,10 +18,12 @@ resolved from current read-only evidence before implementation.
 | Workload | `buzz-private-pilot` |
 | Host | `aegis-prod` (`aarch64`), shared production |
 | Accountable operator | Sol for production mutations |
-| Canonical URL | `wss://buzz.overnightdesk.com` everywhere |
+| WebSocket relay URL | exact `wss://buzz.overnightdesk.com`; no explicit `:443` |
+| NIP-98 HTTPS origin | exact `https://buzz.overnightdesk.com`; no explicit `:443` |
+| NIP-98 request URLs | literal supported method/full-URL pairs frozen at Gate 0; full URL is the HTTPS origin plus the exact raw request target |
 | DNS | private resolution only; no public A/AAAA |
 | TLS | DNS-01; exact certificate/renewal path `GATE0` |
-| Listener | selected private address `GATE0`, port 443; no public NAT/listener path |
+| Listener | selected secondary private address `GATE0`, assigned to the frozen OCI VNIC and host interface before bind; port 443; no public NAT/listener path |
 | Tailnet transport | existing host advertises exact private `/32`; separate owner-device grant |
 | Existing Serve | unchanged root on the existing node, including `ob1-mcp` |
 | Authentication | NIP-42/NIP-98 plus closed-relay membership; no OvernightDesk `auth_request` |
@@ -38,16 +40,26 @@ from the selected private host address. The public OCI `:443`, wildcard binds,
 default servers, and IPv6 listeners must not select Buzz even with the known
 public IP and forged SNI/Host.
 
-Nginx preserves request method, path, query, Host, WebSocket upgrade headers,
-NIP-98 `Authorization`, and external HTTPS semantics. It strips unrelated
-cookies and does not rewrite the URI. Qualification completes signed NIP-42
-challenge/auth/subscription and NIP-98 HTTP operations; `101 Switching
-Protocols` alone is not acceptance.
+The exact WebSocket relay URL is `wss://buzz.overnightdesk.com`. NIP-98 uses
+the distinct HTTPS origin `https://buzz.overnightdesk.com`; each qualified
+operation has a frozen literal method and full request URL containing its exact
+raw path and raw query ordering/encoding. Placeholders are invalid after Gate
+0, and neither external URL form includes an explicit default `:443` port.
 
-Route advertisement/approval and the source-device grant are independent.
-Only the selected `/32` is added, only approved owner devices may reach its
-port 443, and the pre-existing route set, node identity, grants, and Serve
-configuration must compare unchanged after rollback.
+Nginx preserves request method, raw path, raw query ordering/encoding, Host,
+WebSocket upgrade headers, NIP-98 `Authorization`, and external HTTPS
+semantics. It strips unrelated cookies and does not rewrite the URI.
+Qualification completes signed NIP-42 challenge/auth/subscription and every
+frozen NIP-98 HTTP operation; `101 Switching Protocols` alone is not
+acceptance.
+
+Address assignment, route advertisement/approval, and the source-device grant
+are independent. After explicit approval, the selected address is assigned as
+a secondary private IP to the frozen OCI VNIC and intended host interface;
+the exact local address and bind must succeed before route advertisement. Only
+that `/32` is added, only approved owner devices may reach its port 443, and
+the pre-existing VNIC/interface addresses, route set, node identity, grants,
+and Serve configuration must compare unchanged after rollback.
 
 ## Services, state, and networks
 
@@ -63,7 +75,8 @@ configuration must compare unchanged after rollback.
 
 No service publishes an application, store, health, metrics, admin, or
 management port publicly. Nginx cannot reach stores. The canary cannot reach
-relay or stores directly and must use the canonical URL through Nginx.
+relay or stores directly and must use the canonical external WebSocket and
+HTTPS URLs through Nginx.
 
 All new images are exact ARM64 digests with current provenance, SBOM, scan,
 non-root, hardening, startup, and limit evidence. The existing Nginx image is
@@ -91,18 +104,22 @@ both authoritative artifacts and off-box transfer succeed. A disposable,
 unrouted restore with logical assertions and measured RPO/RTO must pass before
 owner admission.
 
-There is no Buzz Tailscale node state to back up. Listener/route/grant metadata
-is non-secret evidence and is recreated only through the approved activation
-sequence.
+There is no Buzz Tailscale node state to back up. VNIC/interface assignment and
+listener/route/grant metadata is non-secret evidence and is recreated only
+through the approved activation sequence.
 
 ## Gates
 
 1. **Gate 0, read-only**: refresh upstream/images/client and Aegis/OCI/Nginx/
-   Tailscale/DNS/cert/backup/capacity facts; select safe private address.
+   Tailscale/DNS/cert/backup/capacity facts; select a safe private address;
+   freeze exact VNIC/interface assignment and removal plus literal NIP-98
+   method/full-URL pairs.
 2. **Gate 1, local**: failing contracts first, then immutable Compose/Nginx,
    full signed protocol matrix, public denial, recovery, sentinel, and rollback.
-3. **Gate 2, owner-approved production experiment**: no admitted user; add the
-   exact `/32` and grant, enable private listener, test, then fully roll back.
+3. **Gate 2, owner-approved production experiment**: no admitted user; assign
+   the selected secondary private IP to the frozen VNIC/interface, prove local
+   bind and public denial, add the exact `/32` and grant, enable the private
+   listener, test, then fully roll back including address removal.
 4. **Gate 3, owner-approved disabled install**: hardening, isolation, capacity,
    backup/restore, and rollback proof.
 5. **Gate 4, owner-approved owner only**: admit owner and qualify collaboration
@@ -120,20 +137,27 @@ failed or incomplete gate authorizes no next step.
 1. Install the stack and Buzz Nginx include disabled.
 2. Render Compose and validate `nginx -t`.
 3. Pass recovery, rollback, invariant, and safe-log prerequisites.
-4. With explicit approval, advertise/approve only the exact `/32` and apply
-   only the exact owner-device grant.
-5. Enable only the private include/listener and reload Nginx.
-6. Run canonical signed positive tests and the full denied-source matrix.
+4. With explicit approval, assign the exact secondary private IP to the frozen
+   OCI VNIC and intended host interface; prove the exact local address, bind,
+   and absence of a public path.
+5. Advertise/approve only the exact `/32` and apply only the exact owner-device
+   grant.
+6. Enable only the private include/listener and reload Nginx.
+7. Run NIP-42 at the exact WebSocket relay URL, every frozen NIP-98 method/full-
+   URL pair, and the full denied-source matrix.
 
-## Route-first rollback
+## Listener-first rollback
 
 1. Disable only the Buzz private include/listener.
 2. Run `nginx -t` and reload—do not restart or rewrite unrelated config.
 3. Prove Buzz unreachable from all positive and negative test locations.
 4. With approval, withdraw only the exact grant and `/32`.
-5. Stop canary and workload; preserve authoritative data and images.
-6. Compare public Nginx vhosts/listeners, Tailscale node/routes/grants/Serve,
-   services, backups, and health to the signed baseline.
+5. Confirm no listener or route uses the Buzz address; remove only its host-
+   interface and OCI VNIC secondary-address assignments.
+6. Stop canary and workload; preserve authoritative data and images.
+7. Compare OCI VNIC and host-interface addresses, public Nginx vhosts/
+   listeners, Tailscale node/routes/grants/Serve, services, backups, and health
+   to the signed baseline.
 
 Cleanup, secret deletion, volume deletion, and image pruning are outside
 rollback and require separate destructive-action approval.

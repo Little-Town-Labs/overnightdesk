@@ -9,9 +9,11 @@ implementation or production action is authorized.
 
 Replace the rejected dedicated Tailscale-container ingress with a private-only
 listener in the existing qualified Nginx process. The listener binds to a
-freshly verified private Aegis address and is reachable through an exact `/32`
-subnet route advertised by the host's existing Tailscale node. A separate
-deny-by-default grant admits only approved owner devices.
+freshly verified secondary private address only after that exact address is
+assigned to the approved OCI VNIC and intended Aegis host interface. It is then
+reachable through an exact `/32` subnet route advertised by the host's existing
+Tailscale node. A separate deny-by-default grant admits only approved owner
+devices.
 
 Nginx terminates DNS-01 TLS for `buzz.overnightdesk.com` and proxies the exact
 canonical HTTPS/WSS traffic to the relay. It does not apply OvernightDesk
@@ -27,7 +29,7 @@ approved owner device
   -> private host address:443
   -> existing Nginx process (dedicated private listener)
        -> buzz-ingress -> relay -> buzz-data -> PostgreSQL / Redis / MinIO
-       -> buzz-canary  -> canary (canonical URL only)
+       -> buzz-canary  -> canary (canonical external URLs only)
 ```
 
 The old sidecar evidence remains historical. Every upstream/image/host fact is
@@ -41,9 +43,10 @@ reversible gates.
 - **Risk**: Production and security-boundary sensitive
 - **Accountability**: Sol owns architecture, integration, production mutation,
   and final quality. Production-related delegated work is read-only only.
-- **GitHub**: Issue #249 is open. Its body and Engineering Delivery project 4
-  fields still require explicit synchronization with this revised plan.
-- **Workspace**: Existing dedicated worktree and branch; no remote mutation.
+- **GitHub**: Issue #249 is open and its ADR-008 scope and Engineering Delivery
+  project 4 fields were synchronized before PR #250 merged.
+- **Workspace**: Feature artifacts use dedicated worktrees; Git publication and
+  production mutation remain separate authorization boundaries.
 
 ## Technical Context
 
@@ -51,6 +54,8 @@ reversible gates.
   separately supervised canary adapter.
 - Existing Aegis host Tailscale node and Nginx image/process; no new Tailscale
   container, identity, state, or certificate automation.
+- Existing OCI VNIC plus an approval-bound secondary private IP and matching
+  host-interface assignment; no new public IP or public NAT path.
 - Immutable ARM64 Buzz relay wrapper, PostgreSQL, Redis, MinIO, and canary
   images, all freshly qualified before use.
 - DNS-01 certificate for the canonical hostname and private-only name
@@ -88,23 +93,37 @@ published only on the selected private host address; public `:443` cannot
 select that server block.
 
 The exact address is deliberately not hard-coded in planning. Preflight must
-prove it is unassigned, local to the intended interface, absent from public
-NAT/route/security-list paths, and safe to withdraw.
+prove it is unassigned, valid for the intended VNIC/interface, absent from
+public NAT/route/security-list paths, and safe to remove. Gate 2 must assign
+that exact secondary private IP to the approved OCI VNIC and intended host
+interface, verify the resulting local address and bind, and only then enable
+the listener or advertise the route. Assignment and removal commands, resource
+identifiers, pre-state, and post-state are frozen before execution.
 
 ### Route and grant are separate controls
 
-The host advertises only the selected address as `/32`. Route approval/injection
-makes it reachable; a deny-by-default grant separately limits source devices.
-Both are required, and their existing-state baselines are independently
-captured and compared. The current Serve root and all pre-existing advertised
-routes must remain unchanged.
+The host advertises only the selected, locally assigned address as `/32`. Route
+approval/injection makes it reachable; a deny-by-default grant separately
+limits source devices. Address assignment, route advertisement/approval, and
+the grant are distinct transitions with independently captured baselines. The
+current Serve root and all pre-existing addresses, routes, and grants must
+remain unchanged.
 
 ### Canonical protocol contract
 
-The relay, Desktop, canary, and tests all use
-`wss://buzz.overnightdesk.com:443`. Nginx preserves method, path, query, Host,
-WebSocket `Upgrade`/`Connection`, NIP-98 `Authorization`, and external HTTPS
-semantics. It strips unrelated cookies and performs no URI rewriting.
+The relay, Desktop, canary, tests, and signed relay tags all use the byte-exact
+WebSocket relay URL `wss://buzz.overnightdesk.com`. NIP-98 instead uses the
+HTTPS origin `https://buzz.overnightdesk.com`; each supported operation freezes
+an exact method and full URL where `NIP98_FULL_URL` equals
+`NIP98_HTTPS_ORIGIN + RAW_REQUEST_TARGET`. `RAW_REQUEST_TARGET` begins with the
+absolute path and includes the exact `?` plus raw query when present. Neither
+external URL form includes an explicit default `:443` port. The Gate 0 manifest
+records literal method/URL pairs, not templates, before fixtures are
+implemented.
+
+Nginx preserves method, raw path, raw query ordering/encoding, Host, WebSocket
+`Upgrade`/`Connection`, NIP-98 `Authorization`, and external HTTPS semantics.
+It strips unrelated cookies and performs no URI rewriting.
 
 Acceptance requires complete signed NIP-42 challenge/auth/subscription and
 NIP-98 HTTP operations through Nginx. A `101 Switching Protocols` response by
@@ -135,20 +154,22 @@ private address until evidence passes.
 Write failing contracts first, then render and test the minimum Nginx/Compose
 topology with synthetic identities. Prove public-listener non-selection,
 network isolation, canonical NIP-42/NIP-98 flows, safe telemetry, image policy,
-and route-first lifecycle ordering without touching Aegis.
+and listener-first rollback ordering without touching Aegis.
 
 ### Gate 2 — Production route-coexistence experiment
 
-With explicit production approval and no admitted Buzz identity, advertise and
-approve the selected `/32`, apply the exact owner-device grant, exercise the
-disabled private listener/protocol probe, then fully withdraw the experiment.
-Diff route, grant, Serve, Nginx, and service baselines before and after.
+With explicit production approval and no admitted Buzz identity, assign the
+selected secondary private IP to the approved OCI VNIC and intended host
+interface, prove local bind and public denial, advertise and approve the exact
+`/32`, apply the exact owner-device grant, exercise the private
+listener/protocol probe, then fully withdraw the experiment. Diff VNIC,
+interface, route, grant, Serve, Nginx, and service baselines before and after.
 
 ### Gate 3 — Disabled Aegis installation and recovery
 
 Install the isolated stack with ingress disabled. Recheck hardening, capacity,
 logs, restart behavior, encrypted coherent backup, disposable restore, and
-route-first rollback.
+listener-first rollback.
 
 ### Gate 4 — Owner-only qualification
 
@@ -174,18 +195,23 @@ Activation is disabled-first:
 1. Install the inactive private listener include and stack.
 2. Validate rendered Compose and `nginx -t`.
 3. Pass recovery and rollback prerequisites.
-4. With approval, advertise/approve the exact `/32` and apply the exact grant.
-5. Enable only the Buzz private include/listener and reload Nginx.
-6. Run canonical positive and negative protocol checks.
+4. With approval, assign the exact secondary private IP to the approved OCI
+   VNIC and intended host interface; prove the exact local address, bind, and
+   absence of a public path.
+5. Advertise/approve the exact `/32` and apply the exact grant.
+6. Enable only the Buzz private include/listener and reload Nginx.
+7. Run canonical positive and negative protocol checks.
 
-Rollback is route-first:
+Rollback is listener-first:
 
 1. Disable the exact Buzz include/listener, run `nginx -t`, and reload.
 2. Prove canonical Buzz ingress is unreachable from every test class.
 3. With approval, withdraw only the Buzz grant and exact `/32` route.
-4. Stop canary and workload while preserving authoritative state.
-5. Compare existing Nginx vhosts, Tailscale Serve, routes, containers, and
-   health to the signed baseline.
+4. Confirm no listener or route uses the Buzz address, then remove only its host
+   interface and OCI VNIC secondary-address assignments.
+5. Stop canary and workload while preserving authoritative state.
+6. Compare existing OCI VNIC addresses, host interfaces, Nginx vhosts,
+   Tailscale Serve, routes, containers, and health to the signed baseline.
 
 No rollback step restarts Nginx, overwrites unrelated configuration, restores
 Tailscale node state, or deletes Buzz data.

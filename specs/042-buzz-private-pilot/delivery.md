@@ -14,9 +14,10 @@
 
 ## Current Gate
 
-Gate 0 documentation is active. Issue reopening is complete. No implementation,
-registry, Phase, Aegis, tailnet, route, DNS, certificate, identity, admission,
-deployment, remote Git, Issue-content, or Project mutation is authorized.
+Gate 0 documentation is active. Issue reopening and ADR-008 Issue/Project
+synchronization are complete, and PR #250 merged the revised planning set. No
+implementation, registry, Phase, Aegis, tailnet, route, DNS, certificate,
+identity, admission, or deployment mutation is authorized.
 
 T001-T009 remain completed historical research. T010-T054 are retired and were
 never executed. Continuation tasks begin at T055 to preserve the audit trail.
@@ -35,11 +36,17 @@ and grant controls for transport and Buzz membership for application access.
 ## Cross-Artifact Analysis
 
 The 2026-09-02 Spec Kit consistency pass found no unresolved critical
-ambiguity, constitutional conflict, placeholder, stale active-sidecar
-assumption, or uncovered requirement. The active set contains 27 functional
-requirements, 14 success criteria, nine preserved historical tasks, and 44
-contiguous continuation tasks T055-T098. Every requirement and success
-criterion has task coverage; local document links resolve.
+ambiguity, constitutional conflict, stale active-sidecar assumption, or
+uncovered requirement. A post-merge Codex review then identified three
+execution-contract defects: missing OCI VNIC/host-interface address assignment,
+conflated WebSocket and NIP-98 HTTPS URL forms, and a rollback label that did
+not match its listener-first sequence. The follow-up planning delta corrects all
+three before Gate 0 production work.
+
+The active set contains 27 functional requirements, 14 success criteria, nine
+preserved historical tasks, and 44 contiguous continuation tasks T055-T098.
+Every requirement and success criterion has task coverage; local document links
+resolve.
 
 One format finding was remediated during the quality pass: explicit acceptance
 scenarios, edge cases, key entities, project structure, and user-story task
@@ -54,10 +61,10 @@ checks, and separate approvals for every production mutation.
 
 ## Reactivation Preconditions
 
-1. Explicitly authorize synchronization of the reopened Issue body and Project
-   fields before tracked execution advances.
-2. Refresh all time-sensitive upstream, image, client, host, route, DNS,
-   certificate, backup, and capacity facts.
+1. Keep the synchronized Issue body and Project fields current at each material
+   handoff.
+2. Refresh all time-sensitive upstream, image, client, host, VNIC/interface,
+   route, DNS, certificate, backup, and capacity facts.
 3. Pass local contracts and the separately approved route-coexistence
    experiment before disabled installation.
 4. Keep production activation, owner admission, canary admission, and expansion

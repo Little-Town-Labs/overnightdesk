@@ -26,14 +26,14 @@ silently rewritten. Continuation begins at T055.
 
 ## Phase 1 — Reactivation and current-fact freeze
 
-- [ ] T055 **[OWNER APPROVAL]** Update the reopened Issue #249 body to the ADR-008 scope, confirm its Engineering Delivery project 4 routing, and initialize current delivery fields without implying deployment approval (FR-027) in the approved GitHub surfaces.
+- [X] T055 **[OWNER APPROVAL]** Update the reopened Issue #249 body to the ADR-008 scope, confirm its Engineering Delivery project 4 routing, and initialize current delivery fields without implying deployment approval (FR-027) in the approved GitHub surfaces.
 - [ ] T056 Refresh Buzz repository, security policy, client/relay URL behavior, NIP-AA behavior, issue #6281, release/commit status, and supported ARM64 artifacts in specs/042-buzz-private-pilot/evidence/current-upstream.md (FR-001, FR-002).
 - [ ] T057 Requalify relay, PostgreSQL, Redis, MinIO, initializer, and canary images by immutable ARM64 digest, provenance, SBOM, vulnerability disposition, non-root execution, and startup behavior in specs/042-buzz-private-pilot/evidence/current-images.md (FR-001, FR-026).
 - [ ] T058 [P] Perform read-only Aegis inventory of addresses, interfaces, Docker port bindings/networks, Nginx image/modules/listeners/config/reload method, service health, capacity, disk, and backup state in specs/042-buzz-private-pilot/evidence/current-aegis.md (FR-003, FR-004, FR-008, FR-025).
 - [ ] T059 [P] Perform read-only OCI inspection of VNIC private/public addresses, NAT, route tables, gateways, security lists, IPv6, and DNS/certificate constraints in specs/042-buzz-private-pilot/evidence/current-oci.md (FR-004, FR-009, FR-011).
 - [ ] T060 [P] Perform read-only Tailscale inspection of node identity, version, advertised/approved routes, route injection, grants, Serve root, and `ob1-mcp` handler in specs/042-buzz-private-pilot/evidence/current-tailscale.md (FR-005 through FR-007).
-- [ ] T061 Select and record a candidate private listener address only if T058-T060 prove it unassigned, locally bindable, exactly routable, publicly unreachable, and safely withdrawable in docs/runbooks/buzz-private-pilot.md (FR-004, FR-005, FR-009).
-- [ ] T062 Freeze the canonical hostname, DNS-01 certificate/renewal, private resolution, exact `/32`, owner-device grant, resource ceiling, recovery targets, approval owners, and rollback assertions in docs/runbooks/buzz-private-pilot.md (FR-005, FR-006, FR-010, FR-011, FR-017, FR-021).
+- [ ] T061 Select and record a candidate private listener address only if T058-T060 prove it unassigned, valid for the intended OCI VNIC and host interface, exactly routable, publicly unreachable, and safely removable in docs/runbooks/buzz-private-pilot.md (FR-004, FR-005, FR-009).
+- [ ] T062 Freeze the exact OCI VNIC/host-interface assignment and removal procedure, WebSocket relay URL, literal supported NIP-98 method/full-HTTPS-URL pairs, DNS-01 certificate/renewal, private resolution, exact `/32`, owner-device grant, resource ceiling, recovery targets, approval owners, and rollback assertions in docs/runbooks/buzz-private-pilot.md (FR-004 through FR-006, FR-010, FR-011, FR-017, FR-021).
 
 **Checkpoint**: Current facts and inputs are immutable; no production state changed.
 
@@ -41,10 +41,10 @@ silently rewritten. Continuation begins at T055.
 
 - [ ] T063 Create minimal renderable service and Nginx fixtures with immutable placeholders in infra/buzz/compose.yml, infra/buzz/compose.aegis.yml, and infra/buzz/nginx/buzz-private.conf.example so tests have concrete targets (FR-003, FR-004, FR-015).
 - [ ] T064 [P] Write failing image, hardening, resource, optional-surface, and no-public-port contracts in infra/buzz/tests/test_compose_contract.py (FR-001, FR-003, FR-025, FR-026).
-- [ ] T065 [P] Write failing private-listener, no-public-SNI/Host selection, DNS/certificate, no-`auth_request`, header/URI preservation, and Nginx reload contracts in infra/buzz/tests/test_ingress_contract.py (FR-004, FR-008 through FR-013, FR-022).
-- [ ] T066 [P] Write failing full signed NIP-42 and NIP-98 proxy contract fixtures under infra/buzz/tests/protocol/ and assertions in infra/buzz/tests/test_protocol_contract.py (FR-010, FR-012, FR-014).
+- [ ] T065 [P] Write failing private-listener, no-public-SNI/Host selection, DNS/certificate, no-`auth_request`, raw header/URI preservation, distinct no-`:443` WebSocket/HTTPS canonical forms, and Nginx reload contracts in infra/buzz/tests/test_ingress_contract.py (FR-004, FR-008 through FR-013, FR-022).
+- [ ] T066 [P] Write failing full signed NIP-42 fixtures for the exact WebSocket relay URL and NIP-98 fixtures for every frozen exact method/full-HTTPS-URL pair under infra/buzz/tests/protocol/, with assertions in infra/buzz/tests/test_protocol_contract.py (FR-010, FR-012, FR-014).
 - [ ] T067 [P] Write failing three-network membership and forbidden-path tests in infra/buzz/tests/test_network_contract.py (FR-015, FR-020).
-- [ ] T068 [P] Write failing exact `/32`, separate route/grant, existing-route/Serve invariance, and route-first ordering tests in infra/buzz/tests/test_route_contract.py (FR-005 through FR-007, FR-021 through FR-023).
+- [ ] T068 [P] Write failing secondary-address assignment/removal, exact `/32`, separate route/grant, existing-address/route/Serve invariance, and listener-first rollback ordering tests in infra/buzz/tests/test_route_contract.py (FR-004 through FR-007, FR-021 through FR-023).
 - [ ] T069 [P] Write failing secret projection, owner-key exclusion, safe-log, and evidence-sentinel tests in infra/buzz/tests/test_secret_and_log_contract.py (FR-018, FR-024, FR-026).
 - [ ] T070 [P] Write failing coherent PostgreSQL+MinIO set, completeness, disposable restore, and logical-assertion tests in infra/buzz/tests/test_backup_restore_contract.py (FR-016, FR-017).
 - [ ] T071 [P] Write failing owner/channel/tool/network/concurrency/output/timeout/deduplication/revocation tests in infra/buzz/tests/test_agent_authority_contract.py (FR-019, FR-020).
@@ -61,7 +61,7 @@ silently rewritten. Continuation begins at T055.
 - [ ] T077 [P] [US2] Implement runtime secret projection and non-secret configuration examples in infra/buzz/load-phase-env.sh and infra/buzz/env.example until T069 passes (FR-018, FR-024).
 - [ ] T078 [P] [US2] Implement coherent encrypted backup and disposable restore helpers in infra/buzz/backup-buzz.sh and infra/buzz/restore-rehearsal.sh until T070 passes (FR-016, FR-017).
 - [ ] T079 [P] [US3] Implement the tool-free canonical-Nginx-only canary boundary in infra/buzz/canary/ and infra/buzz/compose.aegis.yml until T071 passes (FR-019, FR-020).
-- [ ] T080 [US2] Implement disabled install, validate/reload, route/grant activation, route-first rollback, status, approval guards, and invariant comparisons in infra/buzz/deploy-aegis.sh and infra/buzz/rollback.sh until T068 passes (FR-005 through FR-007, FR-021 through FR-023).
+- [ ] T080 [US2] Implement disabled install, approval-bound secondary-address assignment/removal, validate/reload, route/grant activation, listener-first rollback, status, approval guards, and invariant comparisons in infra/buzz/deploy-aegis.sh and infra/buzz/rollback.sh until T068 passes (FR-004 through FR-007, FR-021 through FR-023).
 - [ ] T081 [US2] Run all local contracts, rendered-Compose checks, synthetic protocol matrix, safe-log sentinel, recovery rehearsal, and rollback simulation; record digest-bound results in specs/042-buzz-private-pilot/evidence/local-qualification.md (SC-001, SC-005, SC-012).
 
 **Checkpoint**: The proposed topology is locally executable and still has no production effect.
@@ -69,9 +69,9 @@ silently rewritten. Continuation begins at T055.
 ## Phase 4 — Route coexistence proof
 
 - [ ] T082 [US2] **[OWNER APPROVAL]** Capture signed current production baselines and install the inactive private Nginx include plus protocol probe without admitting any Buzz identity (FR-021, FR-026) on Aegis.
-- [ ] T083 [US2] **[OWNER APPROVAL]** Advertise/approve only the selected `/32`, apply only the approved owner-device grant, validate/reload Nginx, and record exact mutations in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-005, FR-006, FR-022).
-- [ ] T084 [US1] **[OWNER APPROVAL]** Execute canonical signed-protocol positive tests and public IPv4/IPv6, forged-SNI/Host, unapproved-device, alternate-hostname, and direct-target denial tests in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-009, FR-010, FR-012, FR-014).
-- [ ] T085 [US2] **[OWNER APPROVAL]** Disable the private listener, validate/reload, withdraw only the exact grant and `/32`, and prove routes, Serve, public vhosts, services, and health match baseline in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-007, FR-008, FR-023).
+- [ ] T083 [US2] **[OWNER APPROVAL]** Assign the selected secondary private IP to the frozen OCI VNIC and host interface, prove the exact local address/bind and public denial, advertise/approve only its `/32`, apply only the approved owner-device grant, enable the private listener, validate/reload Nginx, and record exact mutations in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-004 through FR-006, FR-009, FR-022).
+- [ ] T084 [US1] **[OWNER APPROVAL]** Execute NIP-42 against the exact WebSocket relay URL, every frozen NIP-98 method/full-HTTPS-URL pair, and public IPv4/IPv6, forged-SNI/Host, unapproved-device, alternate-hostname, and direct-target denial tests in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-009, FR-010, FR-012, FR-014).
+- [ ] T085 [US2] **[OWNER APPROVAL]** Disable the private listener, validate/reload, prove Buzz unreachable, withdraw only the exact grant and `/32`, remove only the Buzz host-interface and OCI VNIC secondary-address assignment, and prove addresses, routes, Serve, public vhosts, services, and health match baseline in specs/042-buzz-private-pilot/evidence/route-experiment.md (FR-004, FR-007, FR-008, FR-023).
 
 **Checkpoint**: Private route and protocol coexistence are proven and fully rolled back.
 
@@ -80,7 +80,7 @@ silently rewritten. Continuation begins at T055.
 - [ ] T086 [US2] **[OWNER APPROVAL]** Install exact root-owned sources and immutable services disabled on Aegis with no route and no admitted identity; record specs/042-buzz-private-pilot/evidence/private-qualification.md (FR-001, FR-003, FR-015, FR-021).
 - [ ] T087 [US2] **[OWNER APPROVAL]** Verify hardening, network isolation, readiness, restart, resource ceiling, safe logs, and existing-service health in specs/042-buzz-private-pilot/evidence/private-qualification.md (FR-015, FR-024, FR-025).
 - [ ] T088 [US2] **[OWNER APPROVAL]** Create the coherent encrypted set, verify off-box completion, restore it unrouted, run logical assertions, and record RPO/RTO in specs/042-buzz-private-pilot/evidence/restore-rehearsal.md (FR-016, FR-017, SC-006).
-- [ ] T089 [US2] **[OWNER APPROVAL]** Rehearse route-first rollback and confirm Buzz unreachability plus existing-state invariance in specs/042-buzz-private-pilot/evidence/rollback-rehearsal.md (FR-021 through FR-023, SC-007).
+- [ ] T089 [US2] **[OWNER APPROVAL]** Rehearse listener-first rollback, including exact grant/route withdrawal and secondary-address removal, and confirm Buzz unreachability plus existing-state invariance in specs/042-buzz-private-pilot/evidence/rollback-rehearsal.md (FR-004, FR-021 through FR-023, SC-007).
 - [ ] T090 [US1] **[OWNER APPROVAL]** Activate the exact private route/grant/listener and admit only the client-held owner identity after T088-T089 pass (FR-005, FR-006, FR-018, FR-021).
 - [ ] T091 [US1] **[OWNER APPROVAL]** Run owner collaboration, complete NIP-42/NIP-98, denial, reconnect, restart, load, resource, and sentinel checks in specs/042-buzz-private-pilot/evidence/owner-qualification.md (SC-002, SC-003, SC-004, SC-008, SC-011, SC-012).
 
@@ -119,4 +119,5 @@ silently rewritten. Continuation begins at T055.
 - T091: owner-only product value proven.
 - T093: bounded canary authority proven.
 
-Every stop point permits pause or route-first rollback without expanding scope.
+Every stop point permits pause or listener-first rollback without expanding
+scope.

@@ -29,8 +29,11 @@ permanent exception.
 topology. Use the existing qualified Nginx process with a Buzz server block
 that is selectable only on a dedicated private listener address. Select the
 address only after fresh host and OCI evidence proves it is unassigned and has
-no public NAT path. If Nginx is containerized, map its internal Buzz listener
-port only on that private host address.
+no public NAT path. Under separate production approval, assign that exact
+secondary private IP to the approved OCI VNIC and intended host interface and
+prove local binding before enabling Nginx or advertising it. If Nginx is
+containerized, map its internal Buzz listener port only on that assigned
+private host address.
 
 **Rationale**: This removes the unqualified upstream image that blocked the old
 plan while retaining the already operated TLS proxy. Listener separation, not
@@ -43,10 +46,11 @@ no public DNS record, direct relay port publication, or bundled Caddy.
 ### Preserve the tailnet boundary with an exact host route and grant
 
 **Decision**: Have the existing Aegis Tailscale node advertise only the selected
-private listener address as `/32`. Approve/inject that route separately from a
-deny-by-default grant permitting only approved owner devices to reach it.
-Capture and compare the existing advertised-route set, grants, node identity,
-and Serve configuration before, during, and after the experiment.
+and locally assigned private listener address as `/32`. Treat OCI VNIC/host-
+interface assignment, route approval/injection, and a deny-by-default grant
+permitting only approved owner devices as separate transitions. Capture and
+compare existing VNIC/interface addresses, advertised routes, grants, node
+identity, and Serve configuration before, during, and after the experiment.
 
 **Rationale**: Tailscale documents subnet route advertisement/approval and
 access grants as distinct controls. This retains tailnet-gated transport
@@ -71,12 +75,17 @@ would reject the intended client before Buzz authentication.
 **Rejected**: Creating a fake OvernightDesk runtime/instance to satisfy an
 unrelated authorization model.
 
-### Preserve one canonical relay URL through the proxy
+### Preserve distinct canonical WebSocket and NIP-98 URLs through the proxy
 
-**Decision**: Use `wss://buzz.overnightdesk.com` everywhere. Nginx must preserve
-Host, method, path, query, WebSocket upgrade, NIP-98 `Authorization`, and the
-external HTTPS scheme, strip unrelated cookies, and perform no URI rewrite.
-Contract tests must complete signed NIP-42 and NIP-98 flows through Nginx.
+**Decision**: Use byte-exact `wss://buzz.overnightdesk.com` for every WebSocket
+relay consumer and signed relay tag. NIP-98 instead uses the distinct origin
+`https://buzz.overnightdesk.com`; Gate 0 freezes each supported literal method
+and full URL, including raw path and query, before fixtures are built. Neither
+external form includes an explicit default `:443` port. Nginx must preserve
+Host, method, raw path, raw query ordering/encoding, WebSocket upgrade, NIP-98
+`Authorization`, and the external HTTPS scheme, strip unrelated cookies, and
+perform no URI rewrite. Contract tests must complete signed NIP-42 and every
+frozen NIP-98 flow through Nginx.
 
 **Rationale**: Buzz's signed event model binds behavior to the relay URL.
 Upstream issue #6281 reports that a colocated agent cannot safely use an
@@ -106,13 +115,14 @@ Tailscale sidecar state is removed from the recovery model; private listener,
 route, and grant metadata are recreated through an explicitly approved
 configuration, not restored as identity state.
 
-### Use gated, route-first lifecycle control
+### Use gated, listener-first rollback control
 
 **Decision**: Install disabled, validate `nginx -t`, reload rather than restart,
 and require current local/protocol/recovery proof before owner admission.
 Rollback disables the private listener first, proves unreachability, withdraws
-the exact grant/route when authorized, preserves workload state, and verifies
-all pre-existing Nginx and Tailscale behavior.
+the exact grant/route when authorized, removes only the Buzz host-interface and
+OCI VNIC secondary-address assignment, preserves workload state, and verifies
+all pre-existing OCI, host, Nginx, and Tailscale behavior.
 
 ## Current Sources
 
@@ -139,11 +149,13 @@ superseded, while its evidence remains under `evidence/` and ADR-007.
 
 - the current Aegis interface, address, NAT, security-list, Nginx listener,
   Docker networking, Tailscale route, grant, Serve, capacity, and backup state;
-- a safe, unassigned private listener address with no public path;
+- a safe, unassigned private listener address with no public path plus an exact,
+  reversible OCI VNIC and host-interface assignment/removal procedure;
 - exact DNS-01 certificate issuance/renewal and private resolution mechanics;
 - `/32` route coexistence without changing the existing Serve handler;
-- complete Desktop NIP-42 and NIP-98 behavior through the proposed Nginx
-  configuration; and
+- complete Desktop NIP-42 behavior at the exact WebSocket relay URL and NIP-98
+  behavior for frozen exact method/full-HTTPS-URL pairs through the proposed
+  Nginx configuration; and
 - current image/source/client/canary qualification and resource measurements.
 
 Each item is a gate with an executable check, not permission to assume or
