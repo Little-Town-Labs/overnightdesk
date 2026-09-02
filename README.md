@@ -141,11 +141,12 @@ identity, secret, or authority changes require explicit owner approval and a
 reviewed deployment and rollback procedure.
 
 Feature 042's Buzz pilot is in planning reconsideration only. Its proposed
-ingress reuses the existing Nginx process on a private-only listener reached by
-an exact host-advertised Tailscale `/32`, with Buzz NIP-42/NIP-98 authentication
-behind that transport boundary. Issue #249 reopened for planning on 2026-09-02;
-no Buzz service, route, identity, secret, DNS record, or production state has
-been created.
+ingress reuses the existing Nginx process on an explicitly assigned secondary
+private listener address reached by an exact host-advertised Tailscale `/32`,
+with separate byte-exact WebSocket and NIP-98 HTTPS URL contracts behind that
+transport boundary. Issue #249 reopened for planning on 2026-09-02; no Buzz
+service, route, identity, secret, DNS record, or production state has been
+created.
 
 Future customer workloads and customer data planes normally belong in
 separately approved infrastructure outside `aegis-prod`—for example a

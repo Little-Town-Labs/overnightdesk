@@ -33,8 +33,8 @@ prove that:
 
 - only specifically authorized owner devices can reach the private ingress;
 - Buzz enforces NIP-42/NIP-98 identity and closed-relay membership;
-- the canonical Buzz URL works unchanged through Nginx for both WebSocket and
-  signed HTTP traffic;
+- the canonical Buzz WebSocket URL and each exact NIP-98 HTTPS request URL work
+  unchanged through Nginx;
 - stores, identities, secrets, backups, telemetry, and rollback remain
   isolated from existing workloads; and
 - existing public Nginx routes and the host Tailscale Serve root remain
@@ -65,13 +65,19 @@ prove that:
   forged SNI or `Host` header.
 - The exact private listener address is selected only after a current read-only
   host and OCI route/NAT preflight proves that it is unassigned and has no
-  public path.
-- The host's existing Tailscale node advertises exactly that address as a `/32`.
-  Route advertisement/approval and a deny-by-default owner-device grant are
-  distinct controls and must both pass.
-- `wss://buzz.overnightdesk.com` is the canonical URL used by the relay,
-  Desktop, tests, and canary. It has no public A/AAAA record and uses a DNS-01
-  certificate.
+  public path. Assigning it as a secondary private IP to the approved OCI VNIC
+  and intended host interface is a separate owner-approved production mutation
+  that must precede Nginx binding and route advertisement.
+- Only after assignment and local-bind proof may the host's existing Tailscale
+  node advertise exactly that address as a `/32`. Route advertisement/approval
+  and a deny-by-default owner-device grant are distinct controls and must both
+  pass.
+- `wss://buzz.overnightdesk.com` is the exact WebSocket relay URL used by the
+  relay, Desktop, tests, canary, and signed relay tags. NIP-98 uses the distinct
+  HTTPS origin `https://buzz.overnightdesk.com` and signs the byte-exact full
+  request URL, including its path and query. Neither canonical form includes an
+  explicit default `:443` port. Gate 0 freezes the literal supported NIP-98
+  method/URL pairs before fixtures or production probes are built.
 - Nginx transports NIP-42 WebSocket and NIP-98 HTTP traffic without substituting
   OIDC. A successful upgrade alone is not sufficient protocol proof.
 - Nginx, relay, stores, and canary use narrow networks so Nginx cannot reach
@@ -95,8 +101,8 @@ then repeat from each denied network and identity class.
 **Acceptance scenarios**:
 
 1. **Given** an approved owner device and admitted owner identity, **when** the
-   client uses the canonical URL, **then** signed WebSocket and HTTP actions
-   succeed through Nginx.
+   client uses the canonical WebSocket and HTTPS request URLs, **then** signed
+   WebSocket and HTTP actions succeed through Nginx.
 2. **Given** a public or unapproved tailnet client, **when** it uses DNS, direct
    IP, SNI, or Host variations, **then** it cannot select or reach Buzz.
 3. **Given** an unadmitted Nostr identity, **when** it connects or requests
@@ -118,9 +124,10 @@ unreachable while existing Nginx and Serve routes stay healthy.
 1. **Given** an exact disabled candidate, **when** qualification runs, **then**
    hardening, connectivity, capacity, recovery, and safe-evidence checks pass
    before any identity is admitted.
-2. **Given** active private ingress, **when** route-first rollback runs, **then**
-   Buzz becomes unreachable within five minutes, its data remains preserved,
-   and existing services match baseline.
+2. **Given** active private ingress, **when** listener-first rollback runs,
+   **then** Buzz becomes unreachable within five minutes, its data remains
+   preserved, the secondary address is removed, and existing services match
+   baseline.
 
 ### User Story 3 — Low-Authority Canary Participates Safely (P2)
 
@@ -158,6 +165,9 @@ decision and no proposed expansion is automatically activated.
 - The candidate private address is already assigned, routed publicly, selected
   by a wildcard listener, or reachable over IPv6: Gate 0 fails and no address
   is selected.
+- OCI VNIC assignment, host-interface assignment, or local-bind proof fails or
+  assigns a different address: activation stops and removes only the partial
+  address delta before any `/32` is advertised.
 - The `/32` route works but the source grant does not deny another tailnet
   device: the experiment rolls back and cannot satisfy transport privacy.
 - Nginx returns `101` but signed NIP-42 or NIP-98 fails because Host, URL,
@@ -184,10 +194,13 @@ decision and no proposed expansion is automatically activated.
   historical records; do not represent it as current production proof.
 - **FR-003**: Publish no Buzz application, health, metrics, database, Redis,
   MinIO, or management port on a public interface.
-- **FR-004**: Bind Buzz only to a dedicated private host listener address that
-  fresh network evidence proves is unassigned and has no public NAT path.
-- **FR-005**: Advertise exactly the selected private address as `/32` through
-  the existing Aegis Tailscale node only after explicit approval.
+- **FR-004**: Select a dedicated private listener address only when fresh
+  network evidence proves it is unassigned and has no public NAT path; after
+  explicit approval, assign that exact secondary private IP to the approved OCI
+  VNIC and intended host interface before binding Buzz.
+- **FR-005**: Advertise exactly the selected and locally assigned private
+  address as `/32` through the existing Aegis Tailscale node only after explicit
+  approval and successful local-bind proof.
 - **FR-006**: Apply a separate deny-by-default Tailscale grant allowing only
   approved owner devices to reach the Buzz listener.
 - **FR-007**: Leave the existing host Tailscale identity, advertised-route set,
@@ -197,17 +210,22 @@ decision and no proposed expansion is automatically activated.
   behavior unchanged.
 - **FR-009**: Prove public clients cannot select or reach Buzz by IP, SNI, Host,
   IPv4, or IPv6, regardless of public DNS absence.
-- **FR-010**: Use `wss://buzz.overnightdesk.com` as the exact canonical relay
-  URL across relay configuration, Desktop, canary, tests, and signed events.
+- **FR-010**: Use `wss://buzz.overnightdesk.com` as the exact canonical
+  WebSocket relay URL across relay configuration, Desktop, canary, tests, and
+  signed relay tags; use `https://buzz.overnightdesk.com` as the distinct NIP-98
+  HTTPS origin, and freeze each supported method plus byte-exact full request
+  URL before testing.
 - **FR-011**: Provide no public A/AAAA record for the canonical hostname and
   obtain its certificate without opening a public HTTP challenge path.
-- **FR-012**: Preserve request path, method, query, Host, WebSocket upgrade,
-  NIP-98 `Authorization`, and external HTTPS semantics through Nginx while
-  removing unrelated cookies.
+- **FR-012**: Preserve request method, raw path, raw query ordering/encoding,
+  Host, WebSocket upgrade, NIP-98 `Authorization`, and external HTTPS semantics
+  through Nginx while removing unrelated cookies, so the relay evaluates the
+  same byte-exact HTTPS URL the client signed.
 - **FR-013**: Do not invoke OvernightDesk `auth_request` or require a platform
   runtime/session for Buzz traffic.
-- **FR-014**: Test a complete signed NIP-42 challenge/auth/subscription flow and
-  NIP-98 HTTP flow through Nginx under the canonical URL.
+- **FR-014**: Test a complete signed NIP-42 challenge/auth/subscription flow
+  under the exact WebSocket relay URL and each qualified NIP-98 HTTP operation
+  under its frozen exact method and full HTTPS request URL through Nginx.
 - **FR-015**: Use three least-connectivity networks: Nginx+relay ingress,
   relay+stores data, and Nginx+canary egress.
 - **FR-016**: Keep PostgreSQL and MinIO authoritative, Redis diagnostic,
@@ -227,9 +245,10 @@ decision and no proposed expansion is automatically activated.
 - **FR-022**: Activate and roll back with an include/listener change followed
   by an Nginx reload, never a process replacement or unrelated configuration
   rewrite.
-- **FR-023**: Roll back route first, prove Buzz unreachable, preserve workload
-  state, and compare all existing routes, listeners, and health checks to the
-  baseline.
+- **FR-023**: Roll back the listener first, prove Buzz unreachable, withdraw
+  only the Buzz grant and exact `/32`, remove only the Buzz host-interface and
+  OCI VNIC secondary-address assignment, preserve workload state, and compare
+  all existing addresses, routes, listeners, and health checks to the baseline.
 - **FR-024**: Emit content-free logs and metrics for availability, Nginx
   reload, route/grant state, protocol outcome class, recovery, capacity, and
   canary authority denials.
@@ -245,8 +264,9 @@ decision and no proposed expansion is automatically activated.
 
 - **Pilot workload**: exact candidate, lifecycle state, limits, approvals, and
   rollback handle.
-- **Private ingress route**: selected address, `/32`, advertising node, route
-  approval, owner-device grant, and baseline digests.
+- **Private ingress route**: selected address, OCI VNIC and host-interface
+  assignment state, `/32`, advertising node, route approval, owner-device grant,
+  and baseline digests.
 - **Ingress configuration**: private listener, canonical hostname, certificate
   reference, config digest, public-denial proof, and protocol proof.
 - **Community and identity**: one closed community, distinct public identities,
@@ -262,8 +282,9 @@ decision and no proposed expansion is automatically activated.
 
 - **SC-001**: All local contracts pass for the exact candidate digests and
   rendered topology before any production mutation.
-- **SC-002**: Approved owner devices complete NIP-42 and NIP-98 through the
-  canonical Nginx endpoint.
+- **SC-002**: Approved owner devices complete NIP-42 under the exact canonical
+  WebSocket URL and NIP-98 under the frozen byte-exact HTTPS request URLs
+  through Nginx.
 - **SC-003**: Public and unapproved tailnet clients have zero successful Buzz
   connections, including forged-IP/SNI/Host attempts.
 - **SC-004**: Unadmitted identities have zero successful subscriptions, reads,
@@ -272,8 +293,9 @@ decision and no proposed expansion is automatically activated.
   relay alone can reach stores; the canary can reach only Nginx.
 - **SC-006**: An isolated restore of a coherent current backup passes logical
   assertions with measured RPO/RTO before owner admission.
-- **SC-007**: Route-first rollback makes Buzz unreachable within five minutes,
-  preserves data, and leaves existing routes/listeners healthy.
+- **SC-007**: Listener-first rollback makes Buzz unreachable within five
+  minutes, removes only the Buzz grant, `/32`, and secondary-address assignment,
+  preserves data, and leaves existing addresses/routes/listeners healthy.
 - **SC-008**: Owner collaboration actions and restart persistence pass without
   exposing private keys or content.
 - **SC-009**: Twenty valid canary interactions pass with zero responses to
@@ -296,7 +318,9 @@ decision and no proposed expansion is automatically activated.
   authorizes no production or external mutation.
 - The current qualified Wolfi relay wrapper is a historical candidate, not an
   automatically approved future runtime.
-- The selected private address, certificate method, resource limits, backup
-  objectives, and exact grant syntax are frozen only after current evidence.
+- The selected private address, exact OCI VNIC and host-interface assignment and
+  removal procedure, certificate method, literal NIP-98 method/URL pairs,
+  resource limits, backup objectives, and exact grant syntax are frozen only
+  after current evidence.
 - Existing secret custody, encrypted off-box backup, monitoring, and deployment
   ledger mechanisms remain available and must be reverified.

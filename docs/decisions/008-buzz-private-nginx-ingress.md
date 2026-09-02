@@ -29,13 +29,19 @@ host's `ob1-mcp` Tailscale Serve root.
 ## Decision
 
 - Reuse the existing qualified Nginx process through a dedicated listener bound
-  only to a freshly verified private Aegis address with no public NAT path.
-- Advertise exactly that address as `/32` through the existing Aegis Tailscale
-  node. Treat route advertisement/approval and the deny-by-default grant for
-  approved owner devices as separate controls.
-- Use `wss://buzz.overnightdesk.com` as the exact relay URL for relay, Desktop,
-  canary, and tests. Provide no public A/AAAA record and issue/renew TLS through
-  DNS-01.
+  only to a freshly verified secondary private Aegis address with no public NAT
+  path. After explicit approval, assign that exact address to the approved OCI
+  VNIC and intended host interface and prove local binding before enabling
+  Nginx or advertising the route.
+- Advertise exactly that assigned address as `/32` through the existing Aegis
+  Tailscale node. Treat address assignment, route advertisement/approval, and
+  the deny-by-default grant for approved owner devices as separate controls.
+- Use `wss://buzz.overnightdesk.com` as the exact WebSocket relay URL for relay,
+  Desktop, canary, tests, and signed relay tags. Use the distinct HTTPS origin
+  `https://buzz.overnightdesk.com` for NIP-98 and freeze every supported exact
+  method and full request URL, including raw path and query, before testing.
+  Neither external URL form includes an explicit default `:443` port. Provide
+  no public A/AAAA record and issue/renew TLS through DNS-01.
 - Do not use OvernightDesk `auth_request`. Preserve Host, method, path, query,
   WebSocket upgrade, NIP-98 `Authorization`, and external HTTPS semantics;
   strip unrelated cookies and do not rewrite the URI.
@@ -45,10 +51,12 @@ host's `ob1-mcp` Tailscale Serve root.
   `buzz-canary` for Nginx+canary. The canary cannot address relay or stores
   directly.
 - Install disabled. Activate and deactivate only the private include/listener
-  with `nginx -t` and reload. Roll back ingress first, then the exact grant and
-  `/32`, while preserving workload data and verifying existing services.
+  with `nginx -t` and reload. Roll back the listener first, then the exact grant
+  and `/32`, then remove only the Buzz host-interface and OCI VNIC secondary
+  address while preserving workload data and verifying existing services.
 
-The exact private address, internal port, certificate automation, grants, image
+The exact private address, VNIC/interface assignment and removal procedure,
+internal port, NIP-98 method/URL pairs, certificate automation, grants, image
 digests, and capacity limits remain Gate 0 facts and are not assumed here.
 
 ## Consequences

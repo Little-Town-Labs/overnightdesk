@@ -8,7 +8,8 @@ or message content.
 
 - `workload_id`: `buzz-private-pilot`
 - `owner`, `source_commit`, `relay_digest`, `canary_digest`
-- `nginx_config_digest`, `canonical_url`
+- `nginx_config_digest`, `websocket_relay_url`, `nip98_https_origin`,
+  `nip98_operation_manifest_digest`
 - `lifecycle_state`: `planned | installed_disabled | private_qualified |
   owner_active | canary_active | observing | paused | rolled_back`
 - `resource_ceiling`, `previous_release_handle`, `approval_refs`
@@ -19,30 +20,42 @@ approval. Pause and rollback preserve authoritative state.
 ## PrivateIngressRoute
 
 - `private_address`: selected only after current preflight
+- `oci_vnic_id`, `host_interface`: frozen non-secret resource identifiers
+- `address_state`: `unassigned | vnic_assigned | host_assigned | active |
+  removed`
 - `prefix_length`: exactly `32`
 - `advertising_node`: existing Aegis Tailscale node
 - `route_state`: `absent | advertised | approved | active | withdrawn`
 - `grant_state`: `absent | staged | active | withdrawn`
 - `allowed_source_devices`: approved owner devices only
-- `baseline_route_digest`, `baseline_serve_digest`, `last_verified_at`
+- `baseline_vnic_digest`, `baseline_interface_digest`, `baseline_route_digest`,
+  `baseline_serve_digest`, `last_verified_at`
 
-**Rules**: The address has no public NAT path. Advertisement/approval and the
-source grant are separate transitions. Existing routes, node identity, and
-Serve handlers remain unchanged. Withdrawal targets only this exact `/32` and
-grant.
+**Rules**: The address has no public NAT path. With explicit approval, the
+exact secondary private IP is assigned to the frozen OCI VNIC and intended host
+interface and passes local-bind proof before advertisement or listener
+activation. Address assignment, advertisement/approval, and the source grant
+are separate transitions. Listener-first rollback withdraws only this grant and
+`/32`, then removes only this address assignment. Existing addresses, routes,
+node identity, and Serve handlers remain unchanged.
 
 ## IngressConfiguration
 
-- `canonical_url`: `wss://buzz.overnightdesk.com`
+- `websocket_relay_url`: exact `wss://buzz.overnightdesk.com`
+- `nip98_https_origin`: exact `https://buzz.overnightdesk.com`
+- `nip98_operations`: frozen exact method and full HTTPS request URL pairs,
+  including raw path and query
 - `listener_address`, `listener_port`: selected private address and `443`
 - `internal_nginx_port`: implementation-frozen value
 - `certificate_ref`, `certificate_method`: secret-free metadata and DNS-01
 - `config_digest`, `enabled_state`: `absent | installed_disabled | active`
 - `public_listener_denial_evidence`, `protocol_evidence`
 
-**Rules**: The Buzz server block is not selectable on a public listener.
-Activation requires `nginx -t`, a reload, full NIP-42/NIP-98 proof, and public
-IP/SNI/Host denial. It never invokes OvernightDesk `auth_request`.
+**Rules**: Neither external URL form includes an explicit default `:443` port.
+The Buzz server block is not selectable on a public listener. Activation
+requires `nginx -t`, a reload, NIP-42 proof under the exact WebSocket URL,
+NIP-98 proof for every frozen method/full-URL pair, and public IP/SNI/Host
+denial. It never invokes OvernightDesk `auth_request`.
 
 ## Community
 

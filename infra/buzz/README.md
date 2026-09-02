@@ -10,7 +10,10 @@ and are not current production candidates until Gate 0 requalifies their exact
 source, base packages, ARM64 digest, SBOM, scan, non-root behavior, and startup.
 
 Future implementation must follow ADR-008: no Tailscale container, no public
-Buzz listener, no OvernightDesk `auth_request`, one canonical
-`wss://buzz.overnightdesk.com` URL, three least-connectivity networks, and an
-exact host-advertised `/32` plus separate owner-device grant. Tasks begin at
-T055 in `specs/042-buzz-private-pilot/tasks.md`.
+Buzz listener, no OvernightDesk `auth_request`, exact
+`wss://buzz.overnightdesk.com` WebSocket plus
+byte-exact full NIP-98 HTTPS request URL contracts under
+`https://buzz.overnightdesk.com`, three least-connectivity networks, and an
+explicitly assigned secondary private address with an exact host-advertised
+`/32` plus separate owner-device grant. Tasks begin at T055 in
+`specs/042-buzz-private-pilot/tasks.md`.

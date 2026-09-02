@@ -24,8 +24,9 @@
 
 ## Ingress recovery
 
-There is no Buzz Tailscale node state to back up. Non-secret listener, route,
-grant, certificate-reference, and config-digest metadata may be recorded, but
-the private listener and exact `/32` route/grant are recreated only through the
+There is no Buzz Tailscale node state to back up. Non-secret OCI VNIC/host-
+interface assignment, listener, route, grant, certificate-reference, and
+config-digest metadata may be recorded, but the secondary private address,
+private listener, and exact `/32` route/grant are recreated only through the
 normal approval-bound activation sequence. Recovery never clones or restores
 the host Tailscale identity.
