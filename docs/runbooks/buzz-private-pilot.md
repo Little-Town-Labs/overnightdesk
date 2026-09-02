@@ -24,7 +24,7 @@ Remaining values marked `GATE0` must be resolved before implementation.
 | NIP-98 request URLs | literal supported method/full-URL pairs frozen at Gate 0; full URL is the HTTPS origin plus the exact raw request target |
 | DNS | private override to `10.0.0.233`; any public wildcard answer is untrusted and must not select Buzz |
 | TLS | DNS-01; exact certificate/renewal path `GATE0` |
-| Listener | candidate secondary private address `10.0.0.233`, assigned to the frozen OCI VNIC and host interface before bind; external port 443 maps only to dedicated internal Nginx port `8443`; no public NAT/listener path |
+| Listener | hardened host systemd socket on candidate `10.0.0.233:443` forwards raw TCP to Nginx's fixed `buzz-ingress` bridge address at `8443`; no new Docker publication or Nginx recreation |
 | Tailnet transport | existing host advertises `10.0.0.233/32`; current tailnet-wide policy accepted and unchanged |
 | Existing Serve | unchanged root on the existing node, including `ob1-mcp` |
 | Authentication | NIP-42/NIP-98 plus closed-relay membership; no OvernightDesk `auth_request` |
@@ -35,11 +35,16 @@ Remaining values marked `GATE0` must be resolved before implementation.
 
 ## Private ingress contract
 
-The Buzz Nginx server block is selectable only on the dedicated private
-listener. If Nginx is containerized, a dedicated internal port is mapped only
-from the selected private host address. The public OCI `:443`, wildcard binds,
-default servers, and IPv6 listeners must not select Buzz even with the known
-public IP and forged SNI/Host.
+The Buzz Nginx server block is externally selectable only through the dedicated
+private host listener. The existing container receives no new Docker port publication.
+Nginx joins `buzz-ingress` at a fixed bridge address and listens there on
+`8443`; a hardened systemd socket bound only to `10.0.0.233:443` invokes the
+host's existing `systemd-socket-proxyd` to forward raw TCP to that endpoint.
+The same canonical TLS virtual host listens on Nginx's fixed `buzz-agents`
+address at `443` for intake workers. Neither endpoint is on the shared
+production network. The public OCI `:443`, wildcard binds, default servers,
+and IPv6 listeners must not select Buzz even with the known public IP and
+forged SNI/Host.
 
 The exact WebSocket relay URL is `wss://buzz.overnightdesk.com`. NIP-98 uses
 the distinct HTTPS origin `https://buzz.overnightdesk.com`; each qualified
@@ -57,12 +62,12 @@ acceptance.
 Address assignment and route advertisement/approval are independent. After
 explicit approval, the selected address is assigned as
 a secondary private IP to the frozen OCI VNIC and intended host interface;
-the exact local address and bind must succeed before route advertisement. Only
-that `/32` is added. All current owner-controlled tailnet devices can reach its
-port 443 under the accepted policy, but only admitted Nostr identities can
-subscribe, read, or write. The pre-existing VNIC/interface addresses, route
-set, node identity, policy digest, and Serve configuration must compare
-unchanged after rollback.
+the exact local address and socket bind must succeed before route advertisement.
+Only that `/32` is added. All current owner-controlled tailnet devices can
+reach its port 443 under the accepted policy, but only admitted Nostr identities
+can subscribe, read, or write. The pre-existing VNIC/interface addresses,
+Docker publications, Nginx container identity, route set, node identity, policy
+digest, and Serve configuration must compare unchanged after rollback.
 
 ## Candidate address selection evidence
 
@@ -87,21 +92,26 @@ the availability checks immediately before assignment.
 
 | Service | Persistent authority | Network membership |
 | --- | --- | --- |
-| Existing Nginx | existing config/cert custody; Buzz include disabled-first | `buzz-ingress`, `buzz-agents` only for Buzz |
+| Existing Nginx | existing config/cert custody; Buzz include and systemd socket disabled-first | existing production network plus internal `buzz-ingress` and `buzz-agents`; canonical Buzz alias on `buzz-agents` |
 | Relay | Git scratch is reproducible | `buzz-ingress`, `buzz-data` |
 | PostgreSQL | authoritative events/membership/search/audit | `buzz-data` only |
 | Redis | diagnostic/cache/pubsub | `buzz-data` only |
 | MinIO | authoritative objects/media | `buzz-data` only |
 | MinIO initializer | none; exits | `buzz-data` only |
-| Walter intake | identity and deduplication state only | `buzz-agents` plus existing OvernightDesk network for exact `hermes-walter` API |
-| Titus intake | identity and deduplication state only | `buzz-agents` plus existing OvernightDesk network for exact `hermes-titus` API |
-| Mitchel/Trevor intake | identity and deduplication state only | `buzz-agents` plus existing OvernightDesk network for exact `hermes-mitchel` API |
+| Walter intake | identity and deduplication state only | `buzz-agents` only; Nginx brokers exact `hermes-walter` operations |
+| Titus intake | identity and deduplication state only | `buzz-agents` only; Nginx brokers exact `hermes-titus` operations |
+| Mitchel/Trevor intake | identity and deduplication state only | `buzz-agents` only; Nginx brokers exact `hermes-mitchel` operations |
 
 No service publishes an application, store, health, metrics, admin, or
 management port publicly. Nginx cannot reach stores. No Hermes intake worker
-can reach relay or stores directly; each must use the canonical external
-WebSocket and HTTPS URLs through Nginx. Its existing-network credential and
-route map only to the matching Hermes Runs API.
+can reach relay, stores, the shared production network, or unrelated services
+directly. Each uses the canonical WebSocket and HTTPS URLs through Nginx. The
+fixed-target egress broker exposes only `GET /v1/capabilities`,
+`POST /v1/runs`, and `GET /v1/runs/{run_id}` for each named runtime, forwards
+the runtime-bound bearer credential to one literal upstream, and denies every
+other method, path, redirect, variable upstream, and cross-runtime credential.
+Status IDs must match `^run_[0-9a-f]{32}$`; query strings and
+approval-response paths fail closed.
 
 All new images are exact ARM64 digests with current provenance, SBOM, scan,
 non-root, hardening, startup, and limit evidence. The existing Nginx image is
@@ -124,6 +134,10 @@ must be revalidated.
   channel before calling its Hermes Runs API, cannot approve actions, and
   preserves the runtime's existing tool and human-approval policy. Bot-authored
   messages do not trigger another bot.
+- Revocation discards queued events not yet submitted, blocks future
+  submissions, and suppresses any late result from a previously submitted run.
+  The current Hermes API has no cancellation operation, so an already-submitted
+  run may complete under its unchanged tool and human-approval policy.
 
 ## Recovery contract
 
@@ -133,30 +147,35 @@ both authoritative artifacts and off-box transfer succeed. A disposable,
 unrouted restore with logical assertions and measured RPO/RTO must pass before
 owner admission.
 
-There is no Buzz Tailscale node state to back up. VNIC/interface assignment and
-listener/route/policy metadata is non-secret evidence and is recreated only
-through the approved activation sequence.
+There is no Buzz Tailscale node state to back up. VNIC/interface assignment,
+systemd socket/proxy, Nginx include, fixed bridge, egress-broker, route, and
+policy metadata is non-secret evidence and is recreated only through the
+approved activation sequence.
 
 ## Gates
 
 1. **Gate 0, read-only**: refresh upstream/images/client and Aegis/OCI/Nginx/
    Tailscale/DNS/cert/backup/capacity facts; select a safe private address;
-   freeze exact VNIC/interface assignment and removal plus literal NIP-98
+   freeze exact VNIC/interface assignment and removal, both fixed Nginx bridge
+   listener addresses, systemd socket/proxy units, Hermes egress routes, and literal NIP-98
    method/full-URL pairs.
 2. **Gate 1, local**: failing contracts first, then immutable Compose/Nginx,
-   full signed protocol matrix, public denial, recovery, sentinel, and rollback.
+   systemd socket/proxy, fixed-target Hermes egress, full signed protocol
+   matrix, public denial, recovery, sentinel, and rollback.
 3. **Gate 2, owner-approved production experiment**: no admitted user; assign
    the selected secondary private IP to the frozen VNIC/interface, prove local
-   bind and public denial, add the exact `/32` without changing policy, enable the private
-   listener, test, then fully roll back including address removal.
+   bind and public denial, add the exact `/32` without changing policy, reload
+   the internal Nginx listener, start the private socket proxy, test, then stop
+   the socket first and fully roll back including address removal.
 4. **Gate 3, owner-approved disabled install**: hardening, isolation, capacity,
    backup/restore, and rollback proof.
 5. **Gate 4, owner-approved owner only**: after the prior rehearsal removes the
    secondary address, repeat its approved VNIC/host assignment and local-bind/
-   public-denial proof; enable only its route/listener, admit the owner,
+   public-denial proof; enable only its route/socket listener, admit the owner,
    and qualify collaboration plus network/identity denials.
 6. **Gate 5, owner-approved Hermes canary**: select one named agent, create its
-   separate key/scope, and qualify bounded response and revocation behavior.
+   separate key/scope, and qualify bounded response, unsubmitted/future-work
+   rejection, and late-result suppression behavior.
 7. **Gate 6, owner-approved remaining agents**: admit the other two named
    agents one at a time and repeat the full authority contract for each.
 8. **Gate 7**: seven-day observation and one explicit continue/pause/rollback/
@@ -167,29 +186,34 @@ failed or incomplete gate authorizes no next step.
 
 ## Activation
 
-1. Install the stack and Buzz Nginx include disabled.
+1. Install the stack, Buzz Nginx include, and hardened systemd socket/proxy
+   units disabled.
 2. Render Compose and validate `nginx -t`.
 3. Pass recovery, rollback, invariant, and safe-log prerequisites.
 4. With explicit approval, assign the exact secondary private IP to the frozen
    OCI VNIC and intended host interface; prove the exact local address, bind,
    and absence of a public path.
 5. Advertise/approve only the exact `/32`; do not change the tailnet policy.
-6. Enable only the private include/listener and reload Nginx.
-7. Run NIP-42 at the exact WebSocket relay URL, every frozen NIP-98 method/full-
+6. Enable the internal private include/listener and reload Nginx without
+   recreating its container.
+7. Start only the Buzz private systemd socket proxy.
+8. Run NIP-42 at the exact WebSocket relay URL, every frozen NIP-98 method/full-
    URL pair, and the full denied-source matrix.
 
-## Listener-first rollback
+## Socket-first rollback
 
-1. Disable only the Buzz private include/listener.
-2. Run `nginx -t` and reload—do not restart or rewrite unrelated config.
-3. Prove Buzz unreachable from all positive and negative test locations.
+1. Stop only the Buzz private systemd socket proxy.
+2. Prove Buzz unreachable from all positive and negative test locations.
+3. Remove only the Buzz private include/listener, run `nginx -t`, and reload—do
+   not recreate the container or rewrite unrelated config.
 4. With approval, withdraw only the exact `/32`.
 5. Confirm no listener or route uses the Buzz address; remove only its host-
    interface and OCI VNIC secondary-address assignments.
 6. Stop Hermes intake workers and workload; preserve authoritative data and images.
-7. Compare OCI VNIC and host-interface addresses, public Nginx vhosts/
-   listeners, Tailscale node/routes/policy/Serve, services, backups, and health
-   to the signed baseline.
+7. Compare OCI VNIC and host-interface addresses, Docker port publications,
+   Nginx container identity/public vhosts/listeners, systemd listeners,
+   Tailscale node/routes/policy/Serve, services, backups, and health to the
+   signed baseline.
 
 Cleanup, secret deletion, volume deletion, and image pruning are outside
 rollback and require separate destructive-action approval.

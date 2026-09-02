@@ -51,6 +51,13 @@ fail-closed named-runtime mapping, cross-runtime credential denial,
 deduplication-only state, bot-trigger denial, and non-bypassable human approval
 explicit across the spec, contracts, and tasks.
 
+Codex review of PR #253 then found three execution-contract defects. The
+remediation keeps intake workers off the shared production network behind a
+fixed-target Nginx egress broker, narrows revocation to unsubmitted/future-work
+rejection plus late-result suppression because Hermes has no cancellation API,
+and uses the host's existing `systemd-socket-proxyd` instead of an impossible
+reload-time Docker port publication. No review finding remains undisposed.
+
 The active set contains 27 functional requirements, 14 success criteria, nine
 preserved historical tasks, and 45 contiguous continuation tasks T055-T099.
 The simpler design does not require a temporary Tailscale OAuth credential,

@@ -37,7 +37,7 @@ approval. Pause and rollback preserve authoritative state.
 exact secondary private IP is assigned to the frozen OCI VNIC and intended host
 interface and passes local-bind proof before advertisement or listener
 activation. Address assignment and advertisement/approval are separate
-transitions. Listener-first rollback withdraws only this `/32`, then removes
+transitions. Socket-first rollback withdraws only this `/32`, then removes
 only this address assignment. Existing addresses, routes, tailnet policy, node
 identity, and Serve handlers remain unchanged.
 
@@ -48,16 +48,26 @@ identity, and Serve handlers remain unchanged.
 - `nip98_operations`: frozen exact method and full HTTPS request URL pairs,
   including raw path and query
 - `listener_address`, `listener_port`: selected private address and `443`
-- `internal_nginx_port`: implementation-frozen value
+- `nginx_bridge_address`, `internal_nginx_port`: fixed `buzz-ingress` target and
+  `8443`
+- `nginx_agent_address`, `internal_agent_tls_port`: fixed `buzz-agents` target
+  and `443` for canonical intake-worker traffic
+- `socket_unit`, `proxy_unit`, `proxy_binary`: exact hardened systemd unit
+  references and existing `systemd-socket-proxyd`
 - `certificate_ref`, `certificate_method`: secret-free metadata and DNS-01
-- `config_digest`, `enabled_state`: `absent | installed_disabled | active`
+- `config_digest`, `socket_unit_digest`, `enabled_state`:
+  `absent | installed_disabled | nginx_ready | socket_active`
 - `public_listener_denial_evidence`, `protocol_evidence`
 
 **Rules**: Neither external URL form includes an explicit default `:443` port.
-The Buzz server block is not selectable on a public listener. Activation
-requires `nginx -t`, a reload, NIP-42 proof under the exact WebSocket URL,
-NIP-98 proof for every frozen method/full-URL pair, and public IP/SNI/Host
-denial. It never invokes OvernightDesk `auth_request`.
+The Buzz server block is not selectable on a public listener. The shared Nginx
+container receives no new Docker publication and is never recreated for Buzz.
+Its only Buzz listeners are the fixed `buzz-ingress:8443` and
+`buzz-agents:443` endpoints.
+Activation requires `nginx -t`, a reload, starting the exact private socket,
+NIP-42 proof under the exact WebSocket URL, NIP-98 proof for every frozen
+method/full-URL pair, and public IP/SNI/Host denial. It never invokes
+OvernightDesk `auth_request`.
 
 ## Community
 
@@ -78,7 +88,8 @@ denial. It never invokes OvernightDesk `auth_request`.
 
 **Rules**: Private keys never enter this model. Each Hermes identity is unique,
 read/write, and independently revocable. A channel grant requires active relay
-membership. Revocation invalidates queued and future work for only that agent.
+membership. Revocation invalidates queued work not yet submitted and future
+work for only that agent and suppresses any late result publication.
 
 ## AgentAuthorityProfile
 
@@ -90,17 +101,23 @@ membership. Revocation invalidates queued and future work for only that agent.
 - `max_concurrency`: one
 - `max_output`, `timeout`, `deduplication_window`
 - `hermes_api_route`, `runtime_api_token_ref`
+- `egress_broker_route`: one fixed Nginx route for capabilities, submission,
+  and status only
 - `existing_authority_policy_ref`: mapped runtime's current tool and human-
   approval policy
-- `network_targets`: canonical Nginx and the mapped Hermes API
-- `prohibited_actions`: direct relay/store access, cross-runtime credentials,
-  approval bypass, authority expansion, and cross-channel response
+- `network_targets`: canonical Nginx and its fixed-target egress broker only
+- `prohibited_actions`: shared-production-network attachment, direct
+  relay/store/unrelated-service access, cross-runtime credentials, approval
+  bypass, authority expansion, and cross-channel response
+- `revocation_state`: active, revoked-before-submission, or
+  revoked-after-submission-result-suppressed
 
 **Rules**: Missing owner, channel, or exact agent identity denies all response.
 Bot-authored messages do not trigger another agent. Exact owner signature and
 channel checks precede Hermes. Existing tools retain their current approval rules;
 any new caller, agent, channel, tool, target, or authority is a separately
-approved scope change.
+approved scope change. Revocation does not claim to cancel an already-submitted
+Hermes run; it prevents new submissions and suppresses late result publication.
 
 ## StateStore
 

@@ -23,17 +23,28 @@ NIP-42/NIP-98 and closed-relay membership. Public wildcard DNS may resolve the
 hostname to Aegis, but only private resolution reaches the dedicated listener
 and the public listener cannot select the Buzz virtual host.
 
+The existing Nginx container is not recreated and receives no new Docker port
+publication. Nginx listens on a fixed `buzz-ingress` bridge address at internal
+port `8443`; the host's existing `systemd-socket-proxyd` forwards raw TCP from
+the selected private `:443` address. Starting and stopping that socket controls
+external reachability. Intake workers reach the same canonical TLS virtual host
+at Nginx's fixed `buzz-agents:443` endpoint. Neither endpoint is exposed on the
+shared/public network, and Nginx configuration remains reload-only.
+
 Three Buzz-specific Docker networks enforce least connectivity:
 
 ```text
 owner-controlled tailnet device
   -> Tailscale exact /32 route under the existing tailnet policy
   -> private host address:443
-  -> existing Nginx process (dedicated private listener)
-       -> buzz-ingress -> relay -> buzz-data -> PostgreSQL / Redis / MinIO
-       -> buzz-agents  -> Walter / Titus / Mitchel intake workers
-                          (canonical Buzz URL only)
-                            -> exact named Hermes /v1/runs API
+  -> systemd raw-TCP socket proxy
+  -> existing Nginx process (fixed buzz-ingress address:8443)
+       -> relay -> buzz-data -> PostgreSQL / Redis / MinIO
+
+Walter / Titus / Mitchel intake workers
+  -> buzz-agents -> canonical Nginx address:443 -> relay
+  -> buzz-agents -> fixed Nginx egress broker
+       -> existing network -> exact named Hermes capabilities/runs/status API
 ```
 
 The old sidecar evidence remains historical. Every upstream/image/host fact is
@@ -55,7 +66,8 @@ reversible gates.
 ## Technical Context
 
 - Docker Compose, Nginx, Bash lifecycle helpers, Python contract tests, and
-  three separately supervised route-specific Hermes intake workers.
+  three separately supervised route-specific Hermes intake workers, plus
+  hardened systemd socket/proxy units using the host's existing systemd binary.
 - Existing Aegis host Tailscale node and Nginx image/process; no new Tailscale
   container, identity, state, or certificate automation.
 - Existing OCI VNIC plus an approval-bound secondary private IP and matching
@@ -101,9 +113,16 @@ same canonical Nginx URL as Desktop, not a direct relay address.
 
 Absence of public DNS is insufficient: a public client can address the known
 public IP and supply SNI/Host. Buzz must be absent from every public Nginx
-listener. If Nginx remains containerized, its dedicated internal Buzz port is
-published only on the selected private host address; public `:443` cannot
-select that server block.
+listener. Docker host-port publications are immutable for the life of the
+container, so the shared Nginx container receives no new publication and is not
+recreated. Instead, Nginx joins `buzz-ingress` at a fixed bridge address and
+listens there on `8443`. It also serves the same canonical TLS virtual host on
+its fixed `buzz-agents` address at `443` for intake workers. A hardened systemd
+socket bound only to the selected private host address at `443` invokes
+`systemd-socket-proxyd` to forward raw TCP to the `buzz-ingress` endpoint. This
+preserves TLS/SNI bytes, makes public
+`:443` unable to select Buzz, and gives ingress an independently stoppable host
+listener.
 
 The exact address is deliberately not hard-coded in planning. Preflight must
 prove it is unassigned, valid for the intended VNIC/interface, absent from
@@ -111,7 +130,8 @@ public NAT/route/security-list paths, and safe to remove. Gate 2 must assign
 that exact secondary private IP to the approved OCI VNIC and intended host
 interface, verify the resulting local address and bind, and only then enable
 the listener or advertise the route. Assignment and removal commands, resource
-identifiers, pre-state, and post-state are frozen before execution.
+identifiers, both fixed Nginx bridge listener addresses, systemd unit contents,
+pre-state, and post-state are frozen before execution.
 
 ### Tailnet reachability and Buzz membership are separate controls
 
@@ -146,18 +166,24 @@ itself is not acceptance.
 
 ### Network and state isolation
 
-- `buzz-ingress`: Nginx and relay only.
-- `buzz-data`: relay, PostgreSQL, Redis, and MinIO only.
-- `buzz-agents`: Nginx and the three Hermes intake workers only.
+- `buzz-ingress`: internal bridge with Nginx and relay only.
+- `buzz-data`: internal bridge with relay, PostgreSQL, Redis, and MinIO only.
+- `buzz-agents`: internal bridge with Nginx and the three Hermes intake workers
+  only; Nginx owns the `buzz.overnightdesk.com` network alias.
 
 No store publishes a host port. Nginx cannot address stores; no Hermes intake
-worker can address relay or stores directly. Each worker also joins the
-existing qualified OvernightDesk network only for its exact authenticated
-Hermes Runs API target. It has a unique Nostr identity, is
-initially owner-triggered in one channel, and cannot approve or widen the
-runtime's existing tool policy. Secrets are projected at runtime and never
-stored in Compose, Git, logs, or evidence. The owner's private key stays on the
-client.
+worker can address relay, stores, the shared production network, or unrelated
+services directly. Nginx is already attached to the production network and
+acts as a fixed-target egress broker: named routes expose only Hermes
+capabilities, run submission, and run status; forward the runtime-bound bearer
+credential to one fixed upstream; and deny all other methods, paths, redirects,
+variable upstreams, and cross-runtime credentials. Run-status paths accept only
+IDs matching `^run_[0-9a-f]{32}$`; query strings and approval-response paths are
+denied. Each worker has a unique
+Nostr identity, is initially owner-triggered in one channel, and cannot approve
+or widen the runtime's existing tool policy. Secrets are projected at runtime
+and never stored in Compose, Git, logs, or evidence. The owner's private key
+stays on the client.
 
 ## Delivery Gates
 
@@ -173,7 +199,7 @@ private address until evidence passes.
 Write failing contracts first, then render and test the minimum Nginx/Compose
 topology with synthetic identities. Prove public-listener non-selection,
 network isolation, canonical NIP-42/NIP-98 flows, per-agent identity and
-owner-trigger policy, safe telemetry, image policy, and listener-first rollback
+owner-trigger policy, safe telemetry, image policy, and socket-first rollback
 ordering without touching Aegis.
 
 ### Gate 2 — Production route-coexistence experiment
@@ -181,15 +207,17 @@ ordering without touching Aegis.
 With explicit production approval and no admitted Buzz identity, assign the
 selected secondary private IP to the approved OCI VNIC and intended host
 interface, prove local bind and public denial, advertise and approve the exact
-`/32`, exercise the private listener/protocol probe under the unchanged
-tailnet-wide policy, then fully withdraw the experiment. Diff VNIC, interface,
-route, policy digest, Serve, Nginx, and service baselines before and after.
+`/32`, reload the validated internal Nginx listener, start the exact private
+systemd socket, exercise the protocol probe under the unchanged tailnet-wide
+policy, then stop the socket first and fully withdraw the experiment. Diff
+VNIC, interface, route, policy digest, Serve, Nginx container identity, systemd
+listener, and service baselines before and after.
 
 ### Gate 3 — Disabled Aegis installation and recovery
 
 Install the isolated stack with ingress disabled. Recheck hardening, capacity,
 logs, restart behavior, encrypted coherent backup, disposable restore, and
-listener-first rollback.
+socket-first rollback.
 
 ### Gate 4 — Owner-only qualification
 
@@ -205,7 +233,8 @@ Select one of Walter, Titus, or Mitchel/Trevor; create its distinct read/write
 Buzz identity; route its intake only through canonical Nginx to the mapped
 Hermes Runs API; admit it to the owner and pilot channel; test
 bounded, owner-triggered behavior plus existing tool/approval enforcement; and
-prove independent revocation.
+prove that revocation rejects unsubmitted/future work and suppresses late
+results without claiming cancellation of an already-submitted Hermes run.
 
 ### Gate 6 — Remaining Hermes agents
 
@@ -225,26 +254,32 @@ scoped expansion.
 
 Activation is disabled-first:
 
-1. Install the inactive private listener include and stack.
+1. Install the inactive private Nginx include, disabled systemd socket/proxy
+   units, and stack.
 2. Validate rendered Compose and `nginx -t`.
 3. Pass recovery and rollback prerequisites.
 4. With approval, assign the exact secondary private IP to the approved OCI
    VNIC and intended host interface; prove the exact local address, bind, and
    absence of a public path.
 5. Advertise/approve the exact `/32` without changing the tailnet policy.
-6. Enable only the Buzz private include/listener and reload Nginx.
-7. Run canonical positive and negative protocol checks.
+6. Enable the internal Buzz include/listener and reload Nginx without
+   recreating its container.
+7. Start only the Buzz private systemd socket proxy.
+8. Run canonical positive and negative protocol checks.
 
-Rollback is listener-first:
+Rollback is socket-first:
 
-1. Disable the exact Buzz include/listener, run `nginx -t`, and reload.
+1. Stop the exact Buzz systemd socket proxy.
 2. Prove canonical Buzz ingress is unreachable from every test class.
-3. With approval, withdraw only the exact Buzz `/32` route.
-4. Confirm no listener or route uses the Buzz address, then remove only its host
+3. Remove the exact Buzz include/listener, run `nginx -t`, and reload without
+   recreating Nginx.
+4. With approval, withdraw only the exact Buzz `/32` route.
+5. Confirm no listener or route uses the Buzz address, then remove only its host
    interface and OCI VNIC secondary-address assignments.
-5. Stop Hermes intake workers and workload while preserving authoritative state.
-6. Compare existing OCI VNIC addresses, host interfaces, Nginx vhosts,
-   Tailscale Serve, routes, containers, and health to the signed baseline.
+6. Stop Hermes intake workers and workload while preserving authoritative state.
+7. Compare existing OCI VNIC addresses, host interfaces, Nginx vhosts and
+   container identity, Tailscale Serve, routes, systemd listeners, containers,
+   and health to the signed baseline.
 
 No rollback step restarts Nginx, overwrites unrelated configuration, restores
 Tailscale node state, or deletes Buzz data.
@@ -265,6 +300,7 @@ infra/buzz/
 ├── compose.aegis.yml
 ├── nginx/
 ├── agents/
+├── systemd/
 ├── tests/
 ├── backup-buzz.sh
 ├── restore-rehearsal.sh
@@ -304,9 +340,10 @@ or generalized agent integration is added.
 
 ## Complexity Tracking
 
-The private listener plus exact `/32` route is the smallest design that retains
-tailnet-only transport without the unqualified sidecar image. Accepting the
-current tailnet policy avoids a second authorization system; Buzz membership
-owns participant access. The three-network split is justified by concrete
-reachability requirements, and the staged canary prevents simultaneous rollout
-to all three agents.
+The private systemd socket plus exact `/32` route is the smallest design that
+retains tailnet-only transport without the unqualified sidecar image or a
+shared-Nginx container recreation. Accepting the current tailnet policy avoids
+a second authorization system; Buzz membership owns participant access. The
+three-network split and fixed Nginx Hermes egress broker are justified by
+concrete reachability requirements, and the staged canary prevents simultaneous
+rollout to all three agents.

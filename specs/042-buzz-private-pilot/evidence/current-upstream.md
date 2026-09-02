@@ -119,9 +119,14 @@ Material limitations for this pilot:
 - immediate revocation requires explicit session enumeration/termination or an
   independent deny mechanism.
 
-Each Hermes intake worker's queued/in-flight revocation acceptance criterion must be
-implemented at the harness/session boundary and tested; NIP-AA alone does not
-satisfy it.
+The current repository's Hermes client exposes capabilities, run submission,
+run status, and approval response, but no run-cancellation operation. The Buzz
+intake contract therefore rejects queued events not yet submitted and future
+submissions and suppresses late-result publication after revocation. It does
+not claim to terminate an already-submitted Hermes run; that run remains under
+the runtime's existing tool and human-approval policy. NIP-AA alone does not
+satisfy even this narrower intake/session boundary, so it remains explicitly
+tested.
 
 Source: <https://github.com/block/buzz/blob/2af9773d6271ce62cbe5dfbd28fbe5dd79372465/docs/nips/NIP-AA.md>
 

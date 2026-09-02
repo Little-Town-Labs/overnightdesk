@@ -21,9 +21,9 @@
   operation requires NIP-98, the frozen full request URL under
   `https://buzz.overnightdesk.com`.
 - No worker can resolve or connect directly to the relay, PostgreSQL, Redis,
-  MinIO, host Docker socket, or metadata endpoints. Its existing-network route
-  is allowlisted to its mapped Hermes API identity; it has no
-  credential for another runtime.
+  MinIO, host Docker socket, metadata endpoints, the shared production network,
+  or another production service. Its only Hermes path is the fixed-target Nginx
+  egress broker on `buzz-agents`; it has no credential for another runtime.
 - A successful run may publish one bounded response only to the same pilot
   channel that supplied the accepted owner event. The worker never treats its
   own response or another bot-authored event as a new trigger.
@@ -37,14 +37,17 @@
   the runtime's already-approved memory boundary.
 - Missing or malformed owner, agent-identity, channel, or trigger policy fails
   closed.
-- Revocation stops admission, cancels queued work, terminates in-flight work at
-  the approved boundary, and prevents future responses for only the selected
-  agent. The owner and other named agents remain unaffected.
+- Revocation stops admission, discards queued events not yet submitted to
+  Hermes, prevents future submissions, and suppresses publication of a late
+  result from a previously submitted run for only the selected agent. The
+  current Hermes API cannot cancel an already-submitted run; it may complete
+  under the runtime's unchanged tool and human-approval policy. The owner and
+  other named agents remain unaffected.
 - Logs and evidence record only safe correlation IDs, durations, result/denial
   classes, and resource measurements—never prompts, responses, keys, signed
   events, headers, or message bodies.
 
 Qualification runs separately for all three identities and includes valid
 owner interactions, bot-trigger denial, unapproved caller/channel, duplicate,
-adversarial, restart, capacity, direct-network, and queued/in-flight revocation
-cases.
+adversarial, restart, capacity, direct-network, queued-event revocation, and
+late-result suppression cases.

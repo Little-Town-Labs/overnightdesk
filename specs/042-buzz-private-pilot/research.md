@@ -23,17 +23,22 @@ candidate starting point, but it is not current production authorization.
 **Rejected**: Mutable tags, building on Aegis, or treating a previous scan as a
 permanent exception.
 
-### Reuse Nginx on a private-only listener
+### Reuse Nginx on private-only listener paths
 
 **Decision**: Remove the dedicated Tailscale container from the proposed
 topology. Use the existing qualified Nginx process with a Buzz server block
-that is selectable only on a dedicated private listener address. Select the
-address only after fresh host and OCI evidence proves it is unassigned and has
+that is externally selectable only through a dedicated private listener
+address, plus a Docker-internal agent listener. Select the host address only
+after fresh host and OCI evidence proves it is unassigned and has
 no public NAT path. Under separate production approval, assign that exact
 secondary private IP to the approved OCI VNIC and intended host interface and
 prove local binding before enabling Nginx or advertising it. If Nginx is
-containerized, map its internal Buzz listener port only on that assigned
-private host address.
+containerized, do not add a Docker host-port publication or recreate it.
+Attach it to `buzz-ingress` at a fixed address, listen there on `8443`, and use
+the host's existing `systemd-socket-proxyd` to forward raw TCP from the assigned
+private `:443` socket. Serve the same canonical TLS virtual host on Nginx's
+fixed `buzz-agents` address at `443` for intake workers; neither internal
+endpoint is on the shared production network.
 
 **Rationale**: This removes the unqualified upstream image that blocked the old
 plan while retaining the already operated TLS proxy. Listener separation, not
@@ -41,7 +46,8 @@ DNS obscurity, prevents public clients from selecting Buzz with a forged SNI or
 Host header.
 
 **Rejected**: A Buzz vhost on the public `10.0.0.234:443` listener, reliance on
-no public DNS record, direct relay port publication, or bundled Caddy.
+no public DNS record, direct relay port publication, recreating shared Nginx to
+add a Docker publication, or bundled Caddy.
 
 ### Preserve the tailnet boundary with an exact host route
 
@@ -103,13 +109,19 @@ transport-only `101` check.
 
 **Decision**:
 
-- `buzz-ingress`: Nginx and relay only.
-- `buzz-data`: relay, PostgreSQL, Redis, and MinIO only.
-- `buzz-agents`: Nginx and the Walter, Titus, and Mitchel/Trevor intake workers only.
+- `buzz-ingress`: internal bridge with Nginx and relay only.
+- `buzz-data`: internal bridge with relay, PostgreSQL, Redis, and MinIO only.
+- `buzz-agents`: internal bridge with Nginx and the Walter, Titus, and
+  Mitchel/Trevor intake workers only; Nginx owns the canonical Buzz network
+  alias.
 
 **Rationale**: A single Buzz network would unnecessarily expose stores to
-Nginx. Putting an intake worker and relay together would allow an agent to bypass the
-canonical ingress contract.
+Nginx. Putting an intake worker and relay together would allow an agent to
+bypass the canonical ingress contract. Intake workers never join the shared
+production network; Nginx provides a fixed-target egress broker exposing only
+the named runtime's capabilities, run-submission, and run-status operations.
+Run-status IDs must match `^run_[0-9a-f]{32}$`; query strings,
+approval-response paths, redirects, and variable upstreams fail closed.
 
 ### Admit three named Hermes agents in stages
 
@@ -120,7 +132,10 @@ initially triggered only by the owner; bot-authored messages may be read as
 context but do not trigger another bot. Each route-specific intake worker
 accepts only the exact signed owner and channel, calls the matching authenticated
 Hermes Runs API, retains that runtime's existing authority/approval policy, and
-is independently revocable.
+is independently revocable. Revocation rejects queued work not yet submitted
+and future work and suppresses late result publication. It does not claim to
+cancel an already-submitted Hermes run because the qualified API has no
+cancellation operation.
 
 **Rationale**: Agent participation is the product value being evaluated.
 Separate identities preserve attribution and revocation, while owner-only
@@ -141,14 +156,16 @@ and route metadata are recreated through an explicitly approved configuration,
 not restored as identity state. The existing tailnet policy is not changed by
 the Buzz lifecycle.
 
-### Use gated, listener-first rollback control
+### Use gated, socket-first rollback control
 
 **Decision**: Install disabled, validate `nginx -t`, reload rather than restart,
-and require current local/protocol/recovery proof before owner admission.
-Rollback disables the private listener first, proves unreachability, withdraws
-the exact route when authorized, removes only the Buzz host-interface and
-OCI VNIC secondary-address assignment, preserves workload state, and verifies
-all pre-existing OCI, host, Nginx, and Tailscale behavior.
+and require current local/protocol/recovery proof before owner admission. The
+external listener is a hardened systemd socket forwarding raw TCP to Nginx's
+fixed internal endpoint. Rollback stops that socket first, proves
+unreachability, removes the Nginx include by validated reload, withdraws the
+exact route when authorized, removes only the Buzz host-interface and OCI VNIC
+secondary-address assignment, preserves workload state, and verifies all
+pre-existing OCI, host, Nginx, and Tailscale behavior.
 
 ## Current Sources
 

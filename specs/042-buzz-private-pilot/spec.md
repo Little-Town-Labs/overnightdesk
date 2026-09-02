@@ -141,7 +141,7 @@ unreachable while existing Nginx and Serve routes stay healthy.
 1. **Given** an exact disabled candidate, **when** qualification runs, **then**
    hardening, connectivity, capacity, recovery, and safe-evidence checks pass
    before any identity is admitted.
-2. **Given** active private ingress, **when** listener-first rollback runs,
+2. **Given** active private ingress, **when** socket-first rollback runs,
    **then** Buzz becomes unreachable within five minutes, its data remains
    preserved, the secondary address is removed, and existing services match
    baseline.
@@ -166,8 +166,10 @@ work.
 2. **Given** another caller/channel or a high-impact action without approval,
    **when** a request arrives, **then** the canary refuses or enters the existing
    human approval path without executing the action or emitting sensitive telemetry.
-3. **Given** revoked agent authority, **when** queued, in-flight, or future
-   work exists, **then** it is cancelled or terminated at the approved boundary.
+3. **Given** revoked agent authority, **when** queued, already-submitted, or
+   future work exists, **then** unsubmitted and future work is rejected and any
+   late result is not published; the design does not claim to cancel the
+   already-submitted Hermes run.
 4. **Given** the canary passes, **when** the remaining named agents are admitted
    one at a time, **then** each passes the same identity, channel, network,
    sender/channel, authority, deduplication, and revocation checks before
@@ -223,7 +225,8 @@ decision and no proposed expansion is automatically activated.
 - **FR-004**: Select a dedicated private listener address only when fresh
   network evidence proves it is unassigned and has no public NAT path; after
   explicit approval, assign that exact secondary private IP to the approved OCI
-  VNIC and intended host interface before binding Buzz.
+  VNIC and intended host interface before starting the exact private host
+  socket proxy.
 - **FR-005**: Advertise exactly the selected and locally assigned private
   address as `/32` through the existing Aegis Tailscale node only after explicit
   approval and successful local-bind proof.
@@ -256,10 +259,12 @@ decision and no proposed expansion is automatically activated.
 - **FR-014**: Test a complete signed NIP-42 challenge/auth/subscription flow
   under the exact WebSocket relay URL and each qualified NIP-98 HTTP operation
   under its frozen exact method and full HTTPS request URL through Nginx.
-- **FR-015**: Use three Buzz least-connectivity networks: Nginx+relay ingress,
-  relay+stores data, and Nginx+Hermes-intake egress. Intake workers may also
-  join the existing qualified OvernightDesk network only to reach their exact
-  authenticated Hermes Runs API route.
+- **FR-015**: Use three internal Buzz least-connectivity networks: Nginx+relay
+  ingress, relay+stores data, and Nginx+Hermes-intake egress. Intake workers
+  preserve the canonical Buzz hostname through an Nginx network alias, never
+  join the existing production network, and receive no default external-egress
+  path; Nginx brokers only the fixed, named Hermes API operations from the
+  intake network to the already connected runtimes.
 - **FR-016**: Keep PostgreSQL and MinIO authoritative, Redis diagnostic,
   generated Git scratch disposable, and secrets external to Compose/evidence.
 - **FR-017**: Create a coherent encrypted PostgreSQL+MinIO backup set and prove
@@ -272,22 +277,34 @@ decision and no proposed expansion is automatically activated.
   channel; retain each runtime's existing tool/approval policy; add no new tool
   authority; permit one bounded reply only to that same channel; prevent intake
   from satisfying or bypassing human approvals; and enforce one concurrent job
-  per agent, bounded output/time, deduplication-only state, and explicit
-  per-agent revocation.
+  per agent, bounded output/time, deduplication-only state, rejection of queued
+  unsubmitted and future work after revocation, and suppression of late results
+  from already-submitted runs.
 - **FR-020**: Force every Hermes intake worker through the canonical Nginx
-  endpoint; fail closed on a missing or mismatched named-runtime mapping; deny
-  direct relay and store connectivity, cross-runtime credentials, shared keys,
-  and bot-to-bot-triggered automation.
+  endpoint for Buzz and a fixed-target Nginx egress broker for only
+  `GET /v1/capabilities`, `POST /v1/runs`, and
+  `GET /v1/runs/{run_id}` where `run_id` matches
+  `^run_[0-9a-f]{32}$`; fail closed on a query string, approval-response path,
+  missing or mismatched named-runtime mapping; and deny
+  shared-production-network attachment, direct relay/store or unrelated-service
+  connectivity, cross-runtime credentials, shared keys, redirects, variable
+  upstreams, and bot-to-bot-triggered automation.
 - **FR-021**: Install disabled first; require `nginx -t`, contract success,
   restore proof, rollback proof, safe evidence, and explicit approval at each
   production gate.
-- **FR-022**: Activate and roll back with an include/listener change followed
-  by an Nginx reload, never a process replacement or unrelated configuration
-  rewrite.
-- **FR-023**: Roll back the listener first, prove Buzz unreachable, withdraw
-  only the exact `/32`, remove only the Buzz host-interface and
-  OCI VNIC secondary-address assignment, preserve workload state, and compare
-  all existing addresses, routes, listeners, and health checks to the baseline.
+- **FR-022**: Add no Docker host-port publication and never recreate Nginx.
+  Bind Nginx's internal Buzz server to its fixed `buzz-ingress` bridge address
+  at port `8443` for host-proxied owner traffic and to its fixed `buzz-agents`
+  address at port `443` for intake-worker traffic, forward raw TCP from the
+  private host `:443` with hardened `systemd-socket-proxyd`, expose neither
+  listener on the shared/public network, and keep Nginx configuration changes
+  reload-only.
+- **FR-023**: Roll back the externally reachable systemd socket first, prove
+  Buzz unreachable, remove the private Nginx include with a validated reload,
+  withdraw only the exact `/32`, remove only the Buzz host-interface and OCI
+  VNIC secondary-address assignment, preserve workload state, and compare all
+  existing addresses, routes, listeners, container identities, and health
+  checks to the baseline.
 - **FR-024**: Emit content-free logs and metrics for availability, Nginx
   reload, route state, protocol outcome class, recovery, capacity, and agent
   authority denials.
@@ -330,21 +347,25 @@ decision and no proposed expansion is automatically activated.
 - **SC-004**: Unadmitted identities have zero successful subscriptions, reads,
   or writes.
 - **SC-005**: Nginx can reach only the relay on the Buzz ingress network; the
-  relay alone can reach stores; each Hermes intake worker can reach Buzz only
-  through Nginx and authenticate only to its mapped Hermes runtime.
+  relay alone can reach stores; each Hermes intake worker is absent from the
+  shared production network, reaches Buzz only through Nginx, and reaches only
+  its mapped Hermes operations through the fixed Nginx egress broker.
 - **SC-006**: An isolated restore of a coherent current backup passes logical
   assertions with measured RPO/RTO before owner admission.
-- **SC-007**: Listener-first rollback makes Buzz unreachable within five
-  minutes, removes only the Buzz `/32` and secondary-address assignment,
-  preserves data, and leaves existing addresses/routes/listeners healthy.
+- **SC-007**: Socket-first rollback makes Buzz unreachable within five minutes,
+  removes only the Buzz Nginx include, `/32`, and secondary-address assignment,
+  preserves data, does not recreate Nginx, and leaves existing
+  addresses/routes/listeners healthy.
 - **SC-008**: Owner collaboration actions and restart persistence pass without
   exposing private keys or content.
 - **SC-009**: Each of the three named Hermes identities passes twenty valid
   interactions with zero responses to unapproved callers/channels, zero new or
   bypassed tool authority, zero cross-runtime authentication, zero bot-triggered
-  runs, and zero direct relay/store access.
-- **SC-010**: Per-agent revocation prevents queued and future activity without
-  revoking the owner or another named agent.
+  runs, and zero direct relay/store/unrelated-service access.
+- **SC-010**: Per-agent revocation rejects queued work not yet submitted and all
+  future work, suppresses late results from previously submitted runs, and does
+  not revoke the owner or another named agent. Evidence does not claim that the
+  current Hermes API cancels an already-submitted run.
 - **SC-011**: Resource usage remains inside the approved ceiling under measured
   pilot load.
 - **SC-012**: Logs and evidence contain zero secrets, authorization values,

@@ -25,9 +25,15 @@
 - [x] NIP-42 and NIP-98 require full signed-protocol contract tests.
 - [x] Nginx, relay, stores, and the three Hermes intake workers have
   least-connectivity networks.
+- [x] Intake workers never join the shared production network; Nginx brokers
+  only fixed named Hermes operations.
+- [x] Private host `:443` uses hardened systemd raw-TCP forwarding to fixed
+  `buzz-ingress:8443`; intake uses only fixed `buzz-agents:443`; neither
+  requires a Docker publication or Nginx recreation.
 - [x] Each Hermes agent has a distinct read/write identity, owner-only trigger
   policy, exact signed-owner/channel checks, unchanged Hermes tool/approval authority,
-  and independent revocation.
+  and revocation limited to unsubmitted/future-work rejection plus late-result
+  suppression unless a cancellation API is later qualified.
 - [x] Identity, secret, backup, restore, observability, capacity, and rollback
   boundaries are explicit.
 - [x] Existing public Nginx and Tailscale Serve behavior must remain invariant.

@@ -52,9 +52,29 @@ root.
   strip unrelated cookies and do not rewrite the URI.
 - Require complete NIP-42 and NIP-98 contract tests through Nginx, not only a
   successful WebSocket upgrade.
+- Do not recreate the shared Nginx container or add a Docker host-port
+  publication. Attach Nginx to `buzz-ingress` at a fixed bridge address, listen
+  there on internal port `8443`, and use the host's existing
+  `systemd-socket-proxyd` to forward raw TCP from the selected private
+  `:443` address to that fixed Nginx endpoint. The socket unit is the external
+  listener lifecycle; Nginx configuration remains validate-and-reload only.
+- Serve the same canonical Buzz TLS virtual host on Nginx's fixed
+  `buzz-agents` address at internal port `443` for intake workers. These are the
+  only two Buzz listener endpoints; neither is on the shared production or a
+  public network.
 - Use `buzz-ingress` for Nginx+relay, `buzz-data` for relay+stores, and
   `buzz-agents` for Nginx plus the Walter, Titus, and Mitchel/Trevor intake
-  workers. No worker can address relay or stores directly.
+  workers. All three are internal Docker bridges. Nginx provides the canonical
+  Buzz hostname as a network alias on `buzz-agents`, so workers preserve the
+  signed URL without external egress. Intake workers never join the shared
+  production network. A fixed-target Nginx egress broker on `buzz-agents`
+  exposes only the required
+  Hermes capabilities, run-submission, and run-status operations and proxies
+  each named route to its exact Hermes runtime; all other methods, paths, and
+  targets fail closed. Status routes accept only
+  `^run_[0-9a-f]{32}$`; query strings and approval-response routes are denied.
+  No worker can address relay, stores, another runtime, or unrelated production
+  services directly.
 - Give the owner and each named Hermes agent a separate Nostr identity. Agent
   identities have read/write messaging membership, are admitted one at a time
   after a canary, respond automatically only to the owner in one pilot channel,
@@ -63,15 +83,21 @@ root.
   authenticated Hermes Runs API, and retain Hermes's existing tools, memory,
   model routing, and human approval policy. Do not add AgentMail's staging
   database boundary to this authenticated pilot channel.
-- Install disabled. Activate and deactivate only the private include/listener
-  with `nginx -t` and reload. Roll back the listener first, then the exact
-  `/32`, then remove only the Buzz host-interface and OCI VNIC secondary
-  address while preserving workload data and verifying existing services.
+- A Buzz revocation rejects queued work that has not been submitted, rejects
+  future work, and suppresses any late response from a previously submitted
+  run. It does not claim to cancel a Hermes run after submission because the
+  qualified API has no cancellation operation; that run remains governed by
+  the runtime's existing tool and human-approval policy.
+- Install disabled. Activate the validated Nginx include by reload, then start
+  only the private socket proxy. Roll back the externally reachable socket
+  first, then remove the include by validated reload, withdraw the exact `/32`,
+  and remove only the Buzz host-interface and OCI VNIC secondary address while
+  preserving workload data and verifying existing services.
 
 The exact private address, VNIC/interface assignment and removal procedure,
-internal port, NIP-98 method/URL pairs, certificate automation, named-agent
-intake contract, image digests, and capacity limits remain Gate 0 facts and
-are not assumed here.
+both fixed Nginx bridge listener addresses, systemd unit contents, NIP-98
+method/URL pairs, certificate automation, named-agent egress routes, image
+digests, and capacity limits remain Gate 0 facts and are not assumed here.
 
 ## Consequences
 
@@ -81,8 +107,8 @@ are not assumed here.
   Transport rollback is an exact route/listener operation; participant
   revocation removes only the selected Buzz membership/intake identity.
 - Buzz shares the existing Nginx process and its availability domain. Listener
-  isolation, validation, reload-only lifecycle, and baseline comparisons are
-  mandatory compensating controls.
+  isolation, validation, raw-TCP socket-proxy lifecycle, reload-only Nginx
+  configuration, and baseline comparisons are mandatory compensating controls.
 - The hostname is certificate-visible and may inherit a public wildcard answer,
   but the public listener cannot select Buzz.
 - Existing Tailscale Serve and public Nginx configuration must remain unchanged.
@@ -122,3 +148,9 @@ device or person outside this accepted pilot boundary joins the tailnet.
 
 Rejected because it adds a public or separately managed ingress surface and
 does not reuse the qualified Aegis boundary.
+
+### Add a second Docker port publication to the shared Nginx container
+
+Rejected because Docker fixes host port publications when the container is
+created. Adding `10.0.0.233:443->8443` would require recreating the shared
+production Nginx container and would violate the reload-only Nginx lifecycle.

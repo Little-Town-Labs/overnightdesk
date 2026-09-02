@@ -211,10 +211,11 @@ The relay itself does not enforce TLS; production must terminate TLS at the
 relay or a reverse proxy
 ([security policy](https://github.com/block/buzz/blob/main/SECURITY.md)). For
 Aegis, the proposed integration reuses the existing reviewed Nginx process on a
-dedicated private-only listener reached through an exact Tailscale `/32` and a
-separate owner-device grant. The public listener must not select Buzz even with
-a forged SNI/Host. PostgreSQL, Redis, MinIO, health, metrics, and any admin
-surface should publish no public host ports. The Git browser should remain
+dedicated private-only listener reached through an exact Tailscale `/32` under
+the accepted owner-controlled tailnet policy. The public listener must not
+select Buzz even with a forged SNI/Host. PostgreSQL, Redis, MinIO, health,
+metrics, and any admin surface should publish no public host ports. The Git
+browser should remain
 disabled (`BUZZ_SERVE_GIT_WEB_GUI=false`),
 and the moderation dashboard should remain unconfigured until its separate
 operator hostname and NIP-98 authorization are deliberately reviewed
@@ -440,8 +441,10 @@ separately approved evaluation—not a production activation:
    frozen OCI VNIC and intended host interface and prove local binding before
    advertising only its `/32` through the existing Aegis Tailscale node. Keep
    the accepted tailnet-wide policy unchanged and use distinct Buzz membership
-   identities for participant access. Preserve public Nginx and the existing
-   Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
+   identities for participant access. Do not recreate Nginx or add a Docker
+   publication; use the host's existing `systemd-socket-proxyd` for raw-TCP
+   forwarding to Nginx's fixed `buzz-ingress` endpoint. Preserve public Nginx
+   and the existing Tailscale Serve root; keep PostgreSQL, Redis, MinIO, health,
    metrics, and admin internal. Prove public IP/SNI/Host denial, NIP-42 under
    exact `wss://buzz.overnightdesk.com`, and each qualified NIP-98 method/full-
    URL operation under the distinct `https://buzz.overnightdesk.com` origin.
@@ -449,14 +452,17 @@ separately approved evaluation—not a production activation:
    UI, admin UI, hosted multi-community mode, and unnecessary workflows.
 5. Create separate keys for the owner, each human, and each named evaluation
    agent. Keep agent response policy `owner-only` or an explicit allowlist.
-6. Run no agent harness in the relay container. Give each harness its own
-   supervised process/container, working directory, Phase secret scope, and
-   bounded tool surface.
+6. Run no agent harness in the relay container or shared production network.
+   Give each harness its own supervised process/container, working directory,
+   Phase secret scope, and fixed-target Nginx egress path to only its mapped
+   Hermes operations.
 7. Add edge rate limits, resource limits, safe structured log collection,
    internal metric scraping, and disk/database/connection alerts.
-8. Prove admission denial, private-channel denial, revocation, restart
-   persistence, backup, restore, rollback, and a small concurrent human/agent
-   workload before allowing durable business data.
+8. Prove admission denial, private-channel denial, unsubmitted/future-work
+   rejection and late-result suppression after revocation, restart persistence,
+   backup, restore, rollback, and a small concurrent human/agent workload before
+   allowing durable business data. Do not claim cancellation of an
+   already-submitted Hermes run without a qualified cancellation API.
 
 ## Decision
 
@@ -469,8 +475,8 @@ dependency, while an exact `/32` route keeps transport inside the
 owner-controlled tailnet and Buzz membership limits participation to the owner
 and three distinct named Hermes identities. This is not yet production proof: a dedicated private
 address must be safely assigned to and removed from the exact OCI VNIC and host
-interface, its listener must be shown publicly unreachable, the existing Serve
-handler must remain unchanged, and complete signed NIP-42 plus byte-exact
-NIP-98 flows must survive the proxy. A deployment decision follows those gates
-and measured qualification, not the upstream quick start or the historical
-scan alone.
+interface, its systemd-to-Nginx listener path must be shown publicly
+unreachable without recreating Nginx, the existing Serve handler must remain
+unchanged, and complete signed NIP-42 plus byte-exact NIP-98 flows must survive
+the proxy. A deployment decision follows those gates and measured
+qualification, not the upstream quick start or the historical scan alone.

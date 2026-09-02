@@ -1,6 +1,6 @@
 # Gate 0 Current Aegis Inventory
 
-**Captured**: `2026-09-02T17:45:42Z` through `2026-09-02T17:51:07Z`
+**Captured**: `2026-09-02T17:45:42Z` through `2026-09-02T19:54:54Z`
 
 **Task**: T058
 
@@ -133,6 +133,25 @@ The managed reload method is a config validation followed by
 renewal unit uses that signal after successful renewal. The reload command was
 not exercised during Gate 0 because it changes process state.
 
+The PR #253 review follow-up confirmed read-only that:
+
+- Docker publishes only `10.0.0.234:80->80` and
+  `10.0.0.234:443->443`; adding a second publication would require container
+  recreation and is not an acceptable Buzz lifecycle;
+- Nginx currently listens only on container ports 80 and 443;
+- host systemd 255 includes executable
+  `/usr/lib/systemd/systemd-socket-proxyd`;
+- host IPv4 forwarding is enabled; and
+- the host uses the nftables backend for iptables, but the design does not add
+  a custom packet-filter/NAT rule.
+
+This supports a no-recreation mechanism: attach the existing Nginx container
+to `buzz-ingress` at a fixed address, reload an internal `8443` listener, and
+use a hardened host systemd socket/proxy unit to forward raw TCP only from the
+selected private `:443`. Exact bridge listener addresses and unit contents
+remain T062 inputs. The inspection did not create a network, attach a container,
+add a listener, reload Nginx, start a unit, or change firewall state.
+
 ## Certificates and renewal
 
 Eleven active certificate lineages exist under
@@ -167,5 +186,5 @@ cover future Buzz PostgreSQL or MinIO state.
 The existing host has no immediate health or capacity blocker for continued
 local design work. This is not capacity reservation or deployment approval.
 T058 is complete. T059 and T060 now provide the corresponding OCI and accepted
-tailnet-policy baselines; candidate selection remains a documentation-only
+tailnet-policy baselines; T061 selected the candidate as a documentation-only
 Gate 0 decision and does not authorize assignment.
