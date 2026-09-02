@@ -173,8 +173,11 @@ listener-first rollback.
 
 ### Gate 4 — Owner-only qualification
 
-Enable the private route/listener, admit only the owner, execute collaboration,
-denial, reconnect, restart, and load checks, then leave the canary disabled.
+After the Gate 2 experiment and Gate 3 rollback rehearsal have removed the
+secondary address, repeat the approved VNIC/host-interface assignment and exact
+local-bind/public-denial proof. Then enable only its private route/grant/listener,
+admit only the owner, execute collaboration, denial, reconnect, restart, and
+load checks, and leave the canary disabled.
 
 ### Gate 5 — Canary qualification
 
