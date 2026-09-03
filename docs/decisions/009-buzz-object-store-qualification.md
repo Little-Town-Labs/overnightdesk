@@ -9,6 +9,13 @@ secret, bucket, or production state is approved by this decision.
 
 2026-09-03
 
+## Evidence update
+
+RustFS `1.0.0-rc.5` was prequalified on 2026-09-03 and rejected at Gate 0.
+This update applies the existing decision criteria; it does not change them.
+See
+[`rustfs-prequalification.md`](../../specs/042-buzz-private-pilot/evidence/rustfs-prequalification.md).
+
 ## Context
 
 The current Buzz Compose example uses historical MinIO server and `mc` images.
@@ -46,9 +53,9 @@ and media qualification before selection.
   create an OvernightDesk-specific no-S3 or media-free runtime profile.
 - Do not use the historical MinIO server or `mc` images, Garage v2.3.0, or a
   disabled Git conformance probe as a Gate 0 exception.
-- Treat RustFS as the next candidate to prequalify, not as an approved backend.
-  A different maintained candidate may be evaluated if it meets the same
-  contract and image gates.
+- RustFS `1.0.0-rc.5` does not pass Gate 0. A newer RustFS release or a
+  different maintained candidate may be evaluated if it meets the same
+  contract and image gates; no backend is currently selected.
 - Select a backend only after its immutable native ARM64 image passes
   provenance, SBOM, vulnerability, non-root, read-only-root, persistence, and
   startup checks and the exact Buzz candidate passes disposable operation-level
@@ -73,8 +80,9 @@ and media qualification before selection.
 
 - T057 remains incomplete until one backend and its initializer pass both the
   image gate and the documented Buzz contract preconditions.
-- RustFS evaluation is the next bounded, local, read-only/reversible research
-  step. Its upstream proposal is useful scope guidance but not approval.
+- The RustFS rc.5 evaluation is complete and preserves useful capability
+  evidence, but its release/support posture, exact-commit CI, image findings,
+  initializer, and recovery gaps prevent admission.
 - The pilot retains object-store operational cost and recovery complexity even
   though large media and Git UI are non-goals.
 - A backend that passes the startup probe can still fail media or restore

@@ -1,8 +1,9 @@
 # Qualification Guide: Buzz Private Pilot
 
-**Status**: Issue #249 reopened for planning on 2026-09-02. This guide is not
-deployment authorization; every further external or production mutation
-requires a separately recorded approval.
+**Status**: Issue #249 is blocked at Gate 0 on T057 object-store qualification.
+RustFS `1.0.0-rc.5` failed admission and no replacement backend is selected.
+This guide is not deployment authorization; every further external or
+production mutation requires a separately recorded approval.
 
 Use synthetic content and safe evidence only. Stop on ambiguity, failed gates,
 or unexpected changes to existing Nginx, Tailscale, OCI, backup, or service

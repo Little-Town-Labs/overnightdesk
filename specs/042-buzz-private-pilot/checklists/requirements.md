@@ -38,8 +38,8 @@
   boundaries are explicit.
 - [x] Object-store admission distinguishes Gate 0 image/documented-capability
   evidence from later exact-Buzz operation, conformance, and restore tests.
-- [x] Historical MinIO, Garage v2.3.0, generic S3 claims, and probe-disable are
-  not accepted as silent qualification exceptions; RustFS remains a candidate.
+- [x] Historical MinIO, Garage v2.3.0, RustFS `1.0.0-rc.5`, generic S3 claims,
+  and probe-disable are not accepted as silent qualification exceptions.
 - [x] Existing public Nginx and Tailscale Serve behavior must remain invariant.
 - [x] Production, identity, route, secret, Issue, Project, and expansion actions
   require explicit approval.

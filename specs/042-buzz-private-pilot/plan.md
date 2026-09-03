@@ -2,8 +2,9 @@
 
 **Branch**: `042-buzz-private-pilot` | **Revised**: 2026-09-03 | **Spec**: [spec.md](spec.md)
 
-**Plan status**: Gate 0 image and object-store evidence is active; no
-implementation or production action is authorized.
+**Plan status**: Blocked at Gate 0 on T057 until a maintained object store and
+one-shot initializer pass the unchanged admission contract; no implementation
+or production action is authorized.
 
 ## Summary
 
@@ -115,8 +116,8 @@ images fail the new-deployment maintenance and image gates. Garage v2.3.0 lacks
 conditional writes and object-version APIs used by Buzz. Open Buzz issues
 document conditional-write failures on GCS and Ceph and range-read failure on
 R2; no open issue establishes a supported no-S3 mode. ADR-009 therefore keeps
-S3 storage required, rejects probe-disable as a correctness waiver, and names
-RustFS only as the next candidate for complete disposable qualification.
+S3 storage required and rejects probe-disable as a correctness waiver. RustFS
+`1.0.0-rc.5` failed Gate 0 prequalification, leaving no selected backend.
 The staged acceptance contract is
 [`contracts/object-store.md`](contracts/object-store.md): T057 admits only a
 provisional candidate from current image and documented-capability evidence;

@@ -16,11 +16,14 @@ ARM64 image contracts. The observed PostgreSQL image failed the vulnerability
 gate, but a minimal exact-base wrapper replaced only its known-fixed OpenSSL
 packages and passed. The official MinIO server and `mc` images are
 historical, unmaintained artifacts without attestations or a declared non-root
-user; they are not qualified for this new production deployment. ADR-009 now
-requires a maintained, operation-level-qualified S3 implementation and names
-RustFS only as the next provisional candidate to evaluate. Per the corrected
-dependency order in `tasks.md`, qualification of the final first-party intake-
-worker image occurs in T081 after T079 creates it.
+user; they are not qualified for this new production deployment. ADR-009
+requires a maintained, operation-level-qualified S3 implementation. RustFS
+`1.0.0-rc.5` was evaluated next and rejected at Gate 0 because its release and
+support status are ambiguous, its exact-commit S3 gate is red, its ARM64 image
+has fix-available findings, and no qualified initializer or supported object-
+data recovery procedure exists. Per the corrected dependency order in
+`tasks.md`, qualification of the final first-party intake-worker image occurs
+in T081 after T079 creates it.
 
 ## Method and meaning of the digests
 
@@ -388,19 +391,19 @@ No production image pin is approved by this record.
 | Redis | yes; local image gate passed | no | native/composed persistence, limits, and restore evidence |
 | MinIO server | no | no | unmaintained historical distribution; replacement required |
 | MinIO `mc` initializer | no | no | archived source, no attestation, root default; replacement required |
-| RustFS | not yet; next candidate for T057 prequalification | no | current release/image and documented operation support not yet captured; executable Buzz qualification follows in T070/T081 |
+| RustFS `1.0.0-rc.5` | no; rejected at Gate 0 | no | ambiguous supported-release status, red exact-commit S3/E2E gates, fix-available image findings, unqualified initializer, and no supported object-data recovery procedure; see [`rustfs-prequalification.md`](rustfs-prequalification.md) |
 | Intake worker | base passed; final image is deferred to T081 | no | T079 must create the worker before whole-image qualification is possible |
 
 ## Required next evidence
 
-T057 remains unchecked. Before it can pass:
-
-1. Prequalify the current RustFS release, native ARM64 image, initializer path,
-   maintenance/provenance/SBOM/vulnerability/non-root posture, persistence, and
-   documented support for every Gate 0 requirement in
-   [`object-store.md`](../contracts/object-store.md). If it fails, evaluate a
-   different maintained candidate under the same gate rather than weakening
-   the contract.
+T057 remains unchecked. Before it can pass, select either a newer RustFS release
+that closes the blockers in
+[`rustfs-prequalification.md`](rustfs-prequalification.md) or a different
+maintained candidate, then qualify its native ARM64 image, one-shot initializer,
+maintenance/provenance/SBOM/vulnerability/non-root posture, persistence, and
+documented support for every Gate 0 requirement in
+[`object-store.md`](../contracts/object-store.md). Do not weaken the contract to
+admit the current RustFS release.
 
 T057 may record a provisional local candidate after that evidence passes. Final
 selection still requires the executable exact-Buzz operation matrix in T070 and
