@@ -21,9 +21,10 @@
   operation requires NIP-98, the frozen full request URL under
   `https://buzz.overnightdesk.com`.
 - No worker can resolve or connect directly to the relay, PostgreSQL, Redis,
-  MinIO, host Docker socket, metadata endpoints, the shared production network,
-  or another production service. Its only Hermes path is the fixed-target Nginx
-  egress broker on `buzz-agents`; it has no credential for another runtime.
+  object store, host Docker socket, metadata endpoints, the shared production
+  network, or another production service. Its only Hermes path is the
+  fixed-target Nginx egress broker on `buzz-agents`; it has no credential for
+  another runtime.
 - A successful run may publish one bounded response only to the same pilot
   channel that supplied the accepted owner event. The worker never treats its
   own response or another bot-authored event as a new trigger.

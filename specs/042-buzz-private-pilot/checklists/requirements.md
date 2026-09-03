@@ -2,7 +2,7 @@
 
 **Created**: 2026-09-01
 
-**Revalidated**: 2026-09-02
+**Revalidated**: 2026-09-03
 
 **Feature**: [spec.md](../spec.md)
 
@@ -36,6 +36,10 @@
   suppression unless a cancellation API is later qualified.
 - [x] Identity, secret, backup, restore, observability, capacity, and rollback
   boundaries are explicit.
+- [x] Object-store admission distinguishes Gate 0 image/documented-capability
+  evidence from later exact-Buzz operation, conformance, and restore tests.
+- [x] Historical MinIO, Garage v2.3.0, generic S3 claims, and probe-disable are
+  not accepted as silent qualification exceptions; RustFS remains a candidate.
 - [x] Existing public Nginx and Tailscale Serve behavior must remain invariant.
 - [x] Production, identity, route, secret, Issue, Project, and expansion actions
   require explicit approval.
@@ -47,3 +51,5 @@ accepted current tailnet-wide reachability for the bounded pilot. The three
 agents are the named Aegis Hermes runtimes; one is selected later as the
 canary. The exact private listener address and operational values remain
 evidence-based Gate 0 decisions.
+The object-store contract adds no pilot capability: it makes the storage
+dependency and the evidence required to qualify a replacement explicit.

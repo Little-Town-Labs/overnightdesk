@@ -2,8 +2,8 @@
 
 ## Authoritative set
 
-- PostgreSQL and MinIO are captured in one maintenance window with a shared
-  marker and immutable release/schema metadata.
+- PostgreSQL and the selected object store are captured in one maintenance
+  window with a shared marker and immutable release/schema metadata.
 - Redis is diagnostic/cache state and is not required for authoritative
   recovery. Git scratch is regenerated and validated.
 - A `COMPLETE` marker is written only after both authoritative encrypted
@@ -15,10 +15,13 @@
 
 - Restore occurs on a disposable, unrouted network with distinct names and no
   production listener.
-- PostgreSQL is restored before relay validation; MinIO is restored before
-  attachment/object assertions.
+- PostgreSQL is restored before relay validation; the object store is restored
+  before media, Git, version-deletion, and object-reference assertions.
 - Logical checks cover schema/migrations, community/membership references,
   object references, synthetic pilot records, and restart behavior.
+- The restored object store repeats the required operations in
+  [object-store.md](object-store.md); a passing startup probe alone is
+  insufficient recovery evidence.
 - RPO and RTO are measured. Owner admission is blocked until the exact current
   candidate has a successful restore run.
 

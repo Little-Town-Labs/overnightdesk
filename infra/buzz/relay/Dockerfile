@@ -3,9 +3,9 @@
 # Repackages exact, published Buzz artifacts into a current minimal runtime.
 # It intentionally does not rebuild or patch Buzz source.
 
-ARG UPSTREAM_IMAGE=ghcr.io/block/buzz@sha256:aa5180ce58ac367a125a1c079bfde88f8c158daa99e1aa5df86e8814649669f5
-ARG RUNTIME_IMAGE=cgr.dev/chainguard/wolfi-base@sha256:7e62cecd3c5712dba6e52c5260afb8f9d7a23b9bbcdd26ad7508a811e74b766d
-ARG SOURCE_DATE_EPOCH=1788236887
+ARG UPSTREAM_IMAGE=ghcr.io/block/buzz@sha256:7d69b67fa4df5f42e7ca8b69db99e12ec8134c6b7353d1b446a9839c2e9fdc3f
+ARG RUNTIME_IMAGE=cgr.dev/chainguard/wolfi-base@sha256:6289b37d936b7d4a3ff6d294f9317bcbf10188962e7ab60d8d869a559bffc902
+ARG SOURCE_DATE_EPOCH=1788373530
 
 FROM ${UPSTREAM_IMAGE} AS upstream
 FROM ${RUNTIME_IMAGE}
@@ -13,7 +13,7 @@ FROM ${RUNTIME_IMAGE}
 LABEL org.opencontainers.image.title="Buzz relay for OvernightDesk private pilot" \
       org.opencontainers.image.description="Exact upstream Buzz relay artifacts on a version-frozen Wolfi runtime" \
       org.opencontainers.image.source="https://github.com/block/buzz" \
-      org.opencontainers.image.revision="571c1902d0ca55cfd4ccf6b91eeb731909cc10be" \
+      org.opencontainers.image.revision="0dbd036f5bff33e7ade75e7639f3218d424a6e73" \
       org.opencontainers.image.licenses="Apache-2.0"
 
 # Git is a relay runtime dependency. Buzz-generated pre-receive hooks also use

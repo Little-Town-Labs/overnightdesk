@@ -1,8 +1,8 @@
 # Implementation Plan: Buzz Private Pilot on Aegis
 
-**Branch**: `042-buzz-private-pilot` | **Revised**: 2026-09-02 | **Spec**: [spec.md](spec.md)
+**Branch**: `042-buzz-private-pilot` | **Revised**: 2026-09-03 | **Spec**: [spec.md](spec.md)
 
-**Plan status**: Issue #249 reopened for planning on 2026-09-02; no
+**Plan status**: Gate 0 image and object-store evidence is active; no
 implementation or production action is authorized.
 
 ## Summary
@@ -39,7 +39,7 @@ owner-controlled tailnet device
   -> private host address:443
   -> systemd raw-TCP socket proxy
   -> existing Nginx process (fixed buzz-ingress address:8443)
-       -> relay -> buzz-data -> PostgreSQL / Redis / MinIO
+       -> relay -> buzz-data -> PostgreSQL / Redis / qualified S3 store
 
 Walter / Titus / Mitchel intake workers
   -> buzz-agents -> canonical Nginx address:443 -> relay
@@ -72,12 +72,14 @@ reversible gates.
   container, identity, state, or certificate automation.
 - Existing OCI VNIC plus an approval-bound secondary private IP and matching
   host-interface assignment; no new public IP or public NAT path.
-- Immutable ARM64 Buzz relay wrapper, PostgreSQL, Redis, MinIO, and Hermes intake
-  images, all freshly qualified before use.
+- Immutable ARM64 Buzz relay wrapper, PostgreSQL, Redis, selected S3-compatible
+  object store and initializer, and Hermes intake images, all freshly qualified
+  before use.
 - DNS-01 certificate for the canonical hostname and private resolution
   overrides; public wildcard resolution is not an access-control boundary.
-- PostgreSQL and MinIO form the coherent authoritative recovery set. Redis is
-  diagnostic/cache state and Git scratch is reproducible.
+- PostgreSQL and the selected qualified object store form the coherent
+  authoritative recovery set. Redis is diagnostic/cache state and Git scratch
+  is reproducible.
 
 ## Source and Brownfield Findings
 
@@ -106,6 +108,19 @@ authority to approve a Hermes action.
 Upstream issue #6281 also indicates that alternate internal agent targeting
 can diverge from the relay URL signed in Buzz events. Every intake worker must use the
 same canonical Nginx URL as Desktop, not a direct relay address.
+
+Gate 0 image and upstream review also confirms that object-store compatibility
+is an application contract, not a vendor label. The historical MinIO/`mc`
+images fail the new-deployment maintenance and image gates. Garage v2.3.0 lacks
+conditional writes and object-version APIs used by Buzz. Open Buzz issues
+document conditional-write failures on GCS and Ceph and range-read failure on
+R2; no open issue establishes a supported no-S3 mode. ADR-009 therefore keeps
+S3 storage required, rejects probe-disable as a correctness waiver, and names
+RustFS only as the next candidate for complete disposable qualification.
+The staged acceptance contract is
+[`contracts/object-store.md`](contracts/object-store.md): T057 admits only a
+provisional candidate from current image and documented-capability evidence;
+T070 and T081 must prove the exact Buzz operations before final selection.
 
 ## Architecture Decisions
 
@@ -167,7 +182,8 @@ itself is not acceptance.
 ### Network and state isolation
 
 - `buzz-ingress`: internal bridge with Nginx and relay only.
-- `buzz-data`: internal bridge with relay, PostgreSQL, Redis, and MinIO only.
+- `buzz-data`: internal bridge with relay, PostgreSQL, Redis, and the selected
+  qualified object store only.
 - `buzz-agents`: internal bridge with Nginx and the three Hermes intake workers
   only; Nginx owns the `buzz.overnightdesk.com` network alias.
 

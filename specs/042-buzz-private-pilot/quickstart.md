@@ -13,13 +13,16 @@ state.
 1. Synchronize the reopened Issue body and Project item only if explicitly
    approved.
 2. Refresh Buzz/client/source/image qualification and upstream issue status.
-3. Read-only inventory Aegis addresses, interfaces, NAT/routes/security lists,
+3. Admit only a provisional object-store candidate that passes the Gate 0
+   requirements in `contracts/object-store.md`; do not waive missing operations
+   or disable the Git probe.
+4. Read-only inventory Aegis addresses, interfaces, NAT/routes/security lists,
    Nginx listeners/modules/config, Docker networks, Tailscale node/routes/policy/
    Serve, DNS/cert renewal, backups, capacity, and service health.
-4. Identify a candidate private listener address only if evidence proves it is
+5. Identify a candidate private listener address only if evidence proves it is
    unassigned, valid for the intended OCI VNIC/host interface, safely removable,
    and has no public path.
-5. Freeze the exact VNIC/interface assignment and removal procedure, WebSocket
+6. Freeze the exact VNIC/interface assignment and removal procedure, WebSocket
    relay URL, literal NIP-98 method/full-HTTPS-URL pairs, exact `/32`, accepted
    tailnet-wide policy digest, both fixed Nginx bridge listener addresses,
    hardened systemd socket/proxy units, named Hermes broker routes and identities, limits,
@@ -34,8 +37,9 @@ python3 -m unittest discover -s infra/buzz/tests -p 'test_*.py'
 docker compose -f infra/buzz/compose.yml -f infra/buzz/compose.aegis.yml config
 ```
 
-Prove immutable images, hardening, three-network membership, intake absence
-from the shared production network, fixed-target Nginx Hermes egress, no new
+Prove immutable images, the complete selected-object-store operation contract,
+hardening, three-network membership, intake absence from the shared production
+network, fixed-target Nginx Hermes egress, no new
 Docker publication or Nginx recreation, hardened systemd raw-TCP forwarding,
 dual-private-endpoint Nginx selection, no `auth_request`, distinct byte-exact
 WebSocket/HTTPS URL preservation, full synthetic NIP-42/NIP-98 proxy behavior,
@@ -71,8 +75,9 @@ Nginx behavior, and the experiment fully rolls back.
 **OWNER APPROVAL REQUIRED.** Install the stack disabled with no admitted user.
 Verify digests, users, capabilities, mounts, writable paths, network membership,
 limits, migrations, readiness, safe logs, capacity, and restart behavior.
-Create the coherent encrypted PostgreSQL+MinIO set, verify off-box completion,
-restore on an unrouted disposable network, and measure RPO/RTO.
+Create the coherent encrypted PostgreSQL+qualified-object-store set, verify
+off-box completion, restore on an unrouted disposable network, repeat the
+object-store/Buzz-path assertions, and measure RPO/RTO.
 
 ## Gate 4 — Owner only
 

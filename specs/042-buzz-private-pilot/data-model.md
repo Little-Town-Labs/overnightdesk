@@ -121,18 +121,18 @@ Hermes run; it prevents new submissions and suppresses late result publication.
 
 ## StateStore
 
-- `store_id`: `postgres | minio | redis | git_scratch | ingress_metadata |
-  secret_custody`
+- `store_id`: `postgres | object_store | redis | git_scratch |
+  ingress_metadata | secret_custody`
 - `authority`: `authoritative | diagnostic | reproducible | metadata |
   external-secret`
 - `volume_or_scope`, `unix_owner`, `network_scope`
 - `backup_method`, `restore_order`, `validation_checks`
 - `last_backup_set_id`, `last_restore_run_id`
 
-**Rules**: PostgreSQL and MinIO form one coherent recovery set. Redis is
-diagnostic and Git scratch is regenerated. Ingress metadata contains no secret
-or Tailscale node state; route/listener configuration is recreated only through
-an approved lifecycle.
+**Rules**: PostgreSQL and the ADR-009-selected, conformance-qualified object
+store form one coherent recovery set. Redis is diagnostic and Git scratch is
+regenerated. Ingress metadata contains no secret or Tailscale node state;
+route/listener configuration is recreated only through an approved lifecycle.
 
 ## QualificationRun
 
@@ -147,7 +147,8 @@ contains outcome classes, not sensitive payloads.
 ## RecoverySet
 
 - `backup_set_id`, `maintenance_window`, `source_release`
-- PostgreSQL and MinIO artifacts, digests, encrypted sizes, completeness
+- PostgreSQL and qualified-object-store artifacts, digests, encrypted sizes,
+  completeness
 - `complete_marker`, `off_box_custody_ref`
 - restore result, logical assertions, measured RPO/RTO
 
