@@ -30,12 +30,11 @@
 
 ## Current Gate
 
-Gate 0 documentation and read-only evidence collection are active. T056 and
-T058-T061 are complete. T057 image/object-store qualification and T062's
-operational contract freeze remain dependency-ready and incomplete. The
-historical MinIO images and Garage v2.3.0 are rejected; no supported no-S3 mode
-was found; RustFS is the next candidate but is not selected without the full
-ADR-009 image and Buzz operation matrix. No address, route, listener, DNS
+Gate 0 is blocked at T057. T056 and T058-T061 are complete, but no maintained
+object store and initializer currently pass the admission contract, so T062
+and implementation cannot advance. The historical MinIO images, Garage v2.3.0,
+and RustFS `1.0.0-rc.5` are rejected; no supported no-S3 mode was found. No
+address, route, listener, DNS
 record, certificate, identity, admission, container, or deployment was created.
 
 The owner accepted the existing tailnet-wide policy and five owner-controlled

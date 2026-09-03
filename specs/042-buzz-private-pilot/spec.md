@@ -10,8 +10,9 @@
 
 **Object-store qualification decision**: 2026-09-03
 
-**Status**: Gate 0 evidence collection and object-store qualification in
-progress; implementation and production mutation are not authorized
+**Status**: Blocked at Gate 0 on T057 object-store qualification. RustFS
+`1.0.0-rc.5` failed admission and no replacement backend is selected;
+implementation and production mutation are not authorized
 
 ## Reactivation Boundary
 
@@ -32,7 +33,8 @@ participant boundary for the owner and three named Hermes agents.
 ADR-009 resolves the T057 storage architecture question without selecting a
 backend: the pilot retains a required, conformance-qualified S3 object store;
 historical MinIO images, Garage v2.3.0, a no-S3 profile, and probe-disable are
-rejected paths. RustFS is only the next candidate for staged qualification.
+rejected paths. RustFS `1.0.0-rc.5` subsequently failed Gate 0
+prequalification, so no object-store backend is currently selected.
 
 ## Scope
 
@@ -401,10 +403,10 @@ decision and no proposed expansion is automatically activated.
 
 - Buzz remains pre-1.0; all source, image, client, and protocol facts are
   revalidated at Gate 0.
-- RustFS is only the next object-store candidate identified by upstream issue
-  #2618. It is not selected unless both its image and the exact Buzz operation
-  matrix pass; another maintained candidate may be evaluated under the same
-  gates.
+- RustFS was the next object-store candidate identified by upstream issue
+  #2618, but `1.0.0-rc.5` failed Gate 0. A newer RustFS release or another
+  maintained candidate may be evaluated under the same gates; none is selected
+  unless both its image and the exact Buzz operation matrix pass.
 - Aegis remains shared production infrastructure; design documentation alone
   authorizes no production or external mutation.
 - The current qualified Wolfi relay wrapper is a historical candidate, not an

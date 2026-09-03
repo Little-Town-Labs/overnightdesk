@@ -3,9 +3,11 @@
 ## Current status
 
 Planning was reactivated on 2026-09-02 under ADR-008, and Issue #249 was
-reopened. This runbook freezes the proposed operating contract but authorizes
-no further GitHub, registry, Phase, DNS, certificate, OCI, Aegis, Tailscale,
-identity, admission, deployment, or remote Git mutation.
+reopened. Work is now blocked at Gate 0 because no object-store candidate and
+initializer pass T057; RustFS `1.0.0-rc.5` failed admission. This runbook
+freezes the proposed operating contract but authorizes no registry, Phase, DNS,
+certificate, OCI, Aegis, Tailscale, identity, admission, or deployment
+mutation.
 
 The 2026-09-01 dedicated Tailscale-sidecar design is deprecated and was never
 deployed. Its evidence remains historical. Current read-only evidence selected

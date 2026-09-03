@@ -25,8 +25,9 @@ when current primary-source evidence establishes all of the following:
 
 An S3-compatibility claim, ordinary PUT/GET smoke test, disabled conformance
 probe, or undocumented behavior is insufficient. Historical MinIO images and
-Garage v2.3.0 are rejected. RustFS is the next candidate to evaluate, not an
-accepted dependency.
+Garage v2.3.0 are rejected. RustFS `1.0.0-rc.5` is also rejected by the current
+Gate 0 evidence; a newer RustFS release or a different maintained backend must
+pass this same contract before admission.
 
 ## Local executable qualification
 

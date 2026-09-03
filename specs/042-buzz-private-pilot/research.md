@@ -31,8 +31,9 @@ permanent exception.
 **Decision**: Keep a qualified S3-compatible object store in the required pilot
 data plane. Reject the archived MinIO/`mc` images and Garage v2.3.0, and do not
 disable the Git conformance probe or invent a no-S3 runtime profile to bypass
-T057. Evaluate RustFS next as a candidate only. Selection requires current
-image qualification plus disposable tests of the exact Buzz media, Git,
+T057. RustFS `1.0.0-rc.5` was evaluated and rejected at Gate 0; no backend is
+currently selected. Selection requires current image qualification plus
+disposable tests of the exact Buzz media, Git,
 conditional-write, range-read, multipart, listing, metadata, object-version,
 restart-persistence, and backup/restore contracts.
 
@@ -41,13 +42,16 @@ is not consistently implemented by S3-compatible services. The upstream open
 issue review documents conditional-write failures on GCS and Ceph, range-read
 failure on R2, and provider-specific addressing and deployment problems. It
 found no supported storage-free mode. The RustFS proposal in issue #2618
-contains no maintainer acceptance or Buzz conformance evidence and explicitly
-requires the same full qualification before selection.
+contains no maintainer acceptance or Buzz conformance evidence. The rc.5
+prequalification found promising operation-level source tests, but ambiguous
+support status, red exact-commit S3/E2E gates, fix-available image findings, no
+qualified initializer, and no supported object-data backup/restore procedure.
 
 **Rejected**: Treating an S3-compatibility claim as evidence, deferring version
 APIs, accepting probe-disable as correctness, or selecting RustFS before its
-image and exact Buzz contracts pass. See [ADR-009](../../docs/decisions/009-buzz-object-store-qualification.md),
-[`garage-prequalification.md`](evidence/garage-prequalification.md), and
+Gate 0 blockers and exact Buzz contracts pass. See [ADR-009](../../docs/decisions/009-buzz-object-store-qualification.md),
+[`garage-prequalification.md`](evidence/garage-prequalification.md),
+[`rustfs-prequalification.md`](evidence/rustfs-prequalification.md), and
 [`buzz-s3-open-issues.md`](evidence/buzz-s3-open-issues.md).
 
 ### Reuse Nginx on private-only listener paths
