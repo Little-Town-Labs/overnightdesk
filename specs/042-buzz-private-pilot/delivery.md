@@ -31,10 +31,12 @@
 ## Current Gate
 
 Gate 0 documentation and read-only evidence collection are active. T056 and
-T058-T061 are complete. T057 image qualification and T062's operational
-contract freeze remain dependency-ready and incomplete. No address, route,
-listener, DNS record, certificate, identity, admission, container, or
-deployment was created.
+T058-T061 are complete. T057 image/object-store qualification and T062's
+operational contract freeze remain dependency-ready and incomplete. The
+historical MinIO images and Garage v2.3.0 are rejected; no supported no-S3 mode
+was found; RustFS is the next candidate but is not selected without the full
+ADR-009 image and Buzz operation matrix. No address, route, listener, DNS
+record, certificate, identity, admission, container, or deployment was created.
 
 The owner accepted the existing tailnet-wide policy and five owner-controlled
 devices for this bounded pilot. Participant authorization is enforced by
@@ -62,6 +64,13 @@ The active set contains 27 functional requirements, 14 success criteria, nine
 preserved historical tasks, and 45 contiguous continuation tasks T055-T099.
 The simpler design does not require a temporary Tailscale OAuth credential,
 device tag, grant, or policy rewrite.
+
+The 2026-09-03 object-store review added no new pilot capability. It clarified
+FR-016 and the existing T057/T070/T073/T078/T081 gates: generic
+“S3-compatible” claims and probe-disable are insufficient; a maintained store
+must pass the exact path-style, media, Git, conditional-write, version,
+community-deletion, storage-sweep, persistence, and recovery contracts.
+ADR-009 is the durable decision record.
 
 ## Delegated Tasks
 

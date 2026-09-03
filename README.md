@@ -140,16 +140,20 @@ a general customer container-hosting service. New runtime creation, retirement,
 identity, secret, or authority changes require explicit owner approval and a
 reviewed deployment and rollback procedure.
 
-Feature 042's Buzz pilot is in planning reconsideration only. Its proposed
-ingress reuses the existing Nginx process on an explicitly assigned secondary
-private listener address reached by an exact host-advertised Tailscale `/32`,
+Feature 042's Buzz pilot is in Gate 0 planning and evidence collection only.
+Its proposed ingress reuses the existing Nginx process on an explicitly
+assigned secondary private listener address reached by an exact host-advertised Tailscale `/32`,
 with separate byte-exact WebSocket and NIP-98 HTTPS URL contracts behind that
 transport boundary. The bounded pilot accepts the current owner-controlled
 tailnet-wide transport policy; Buzz membership separately admits the owner and
 distinct Walter, Titus, and Mitchel/Trevor identities, one agent at a time
 after a canary. Issue #249 reopened for planning on 2026-09-02; no Buzz
 service, route, identity, secret, DNS record, or production state has been
-created.
+created. Gate 0 has rejected the historical MinIO images and Garage v2.3.0;
+[ADR-009](docs/decisions/009-buzz-object-store-qualification.md) keeps a
+conformance-qualified object store mandatory and identifies RustFS only as the
+next local candidate to evaluate. No storage backend has been selected or
+deployed.
 
 Future customer workloads and customer data planes normally belong in
 separately approved infrastructure outside `aegis-prod`—for example a

@@ -5,6 +5,8 @@
 Proposed — planning approved and Issue #249 reopened on 2026-09-02; transport
 and participant scope simplified by owner decision on 2026-09-02.
 Implementation and production mutation remain separately unauthorized.
+ADR-009 separately governs object-store qualification and does not alter this
+ingress decision.
 
 ## Context
 

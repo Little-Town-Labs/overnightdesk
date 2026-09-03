@@ -8,7 +8,9 @@
 
 **Reactivated for planning**: 2026-09-02
 
-**Status**: Gate 0 evidence collection and simplified design revision in
+**Object-store qualification decision**: 2026-09-03
+
+**Status**: Gate 0 evidence collection and object-store qualification in
 progress; implementation and production mutation are not authorized
 
 ## Reactivation Boundary
@@ -26,6 +28,11 @@ protocol facts must be revalidated before implementation. On 2026-09-02 the
 owner simplified the transport boundary: the current tailnet-wide access policy
 is accepted for this bounded pilot, while Buzz membership becomes the
 participant boundary for the owner and three named Hermes agents.
+
+ADR-009 resolves the T057 storage architecture question without selecting a
+backend: the pilot retains a required, conformance-qualified S3 object store;
+historical MinIO images, Garage v2.3.0, a no-S3 profile, and probe-disable are
+rejected paths. RustFS is only the next candidate for staged qualification.
 
 ## Scope
 
@@ -65,6 +72,9 @@ canary. The pilot must prove that:
 - Admin UI, Git web UI, workflows, webhooks, large media, multi-community
   hosting, agents beyond the three named Hermes runtimes, bot-to-bot-triggered
   automation, or new business-action tools.
+- An unsupported no-S3/storage-free relay profile, a disabled Git conformance
+  probe as a correctness waiver, or acceptance of a backend solely because it
+  advertises S3 compatibility.
 - Publishing a branch, changing Project fields, deploying, or changing routes
   without separate explicit authorization.
 
@@ -204,8 +214,11 @@ decision and no proposed expansion is automatically activated.
   blocked until renewal is proven; no HTTP challenge is opened.
 - Existing route, Serve, or public-vhost state changes unexpectedly: stop,
   remove only the Buzz delta, and require human review.
-- PostgreSQL succeeds but MinIO backup/restore fails: the set is incomplete and
-  owner admission remains blocked.
+- PostgreSQL succeeds but the selected object-store backup/restore fails: the
+  set is incomplete and owner admission remains blocked.
+- A candidate object store lacks conditional writes, exact object-version
+  deletion, range reads, or another required Buzz operation: T057 fails even
+  if ordinary PUT/GET smoke tests pass.
 - Redis is empty after recovery: the relay must safely rebuild diagnostic/cache
   state without treating it as authoritative loss.
 - A Hermes intake worker resolves a direct relay/store target or canonical DNS
@@ -221,7 +234,7 @@ decision and no proposed expansion is automatically activated.
 - **FR-002**: Preserve completed research and qualification evidence as
   historical records; do not represent it as current production proof.
 - **FR-003**: Publish no Buzz application, health, metrics, database, Redis,
-  MinIO, or management port on a public interface.
+  object-store, or management port on a public interface.
 - **FR-004**: Select a dedicated private listener address only when fresh
   network evidence proves it is unassigned and has no public NAT path; after
   explicit approval, assign that exact secondary private IP to the approved OCI
@@ -265,10 +278,17 @@ decision and no proposed expansion is automatically activated.
   join the existing production network, and receive no default external-egress
   path; Nginx brokers only the fixed, named Hermes API operations from the
   intake network to the already connected runtimes.
-- **FR-016**: Keep PostgreSQL and MinIO authoritative, Redis diagnostic,
-  generated Git scratch disposable, and secrets external to Compose/evidence.
-- **FR-017**: Create a coherent encrypted PostgreSQL+MinIO backup set and prove
-  an isolated restore before owner admission.
+- **FR-016**: Keep PostgreSQL and one maintained, conformance-qualified S3
+  object store authoritative, Redis diagnostic, generated Git scratch
+  disposable, and secrets external to Compose/evidence. The selected store and
+  initializer must pass current immutable ARM64 image gates plus the exact Buzz
+  media/Git operations, including path-style addressing, conditional writes,
+  range reads, multipart transfer, paginated listing, metadata/tags,
+  object-version listing/deletion, community deletion, storage sweep, restart
+  persistence, and the default-on Git conformance probe. Historical
+  MinIO images, Garage v2.3.0, and an unsupported no-S3 profile do not qualify.
+- **FR-017**: Create a coherent encrypted PostgreSQL+qualified-object-store
+  backup set and prove an isolated restore before owner admission.
 - **FR-018**: Keep the owner's private key client-side and out of server secret
   stores, logs, configuration, and evidence.
 - **FR-019**: Create separate read/write Buzz identities and route-specific
@@ -337,7 +357,8 @@ decision and no proposed expansion is automatically activated.
 ## Success Criteria
 
 - **SC-001**: All local contracts pass for the exact candidate digests and
-  rendered topology before any production mutation.
+  rendered topology before any production mutation, including the selected
+  object store's exact Buzz operation matrix and default Git conformance probe.
 - **SC-002**: An owner tailnet device completes NIP-42 under the exact canonical
   WebSocket URL and NIP-98 under the frozen byte-exact HTTPS request URLs
   through Nginx.
@@ -380,6 +401,10 @@ decision and no proposed expansion is automatically activated.
 
 - Buzz remains pre-1.0; all source, image, client, and protocol facts are
   revalidated at Gate 0.
+- RustFS is only the next object-store candidate identified by upstream issue
+  #2618. It is not selected unless both its image and the exact Buzz operation
+  matrix pass; another maintained candidate may be evaluated under the same
+  gates.
 - Aegis remains shared production infrastructure; design documentation alone
   authorizes no production or external mutation.
 - The current qualified Wolfi relay wrapper is a historical candidate, not an

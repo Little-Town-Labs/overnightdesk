@@ -24,8 +24,8 @@
   is not recreated. Nginx listens on its fixed `buzz-ingress` bridge address at
   internal port `8443`; a hardened `systemd-socket-proxyd` socket on the host
   forwards raw TCP only from the selected private address at port `443`.
-- No Buzz relay, health, metrics, database, Redis, MinIO, or management port is
-  published publicly.
+- No Buzz relay, health, metrics, database, Redis, object-store, or management
+  port is published publicly.
 - Nginx configuration contains no `auth_request` for Buzz.
 - Nginx preserves method, path, query, Host, NIP-98 `Authorization`, external
   HTTPS semantics, and WebSocket upgrade headers; it strips unrelated cookies

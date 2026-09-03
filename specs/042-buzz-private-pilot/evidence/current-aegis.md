@@ -179,7 +179,7 @@ dependency and secret scope.
 - terminal `set_complete` event.
 
 The next scheduled timer run is `2026-09-05T06:00:00Z`. This baseline does not
-cover future Buzz PostgreSQL or MinIO state.
+cover future Buzz PostgreSQL or selected-object-store state.
 
 ## Decision
 

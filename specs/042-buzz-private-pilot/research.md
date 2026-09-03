@@ -4,6 +4,8 @@
 
 **Design reconsideration**: 2026-09-02
 
+**Object-store decision**: 2026-09-03
+
 **Detailed assessment**: [Buzz on Aegis feasibility](../../docs/research/buzz-aegis-feasibility.md)
 
 ## Current Decisions
@@ -11,8 +13,9 @@
 ### Requalify immutable ARM64 artifacts
 
 **Decision**: Revalidate and pin the Buzz source, relay wrapper, Desktop/client
-behavior, Hermes intake worker, PostgreSQL, Redis, MinIO, initializer, and every other
-new runtime image immediately before implementation. Require immutable ARM64
+behavior, Hermes intake worker, PostgreSQL, Redis, the selected object store,
+its initializer, and every other new runtime image immediately before
+implementation. Require immutable ARM64
 digests, provenance, SBOMs, accepted vulnerability dispositions, explicit
 non-root execution, hardening, and reproducible startup.
 
@@ -22,6 +25,30 @@ candidate starting point, but it is not current production authorization.
 
 **Rejected**: Mutable tags, building on Aegis, or treating a previous scan as a
 permanent exception.
+
+### Require operation-level object-store qualification
+
+**Decision**: Keep a qualified S3-compatible object store in the required pilot
+data plane. Reject the archived MinIO/`mc` images and Garage v2.3.0, and do not
+disable the Git conformance probe or invent a no-S3 runtime profile to bypass
+T057. Evaluate RustFS next as a candidate only. Selection requires current
+image qualification plus disposable tests of the exact Buzz media, Git,
+conditional-write, range-read, multipart, listing, metadata, object-version,
+restart-persistence, and backup/restore contracts.
+
+**Rationale**: Buzz uses generic S3 configuration but depends on behavior that
+is not consistently implemented by S3-compatible services. The upstream open
+issue review documents conditional-write failures on GCS and Ceph, range-read
+failure on R2, and provider-specific addressing and deployment problems. It
+found no supported storage-free mode. The RustFS proposal in issue #2618
+contains no maintainer acceptance or Buzz conformance evidence and explicitly
+requires the same full qualification before selection.
+
+**Rejected**: Treating an S3-compatibility claim as evidence, deferring version
+APIs, accepting probe-disable as correctness, or selecting RustFS before its
+image and exact Buzz contracts pass. See [ADR-009](../../docs/decisions/009-buzz-object-store-qualification.md),
+[`garage-prequalification.md`](evidence/garage-prequalification.md), and
+[`buzz-s3-open-issues.md`](evidence/buzz-s3-open-issues.md).
 
 ### Reuse Nginx on private-only listener paths
 
@@ -110,7 +137,8 @@ transport-only `101` check.
 **Decision**:
 
 - `buzz-ingress`: internal bridge with Nginx and relay only.
-- `buzz-data`: internal bridge with relay, PostgreSQL, Redis, and MinIO only.
+- `buzz-data`: internal bridge with relay, PostgreSQL, Redis, and the selected
+  qualified object store only.
 - `buzz-agents`: internal bridge with Nginx and the Walter, Titus, and
   Mitchel/Trevor intake workers only; Nginx owns the canonical Buzz network
   alias.
@@ -149,8 +177,9 @@ Buzz membership directly to existing Hermes tool authority.
 
 ### Keep recovery authority explicit
 
-**Decision**: PostgreSQL and MinIO are the coherent authoritative backup set.
-Redis is diagnostic/cache state and Git scratch is reproducible. The old
+**Decision**: PostgreSQL and the selected qualified object store are the
+coherent authoritative backup set. Redis is diagnostic/cache state and Git
+scratch is reproducible. The old
 Tailscale sidecar state is removed from the recovery model; private listener
 and route metadata are recreated through an explicitly approved configuration,
 not restored as identity state. The existing tailnet policy is not changed by
@@ -174,6 +203,9 @@ pre-existing OCI, host, Nginx, and Tailscale behavior.
 - [Buzz testing and relay URL guidance](https://github.com/block/buzz/blob/main/TESTING.md)
 - [Buzz NIP-AA relay-tag behavior](https://github.com/block/buzz/blob/main/docs/nips/NIP-AA.md)
 - [Buzz issue #6281](https://github.com/block/buzz/issues/6281)
+- [Buzz issue #2618: RustFS evaluation proposal](https://github.com/block/buzz/issues/2618)
+- [Buzz issue #2470: GCS conditional-write failure](https://github.com/block/buzz/issues/2470)
+- [Buzz issue #3002: Ceph conditional-write failure](https://github.com/block/buzz/issues/3002)
 - [Tailscale subnet routers](https://tailscale.com/docs/features/subnet-routers)
 - [Tailscale route injection](https://tailscale.com/docs/reference/route-injection)
 - [Tailscale grants syntax](https://tailscale.com/docs/reference/syntax/grants)
