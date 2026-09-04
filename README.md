@@ -180,6 +180,8 @@ under `tenants/hermes-mitchel/mcp-servers/trevor-db/ops/migrations/`.
 overnightdesk/
 ├── src/                              Next.js app, API routes, lib, db schema
 ├── drizzle/                          Generated app database migrations
+├── experiments/
+│   └── eve-practice-agent/            Local-only Eve learning scaffold
 ├── tenants/
 │   ├── hermes-walter/                 Walter platform-operations persona source
 │   ├── hermes-titus/                  Titus/TTS runtime source
@@ -188,6 +190,11 @@ overnightdesk/
 ├── .specify/                         Spec-kit specifications and roadmap
 └── .env.example                      Required env vars
 ```
+
+The [Eve practice agent](experiments/eve-practice-agent/README.md) is an
+isolated Node.js 24 child application for local framework learning. It is not a
+named runtime or deployment source, and its provider-free checks do not require
+model credentials.
 
 ## Commands
 

@@ -82,5 +82,5 @@ not as a replacement for Spec Kit artifacts.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-`specs/040-legacy-lifecycle-retirement/plan.md`
+`specs/046-eve-practice-agent/plan.md`
 <!-- SPECKIT END -->
