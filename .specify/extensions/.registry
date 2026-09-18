@@ -29,7 +29,7 @@
     "ringer-delivery": {
       "version": "1.1.0",
       "source": "local",
-      "manifest_hash": "sha256:c913af4ecf375495e6b1661d598b42d82511b03ed8ddb013f6f8332a8e110b07",
+      "manifest_hash": "sha256:da1cf9868b33342ada4cbd8a63545425e5e9a3d1de4a2aa457c5c6e8c76b773b",
       "enabled": true,
       "priority": 10,
       "registered_commands": {
@@ -39,7 +39,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-09-18T16:52:32.645382+00:00"
+      "installed_at": "2026-09-18T17:45:03.417392+00:00"
     }
   }
 }

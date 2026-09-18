@@ -41,7 +41,18 @@ hooks:
 
   before_implement:
     command: speckit.ringer-delivery.run
-    optional: false
+    # Prompted rather than required. This command consumes a delivery package
+    # produced by the after_analyze prepare hook, but Spec Kit's bundled
+    # "Full SDD Cycle" runs specify -> plan -> tasks -> implement with no
+    # analyze step. As a mandatory hook it made that workflow unsatisfiable:
+    # implementation could not start, and the package it demanded could never
+    # have been created.
+    #
+    # `optional: true` matches the adjacent git before_implement hook, which
+    # also prompts. A `condition` is not used because agents are instructed to
+    # skip any hook that defines one, which would disable the gate outright
+    # rather than surfacing it.
+    optional: true
     description: "Use per-task executable preflight before any implementation launch"
 
 tags:

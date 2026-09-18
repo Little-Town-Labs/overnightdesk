@@ -17,6 +17,19 @@ boundaries, and stable delivery roles.
 
 ## Preconditions
 
+> **Tool paths come from configuration.** Every `<tools.*>` placeholder below is
+> the corresponding value read from
+> `.specify/extensions/ringer-delivery/ringer-delivery-config.yml`, with `~`
+> expanded against the operator home. Resolve them from that file rather than
+> copying a literal path out of this document, or an operator who configured
+> non-default locations has their `tools` block silently ignored.
+>
+> The overlay is installed to `$HOME/.local/share/ringer-workflows`, which is
+> what the generated config points at by default, and `<installed-overlay>`
+> below means that directory. Earlier loose checkouts elsewhere in the home
+> directory are superseded and must not be configured.
+
+
 1. Read the repository `AGENTS.md`, constitution, active `spec.md`, `plan.md`,
    and `tasks.md`.
 2. Confirm `analyze` is complete and select only dependency-ready task IDs.
@@ -53,19 +66,19 @@ greenfield and micro routes are not blocked when graph work is not required.
 ## Prepare
 
 Create a scratch JSON request matching
-`$HOME/.local/share/ringer-workflows/schemas/delivery-request.schema.json`.
+`<installed-overlay>/schemas/delivery-request.schema.json`.
 Every task must include exact Spec Kit task IDs, requirements, disjoint owned
 paths, non-goals, an argv verification list, and a mutable boolean. A mutable
 task has exactly one canonical ID and a `gate_contract` repository-relative
 path. The lead accepts the contract defined in
-`$HOME/.local/share/ringer-workflows/schemas/task-gate-contract.md` before
+`<installed-overlay>/schemas/task-gate-contract.md` before
 preparing the package. Generation pins its hash; execution reruns the checks in
 the actual task checkout before each worker starts.
 
 Run:
 
 ```bash
-python3 "$HOME/.local/share/ringer-workflows/scripts/delivery_profile.py" prepare \
+python3 "<tools.generator>" prepare \
   --request /tmp/ringer-delivery-request.json \
   --output /tmp/ringer-delivery/<project>-<feature> \
   --delivery-out <active-feature-directory>/delivery.md
@@ -76,13 +89,13 @@ read-only manifests with the installed overlay config, then dry-run
 the same manifest. Do not execute it yet:
 
 ```bash
-RINGER_HOME="$HOME/.local/share/ringer/performance" \
-python3 "$HOME/src/ringer/ringer.py" \
-  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+RINGER_HOME="<ringer-home>/performance" \
+python3 "<tools.ringer>" \
+  --config "<tools.ringer_config>" \
   lint <generated-manifest>
-RINGER_HOME="$HOME/.local/share/ringer/performance" \
-python3 "$HOME/src/ringer/ringer.py" \
-  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+RINGER_HOME="<ringer-home>/performance" \
+python3 "<tools.ringer>" \
+  --config "<tools.ringer_config>" \
   run <generated-manifest> --dry-run --no-dashboard
 ```
 

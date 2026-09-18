@@ -55,7 +55,7 @@ hooks:
   - extension: ringer-delivery
     command: speckit.ringer-delivery.run
     enabled: true
-    optional: false
+    optional: true
     priority: 10
     prompt: Execute speckit.ringer-delivery.run?
     description: Use per-task executable preflight before any implementation launch

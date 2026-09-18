@@ -17,21 +17,34 @@ approved work, protected authorization boundaries, and stable delivery roles.
 
 ## Preconditions
 
+> **Tool paths come from configuration.** Every `<tools.*>` placeholder below is
+> the corresponding value read from
+> `.specify/extensions/ringer-delivery/ringer-delivery-config.yml`, with `~`
+> expanded against the operator home. Resolve them from that file rather than
+> copying a literal path out of this document, or an operator who configured
+> non-default locations has their `tools` block silently ignored.
+>
+> The overlay is installed to `$HOME/.local/share/ringer-workflows`, which is
+> what the generated config points at by default, and `<installed-overlay>`
+> below means that directory. Earlier loose checkouts elsewhere in the home
+> directory are superseded and must not be configured.
+
+
 1. Read the generated `delivery-package.json`, normalized request, durable
    `delivery.md`, and every manifest. For a `lightweight` route, continue
    directly to **Execute the Route**; steps 2–3 apply only to delegation routes.
 2. Read the accepted task contract described in
-   `$HOME/.local/share/ringer-workflows/schemas/task-gate-contract.md`. Each
+   `<installed-overlay>/schemas/task-gate-contract.md`. Each
    implementation launch must pass its pinned contract; file ownership stays disjoint.
 3. Re-run Ringer lint and dry-run. Stop if the repository, spec, task state,
    risk, or owned surface has changed.
 
 ```bash
-python3 "$HOME/src/ringer/ringer.py" \
-  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+python3 "<tools.ringer>" \
+  --config "<tools.ringer_config>" \
   lint <generated-manifest>
-python3 "$HOME/src/ringer/ringer.py" \
-  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+python3 "<tools.ringer>" \
+  --config "<tools.ringer_config>" \
   run <generated-manifest> --dry-run --no-dashboard
 ```
 
@@ -56,15 +69,15 @@ substitute fallback or widen worker access without editing, linting, and
 dry-running a newly reviewed manifest.
 
 ```bash
-python3 "$HOME/src/ringer/ringer.py" \
-  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+python3 "<tools.ringer>" \
+  --config "<tools.ringer_config>" \
   run <generated-manifest> --identity <repo-or-job-name>
 ```
 
 For lead-only implementation, launch the task command through the gate:
 
 ```bash
-python3 "$HOME/.local/share/ringer-workflows/scripts/task_gate.py" run \
+python3 "<tools.task_gate>" run \
   --contract <accepted-contract> --sha256 <reviewed-contract-hash> \
   --task <canonical-task-id> --repo <task-checkout> -- <implementation-command> <args>
 ```
