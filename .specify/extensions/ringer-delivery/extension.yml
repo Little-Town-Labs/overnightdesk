@@ -2,9 +2,9 @@ schema_version: "1.0"
 
 extension:
   id: ringer-delivery
-  name: "Sol-Luna Ringer Delivery"
-  version: "1.0.1"
-  description: "Classifies delivery risk and prepares bounded Sol-Luna Ringer handoffs"
+  name: "Role-Based Ringer Delivery"
+  version: "1.1.0"
+  description: "Classifies delivery risk and prepares bounded role-based Ringer handoffs"
   category: process
   effect: read-write
   author: "Timeless Technology Solutions"
@@ -26,11 +26,11 @@ provides:
       description: "Classify the active work and generate checked delivery evidence and manifests"
     - name: speckit.ringer-delivery.run
       file: commands/speckit.ringer-delivery.run.md
-      description: "Execute the prepared bounded Luna delivery and Sol quality flow"
+      description: "Execute the prepared bounded implementation and quality-review flow"
   config:
     - name: ringer-delivery-config.yml
       template: config-template.yml
-      description: "Project-level Sol-Luna routing and local tool paths"
+      description: "Project-level role routing and local tool paths"
       required: true
 
 hooks:
@@ -38,6 +38,11 @@ hooks:
     command: speckit.ringer-delivery.prepare
     optional: false
     description: "Classify analyzed work and prepare bounded delegation before implementation"
+
+  before_implement:
+    command: speckit.ringer-delivery.run
+    optional: false
+    description: "Use per-task executable preflight before any implementation launch"
 
 tags:
   - spec-kit

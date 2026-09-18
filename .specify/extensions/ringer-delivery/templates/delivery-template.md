@@ -7,11 +7,13 @@
 - Risk: [routine|sensitive|production]
 - Mode: [lightweight|mutable-delegation|readonly-delegation]
 
-## Model Routing
+## Role Routing
 
-- Planning and orchestration: codex-sol
-- Implementation: codex-luna or lead-only
-- Final quality gate: codex-sol
+- Accountable lead: planning, orchestration, integration, and final decisions
+- Implementation worker: bounded implementation or lead-only execution
+- Routine reviewer: bounded advisory review
+- Quality reviewer: read-only final quality gate
+- Model mapping: resolved only by the Ringer configuration
 
 ## Codebase Graph
 
@@ -25,7 +27,10 @@
 
 ## Scope and Safety Gates
 
-[Scope ceiling, stop conditions, mutation ownership, and bounded review loop]
+Consult the global policy's authoritative blocker taxonomy, finding
+dispositions, scope decisions inside approved work, and protected authorization
+boundaries. Record the scope ceiling, stop conditions, mutation ownership, and
+bounded review loop here without redefining those authorities.
 
 ## Pull Request Context
 

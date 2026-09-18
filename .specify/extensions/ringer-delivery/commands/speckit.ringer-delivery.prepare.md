@@ -1,11 +1,14 @@
 ---
-description: "Classify analyzed work and prepare bounded Sol-Luna delivery"
+description: "Classify analyzed work and prepare bounded role-based delivery"
 ---
 
-# Prepare Sol-Luna Delivery
+# Prepare Role-Based Delivery
 
-Prepare the active feature for proportional execution. This command is a Sol
-lead responsibility and MUST NOT start workers or mutate production.
+Prepare the active feature for proportional execution. This command is an
+accountable-lead responsibility and MUST NOT start workers or mutate
+production. Apply the global policy's authoritative blocker taxonomy, finding
+dispositions, scope decisions inside approved work, protected authorization
+boundaries, and stable delivery roles.
 
 ## Preconditions
 
@@ -27,8 +30,10 @@ Choose exactly one value on each axis:
 Apply these routes:
 
 - Routine micro: lightweight lead execution; no generated worker manifest.
-- Routine feature/system: Luna mutable implementation and Sol read-only quality gate.
-- Sensitive/production: Luna read-only analysis only; Sol or the accountable human owns mutation.
+- Routine feature/system: accountable-lead execution with optional bounded
+  implementation-worker mutation and a quality-reviewer read-only quality gate.
+- Sensitive/production: accountable-lead mutation with optional
+  routine-reviewer read-only analysis.
 
 For brownfield feature/system work, use `codebase-memory-mcp` to confirm index
 status, architecture, exact symbols and paths, and change impact. Verify graph
@@ -43,21 +48,45 @@ greenfield and micro routes are not blocked when graph work is not required.
 ## Prepare
 
 Create a scratch JSON request matching
-`/home/powerbox2/src/ringer-workflows/schemas/delivery-request.schema.json`.
+`$HOME/.local/share/ringer-workflows/schemas/delivery-request.schema.json`.
 Every task must include exact Spec Kit task IDs, requirements, disjoint owned
-paths, non-goals, an argv verification list, and a mutable boolean.
+paths, non-goals, an argv verification list, and a mutable boolean. A mutable
+task has exactly one canonical ID and a `gate_contract` repository-relative
+path. The lead accepts the contract defined in
+`$HOME/.local/share/ringer-workflows/schemas/task-gate-contract.md` before
+preparing the package. Generation pins its hash; execution reruns the checks in
+the actual task checkout before each worker starts.
 
 Run:
 
 ```bash
-python3 /home/powerbox2/src/ringer-workflows/scripts/delivery_profile.py prepare \
+python3 "$HOME/.local/share/ringer-workflows/scripts/delivery_profile.py" prepare \
   --request /tmp/ringer-delivery-request.json \
   --output /tmp/ringer-delivery/<project>-<feature> \
   --delivery-out <active-feature-directory>/delivery.md
 ```
 
-Lint every generated manifest with the configured Ringer path and config, then
-dry-run each manifest. Do not execute it yet.
+Lint mutable manifests with generated `implementation.config.toml`, and
+read-only manifests with the installed overlay config, then dry-run
+the same manifest. Do not execute it yet:
+
+```bash
+RINGER_HOME="$HOME/.local/share/ringer/performance" \
+python3 "$HOME/src/ringer/ringer.py" \
+  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+  lint <generated-manifest>
+RINGER_HOME="$HOME/.local/share/ringer/performance" \
+python3 "$HOME/src/ringer/ringer.py" \
+  --config "$HOME/.local/share/ringer-workflows/config/config.toml" \
+  run <generated-manifest> --dry-run --no-dashboard
+```
+
+For the mutable manifest, substitute the generated `implementation.config.toml`
+for the config path in both commands above.
+
+Lint rejects engine names that are absent from the selected configuration.
+The dry-run remains separate command, path, model, and effort readiness
+evidence.
 
 ## Completion Report
 

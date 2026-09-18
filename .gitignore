@@ -56,3 +56,6 @@ __pycache__/
 overnightdesk-platform-standard/
 overnightdesk-operations-audit/
 overnightdesk-ops/
+
+# Transient lock written by `specify workflow add`.
+.specify/.workflow-install.lock
