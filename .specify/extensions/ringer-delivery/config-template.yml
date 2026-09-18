@@ -1,23 +1,24 @@
 schema_version: "1.0"
-profile_version: "1.0.1"
+profile_version: "1.1.0"
 
 tools:
-  generator: "/home/powerbox2/src/ringer-workflows/scripts/delivery_profile.py"
-  ringer: "/home/powerbox2/src/ringer/ringer.py"
-  ringer_config: "/home/powerbox2/src/ringer-workflows/config/config.toml"
+  generator: "/path/to/ringer-workflows/scripts/delivery_profile.py"
+  ringer: "/path/to/ringer/ringer.py"
+  task_gate: "/path/to/ringer-workflows/scripts/task_gate.py"
+  ringer_config: "/path/to/ringer-workflows/config/config.toml"
 
 routing:
-  planning: codex-sol
-  implementation: codex-luna
-  routine_review: codex-luna
-  quality_gate: codex-sol
-  fallback: codex-fallback
+  planning: accountable-lead
+  implementation: implementation-worker
+  routine_review: routine-reviewer
+  quality_gate: quality-reviewer
+  fallback: fallback
   max_parallel: 3
 
 bounds:
-  task_attempts: 2
-  luna_remediation_rounds: 1
-  sol_delta_review_rounds: 1
+  task_attempts: 1
+  implementation_remediation_rounds: 1
+  quality_delta_review_rounds: 1
 
 graph:
   brownfield_feature_system: required-before-planning

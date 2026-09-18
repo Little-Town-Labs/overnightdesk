@@ -52,6 +52,14 @@ hooks:
     prompt: Commit outstanding changes before implementation?
     description: Auto-commit before implementation
     condition: null
+  - extension: ringer-delivery
+    command: speckit.ringer-delivery.run
+    enabled: true
+    optional: true
+    priority: 10
+    prompt: Execute speckit.ringer-delivery.run?
+    description: Use per-task executable preflight before any implementation launch
+    condition: null
   before_checklist:
   - extension: git
     command: speckit.git.commit
